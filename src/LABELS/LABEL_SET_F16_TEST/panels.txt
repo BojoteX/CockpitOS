@@ -1,0 +1,44 @@
+ADI
+Airspeed Indicator
+Altimeter
+AoA
+Audio Panel
+Avionic Panel
+CMDS
+Clock
+Cockpit Mechanics
+Control Interface
+DED Output Data
+ECM
+ECS
+EHSI
+EPU
+Electric System
+Engine
+External Aircraft Model
+External Lights
+Fuel System
+Gear System
+HMCS
+HUD Control Panel
+Hydraulic Pressure Indicators
+IFF
+Interior Lights
+Interior Lights Indicators
+KY-58
+MFD Left
+MFD Right
+MMC
+Oxygen System
+RWR
+Radio Frequencies
+SAI
+Sensor Panel
+Speed Brake
+Standby Compass
+Throttle
+Trim Indicators
+UFC
+UHF
+Vertical Velocity Indicator
+Warning, Caution and IndicatorLights

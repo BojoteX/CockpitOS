@@ -1,0 +1,127 @@
+#include "../../Globals.h"
+#include "CT_Display.h"
+#include "DisplayMapping.h"
+
+char cmds_ch_amount[5] = {};
+bool cmds_ch_amount_dirty = false;
+char last_cmds_ch_amount[5] = {};
+char cmds_fl_amount[5] = {};
+bool cmds_fl_amount_dirty = false;
+char last_cmds_fl_amount[5] = {};
+char cmds_o1_amount[5] = {};
+bool cmds_o1_amount_dirty = false;
+char last_cmds_o1_amount[5] = {};
+char cmds_o2_amount[5] = {};
+bool cmds_o2_amount_dirty = false;
+char last_cmds_o2_amount[5] = {};
+char ded_line_1[30] = {};
+bool ded_line_1_dirty = false;
+char last_ded_line_1[30] = {};
+char ded_line_2[30] = {};
+bool ded_line_2_dirty = false;
+char last_ded_line_2[30] = {};
+char ded_line_3[30] = {};
+bool ded_line_3_dirty = false;
+char last_ded_line_3[30] = {};
+char ded_line_4[30] = {};
+bool ded_line_4_dirty = false;
+char last_ded_line_4[30] = {};
+char ded_line_5[30] = {};
+bool ded_line_5_dirty = false;
+char last_ded_line_5[30] = {};
+char uhf_chan_disp[3] = {};
+bool uhf_chan_disp_dirty = false;
+char last_uhf_chan_disp[3] = {};
+char uhf_freq_disp[8] = {};
+bool uhf_freq_disp_dirty = false;
+char last_uhf_freq_disp[8] = {};
+
+DisplayBufferEntry CT_DisplayBuffers[] = {
+    { "CMDS_CH_AMOUNT", cmds_ch_amount, 4, &cmds_ch_amount_dirty, last_cmds_ch_amount },
+    { "CMDS_FL_AMOUNT", cmds_fl_amount, 4, &cmds_fl_amount_dirty, last_cmds_fl_amount },
+    { "CMDS_O1_AMOUNT", cmds_o1_amount, 4, &cmds_o1_amount_dirty, last_cmds_o1_amount },
+    { "CMDS_O2_AMOUNT", cmds_o2_amount, 4, &cmds_o2_amount_dirty, last_cmds_o2_amount },
+    { "DED_LINE_1", ded_line_1, 29, &ded_line_1_dirty, last_ded_line_1 },
+    { "DED_LINE_2", ded_line_2, 29, &ded_line_2_dirty, last_ded_line_2 },
+    { "DED_LINE_3", ded_line_3, 29, &ded_line_3_dirty, last_ded_line_3 },
+    { "DED_LINE_4", ded_line_4, 29, &ded_line_4_dirty, last_ded_line_4 },
+    { "DED_LINE_5", ded_line_5, 29, &ded_line_5_dirty, last_ded_line_5 },
+    { "UHF_CHAN_DISP", uhf_chan_disp, 2, &uhf_chan_disp_dirty, last_uhf_chan_disp },
+    { "UHF_FREQ_DISP", uhf_freq_disp, 7, &uhf_freq_disp_dirty, last_uhf_freq_disp },
+};
+const size_t numCTDisplayBuffers = sizeof(CT_DisplayBuffers)/sizeof(CT_DisplayBuffers[0]);
+
+const DisplayBufferHashEntry CT_DisplayBufferHash[23] = {
+    {nullptr, nullptr},
+    {"CMDS_O2_AMOUNT", &CT_DisplayBuffers[3]},
+    {"CMDS_FL_AMOUNT", &CT_DisplayBuffers[1]},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {"DED_LINE_1", &CT_DisplayBuffers[4]},
+    {"DED_LINE_2", &CT_DisplayBuffers[5]},
+    {"DED_LINE_3", &CT_DisplayBuffers[6]},
+    {"CMDS_CH_AMOUNT", &CT_DisplayBuffers[0]},
+    {"CMDS_O1_AMOUNT", &CT_DisplayBuffers[2]},
+    {"DED_LINE_4", &CT_DisplayBuffers[7]},
+    {"DED_LINE_5", &CT_DisplayBuffers[8]},
+    {"UHF_CHAN_DISP", &CT_DisplayBuffers[9]},
+    {"UHF_FREQ_DISP", &CT_DisplayBuffers[10]},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+};
+
+const DisplayBufferEntry* findDisplayBufferByLabel(const char* label) {
+    uint16_t startH = labelHash(label) % 23;
+    for (uint16_t i = 0; i < 23; ++i) {
+        uint16_t idx = (startH + i >= 23) ? (startH + i - 23) : (startH + i);
+        const auto& entry = CT_DisplayBufferHash[idx];
+        if (!entry.label) continue;
+        if (strcmp(entry.label, label) == 0) return entry.entry;
+    }
+    return nullptr;
+}
+
+
+void renderField(const char* label, const char* strValue, const DisplayFieldDefLabel* defOverride, FieldState* stateOverride) {
+    const DisplayFieldDefLabel* def = defOverride ? defOverride : findFieldDefByLabel(label);
+
+    if (!def) return;
+
+    if (!def->renderFunc) {
+        debugPrintf("[DISPLAY] No renderFunc for label '%s', skipping\n", def->label);
+        return;
+    }
+
+    FieldState* state = stateOverride;
+    int idx = 0;
+
+    if (!stateOverride) {
+        idx = def - fieldDefs;
+        state = &fieldStates[idx];
+    }
+
+    bool valid = true;
+    if (def->type == FIELD_NUMERIC) {
+        int value = strToIntFast(strValue);
+        valid = (value >= def->minValue && value <= def->maxValue);
+    }
+
+    const char* toShow = valid ? strValue : state->lastValue;
+
+    if (memcmp(toShow, state->lastValue, sizeof(state->lastValue)) == 0)
+        return;
+
+    memcpy(state->lastValue, toShow, sizeof(state->lastValue));
+    if (def->clearFunc) def->clearFunc(def->driver, def->segMap, *def);
+
+    // Call the render function with the appropriate parameters
+    def->renderFunc(def->driver, def->segMap, toShow, *def);
+}
+

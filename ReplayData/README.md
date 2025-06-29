@@ -1,0 +1,2 @@
+See Config.h IS_REPLAY feature
+This is to "test" a simulated loopback DCS stream without using your serial interface. It uses a Header file with the binary data of a simulated DCS Stream. The header file is created from the actual JSON file captured when using the DCSBIOS Python stream capture tool, this is ideal for debugging via Serial when WiFi is not available, however WiFi Debug is the preferred way to debug live data. See Debug Tools directory to generate simulated DCS stream and console scripts to see actual debug / info output.
