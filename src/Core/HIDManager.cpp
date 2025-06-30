@@ -39,11 +39,11 @@ extern "C" {
         return lang_desc;
       }
       case 1: return make_str_desc(USB_MANUFACTURER);
-      case 2: return make_str_desc(USB_PRODUCT);
+      case 2: return make_str_desc(USB_SERIAL);
       case 3: return make_str_desc(USB_SERIAL);
-      case 4: return make_str_desc(USB_PRODUCT); // HID name
-      case 5: return make_str_desc(USB_PRODUCT); // CDC name
-      case 6: return make_str_desc(USB_PRODUCT); // Device name
+      case 4: return make_str_desc(USB_SERIAL); // HID name
+      case 5: return make_str_desc(USB_SERIAL); // CDC name
+      case 6: return make_str_desc(USB_SERIAL); // Device name
       default: return nullptr;
     }
   }
