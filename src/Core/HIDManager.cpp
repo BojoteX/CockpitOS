@@ -61,6 +61,7 @@ USBHID HID;
 GamepadReport_t report = {0};
 GPDevice gamepad; // Load the class
 
+/*
 // Wats the max number of groups?
 constexpr size_t maxUsedGroup = []() {
     uint16_t max = 0;
@@ -70,6 +71,16 @@ constexpr size_t maxUsedGroup = []() {
     return max;
 }();
 static_assert(maxUsedGroup < MAX_GROUPS, "❌ Too many unique selector groups — increase MAX_GROUPS in Config.h");
+*/
+
+// Wats the max number of groups?
+size_t getMaxUsedGroup() {
+    uint16_t max = 0;
+    for (size_t i = 0; i < sizeof(InputMappings) / sizeof(InputMappings[0]); ++i) {
+        if (InputMappings[i].group > max) max = InputMappings[i].group;
+    }
+    return max;
+}
 
 // MAX groups in bitmasks
 static uint32_t groupBitmask[MAX_GROUPS] = { 0 };
@@ -135,11 +146,27 @@ void flushBufferedHidCommands() {
         // Always clear all bits in this group first
         report.buttons &= ~groupBitmask[g];
 
+        /*
         const InputMapping* m = findHidMappingByDcs(winner->label, winner->pendingValue);
-
         // **NEW: Set winner's HID bit for ANY value (including 0)**
         if (m) {
             report.buttons |= (1UL << (m->hidId - 1));
+        }
+        */
+
+        const InputMapping* match = nullptr;
+
+        for (size_t i = 0; i < InputMappingSize; ++i) {
+            const InputMapping& mapping = InputMappings[i];
+            if (mapping.group == g && mapping.oride_value == winner->pendingValue
+                && mapping.hidId > 0 && mapping.hidId <= 32) {
+                report.buttons |= (1UL << (mapping.hidId - 1));
+                match = &mapping;  // Keep pointer for debug
+                break;
+            }
+            else if (mapping.group == g && mapping.oride_value == winner->pendingValue) {
+                debugPrintf("❌ [HID] INVALID HID ID %d for %s (group=%u value=%u)\n", mapping.hidId, mapping.label, g, winner->pendingValue);
+            }
         }
 
         HIDManager_dispatchReport(false);
@@ -147,7 +174,9 @@ void flushBufferedHidCommands() {
         winner->lastValue = winner->pendingValue;
         winner->lastSendTime = now;
         winner->hasPending = false;
-        debugPrintf("🛩️ [HID] GROUP %u FLUSHED: %s = %u (HID=%d)\n", g, winner->label, winner->lastValue, m ? m->hidId : -1);
+        
+        debugPrintf("🛩️ [HID] GROUP %u FLUSHED: %s = %u (HID=%d)\n",g, winner->label, winner->lastValue, match ? match->hidId : -1);
+        // debugPrintf("🛩️ [HID] GROUP %u FLUSHED: %s = %u (HID=%d)\n", g, winner->label, winner->lastValue, m ? m->hidId : -1);
     }
     if (reportPending) HIDManager_dispatchReport(false);
 }
@@ -216,9 +245,10 @@ void HIDManager_resetAllAxes() {
     }
 }
 
+/*
 void HIDManager_moveAxis(const char* dcsIdentifier,
                         uint8_t      pin,
-                        HIDAxis      axis /*= AXIS_RX*/) {
+                        HIDAxis      axis) {
     constexpr int DEADZONE_LOW        = 256;
     constexpr int DEADZONE_HIGH       = 4000;
     constexpr int THRESHOLD           = 64;
@@ -262,7 +292,7 @@ void HIDManager_moveAxis(const char* dcsIdentifier,
                   default:           report.rx = filtered; break;
                 }
                 auto* e = findCmdEntry(dcsIdentifier);
-                if (e && applyThrottle(*e, dcsIdentifier, dcsValue, /*force=*/false)) {
+                if (e && applyThrottle(*e, dcsIdentifier, dcsValue, false)) {
                     HIDManager_dispatchReport(false);
                     e->lastValue    = dcsValue;
                     e->lastSendTime = millis();
@@ -302,12 +332,114 @@ void HIDManager_moveAxis(const char* dcsIdentifier,
           default:           report.rx = filtered; break;
         }
         auto* e = findCmdEntry(dcsIdentifier);
-        if (e && applyThrottle(*e, dcsIdentifier, dcsValue, /*force=*/false)) {
+        if (e && applyThrottle(*e, dcsIdentifier, dcsValue, false)) {
             HIDManager_dispatchReport(false);
             e->lastValue    = dcsValue;
             e->lastSendTime = millis();
             debugPrintf("🛩️ [HID] Axis(%u) %s = %u\n",
                         axis, dcsIdentifier, dcsValue);
+        }
+    }
+}
+*/
+
+void HIDManager_moveAxis(const char* dcsIdentifier,
+    uint8_t      pin,
+    HIDAxis      axis) {
+    constexpr int DEADZONE_LOW = 512;   // ~256*2
+    constexpr int DEADZONE_HIGH = 8000;  // ~4000*2
+    constexpr int THRESHOLD = 128;   // ~64*2
+    constexpr int SMOOTHING_FACTOR = 8;
+    constexpr int STABILIZATION_CYCLES = 10;
+    constexpr int HID_MAX = 8191;  // 13 bits
+
+    // 1) Read & smooth
+    int raw = analogRead(pin);
+    if (stabCount[pin] == 0) {
+        lastFiltered[pin] = raw;
+    }
+    else {
+        lastFiltered[pin] = (lastFiltered[pin] * (SMOOTHING_FACTOR - 1) + raw)
+            / SMOOTHING_FACTOR;
+    }
+    int filtered = lastFiltered[pin];
+    if (filtered < DEADZONE_LOW)  filtered = 0;
+    if (filtered > DEADZONE_HIGH) filtered = HID_MAX;
+
+    // 2) Stabilization period
+    if (!stabilized[pin]) {
+        stabCount[pin]++;
+        if (stabCount[pin] >= STABILIZATION_CYCLES) {
+            stabilized[pin] = true;
+            // --- Always send initial value after stabilization ---
+            lastOutput[pin] = filtered;
+            uint16_t dcsValue = map(filtered, 0, HID_MAX, 0, 65535);
+
+            if (isModeSelectorDCS()) {
+                auto* e = findCmdEntry(dcsIdentifier);
+                bool force = forcePanelSyncThisMission;
+                if (e && applyThrottle(*e, dcsIdentifier, dcsValue, force)) {
+                    sendDCSBIOSCommand(dcsIdentifier, dcsValue, force);
+                    e->lastValue = dcsValue;
+                    e->lastSendTime = millis();
+                }
+            }
+            else {
+                switch (axis) {
+                case AXIS_RX:      report.rx = filtered; break;
+                case AXIS_SLIDER1: report.slider1 = filtered; break;
+                case AXIS_SLIDER2: report.slider2 = filtered; break;
+                default:           report.rx = filtered; break;
+                }
+                auto* e = findCmdEntry(dcsIdentifier);
+                if (e && applyThrottle(*e, dcsIdentifier, dcsValue, false)) {
+                    HIDManager_dispatchReport(false);
+                    e->lastValue = dcsValue;
+                    e->lastSendTime = millis();
+                    debugPrintf("🛩️ [HID] Axis(%u) %s = %u [INITIAL]\n",
+                        axis, dcsIdentifier, dcsValue);
+                }
+            }
+            return; // Done with initial send after stabilization
+        }
+        else {
+            return; // Still stabilizing
+        }
+    }
+
+    // 3) Only send if the change exceeds the threshold
+    if (abs(filtered - lastOutput[pin]) <= THRESHOLD) {
+        return;
+    }
+    lastOutput[pin] = filtered;
+
+    // 4) Map filtered [0..8191] → DCS [0..65535]
+    uint16_t dcsValue = map(filtered, 0, HID_MAX, 0, 65535);
+
+    // 5) Throttle & dispatch
+    if (isModeSelectorDCS()) {
+        auto* e = findCmdEntry(dcsIdentifier);
+        bool force = forcePanelSyncThisMission;
+        if (e && applyThrottle(*e, dcsIdentifier, dcsValue, force)) {
+            sendDCSBIOSCommand(dcsIdentifier, dcsValue, force);
+            e->lastValue = dcsValue;
+            e->lastSendTime = millis();
+        }
+    }
+    else {
+        switch (axis) {
+        case AXIS_RX:      report.rx = filtered; break;
+        case AXIS_SLIDER1: report.slider1 = filtered; break;
+        case AXIS_SLIDER2: report.slider2 = filtered; break;
+        default:           report.rx = filtered; break;
+        }
+        auto* e = findCmdEntry(dcsIdentifier);
+        if (e && applyThrottle(*e, dcsIdentifier, dcsValue, false)) {
+            HIDManager_dispatchReport(false);
+            e->lastValue = dcsValue;
+            e->lastSendTime = millis();
+            debugPrintf("🛩️ [HID] Axis(%u) %s = %u\n",
+                axis, dcsIdentifier, dcsValue);
         }
     }
 }
@@ -552,13 +684,13 @@ void HIDManager_setSelectorState(const char* name, bool deferSend) {
 
   // Always clear the group and set ONLY this bit, regardless of prior state
   if (m->group > 0) {
-    report.buttons &= ~groupBitmask[m->group];
-    if (m->hidId > 0) {
+      report.buttons &= ~groupBitmask[m->group];
+      if (m->hidId > 0 && m->hidId <= 32) {
+          report.buttons |= (1UL << (m->hidId - 1));
+      }
+  }
+  else if (m->hidId > 0 && m->hidId <= 32) {
       report.buttons |= (1UL << (m->hidId - 1));
-    }
-  } else if (m->hidId > 0) {
-    // For non-group, treat as regular momentary
-    report.buttons |= (1UL << (m->hidId - 1));
   }
 
   // Always send the DCS command, even if already set

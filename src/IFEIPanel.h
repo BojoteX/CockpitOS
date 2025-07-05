@@ -1,7 +1,5 @@
 #pragma once
 
-#include "LABELS/LABEL_SET_IFEI_NO_VIDEO/DisplayMapping.h"
-
 // Device as Input (buttons)
 void IFEI_init();
 void IFEI_loop();
@@ -51,8 +49,6 @@ struct CommitRegion {
 static CommitRegion commitRegions[MAX_DISPLAY_FIELDS];
 static int numCommitRegions = 0;
 
-extern IFEIDisplay ifei;
-
 class IFEIDisplay {
 public:
     IFEIDisplay(HT1622* chips[IFEI_MAX_CHIPS]);
@@ -90,3 +86,5 @@ private:
     uint8_t ramShadow[IFEI_MAX_CHIPS][64]; // Per-chip shadow RAM
     uint8_t lastShadow[IFEI_MAX_CHIPS][64];
 };
+
+extern IFEIDisplay ifei;

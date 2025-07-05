@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Mappings.h"
+#include "../Mappings.h"
 
 void initPanels();
 

@@ -2,6 +2,16 @@
 
 #include "../Globals.h"     
 
+// Find the #include for Arduino.h or before your printTaskList()
+#if defined(ESP_ARDUINO_VERSION) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
+// Core 3.x and later: xCoreID is present
+#define HAS_XCOREID_FIELD 1
+#define HAS_UXTASKGETSYSTEMSTATE 1
+#else
+#define HAS_XCOREID_FIELD 0
+#define HAS_UXTASKGETSYSTEMSTATE 0
+#endif
+
 #if DEBUG_PERFORMANCE
 
 #if (ARDUINO_USB_CDC_ON_BOOT == 1)
@@ -206,6 +216,7 @@ void appendOnly_perfDebugPrintln(const char* msg = "") {
 }
 
 void printTaskList() {
+#if HAS_UXTASKGETSYSTEMSTATE
     constexpr size_t MAX_TASKS = 32;
     TaskStatus_t taskStatusArray[MAX_TASKS];
     UBaseType_t taskCount = uxTaskGetSystemState(taskStatusArray, MAX_TASKS, nullptr);
@@ -220,12 +231,12 @@ void printTaskList() {
 
         const char* stateStr = "UNKNOWN";
         switch (t.eCurrentState) {
-            case eRunning:   stateStr = "RUN";   break;
-            case eReady:     stateStr = "READY"; break;
-            case eBlocked:   stateStr = "BLOCK"; break;
-            case eSuspended: stateStr = "SUSP";  break;
-            case eDeleted:   stateStr = "DEL";   break;
-            default: break;
+        case eRunning:   stateStr = "RUN";   break;
+        case eReady:     stateStr = "READY"; break;
+        case eBlocked:   stateStr = "BLOCK"; break;
+        case eSuspended: stateStr = "SUSP";  break;
+        case eDeleted:   stateStr = "DEL";   break;
+        default: break;
         }
 
         char line[TASKLIST_LINE_GENERAL_TMP_BUFFER];
@@ -234,29 +245,22 @@ void printTaskList() {
             t.pcTaskName,
             stateStr,
             (unsigned)t.uxCurrentPriority,
+#if HAS_XCOREID_FIELD
             (int)t.xCoreID,
+#else
+            0,
+#endif
             (unsigned)t.usStackHighWaterMark * sizeof(StackType_t),
             (unsigned int)(uintptr_t)t.xHandle,
             (unsigned)t.xTaskNumber
         );
+
         appendOnly_perfDebugPrintln(line);
     }
     flushAllprintsAbove();
-
-/*
-    appendOnly_perfDebugPrintln("\r\n---------------------------------- [ADVANCED CONFIG] -----------------------------------");
-    appendOnly_perfDebugPrintf("[CDC] CONFIG_TINYUSB_CDC_RX_BUFSIZE = %d\r\n", CONFIG_TINYUSB_CDC_RX_BUFSIZE);
-    appendOnly_perfDebugPrintf("[CDC] CONFIG_TINYUSB_CDC_TX_BUFSIZE = %d\r\n", CONFIG_TINYUSB_CDC_TX_BUFSIZE);
-    appendOnly_perfDebugPrintf("[CDC] CONFIG_TINYUSB_CDC_MAX_PORTS = %d\r\n", CONFIG_TINYUSB_CDC_MAX_PORTS);
-    appendOnly_perfDebugPrintf("[HID] CONFIG_TINYUSB_HID_BUFSIZE = %d\r\n", CONFIG_TINYUSB_HID_BUFSIZE);
-    appendOnly_perfDebugPrintf("[TUSB] TUSB_VERSION_STRING = %d\r\n", TUSB_VERSION_STRING);
-    appendOnly_perfDebugPrintf("[TUSB] CFG_TUSB_DEBUG = %d\r\n", CFG_TUSB_DEBUG);
-    appendOnly_perfDebugPrintf("[lwIP] PBUF_POOL_BUFSIZE = %d\r\n", PBUF_POOL_BUFSIZE);
-    appendOnly_perfDebugPrintf("[lwIP] MEMP_NUM_UDP_PCB = %d\r\n", MEMP_NUM_UDP_PCB);
-*/
-
-    appendOnly_perfDebugPrintln("---------------------------------------------------------------------------------------\n");    
-    flushAllprintsAbove();
+#else
+    appendOnly_perfDebugPrintln("\r\n📋 Detailed FreeRTOS Task List: Not available (ESP32 Arduino Core 2.x).");
+#endif
 }
 
 void logCrashDetailIfAny() {

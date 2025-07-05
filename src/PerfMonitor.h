@@ -33,6 +33,9 @@ const char* const perfLabelNames[] = {
     "HID SendReport",			// PERF_HIDREPORTS
     "DCSBIOS Listener",			// PERF_DCSBIOS
     "[DISPLAY] Renderer",		// PERF_DISPLAY_RENDER
+    "[TFT DISPLAY] Draw Function", 	// PERF_TFT_DRAW
+    "[TFT DISPLAY] BitTest Function", 	// PERF_TFT_BITTEST
+    "[TFT DISPLAY] Init Function", 	// PERF_TFT_INIT
     "[CUSTOM] Generic Profiler", 	// PERF_GENERIC_PROFILER
     "[CUSTOM] Generic Profiler 1", 	// PERF_GENERIC_PROFILER1
     "[CUSTOM] Generic Profiler 2", 	// PERF_GENERIC_PROFILER2
@@ -51,6 +54,9 @@ enum PerfLabel : uint8_t {
     PERF_HIDREPORTS,
     PERF_DCSBIOS,
     PERF_DISPLAY_RENDER,
+    PERF_TFT_DRAW,
+    PERF_TFT_BITTEST,
+    PERF_TFT_INIT,
     PERF_GENERIC_PROFILER,
     PERF_GENERIC_PROFILER1,
     PERF_GENERIC_PROFILER2,
@@ -70,6 +76,9 @@ constexpr bool perfIncludedInLoad[PERF_LABEL_COUNT] = {
     false,  	// PERF_HIDREPORTS
     false,  	// PERF_DCSBIOS
     false,  	// PERF_DISPLAY_RENDER
+    false, 	// PERF_TFT_DRAW
+    false, 	// PERF_TFT_BITTEST
+    false, 	// PERF_TFT_INIT
     false, 	// PERF_GENERIC_PROFILER
     false, 	// PERF_GENERIC_PROFILER1
     false, 	// PERF_GENERIC_PROFILER2

@@ -24,16 +24,16 @@ TM1637Device LA_Device;
 // indexed by (address - 0x20), port 0 or 1
 uint8_t PCA9555_cachedPortStates[8][2] = {{0}};
 
-// — include and compile each internal module ——
-#include "internal/GPIO.cpp"    
+// Include all internal modules
 #include "internal/WS2812.cpp"  
+#include "internal/HT1622.cpp"
+#include "internal/GPIO.cpp"   
 #include "internal/TM1637.cpp"  
 #include "internal/GN1640.cpp"  
 #include "internal/PCA9555.cpp" 
 #include "internal/MatrixRotary.cpp"
 #include "internal/HC165.cpp"
 #include "internal/AnalogG.cpp"
-#include "internal/HT1622.cpp"
 
 PanelID getPanelID(uint8_t address) {
   for (auto &p : kPanels)

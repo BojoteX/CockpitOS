@@ -1,1 +1,9 @@
-Nothing! its finished 100%
+CURRENT ISSUES:
+If compiling with Arduino Core 2.x and WiFi ENABLED (either for debug or DCS Operation) there could be "conflicts"
+and/or interference, however, this seems to only happen with Arduino Core 2.x. (3.x is fine). This should not be an
+issue as WiFi is supposed to be DISABLED for production and if you need Networked panels you are better off using the
+HID manager python script on a remote computer (Windows/Linux/Mac/Raspberry Pi) which automatically enables your panels
+over the network. A way to reproduce the issue is: Compile the MAIN_PANEL label set with Arduino Core 2.x and WiFi
+enabled, notice the Lockshoot indicator staying WHITE. It stops working. Just disable WiFi and it will work again.
+
+HID BUG With SPIN RECOVERY (only with HID) button stays pressed. Lets refactor for IRCool with lastknown or is cover open logic

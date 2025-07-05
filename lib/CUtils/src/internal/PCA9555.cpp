@@ -35,38 +35,49 @@ void measureI2Cspeed(uint8_t deviceAddr) {
     debugPrintf("I²C at 0x%02X Read Time: %u us\n", deviceAddr, t1 - t0);
 }
 
-/*
-// Scan connected PCA Panels (Wire-style)
 void PCA9555_scanConnectedPanels() {
-    delay(100);
+    delay(500); // Give time for I2C bus to stabilize
+
+    // Step 2: Proceed as before: scan and record expected devices only
     discoveredDeviceCount = 0;
     memset(panelNameByAddr, 0, sizeof(panelNameByAddr));
 
-    for (auto &p : kPanels) {
+    for (const auto& p : kPanels) {
         bool present = false;
+        int lastWireError = -1;
+        int lastReqFrom = -1;
 
-        for (uint8_t attempt = 0; attempt < 3; ++attempt) {
+        for (uint8_t attempt = 1; attempt <= 3; ++attempt) {
             Wire.beginTransmission(p.addr);
             Wire.write((uint8_t)0x00);
-            if (Wire.endTransmission(false) == 0 && Wire.requestFrom(p.addr, (uint8_t)1) == 1) {
-                Wire.read();
-                present = true;
-                break;
+            int error = Wire.endTransmission(false);
+            int req = 0;
+            if (error == 0) {
+                req = Wire.requestFrom(p.addr, (uint8_t)1);
+                if (req == 1) {
+                    int value = Wire.read();
+                    present = true;
+                    break;
+                }
             }
-            delay(5);
+            lastWireError = error;
+            lastReqFrom = req;
+            delay(20);
         }
 
-        if (!present || discoveredDeviceCount >= MAX_DEVICES) continue;
-
-        discoveredDevices[discoveredDeviceCount].address = p.addr;
-        discoveredDevices[discoveredDeviceCount].label = p.label;
-        ++discoveredDeviceCount;
-
-        panelNameByAddr[p.addr] = p.label;
+        if (present && discoveredDeviceCount < MAX_DEVICES) {
+            discoveredDevices[discoveredDeviceCount].address = p.addr;
+            discoveredDevices[discoveredDeviceCount].label = p.label;
+            ++discoveredDeviceCount;
+            panelNameByAddr[p.addr] = p.label;
+        }
+        else {
+			// Log the error if the device was not found
+        }
     }
 }
-*/
 
+/*
 void PCA9555_scanConnectedPanels() {
     discoveredDeviceCount = 0;
     memset(panelNameByAddr, 0, sizeof(panelNameByAddr));
@@ -78,6 +89,7 @@ void PCA9555_scanConnectedPanels() {
         panelNameByAddr[p.addr] = p.label;
     }
 }
+*/
 
 void PCA9555_initCache() {
     for (uint8_t i = 0; i < discoveredDeviceCount; ++i) {
@@ -96,41 +108,6 @@ void PCA9555_initCache() {
         Wire.endTransmission();
     }
 }
-
-/*
-void PCA9555_autoInitFromLEDMap(uint8_t addr) {
-    uint8_t configPort0 = 0xFF; // Initially, all INPUTS
-    uint8_t configPort1 = 0xFF; // Initially, all INPUTS
-    uint8_t outputPort0 = 0xFF; // Initially all HIGH (OFF state)
-    uint8_t outputPort1 = 0xFF; // Initially all HIGH (OFF state)
-
-    for (int i = 0; i < panelLEDsCount; i++) {
-        if (panelLEDs[i].deviceType == DEVICE_PCA9555 && panelLEDs[i].info.pcaInfo.address == addr) {
-            if (panelLEDs[i].info.pcaInfo.port == 0) {
-                configPort0 &= ~(1 << panelLEDs[i].info.pcaInfo.bit); // set as OUTPUT
-                outputPort0 |= (1 << panelLEDs[i].info.pcaInfo.bit);  // explicitly HIGH (LED OFF initially)
-            } else {
-                configPort1 &= ~(1 << panelLEDs[i].info.pcaInfo.bit); // set as OUTPUT
-                outputPort1 |= (1 << panelLEDs[i].info.pcaInfo.bit);  // explicitly HIGH (LED OFF initially)
-            }
-        }
-    }
-
-    // Set initial OUTPUT STATE FIRST
-    Wire.beginTransmission(addr);
-    Wire.write((uint8_t)0x02); // Output port register PORT0
-    Wire.write(outputPort0);   // Port0 initially HIGH
-    Wire.write(outputPort1);   // Port1 initially HIGH
-    Wire.endTransmission();
-
-    // Now set pins as OUTPUT
-    Wire.beginTransmission(addr);
-    Wire.write((uint8_t)0x06); // Configuration register PORT0
-    Wire.write(configPort0);   // set directions for PORT0
-    Wire.write(configPort1);   // set directions for PORT1
-    Wire.endTransmission();
-}
-*/
 
 // Reads both config and output registers for the PCA9555 at 'addr' using Wire
 void PCA9555_readConfigOutput(uint8_t addr, uint8_t& config0, uint8_t& config1, uint8_t& out0, uint8_t& out1) {
@@ -298,47 +275,47 @@ void PCA9555_init() {
 void measureI2Cspeed(uint8_t deviceAddr) {
     uint32_t t0 = micros();
     uint8_t dummy[2] = {0};
-    i2c_master_read_from_device(PCA_I2C_PORT, deviceAddr, dummy, 2, I2C_TIMEOUT_MS / portTICK_RATE_MS);
+    i2c_master_read_from_device(PCA_I2C_PORT, deviceAddr, dummy, 2, 100);
     uint32_t t1 = micros();
     debugPrintf("I²C at 0x%02X Read Time: %u us\n", deviceAddr, t1 - t0);
 }
 
-/*
-// Scan connected PCA Panels (best-practice ESP-IDF)
 void PCA9555_scanConnectedPanels() {
-    // vTaskDelay(pdMS_TO_TICKS(100));
-	delay(250); // Give time for I2C bus to stabilize
+    delay(500); // Give time for I2C bus to stabilize
+
+    // Step 2: Proceed as before: scan and record expected devices only
     discoveredDeviceCount = 0;
     memset(panelNameByAddr, 0, sizeof(panelNameByAddr));
 
-    for (auto &p : kPanels) {
+    for (const auto& p : kPanels) {
         bool present = false;
-        for (uint8_t attempt = 0; attempt < 3; ++attempt) {
+        esp_err_t lastRet = ESP_FAIL;
+        for (uint8_t attempt = 1; attempt <= 3; ++attempt) {
             uint8_t reg = 0x00;
-            uint8_t val;
+            uint8_t val = 0xEE;
             esp_err_t ret = i2c_master_write_read_device(
-                PCA_I2C_PORT,
-                p.addr,
-                &reg, 1,
-                &val, 1,
-                I2C_TIMEOUT_MS / portTICK_RATE_MS
+                PCA_I2C_PORT, p.addr, &reg, 1, &val, 1, 100
             );
+            lastRet = ret;
             if (ret == ESP_OK) {
                 present = true;
                 break;
             }
             delay(50);
-            // vTaskDelay(pdMS_TO_TICKS(5));
         }
-        if (!present || discoveredDeviceCount >= MAX_DEVICES) continue;
-        discoveredDevices[discoveredDeviceCount].address = p.addr;
-        discoveredDevices[discoveredDeviceCount].label = p.label;
-        ++discoveredDeviceCount;
-        panelNameByAddr[p.addr] = p.label;
+        if (present && discoveredDeviceCount < MAX_DEVICES) {
+            discoveredDevices[discoveredDeviceCount].address = p.addr;
+            discoveredDevices[discoveredDeviceCount].label = p.label;
+            ++discoveredDeviceCount;
+            panelNameByAddr[p.addr] = p.label;
+        }
+        else {
+			// Log the last error if not found
+        }
     }
 }
-*/
 
+/*
 void PCA9555_scanConnectedPanels() {
     discoveredDeviceCount = 0;
     memset(panelNameByAddr, 0, sizeof(panelNameByAddr));
@@ -350,11 +327,12 @@ void PCA9555_scanConnectedPanels() {
         panelNameByAddr[p.addr] = p.label;
     }
 }
+*/
 
 // Atomic/fast multi-byte write (for cache/init/output, always 3 bytes: reg, val0, val1)
 static inline esp_err_t PCA9555_writeReg2(uint8_t addr, uint8_t reg, uint8_t val0, uint8_t val1) {
     uint8_t buf[3] = {reg, val0, val1};
-    return i2c_master_write_to_device(PCA_I2C_PORT, addr, buf, 3, I2C_TIMEOUT_MS / portTICK_RATE_MS);
+    return i2c_master_write_to_device(PCA_I2C_PORT, addr, buf, 3, 100);
 }
 
 // For LED cache/init, always best to use atomic multi-byte write
@@ -368,25 +346,6 @@ void PCA9555_initCache() {
         PCA9555_writeReg2(addr, 0x02, 0xFF, 0xFF);
     }
 }
-
-/*
-void PCA9555_autoInitFromLEDMap(uint8_t addr) {
-    uint8_t configPort0 = 0xFF, configPort1 = 0xFF, outputPort0 = 0xFF, outputPort1 = 0xFF;
-    for (int i = 0; i < panelLEDsCount; i++) {
-        if (panelLEDs[i].deviceType == DEVICE_PCA9555 && panelLEDs[i].info.pcaInfo.address == addr) {
-            if (panelLEDs[i].info.pcaInfo.port == 0) {
-                configPort0 &= ~(1 << panelLEDs[i].info.pcaInfo.bit);
-                outputPort0 |= (1 << panelLEDs[i].info.pcaInfo.bit);
-            } else {
-                configPort1 &= ~(1 << panelLEDs[i].info.pcaInfo.bit);
-                outputPort1 |= (1 << panelLEDs[i].info.pcaInfo.bit);
-            }
-        }
-    }
-    PCA9555_writeReg2(addr, 0x02, outputPort0, outputPort1); // set outputs
-    PCA9555_writeReg2(addr, 0x06, configPort0, configPort1); // set config
-}
-*/
 
 // Single 8-bit register read (pure ESP-IDF)
 uint8_t PCA9555_readReg(uint8_t addr, uint8_t reg) {
@@ -483,7 +442,7 @@ bool readPCA9555(uint8_t address, byte &port0, byte &port1) {
         address,
         &reg, 1,
         buf, 2,
-        I2C_TIMEOUT_MS / portTICK_RATE_MS
+        100
     );
     if (ret == ESP_OK) {
         port0 = buf[0];
@@ -632,31 +591,6 @@ bool shouldLogChange(uint8_t address, byte port0, byte port1) {
 
   return false;
 }
-
-/*
-inline const char* resolvePanelName(const char* source) {
-    // Look for a substring of form "0x" followed by 1 or 2 hex digits
-    const char* p = source;
-    while (*p) {
-        if (p[0] == '0' && p[1] == 'x') {
-            // Parse up to two hex digits
-            uint8_t val = 0;
-            for (int i = 0; i < 2 && p[2 + i]; ++i) {
-                char c = p[2 + i];
-                uint8_t digit = (c >= '0' && c <= '9') ? (c - '0') :
-                                (c >= 'A' && c <= 'F') ? (c - 'A' + 10) :
-                                (c >= 'a' && c <= 'f') ? (c - 'a' + 10) : 0xFF;
-                if (digit > 0x0F) break;
-                val = (val << 4) | digit;
-            }
-            // Use the official kPanels[] path
-            return panelIDToString(getPanelID(val));
-        }
-        ++p;
-    }
-    return "Unknown Panel";
-}
-*/
 
 void enablePCA9555Logging(bool enable) {
   loggingEnabled = enable;

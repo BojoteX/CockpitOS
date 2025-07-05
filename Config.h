@@ -5,9 +5,11 @@
 // Here you need to #define ONE and ONLY one of possible LABEL sets to use with your panel, 
 // ** ATTENTION ** REMEBER TO RUN generate_data.py (see LABELS directory) BEFORE compiling for each label set below 
 
-#define LABEL_SET_IFEI_NO_VIDEO  
+// #define LABEL_SET_F16_TEST
+// #define LABEL_SET_BATTERY_GAUGE
+// #define LABEL_SET_IFEI_NO_VIDEO  
 // #define LABEL_SET_ALR67                            
-// #define LABEL_SET_MAIN                           
+#define LABEL_SET_MAIN                           
 // #define LABEL_SET_ALTIMETER                           
 // #define LABEL_SET_ALL                           
 
@@ -35,7 +37,7 @@
 
 // Advanced config, these settings have been carefully tuned for performance and stability, 
 #define DCSBIOS_USE_LITE_VERSION                   1 // Set to 1 to use a LITE (local) version of the DCSBIOS Library. 0 Uses the Original unmodified Library (you'll need to install it)
-#define ALLOW_CONCURRENT_CDC_AND_HID               1 // Careful, this should ALWAYS be set to 0, concurrent CDC + HID is unstable
+#define ALLOW_CONCURRENT_CDC_AND_HID               0 // Careful, this should ALWAYS be set to 0, concurrent CDC + HID is unstable
 #define GAMEPAD_REPORT_SIZE                       64 // Must match the HID descriptor, you should NEVER have to change this.
 #define SERVO_UPDATE_FREQ_MS                      20 // For Analog servo instruments. Update rate in ms (as per servo specs)
 #define SCAN_WIFI_NETWORKS                         0 // For debugging and see what networks the device sees (this outputs to Serial interface)
@@ -72,7 +74,7 @@
 #endif
 
 // WiFi Debug Ring Buffer 
-#define WIFI_DEBUG_USE_RINGBUFFER                 1 // Should be use a ring buffer for WiFi Debug messages? helps when using WiFi DCS Mode. If WiFi is not used, this value is ignored anyway. Also, if using CDC + WiFi Debug, this is REQUIRED to avoid CDC stalls
+#define WIFI_DEBUG_USE_RINGBUFFER                 0 // Should be use a ring buffer for WiFi Debug messages? helps when using WiFi DCS Mode. If WiFi is not used, this value is ignored anyway. Also, if using CDC + WiFi Debug, this is REQUIRED to avoid CDC stalls
 #if WIFI_DEBUG_USE_RINGBUFFER
   #define WIFI_DBG_SEND_RINGBUF_SIZE            128 // How many slots in our buffer
   #define WIFI_DBG_MSG_MAXLEN                    32 // Max size for each slot
@@ -84,17 +86,17 @@
 // DCS Commands USB Send Ring Buffer (outgoing packets) - *MANDATORY* this one is REQUIRED to be set to send via USB pipe for transport (due to 64 byte report size limitation)
 #define DCS_USB_RINGBUF_SIZE                    8  // Number of packets buffered (tune as needed)
 #define DCS_USB_PACKET_MAXLEN                  64  // Max USB packet size (safe for DCS-BIOS)
-#define MAX_UDP_FRAMES_PER_DRAIN                1  // Max number to hold in buffer before parsing (increase for bursty processing) 1 is deterministic, best.
+#define MAX_UDP_FRAMES_PER_DRAIN                2  // Max number to hold in buffer before parsing (increase for bursty processing) 1 is deterministic, best.
 
 // DCS UDP/USB Receive Ring Buffer (incoming packets) - *MANDATORY* when using USB mode, optional in WiFi UDP mode.
 #if USE_DCSBIOS_USB
   #define DCS_USE_RINGBUFFER                      1  // Should ALWAYS be 1 when USE_DCSBIOS_USB. DO NOT CHANGE 
-  #define DCS_UDP_RINGBUF_SIZE                   32  // Number of USB packets buffered (tune as needed)
+  #define DCS_UDP_RINGBUF_SIZE                   64  // Number of USB packets buffered (tune as needed)
   #define DCS_UDP_PACKET_MAXLEN                  64  // Should ALWAYS be 64 when USE_DCSBIOS_USB 
 #else // Used for incoming DCS stream via WiFi UDP (if enabled) 
   #define DCS_USE_RINGBUFFER                      1  // OPTIONAL. Should WiFi UDP use a ring buffer for the incoming DCS Stream data?
   #if DCS_USE_RINGBUFFER
-    #define DCS_UDP_RINGBUF_SIZE                 32  // Number of UDP packets buffered (tune as needed)
+    #define DCS_UDP_RINGBUF_SIZE                 64  // Number of UDP packets buffered (tune as needed)
     #define DCS_UDP_PACKET_MAXLEN                64  // Max UDP packet size (safe for Incoming UDP from DCS-BIOS)
   #else
     #define DCS_UDP_RINGBUF_SIZE                  0  // Number of packets buffered (tune as needed)
@@ -117,16 +119,9 @@
 #define USB_VID		                                0xCAFE
 #define USB_PID		                                0xCAF3
 #define USB_SERIAL                                LABEL_SET
-#define USB_PRODUCT                               LABEL_SET
+#define USB_PRODUCT                               "CockpitOS Panel"
 #define USB_MANUFACTURER                          "CockpitOS Firmware Project"
 #define USB_LANG_ID                               0x0409  // English (US)
-
-/*
-// Advanced lwIP Config Options (Async UDP). Not really needed.
-#define PBUF_POOL_BUFSIZE                         4096
-#define MEMP_NUM_UDP_PCB                          16
-#define MEMP_NUM_PBUF                             32
-*/
 
 // Automatically enables what we'll be using, no need to edit.
 #if (ARDUINO_USB_CDC_ON_BOOT == 1)
@@ -154,5 +149,5 @@
 
 // Define the Built-in LED if compiling with a board that does not define it. Only if you get errors about LED_BUILTIN not defined.
 // #ifndef LED_BUILTIN
-// #define LED_BUILTIN 2 // Default LED pin
+// #define LED_BUILTIN 15 // Default LED pin
 // #endif

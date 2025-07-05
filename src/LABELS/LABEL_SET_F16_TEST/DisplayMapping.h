@@ -1,9 +1,6 @@
 // DisplayMapping.h - Auto-generated
 #pragma once
 
-#include "CMDS_SegmentMap.h"
-#include "DED_SegmentMap.h"
-#include "UHF_SegmentMap.h"
 
 // Enums for FieldType, DisplayDeviceType
 enum FieldType { FIELD_LABEL, FIELD_STRING, FIELD_NUMERIC, FIELD_MIXED, FIELD_BARGRAPH };

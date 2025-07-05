@@ -6,38 +6,10 @@
 #include "../WiFiDebug.h"
 #endif
 
-// Our debugPrint routing logic based on Config.h
-#if DEBUG_ENABLED
-    bool DEBUG           = true;
-    bool debugToSerial   = true;
-    #if DEBUG_USE_WIFI
-        bool debugToUDP  = true;
-    #endif
-#elif VERBOSE_PERFORMANCE_ONLY
-    bool DEBUG           = false;
-    bool debugToSerial   = false;
-    bool debugToUDP      = false;
-#elif VERBOSE_MODE
-    bool DEBUG           = false;
-    bool debugToSerial   = true;
-    bool debugToUDP      = true;
-#elif (VERBOSE_MODE_WIFI_ONLY && DEBUG_USE_WIFI) && VERBOSE_MODE_SERIAL_ONLY 
-    bool DEBUG           = false;
-    bool debugToSerial   = true;
-    bool debugToUDP      = true;
-#elif (VERBOSE_MODE_WIFI_ONLY && DEBUG_USE_WIFI)
-    bool DEBUG           = false;
-    bool debugToSerial   = false;
-    bool debugToUDP      = true;
-#elif VERBOSE_MODE_SERIAL_ONLY
-    bool DEBUG           = false;
-    bool debugToSerial   = true;
-    bool debugToUDP      = false;
-#else
-    bool DEBUG           = false;
-    bool debugToSerial   = false;
-    bool debugToUDP      = false;
-#endif
+// All varables and functions related to Serial and UDP Debugging reset to false
+bool DEBUG = false;
+bool debugToSerial = false;
+bool debugToUDP = false;
 
 // Temp buffer for Serial ring buffer draining
 static char tempBuf[SERIAL_DEBUG_FLUSH_BUFFER_SIZE]; // Big enough for your largest full message (tune as needed)
@@ -51,6 +23,41 @@ static volatile size_t   serialDebugHighWater = 0;
 
 static SerialDebugMsg serialBuf[SERIAL_RINGBUF_SIZE];
 static volatile uint8_t serialHead = 0, serialTail = 0;
+
+void debugInit() {
+    // Our debugPrint routing logic based on Config.h
+#if DEBUG_ENABLED
+    DEBUG = true;
+    debugToSerial = true;
+#if DEBUG_USE_WIFI
+    debugToUDP = true;
+#endif
+#elif VERBOSE_PERFORMANCE_ONLY
+    DEBUG = false;
+    debugToSerial = false;
+    debugToUDP = false;
+#elif VERBOSE_MODE
+    DEBUG = false;
+    debugToSerial = true;
+    debugToUDP = true;
+#elif (VERBOSE_MODE_WIFI_ONLY && DEBUG_USE_WIFI) && VERBOSE_MODE_SERIAL_ONLY 
+    DEBUG = false;
+    debugToSerial = true;
+    debugToUDP = true;
+#elif (VERBOSE_MODE_WIFI_ONLY && DEBUG_USE_WIFI)
+    DEBUG = false;
+    debugToSerial = false;
+    debugToUDP = true;
+#elif VERBOSE_MODE_SERIAL_ONLY
+    DEBUG = false;
+    debugToSerial = true;
+    debugToUDP = false;
+#else
+    DEBUG = false;
+    debugToSerial = false;
+    debugToUDP = false;
+#endif
+}
 
 inline static bool serialRingFull()  { return ((serialHead + 1) % SERIAL_RINGBUF_SIZE) == serialTail; }
 inline static bool serialRingEmpty() { return serialHead == serialTail; }

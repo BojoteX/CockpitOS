@@ -3,6 +3,7 @@
 #include "src/Globals.h" // Common header used by everyone
 #include "src/HIDManager.h" // Needed for _init and _loop for HIDManager
 #include "src/DCSBIOSBridge.h" // Needed for _init and _loop for DCSBIOSBridge
+#include "src/HIDManager.h" // Needed for MAX_GROUPS check
 #include "src/LEDControl.h" // Needed to initialize LEDs from our main .ino file
 
 #if DEBUG_USE_WIFI || USE_DCSBIOS_WIFI
@@ -57,6 +58,12 @@ void checkHealth() {
     (unsigned)(largest_psram / 1024),
     frag_psram
   );
+
+  if (getMaxUsedGroup() >= MAX_GROUPS) {
+      debugPrintln("❌ Too many unique selector groups — increase MAX_GROUPS in Config.h");
+      while (true); // or handle as needed
+  }
+
 }
 
 void setup() {
@@ -67,10 +74,11 @@ void setup() {
     #endif
 
     // First parameter is output to Serial, second one is output to UDP (only use this for overriding output)
+    debugInit();
     debugSetOutput(debugToSerial, debugToUDP);  
 
     // Sets standard read resolution and attenuation
-    analogReadResolution(12);
+    analogReadResolution(13); // Only value consistent across Arduino Core installs 2.0+ / 3.0+ (0-8191)
     analogSetAttenuation(ADC_11db);      
 
     // Init our CDC + HID Interfaces
@@ -87,15 +95,17 @@ void setup() {
     checkHealth();   
     debugPrintln();
 
-    // Init Mappings (Aircraft specific)
-    initMappings();    
-
-    // Init PCA + Detect PCA Panels (Automatic PCA detection is disabled, unreliable)   
-    enablePCA9555Logging(DEBUG);     
+    // Init PCA + Detect PCA Panels (Automatic PCA detection)    
     PCA9555_init();
+    
+    // Init Mappings (Aircraft specific)
+    initMappings();   
+
+    // If DEBUG enable PCA9555 logging
+    enablePCA9555Logging(DEBUG);  
 
     // Initialize PCA9555 Inputs + Cached Port States explicitly to OFF (active-low LEDs)
-    PCA9555_initCache();
+    PCA9555_initCache();   
 
     // Initializes your Displays etc. 
     debugPrintln("Initializing Displays");

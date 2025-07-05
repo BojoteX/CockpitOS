@@ -4,8 +4,11 @@
 
 // Enums for FieldType, DisplayDeviceType
 enum FieldType { FIELD_LABEL, FIELD_STRING, FIELD_NUMERIC, FIELD_MIXED, FIELD_BARGRAPH };
-enum DisplayDeviceType {  };
+enum DisplayDeviceType { DISPLAY_HUD, DISPLAY_IFEI, DISPLAY_UFC };
 
+class HUDDisplay;
+class IFEIDisplay;
+class UFCDisplay;
 
 enum FieldRenderType : uint8_t {
     FIELD_RENDER_7SEG,
@@ -46,4 +49,13 @@ const DisplayFieldDefLabel* findFieldDefByLabel(const char* label);
 extern const DisplayFieldDefLabel fieldDefs[];
 extern size_t numFieldDefs;
 extern FieldState fieldStates[];
+extern HUDDisplay hud;
+extern IFEIDisplay ifei;
+extern UFCDisplay ufc;
+extern void renderHUDDispatcher(void*, const SegmentMap*, const char*, const DisplayFieldDefLabel&);
+extern void clearHUDDispatcher(void*, const SegmentMap*, const DisplayFieldDefLabel&);
+extern void renderIFEIDispatcher(void*, const SegmentMap*, const char*, const DisplayFieldDefLabel&);
+extern void clearIFEIDispatcher(void*, const SegmentMap*, const DisplayFieldDefLabel&);
+extern void renderUFCDispatcher(void*, const SegmentMap*, const char*, const DisplayFieldDefLabel&);
+extern void clearUFCDispatcher(void*, const SegmentMap*, const DisplayFieldDefLabel&);
 // Function pointers (renderFunc, clearFunc) are nullptr in all generated records unless otherwise preserved.

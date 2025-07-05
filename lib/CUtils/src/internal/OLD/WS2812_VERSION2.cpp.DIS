@@ -1,0 +1,175 @@
+// ************************************************************
+// WS8212 (ESP32 Arduino Core 2.x version, RMT v1 API)
+// ************************************************************
+
+#include <Arduino.h>
+#include <driver/rmt.h>
+#include <string.h>
+
+// These should be in your header:
+#ifndef WS2812B_PIN
+#define WS2812B_PIN 17  // Change as needed
+#endif
+#ifndef NUM_LEDS
+#define NUM_LEDS 8      // Change as needed
+#endif
+
+// Globals as before
+CRGB leds[NUM_LEDS];
+uint8_t pixels[NUM_LEDS * 3];
+uint8_t brightness = 255;
+uint32_t lastShowTime = 0;
+bool wsDirty = false;
+
+// --- RMT v2.x compatibility helpers ---
+#define RMT_CHANNEL    RMT_CHANNEL_0   // Pick a fixed channel (0-7)
+#define RMT_CLK_DIV    2               // 80MHz / 2 = 40MHz, 25ns/tick
+#define WS_FREQ        800000          // 800kHz for WS2812
+#define RMT_GPIO_NUM   ((gpio_num_t)WS2812B_PIN)
+
+// Timing (WS2812): 1.25us per bit, 0 = 0.4/0.85us, 1 = 0.8/0.45us
+// At 25ns/tick: T0H = 16, T0L = 34, T1H = 32, T1L = 18 (rounded)
+static const uint8_t T1H = 32; // 0.8us
+static const uint8_t T1L = 18; // 0.45us
+static const uint8_t T0H = 16; // 0.4us
+static const uint8_t T0L = 34; // 0.85us
+
+void WS2812_init() {
+    // --- Configure RMT for WS2812 output ---
+    rmt_config_t config;
+    config.rmt_mode = RMT_MODE_TX;
+    config.channel = RMT_CHANNEL;
+    config.gpio_num = RMT_GPIO_NUM;
+    config.mem_block_num = 1;
+    config.tx_config.loop_en = false;
+    config.tx_config.carrier_en = false;
+    config.tx_config.idle_output_en = true;
+    config.tx_config.idle_level = RMT_IDLE_LEVEL_LOW;
+    config.clk_div = RMT_CLK_DIV;
+    rmt_config(&config);
+    rmt_driver_install(config.channel, 0, 0);
+
+    pinMode(WS2812B_PIN, OUTPUT);
+    digitalWrite(WS2812B_PIN, LOW);
+
+    memset(pixels, 0, NUM_LEDS * 3);
+    memset(leds, 0, NUM_LEDS * sizeof(CRGB));
+    wsDirty = true;
+    WS2812_clearAll();
+}
+
+// --- RMT write for WS2812B (no RMT_WAIT_FOR_EVER needed) ---
+void WS2812_show() {
+    uint32_t now = micros();
+    if (now - lastShowTime < 50) {
+        delayMicroseconds(50 - (now - lastShowTime));
+    }
+
+    // 24 bits per LED, each bit is an rmt_item32_t (2 levels)
+    rmt_item32_t items[NUM_LEDS * 24];
+    int symbolIndex = 0;
+
+    for (int i = 0; i < NUM_LEDS; ++i) {
+        uint8_t g = (pixels[i * 3 + 0] * brightness) >> 8;
+        uint8_t r = (pixels[i * 3 + 1] * brightness) >> 8;
+        uint8_t b = (pixels[i * 3 + 2] * brightness) >> 8;
+
+        uint32_t pixelData = (uint32_t)g << 16 | (uint32_t)r << 8 | b;
+
+        for (int bit = 23; bit >= 0; --bit) {
+            bool bitVal = pixelData & (1UL << bit);
+            if (bitVal) {
+                items[symbolIndex].level0 = 1;
+                items[symbolIndex].duration0 = T1H;
+                items[symbolIndex].level1 = 0;
+                items[symbolIndex].duration1 = T1L;
+            } else {
+                items[symbolIndex].level0 = 1;
+                items[symbolIndex].duration0 = T0H;
+                items[symbolIndex].level1 = 0;
+                items[symbolIndex].duration1 = T0L;
+            }
+            symbolIndex++;
+        }
+    }
+
+    // Send RMT waveform, wait for done (timeout: portMAX_DELAY)
+    rmt_write_items(RMT_CHANNEL, items, symbolIndex, true);
+    rmt_wait_tx_done(RMT_CHANNEL, portMAX_DELAY);
+
+    lastShowTime = micros();
+}
+
+// ---- No changes below here ----
+
+void WS2812_setLEDColor(uint8_t ledIndex, CRGB color) {
+    if(!hasLockShoot) return;
+    if (ledIndex >= NUM_LEDS) return;
+    leds[ledIndex] = color;
+    pixels[ledIndex * 3 + 0] = color.g;
+    pixels[ledIndex * 3 + 1] = color.r;
+    pixels[ledIndex * 3 + 2] = color.b;
+    wsDirty = true;
+}
+
+void WS2812_clearAll() {
+    for (uint8_t i = 0; i < NUM_LEDS; i++) {
+        leds[i] = {0, 0, 0};
+        pixels[i * 3 + 0] = 0;
+        pixels[i * 3 + 1] = 0;
+        pixels[i * 3 + 2] = 0;
+    }
+    wsDirty = true;
+}
+
+static const CRGB VZColors[] = { Yellow, Blue, Red };
+
+void WS2812_allOn(CRGB color) {
+    for (uint8_t i = 0; i < NUM_LEDS; i++) {
+        leds[i] = color;
+        pixels[i * 3 + 0] = color.g;
+        pixels[i * 3 + 1] = color.r;
+        pixels[i * 3 + 2] = color.b;
+    }
+    WS2812_show();
+    // wsDirty = true;
+}
+
+void WS2812_allOff() {
+  WS2812_clearAll();
+  debugPrintln("⚫ WS2812 All OFF");
+}
+
+void WS2812_sweep(const CRGB* colors, uint8_t count) {
+  debugPrintln("🔁 WS2812 Sweep with custom colors:");
+  for (uint8_t i = 0; i < NUM_LEDS; i++) {
+    WS2812_clearAll();
+    leds[i] = colors[i % count];
+    WS2812_show();
+    debugPrintf("🟢 LED %d ON with color: R=%d G=%d B=%d\n",
+      i, colors[i % count].r, colors[i % count].g, colors[i % count].b);
+    delay(400);
+  }
+  WS2812_clearAll();
+  debugPrintln("✅ WS2812 Sweep complete.");
+}
+
+void WS2812_testPattern() {
+  debugPrintln("🧪 WS2812 Test Pattern Start");
+  WS2812_allOff();
+  WS2812_sweep(VZColors, sizeof(VZColors) / sizeof(CRGB));
+  WS2812_allOn(Green);
+  debugPrintln("✅ WS2812 Test Pattern Complete");
+}
+
+void WS2812_setAllLEDs(bool state) {
+    if (state) WS2812_allOn(Green);
+    else WS2812_clearAll();
+}
+
+void WS2812_tick() {
+    if (wsDirty) {
+        WS2812_show();
+        wsDirty = false;
+    }
+}

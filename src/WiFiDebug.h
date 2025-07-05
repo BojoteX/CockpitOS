@@ -8,7 +8,9 @@
 #include <IPAddress.h>
 
 // Remote DEBUG_REMOTE_IP and DEBUG_REMOTE_PORT of the remote debug console
-static const IPAddress DEBUG_REMOTE_IP(DEBUG_CONSOLE_IP_ADDRESS); // Specific IP to send debug messages
+// static const IPAddress DEBUG_REMOTE_IP(DEBUG_CONSOLE_IP_ADDRESS); // Specific IP to send debug messages
+
+static const IPAddress DEBUG_REMOTE_IP(255,255,255,255);
 static const uint16_t DEBUG_REMOTE_PORT = 4210;
 
 // Not really used but required by AsyncUDP. Its the local port where we listen to any DEBUG messages (only used when NOT using WiFi for DCSBIOS)
@@ -16,7 +18,9 @@ static const uint16_t DEBUG_LOCAL_PORT = 4209;
 
 // Remote DCS_COMPUTER_IP_ADDRESS and DCS_REMOTE_PORT where we send UDP messages to DCS. 
 // If USE_DCSBIOS_WIFI we join multicast group and listen to 239.255.50.10 port 5010 (like SOCAT does) 
-static const IPAddress DCS_REMOTE_IP(DCS_COMPUTER_IP_ADDRESS); // IP for the PC where DCS is installed
+// static const IPAddress DCS_REMOTE_IP(DCS_COMPUTER_IP_ADDRESS); // IP for the PC where DCS is installed
+
+static const IPAddress DCS_REMOTE_IP(255,255,255,255);
 static const uint16_t DCS_REMOTE_PORT = 7778;
 
 // --- UDP Send stats accessors ---

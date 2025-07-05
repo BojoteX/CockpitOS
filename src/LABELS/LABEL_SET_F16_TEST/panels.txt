@@ -42,3 +42,9 @@ UFC
 UHF
 Vertical Velocity Indicator
 Warning, Caution and IndicatorLights
+Altitude
+Heading
+Metadata
+Position
+Speed
+Time

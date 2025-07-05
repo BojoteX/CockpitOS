@@ -2,15 +2,6 @@
 import os, sys, json, re
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-# List of actual hardware display device prefixes
-REAL_DEVICE_PREFIXES = {
-    "IFEI",
-    "UFC",
-    "RWR",
-    "HUD",
-    "DDED",
-}
-
 # --------------------------------
 # CONFIG (adjust as needed)
 # --------------------------------
@@ -18,6 +9,18 @@ DEV_MAPPING_CPP = "DisplayMapping.cpp"
 DEV_MAPPING_H   = "DisplayMapping.h"
 PANELS_SELECTED_FILE = "selected_panels.txt"
 PANELS_REFERENCE_FILE = "panels.txt"
+
+# Extract all display device prefixes for this JSON file (built once, globally)
+def extract_real_device_prefixes(data):
+    prefixes = set()
+    for category, controls in data.items():
+        for key, item in controls.items():
+            if item.get('control_type', '').lower().strip() != 'display':
+                continue
+            label = item.get('identifier', key)
+            prefix = label.split('_')[0] if '_' in label else label
+            prefixes.add(prefix)
+    return prefixes
 
 def merge_metadata_jsons(data, metadata_dir="METADATA"):
     """Merge all JSONs from the given subdir into the loaded data (in place)."""
@@ -87,7 +90,6 @@ for fname in json_files:
             data_try = json.load(f)
         if is_valid_panel_json(data_try):
             valid_jsons.append((fname, data_try))
-
     except Exception:
         continue  # skip bad files
 
@@ -101,6 +103,9 @@ if len(valid_jsons) > 1:
     sys.exit(1)
 
 JSON_FILE, data = valid_jsons[0]
+
+# We do NOT included prefixes from MERGED data (from METADATA dir) we only do so for actual aircraft JSON file
+REAL_DEVICE_PREFIXES = extract_real_device_prefixes(data)
 merge_metadata_jsons(data)
 
 if not os.path.isfile(PANELS_SELECTED_FILE):
@@ -111,6 +116,19 @@ if not os.path.isfile(PANELS_SELECTED_FILE):
 all_panels = load_panel_list("panels.txt")
 selected_panels = load_panel_list(PANELS_SELECTED_FILE)
 target_objects = selected_panels
+
+# --------------------------------
+# SUPERTYPE DEVICE PREFIX LOGIC: Find all device prefixes (for DisplayMapping.h)
+# --------------------------------
+all_device_prefixes = set()
+for panel, controls in data.items():
+    for key, item in controls.items():
+        if item.get('control_type','').lower().strip() != "display":
+            continue
+        label = item.get('identifier', key)
+        prefix = label.split('_')[0] if '_' in label else label
+        if prefix in REAL_DEVICE_PREFIXES:
+            all_device_prefixes.add(prefix)
 
 # --------------------------------
 # PRESERVATION: parse DisplayMapping.cpp fieldDefs[] (if exists)
@@ -316,7 +334,7 @@ with open(DEV_MAPPING_CPP, "w", encoding="utf-8") as fcpp:
         fcpp.write(f"    {entry},\n")
     fcpp.write("};\n\n")
     fcpp.write("// --- djb2-based hash function and lookup ---\n")
-    fcpp.write("constexpr uint16_t djb2_hash(const char* s, size_t mod) {\n")
+    fcpp.write("inline uint16_t djb2_hash(const char* s, size_t mod) {\n")
     fcpp.write("    uint32_t h = 5381;\n")
     fcpp.write("    while (*s) h = ((h << 5) + h) + (uint8_t)(*s++);\n")
     fcpp.write("    return h % mod;\n")
@@ -336,21 +354,28 @@ with open(DEV_MAPPING_CPP, "w", encoding="utf-8") as fcpp:
     fcpp.write(DISPLAYMAPPING_CPP_EXTRA)
 
 # --------------------------------
-# WRITE DisplayMapping.h
-# Only emit devices actually seen in .cpp's fieldDefs[]
+# WRITE DisplayMapping.h (SUPERTYPE: use all_device_prefixes)
 # --------------------------------
 with open(DEV_MAPPING_H, "w", encoding="utf-8") as fout:
     fout.write("// DisplayMapping.h - Auto-generated\n#pragma once\n\n")
     
-    # Segment map includes but ONLY for present devices
-    for prefix in sorted(prefixes_seen):
-        fout.write(f'#include "{prefix}_SegmentMap.h"\n')
+    # Emit feature defines for present segment maps
+    for prefix in sorted(all_device_prefixes):
+        segmap_filename = f"{prefix}_SegmentMap.h"
+        if os.path.exists(segmap_filename):
+            fout.write(f'#define HAS_{prefix}_SEGMENT_MAP\n')
+
+    # Emit segment map includes for present files only
+    for prefix in sorted(all_device_prefixes):
+        segmap_filename = f"{prefix}_SegmentMap.h"
+        if os.path.exists(segmap_filename):
+            fout.write(f'#include "{segmap_filename}"\n')
 
     fout.write("\n// Enums for FieldType, DisplayDeviceType\n")
     fout.write("enum FieldType { FIELD_LABEL, FIELD_STRING, FIELD_NUMERIC, FIELD_MIXED, FIELD_BARGRAPH };\n")
-    fout.write("enum DisplayDeviceType { " + ', '.join(f"DISPLAY_{p}" for p in sorted(prefixes_seen)) + " };\n\n")
+    fout.write("enum DisplayDeviceType { " + ', '.join(f"DISPLAY_{p}" for p in sorted(all_device_prefixes)) + " };\n\n")
     # Device class forward declarations
-    for prefix in sorted(prefixes_seen):
+    for prefix in sorted(all_device_prefixes):
         fout.write(f"class {prefix}Display;\n")
     fout.write("\n")
     fout.write("enum FieldRenderType : uint8_t {\n")
@@ -392,16 +417,15 @@ with open(DEV_MAPPING_H, "w", encoding="utf-8") as fout:
     fout.write("extern FieldState fieldStates[];\n")
 
     # Emit externs per detected device
-    for prefix in sorted(prefixes_seen):
+    for prefix in sorted(all_device_prefixes):
         var = prefix.lower()
         fout.write(f"extern {prefix}Display {var};\n")
     # --- Emit dispatcher function externs (these are required if any entry uses them)
-    for prefix in sorted(prefixes_seen):
+    for prefix in sorted(all_device_prefixes):
         fout.write(f"extern void render{prefix}Dispatcher(void*, const SegmentMap*, const char*, const DisplayFieldDefLabel&);\n")
         fout.write(f"extern void clear{prefix}Dispatcher(void*, const SegmentMap*, const DisplayFieldDefLabel&);\n")
     fout.write("// Function pointers (renderFunc, clearFunc) are nullptr in all generated records unless otherwise preserved.\n")
 
-print(f"Generated {DEV_MAPPING_CPP} and {DEV_MAPPING_H} for devices: {', '.join(sorted(prefixes_seen))}")
+print(f"Generated {DEV_MAPPING_CPP} and {DEV_MAPPING_H} for devices: {', '.join(sorted(all_device_prefixes))}")
 
 input("\nPress <ENTER> to exit...")
-

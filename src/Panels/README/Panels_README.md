@@ -1,6 +1,6 @@
 # Panel Implementation & Mappings (CockpitOS)
 
-This directory contains **all panel-specific implementation files** and the `Mappings.cpp/h` files that centralize panel management and integration.
+This directory contains **all panel-specific implementation files** and the `Mappings.cpp/h` files that centralize panel management and integration. do NOT mix panels here from different Aircraft. If building firmware for the HORNET for example, just keep HORNET panels here. If building for a DIFFERENT aircraft, simply MOVE the panels OUT of this directory into the DISABLED PANELS directory in the root folder as they will NOT compile there
 
 ---
 

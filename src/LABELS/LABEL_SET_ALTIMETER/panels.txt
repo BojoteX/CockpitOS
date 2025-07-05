@@ -72,3 +72,9 @@ TODO
 Throttle Quadrant
 Up Front Controller (UFC)
 Wing Fold Switch
+Altitude
+Heading
+Metadata
+Position
+Speed
+Time

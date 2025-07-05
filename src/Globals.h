@@ -2,11 +2,14 @@
 
 #pragma once
 
+/* NOT USED ANYMORE
 // You dont need to change this addresses, they are the broadcast address from your network and the DCS address is obtained dynamically.
 #define DCS_COMPUTER_IP_ADDRESS                   "255.255.255.255" // This is a placeholder, the real IP is obtained when the stream starts
 #define DEBUG_CONSOLE_IP_ADDRESS                  "255.255.255.255" // Also a place holder, this sends debug info to any computer on your network
+*/
 
 #include <Arduino.h>
+
 #include "../Config.h"
 
 // DO NOT CHANGE ANYTHING ABOVE THIS LINE....

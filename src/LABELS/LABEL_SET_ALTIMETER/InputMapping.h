@@ -18,6 +18,9 @@ static const InputMapping InputMappings[] = {
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);
 
+static const char* const TrackedSelectorLabels[] = {};
+static const size_t TrackedSelectorLabelsCount = 0;
+
 
 // Static hash lookup table for InputMappings[]
 struct InputHashEntry { const char* label; const InputMapping* mapping; };

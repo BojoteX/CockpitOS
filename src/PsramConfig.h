@@ -7,6 +7,7 @@
 #include <esp_heap_caps.h>
 #include "esp32-hal-psram.h"
 #include <stdlib.h>
+#include <utility>
 
 /**
  * @brief If built with PSRAM support, redirect all heap allocations
@@ -47,8 +48,16 @@ static inline bool initPSRAM() {
   #define PS_ATTR
 #endif
 
+/*
 template <typename T>
 T* ps_new() {
     void* mem = PS_MALLOC(sizeof(T));
     return mem ? new (mem) T : nullptr;
+}
+*/
+
+template <typename T, typename... Args>
+T* ps_new(Args&&... args) {
+    void* mem = PS_MALLOC(sizeof(T));
+    return mem ? new (mem) T(std::forward<Args>(args)...) : nullptr;
 }

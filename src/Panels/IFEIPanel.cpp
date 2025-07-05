@@ -463,8 +463,8 @@ static volatile bool isCODESon = false;
 static volatile bool isTimeSetModeOn = false;
 static volatile bool isTestModeOn    = false;
 
+#ifdef HAS_IFEI_SEGMENT_MAP
 // Since there is no LABEL for Nozzles we create them
-
 static const DisplayFieldDefLabel nozzleL = { "IFEI_NOZZLE_L", &IFEI_NOZZLE_L_MAP[0][0], 0, 0, 0, 100, FIELD_NUMERIC, 11, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_BARGRAPH };
 static const DisplayFieldDefLabel nozzleR = { "IFEI_NOZZLE_R", &IFEI_NOZZLE_R_MAP[0][0], 0, 0, 0, 100, FIELD_NUMERIC, 11, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_BARGRAPH };
 
@@ -519,6 +519,7 @@ void updateRIGHTNozzle(const char* label, uint16_t value) {
     renderIFEIDispatcher(nozzleR.driver, nozzleR.segMap, buf, nozzleR);
 
 }
+#endif // HAS_IFEI_SEGMENT_MAP
 
 #if RUN_IFEI_DISPLAY_AS_TASK
 void IFEIDisplayTask(void* pv) {
@@ -588,8 +589,11 @@ void IFEIDisplay_init() {
     // Subscriptions to events
     subscribeToLedChange("IFEI_DISP_INT_LT", onBackLightIntensityChange);
     subscribeToSelectorChange("COCKKPIT_LIGHT_MODE_SW", onBackLightChange);
+
+#ifdef HAS_IFEI_SEGMENT_MAP
     subscribeToMetadataChange("EXT_NOZZLE_POS_L", updateLEFTNozzle);
     subscribeToMetadataChange("EXT_NOZZLE_POS_R", updateRIGHTNozzle);
+#endif
 
     #if RUN_IFEI_DISPLAY_AS_TASK
     // Create FreeRTOS task to update our display
@@ -672,6 +676,7 @@ void renderIFEIDispatcher(void* drv, const SegmentMap* segMap, const char* value
             break;
 
         case FIELD_RENDER_BARGRAPH:
+        #ifdef HAS_IFEI_SEGMENT_MAP
             if (strcmp(def.label, "IFEI_LPOINTER_TEXTURE") == 0) {
                 if (value && value[0] == '1' && value[1] == 0) {
                     display->addPointerBarToShadow(lastPercentL, &IFEI_NOZZLE_L_MAP[0][0], 11); // Fixed: pass flat pointer
@@ -704,6 +709,7 @@ void renderIFEIDispatcher(void* drv, const SegmentMap* segMap, const char* value
                 if (showLeftNozPointer && strcmp(def.label, "IFEI_NOZZLE_L") == 0)
                     display->addPointerBarToShadow(percent, segMap, 11);
             }
+        #endif // HAS_IFEI_SEGMENT_MAP
             break;
 
         case FIELD_RENDER_RPM:

@@ -1,13 +1,35 @@
+// ************************************************************
+// HT1622 Unified Driver for ESP32 Arduino Core 2.x and 3.x
+// ************************************************************
+
 #include "soc/gpio_struct.h"
 #include "driver/gpio.h"
+#include <string.h>
 
-// Strict protocol timing (datasheet, 3V):
-#define HT1622_WR_MIN_US   4   // Min WR low or high pulse width (≥3.34 us, round up for margin)
-#define HT1622_DATA_SU_NS 120  // Data setup before WR↑ (≥120 ns)
-#define HT1622_DATA_H_NS  600  // Data hold after WR↑ (≥600 ns)
-#define HT1622_CS_SETUP_NS 600 // CS setup before WR (≥500 ns)
-#define HT1622_CS_HOLD_NS 800  // CS hold after last WR (≥700 ns)
+// ----- Version Detection -----
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
+#define USE_RMT_API_V3 1
+#else
+#define USE_RMT_API_V3 0
+#endif
 
+#if USE_RMT_API_V3
+  // Arduino Core 3.x: rmt_data_t, rmtWrite, etc.
+#include <driver/rmt_tx.h>
+#else
+  // Arduino Core 2.x: rmt_item32_t, rmt_write_items, etc.
+#include <driver/rmt.h>
+#endif
+
+// ---- Strict protocol timing ----
+#define HT1622_WR_MIN_US   4
+#define HT1622_DATA_SU_NS 120
+#define HT1622_DATA_H_NS  600
+#define HT1622_CS_SETUP_NS 600
+#define HT1622_CS_HOLD_NS  800
+#define HT1622_RAM_SIZE    64
+
+// ----- Class Implementation -----
 HT1622::HT1622(uint8_t cs, uint8_t wr, uint8_t data)
     : _cs(cs), _wr(wr), _data(data) {
 }
@@ -27,7 +49,7 @@ void HT1622::init() {
 
     // Optional: soft reset (factory recommends)
     setCS(false); delayMicroseconds(HT1622_CS_SETUP_NS / 1000 + 1);
-    writeCommandBits(0xE3, 8); // Built-in soft reset sequence (datasheet)
+    writeCommandBits(0xE3, 8);
     setCS(true); delayMicroseconds(HT1622_CS_HOLD_NS / 1000 + 1);
 
     sendCmd(0x03); // LCD ON
@@ -38,12 +60,10 @@ void HT1622::sendCmd(uint8_t cmd) {
     setCS(false);
     delayMicroseconds(HT1622_CS_SETUP_NS / 1000 + 1);
 
-    // Command mode: 1 0 0
     writeBitStrict(1); writeBitStrict(0); writeBitStrict(0);
-
     writeCommandBits(cmd, 8);
+    writeBitStrict(0);
 
-    writeBitStrict(0); // Don't care
     setCS(true);
     delayMicroseconds(HT1622_CS_HOLD_NS / 1000 + 1);
 }
@@ -52,20 +72,21 @@ void HT1622::writeNibble(uint8_t addr, uint8_t nibble) {
     setCS(false);
     delayMicroseconds(HT1622_CS_SETUP_NS / 1000 + 1);
 
-    // Write mode: 1 0 1
     writeBitStrict(1); writeBitStrict(0); writeBitStrict(1);
-
-    // 6-bit address, MSB first
     for (int i = 5; i >= 0; i--) writeBitStrict((addr >> i) & 1);
-    // 4-bit data, LSB first
     for (int i = 0; i < 4; i++) writeBitStrict((nibble >> i) & 1);
 
     setCS(true);
     delayMicroseconds(HT1622_CS_HOLD_NS / 1000 + 1);
 }
 
+// --- RMT Unified Commit Burst ---
 void HT1622::commitBurstRMT(const uint8_t* shadow) {
+#if USE_RMT_API_V3
     rmt_data_t wrBuffer[272], dataBuffer[272];
+#else
+    rmt_item32_t wrBuffer[272], dataBuffer[272];
+#endif
     int symbolIndex = 0;
 
     auto appendBit = [&](bool bit) {
@@ -80,12 +101,11 @@ void HT1622::commitBurstRMT(const uint8_t* shadow) {
         symbolIndex++;
         };
 
-    // 3-bit write mode: 1 0 1 (MSB first)
+    // Write mode: 1 0 1 (MSB first)
     appendBit(1); appendBit(0); appendBit(1);
-    // 6-bit addr (MSB first, start at 0)
     for (int b = 5; b >= 0; --b) appendBit((0 >> b) & 1);
 
-    // 64 nibbles (256 bits), data LSB first per nibble
+    // 64 nibbles (256 bits)
     for (int addr = 0; addr < 64; ++addr) {
         uint8_t val = shadow[addr] & 0xF;
         for (int b = 0; b < 4; ++b) appendBit((val >> b) & 1);
@@ -93,8 +113,17 @@ void HT1622::commitBurstRMT(const uint8_t* shadow) {
 
     setCS(false);
     delayMicroseconds(1);
+
+#if USE_RMT_API_V3
     rmtWrite(_wr, wrBuffer, symbolIndex, RMT_WAIT_FOR_EVER);
     rmtWrite(_data, dataBuffer, symbolIndex, RMT_WAIT_FOR_EVER);
+#else
+    rmt_write_items((rmt_channel_t)_wr, wrBuffer, symbolIndex, true);
+    rmt_wait_tx_done((rmt_channel_t)_wr, portMAX_DELAY);
+    rmt_write_items((rmt_channel_t)_data, dataBuffer, symbolIndex, true);
+    rmt_wait_tx_done((rmt_channel_t)_data, portMAX_DELAY);
+#endif
+
     setCS(true);
     delayMicroseconds(1);
 }
@@ -104,12 +133,12 @@ void HT1622::commitBurst(const uint8_t* shadow) {
     delayMicroseconds(HT1622_CS_SETUP_NS / 1000 + 1);
 
     writeBitStrict(1); writeBitStrict(0); writeBitStrict(1);
-    for (int i = 5; i >= 0; --i) writeBitStrict((0 >> i) & 1); // Start at addr 0
+    for (int i = 5; i >= 0; --i) writeBitStrict((0 >> i) & 1);
 
     for (int addr = 0; addr < HT1622_RAM_SIZE; ++addr) {
         uint8_t val = shadow[addr] & 0xF;
         for (int b = 0; b < 4; ++b)
-            writeBitStrict((val >> b) & 1);  // LSB first
+            writeBitStrict((val >> b) & 1);
     }
 
     setCS(true);
@@ -125,8 +154,10 @@ void HT1622::commit(const uint8_t* shadow, uint8_t* lastShadow, int shadowLen) {
         }
     }
     if (!dirty) return;
-	// commitBurstRMT(shadow); // DOES NOT WORK WITH RMT
+    // Use bitbang version for now (safer; comment/uncomment for RMT as you wish)
     commitBurst(shadow);
+    // commitBurstRMT(shadow);
+
     for (int addr = 0; addr < shadowLen; ++addr)
         lastShadow[addr] = shadow[addr] & 0xF;
 }
@@ -178,7 +209,7 @@ void HT1622::invalidateLastShadow(uint8_t* lastShadow, int shadowLen) {
 }
 
 // ----------------------
-// Low-level, timing-precise protocol routines
+// Low-level protocol
 // ----------------------
 
 inline void HT1622::setWR(bool level) {
@@ -193,18 +224,13 @@ inline void HT1622::setDATA(bool level) {
 
 inline void HT1622::writeBitStrict(bool bit) {
     setDATA(bit);
-    // Data setup time before WR↓ (not critical, but >120 ns)
     delayMicroseconds(1);
-
-    setWR(false);    // WR falling edge
-    delayMicroseconds(HT1622_WR_MIN_US); // WR low width (≥3.34 us)
-
-    setWR(true);     // WR rising edge (data latched here)
-    delayMicroseconds(HT1622_WR_MIN_US); // WR high width (≥3.34 us)
-    // Data hold after WR↑ (≥600 ns, covered by WR high time)
+    setWR(false);
+    delayMicroseconds(HT1622_WR_MIN_US);
+    setWR(true);
+    delayMicroseconds(HT1622_WR_MIN_US);
 }
 
 inline void HT1622::writeCommandBits(uint16_t bits, uint8_t len) {
-    // MSB first
     for (int i = len - 1; i >= 0; i--) writeBitStrict((bits >> i) & 1);
 }

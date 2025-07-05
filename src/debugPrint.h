@@ -45,3 +45,4 @@ size_t   serialDebugGetHighWater();
 size_t   serialDebugGetPending();
 
 void sendPendingSerial();
+void debugInit();

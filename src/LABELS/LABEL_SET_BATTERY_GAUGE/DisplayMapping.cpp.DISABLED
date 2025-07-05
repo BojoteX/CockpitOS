@@ -16,7 +16,7 @@ static const FieldDefHashEntry fieldDefHashTable[FIELD_HASH_SIZE] = {
 };
 
 // --- djb2-based hash function and lookup ---
-constexpr uint16_t djb2_hash(const char* s, size_t mod) {
+inline uint16_t djb2_hash(const char* s, size_t mod) {
     uint32_t h = 5381;
     while (*s) h = ((h << 5) + h) + (uint8_t)(*s++);
     return h % mod;

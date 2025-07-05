@@ -1,13 +1,5 @@
 // RingBuffer.cpp - Implements a simple ring buffer for transport
 
-/*
-#include "src/Globals.h"
-
-#if DEBUG_USE_WIFI || USE_DCSBIOS_WIFI
-  #include "src/WiFiDebug.h"
-#endif 
-*/
-
 #include "../Globals.h"
 
 #if DEBUG_USE_WIFI || USE_DCSBIOS_WIFI
@@ -67,7 +59,7 @@ bool dcsUdpRingbufPop(DcsUdpRingMsg* out) {
 void dcsUdpRingbufPush(const uint8_t* data, size_t len, bool isLastChunk) {
     if (dcsUdpRingFull()) {
         dcsUdpRecvOverflow++;
-        debugPrintln("❌ [RING BUFFER] Overflow! increase DCS_UDP_RINGBUF_SIZE");
+        debugPrintln("❌ [RING BUFFER] Ring buffer is FULL, increase DCS_UDP_RINGBUF_SIZE");
         return;
     }
     if (len > DCS_UDP_PACKET_MAXLEN) len = DCS_UDP_PACKET_MAXLEN;
@@ -89,7 +81,7 @@ void dcsUdpRingbufPushChunked(const uint8_t* data, size_t len) {
     size_t needed = (len + max_data - 1) / max_data;
     if (dcsUdpRingbufAvailable() < needed) {
         dcsUdpRecvOverflow++;
-        debugPrintln("❌ [RING BUFFER] Overflow! increase DCS_UDP_RINGBUF_SIZE");
+        debugPrintln("❌ [RING BUFFER] Available space was less than required, increase DCS_UDP_RINGBUF_SIZE");
         return;
     }
     size_t pos = 0;
@@ -145,7 +137,7 @@ bool dcsRawUsbOutRingbufPop(DcsRawUsbOutRingMsg* out) {
 void dcsRawUsbOutRingbufPush(const uint8_t* data, size_t len, bool isLastChunk) {
     if (dcsRawUsbOutRingFull()) {
         dcsRawUsbOutOverflow++;
-        debugPrintln("❌ [RAW USB OUT RING BUFFER] Overflow! increase DCS_USB_RINGBUF_SIZE");
+        debugPrintln("❌ [RING BUFFER] Outgoing message overflow! increase DCS_USB_RINGBUF_SIZE");
         return;
     }
     if (len > DCS_USB_PACKET_MAXLEN) len = DCS_USB_PACKET_MAXLEN;
@@ -167,7 +159,7 @@ void dcsRawUsbOutRingbufPushChunked(const uint8_t* data, size_t len) {
     size_t needed = (len + max_data - 1) / max_data;
     if (dcsRawUsbOutRingbufAvailable() < needed) {
         dcsRawUsbOutOverflow++;
-        debugPrintln("❌ [RAW USB OUT RING BUFFER] Overflow! increase DCS_USB_RINGBUF_SIZE");
+        debugPrintln("❌ [RING BUFFER] Outgoing message queue would overflow, skipping. Increase DCS_USB_RINGBUF_SIZE");
         return;
     }
     size_t pos = 0;

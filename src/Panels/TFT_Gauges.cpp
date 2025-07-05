@@ -1,0 +1,220 @@
+// TFT_Gauges.cpp
+#define GAUGE_DRAW_MIN_INTERVAL_MS 60   // 60Hz
+#define RUN_GAUGE_AS_TASK 0             // Use FreeRTOS task for rendering gauge
+
+#include "../Globals.h"
+#include "../TFT_Gauges.h"
+#include "../HIDManager.h"
+#include "../DCSBIOSBridge.h"
+
+#include "../PsramConfig.h"
+#include "Assets/BatteryGauge/batBackground.h"
+#include "Assets/BatteryGauge/batNeedle.h"
+#include <TFT_eSPI.h>
+
+#define BATTERY_CS_PIN 12
+
+static TFT_eSPI* tft = nullptr;
+static TFT_eSprite* gaugeBack = nullptr;
+static TFT_eSprite* needleU = nullptr;
+static TFT_eSprite* needleE = nullptr;
+static constexpr uint8_t colorDepth = 8;
+
+// --- Battery state ---
+static volatile int16_t angleU = 0, angleE = 0;
+static volatile int16_t lastDrawnAngleU = INT16_MIN, lastDrawnAngleE = INT16_MIN;
+static volatile bool gaugeDirty = false;
+static unsigned long lastDrawTime = 0;
+
+static TaskHandle_t tftTaskHandle = nullptr;
+
+// --- Utility ---
+static inline void BatteryGauge_CS_ON() { digitalWrite(BATTERY_CS_PIN, LOW); }
+static inline void BatteryGauge_CS_OFF() { digitalWrite(BATTERY_CS_PIN, HIGH); }
+
+static void BatteryGauge_draw(bool force = 0);
+static void BatteryGauge_task(void*);
+
+// --- DCS-BIOS: Mark gauge dirty on change ---
+static void onBatVoltUChange(const char* /*label*/, uint16_t value, uint16_t /*max_value*/) {
+    int16_t newAngleU = map(value, 0, 65535, -150, -30);
+    if (newAngleU != angleU) {
+        angleU = newAngleU;
+        gaugeDirty = true;
+    }
+}
+static void onBatVoltEChange(const char* /*label*/, uint16_t value, uint16_t /*max_value*/) {
+    int16_t newAngleE = map(value, 0, 65535, 150, 30);
+    if (newAngleE != angleE) {
+        angleE = newAngleE;
+        gaugeDirty = true;
+    }
+}
+
+// --- Draw background ONCE at startup or mission start ---
+static void BatteryGauge_drawBackground() {
+    BatteryGauge_CS_ON();
+    tft->pushImage(0, 0, 240, 240, batBackground);
+    BatteryGauge_CS_OFF();
+}
+
+// --- Draw only the needles (overlay on static background) ---
+static void BatteryGauge_draw(bool force) {
+    if (!isMissionRunning() && !force) return;
+
+    unsigned long now = millis();
+    if (!gaugeDirty) return;
+    if (now - lastDrawTime < GAUGE_DRAW_MIN_INTERVAL_MS) return;
+
+    int16_t u = angleU;
+    int16_t e = angleE;
+    if (u == lastDrawnAngleU && e == lastDrawnAngleE) return;
+
+    lastDrawTime = now;
+    lastDrawnAngleU = u;
+    lastDrawnAngleE = e;
+    gaugeDirty = false;
+
+    debugPrintf("BATT VOLT U %d\n", u);
+    debugPrintf("BATT VOLT E %d\n", e);
+
+#if DEBUG_PERFORMANCE
+    beginProfiling(PERF_TFT_DRAW);
+#endif
+
+    BatteryGauge_CS_ON();
+
+    // Start from clean background each time
+    gaugeBack->fillSprite(TFT_TRANSPARENT);
+    gaugeBack->pushImage(0, 0, 240, 240, batBackground);
+
+    // Draw upper needle
+    needleU->fillSprite(TFT_TRANSPARENT);
+    needleU->pushImage(0, 0, 15, 88, batNeedle);
+    needleU->pushRotated(gaugeBack, u, TFT_TRANSPARENT);
+
+    // Draw lower needle
+    needleE->fillSprite(TFT_TRANSPARENT);
+    needleE->pushImage(0, 0, 15, 88, batNeedle);
+    needleE->pushRotated(gaugeBack, e, TFT_TRANSPARENT);
+
+    // Final blit to screen
+    gaugeBack->pushSprite(0, 0, TFT_TRANSPARENT);
+
+    BatteryGauge_CS_OFF();
+
+#if DEBUG_PERFORMANCE
+    endProfiling(PERF_TFT_DRAW);
+#endif
+}
+
+// --- FreeRTOS task for ultra-fast, non-blocking rendering ---
+static void BatteryGauge_task(void*) {
+    while (1) {
+        BatteryGauge_draw();
+        vTaskDelay(pdMS_TO_TICKS(5));  // Check every 5ms; tune lower/higher if needed
+    }
+}
+
+// --- INIT: Run ONCE at boot ---
+void BatteryGauge_init() {
+
+#if DEBUG_PERFORMANCE
+    beginProfiling(PERF_TFT_INIT);
+#endif
+
+    pinMode(BATTERY_CS_PIN, OUTPUT);
+    BatteryGauge_CS_OFF();
+
+    tft = new TFT_eSPI;
+    tft->init();
+    tft->fillScreen(TFT_BLACK);
+
+    gaugeBack = new TFT_eSprite(tft);
+    gaugeBack->setColorDepth(colorDepth);
+    gaugeBack->createSprite(240, 240);
+    gaugeBack->setSwapBytes(true);
+    gaugeBack->setPivot(120, 120);
+
+    needleU = new TFT_eSprite(tft);
+    needleU->setColorDepth(colorDepth);
+    needleU->createSprite(15, 88);
+    needleU->setSwapBytes(true);
+    needleU->setPivot(7, 84);
+
+    needleE = new TFT_eSprite(tft);
+    needleE->setColorDepth(colorDepth);
+    needleE->createSprite(15, 88);
+    needleE->setSwapBytes(true);
+    needleE->setPivot(7, 84);
+
+    BatteryGauge_drawBackground();
+
+#if DEBUG_PERFORMANCE
+    endProfiling(PERF_TFT_INIT);
+#endif
+
+    subscribeToLedChange("VOLT_U", onBatVoltUChange);
+    subscribeToLedChange("VOLT_E", onBatVoltEChange);
+
+    // Create the FreeRTOS task for TFT rendering (lowest prio, pin to APP core)
+    if (tftTaskHandle == nullptr) {
+      #if RUN_GAUGE_AS_TASK
+        xTaskCreatePinnedToCore(BatteryGauge_task, "BatteryGaugeTask", 4096, NULL, 1, &tftTaskHandle, 0);
+      #endif
+    }
+
+    BatteryGauge_bitTest();
+
+    debugPrintln("✅ BatteryGauge display initialized (DMA, background drawn once, FreeRTOS rendering task)");
+}
+
+// --- LOOP: No longer needed (kept for compatibility, does nothing) ---
+void BatteryGauge_loop() {
+  #if !RUN_GAUGE_AS_TASK
+    BatteryGauge_draw();
+  #endif
+}
+
+// --- MISSION START: Optional, redraw background (call this if needed) ---
+void BatteryGauge_notifyMissionStart() {
+    BatteryGauge_drawBackground();
+    gaugeDirty = true; // Force redraw of needles
+}
+
+// --- Self-test: Animate the gauge on mission start (optional) ---
+void BatteryGauge_bitTest() {
+#if DEBUG_PERFORMANCE
+    beginProfiling(PERF_TFT_BITTEST);
+#endif
+    for (int i = 0; i <= 120; i += 5) {
+        angleU = map(i, 0, 120, -150, -30);
+        angleE = map(i, 0, 120, 150, 30);
+        gaugeDirty = true;
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+    for (int i = 120; i >= 0; i -= 5) {
+        angleU = map(i, 0, 120, -150, -30);
+        angleE = map(i, 0, 120, 150, 30);
+        gaugeDirty = true;
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+
+    BatteryGauge_draw(true); // Initial draw to ensure needles are visible
+
+#if DEBUG_PERFORMANCE
+    endProfiling(PERF_TFT_BITTEST);
+#endif
+}
+
+// --- Deinit: Call once if you need to free all memory (rare) ---
+void BatteryGauge_deinit() {
+    if (gaugeBack) { gaugeBack->deleteSprite(); delete gaugeBack; gaugeBack = nullptr; }
+    if (needleU) { needleU->deleteSprite();   delete needleU;   needleU = nullptr; }
+    if (needleE) { needleE->deleteSprite();   delete needleE;   needleE = nullptr; }
+    if (tft) { delete tft;                tft = nullptr; }
+    if (tftTaskHandle) {
+        vTaskDelete(tftTaskHandle);
+        tftTaskHandle = nullptr;
+    }
+}

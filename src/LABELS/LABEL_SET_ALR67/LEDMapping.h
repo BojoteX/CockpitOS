@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
+  DEVICE_NONE,
   DEVICE_GAUGE,
   DEVICE_TM1637,
-  DEVICE_GN1640T,
   DEVICE_WS2812,
-  DEVICE_GPIO,
   DEVICE_PCA9555,
-  DEVICE_NONE,
+  DEVICE_GN1640T,
+  DEVICE_GPIO,
 };
 
 struct LEDMapping {
@@ -29,7 +29,7 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
-  { "PRESSURE_ALT"       , DEVICE_GAUGE   , {.gaugeInfo = {18, 700, 2100, 20000}}, false, false }, // GAUGE GPIO 18,
+  { "PRESSURE_ALT"       , DEVICE_GAUGE   , {.gaugeInfo = {18, 700, 2000, 20000}}, false, false }, // GAUGE GPIO 18,
   { "CMSD_JET_SEL_L"     , DEVICE_PCA9555 , {.pcaInfo = {0x22, 1, 1}}, false, true }, // PCA 0x22 Port 1 Bit 1,
   { "CHART_DIMMER"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CONSOLES_DIMMER"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,

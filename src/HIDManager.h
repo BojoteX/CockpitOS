@@ -5,6 +5,7 @@
 void HIDManager_setup();
 void HIDManager_loop();
 void HIDSenderTask(void* param);
+size_t getMaxUsedGroup();
 
 // ───── Axis Input ─────
 void HIDManager_moveAxis(const char* dcsIdentifier, uint8_t pin);
@@ -13,6 +14,7 @@ void HIDManager_moveAxis(const char* dcsIdentifier, uint8_t pin);
 void HIDManager_setNamedButton(const char* name, bool deferSend = false, bool pressed = true);
 void HIDManager_setToggleNamedButton(const char* name, bool deferSend = false);
 void HIDManager_toggleIfPressed(bool isPressed, const char* label, bool deferSend = false);
+void HIDManager_setSelectorState(const char* name, bool deferSend);
 
 // ───── Guarded Helpers ─────
 void HIDManager_handleGuardedToggleIfPressed(bool isPressed, const char* buttonLabel, const char* coverLabel, bool deferSend = false);

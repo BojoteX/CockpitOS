@@ -1,9 +1,8 @@
 // DisplayMapping.h - Auto-generated
 #pragma once
 
-#include "HUD_SegmentMap.h"
+#define HAS_IFEI_SEGMENT_MAP
 #include "IFEI_SegmentMap.h"
-#include "UFC_SegmentMap.h"
 
 // Enums for FieldType, DisplayDeviceType
 enum FieldType { FIELD_LABEL, FIELD_STRING, FIELD_NUMERIC, FIELD_MIXED, FIELD_BARGRAPH };

@@ -63,7 +63,6 @@ public:
 
   // SET FEATURE: any host message is just pushed to ring buffer, even before main loop
   void _onSetFeature(uint8_t report_id, const uint8_t* buffer, uint16_t len) override {
-    // Don't do anything unless we start our main loop
     if(mainLoopStarted && len > 0) {
         dcsRawUsbOutRingbufPushChunked(buffer, len);
         debugPrintf("[SET FEATURE] pushed %.*s to ring buffer\n", len, buffer);
