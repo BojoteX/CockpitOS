@@ -4,18 +4,6 @@
 
 #include "../../../Config.h"
 
-// Global GPIO centralized PIN assignments. This ones should be carefully MANAGED. For the most part, they DO NOT need to change, even with potential conflicts (e.g strobe-and-read matrix method used by ALR67) which uses some of the same PINs this will NOT be an issue as ALR67 should be configured as a SINGLE firmware set and NOT mixed with other panels (except ECM or Analog Cockpit Altimiter) 
-#define SDA_PIN                                    8 // I2C PCA9555 Data Pin
-#define SCL_PIN                                    9 // I2C PCA9555 Clock Pin
-#define GLOBAL_CLK_PIN                            37 // Clock Pin
-#define CA_DIO_PIN                                36 // Caution Advisory DIO Pin
-#define LA_DIO_PIN                                39 // Left Annunciator DIO Pin
-#define LA_CLK_PIN                                GLOBAL_CLK_PIN // Left Annunciator Clock Pin
-#define RA_DIO_PIN                                40 // Right Annunciator DIO Pin
-#define RA_CLK_PIN                                GLOBAL_CLK_PIN // right Annunciator Clock Pin
-#define LOCKSHOOT_DIO_PIN                         35 // Lock-Shoot Indicator DIO Pin
-#define WS2812B_PIN                               LOCKSHOOT_DIO_PIN // Lock-Shoot Indicator DIO Pin
-
 // Dump descriptors
 void dump_usb_descriptors();
 
@@ -50,20 +38,17 @@ extern uint8_t        discoveredDeviceCount;
 static constexpr uint8_t I2C_ADDR_SPACE = 0x80;
 extern const char* panelNameByAddr[I2C_ADDR_SPACE];
 
-// panel enum + unified table
-enum class PanelID : uint8_t { ECM = 0x22, BRAIN = 0x26, ARM = 0x5B, UNKNOWN = 0x00 };
-PanelID     getPanelID(uint8_t address);
-const char* panelIDToString(PanelID id);
-
 // scan & query
 void        scanConnectedPanels();
 void        printDiscoveredPanels();
 bool        panelExists(uint8_t targetAddr);
 
+/*
 inline const char* getPanelName(uint8_t addr) {
   const char* n = (addr < I2C_ADDR_SPACE) ? panelNameByAddr[addr] : nullptr;
   return n ? n : panelIDToString(getPanelID(addr));
 }
+*/
 
 // —— GPIO (discrete LEDs) —— 
 

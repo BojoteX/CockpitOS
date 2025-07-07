@@ -1,5 +1,5 @@
 #define GAUGE_DRAW_MIN_INTERVAL_MS 60   // 60Hz
-#define RUN_GAUGE_AS_TASK 0
+#define RUN_GAUGE_AS_TASK 0             // Use FreeRTOS task for rendering gauge
 
 #include "../Globals.h"
 #include "../TFT_Gauges.h"
@@ -10,7 +10,7 @@
 #include "Assets/BatteryGauge/batNeedle.h"
 #include <TFT_eSPI.h>
 
-#define BATTERY_PCA_ADDR 0x27
+#define BATTERY_PCA_ADDR 0x27  // I2C address for PCA device
 
 static byte prevPort0 = 0xFF;
 static byte prevPort1 = 0xFF;
@@ -18,13 +18,14 @@ static byte prevPort1 = 0xFF;
 #define BATTERY_CS_PIN 12
 
 static TFT_eSPI* tft = nullptr;
+static TFT_eSprite* gaugeBack = nullptr;
 static TFT_eSprite* needleU = nullptr;
 static TFT_eSprite* needleE = nullptr;
-static TFT_eSprite* gaugeBack = nullptr;
 static constexpr uint8_t colorDepth = 8;
 
-// --- PSRAM for background only (OPTIONAL) ---
+// --- PSRAM asset buffers ---
 static uint16_t* psramBackground = nullptr;
+static uint16_t* psramNeedle = nullptr;
 
 // --- Battery state ---
 static volatile int16_t angleU = 0, angleE = 0;
@@ -42,14 +43,14 @@ static void BatteryGauge_draw(bool force = 0);
 static void BatteryGauge_task(void*);
 
 // --- DCS-BIOS: Mark gauge dirty on change ---
-static void onBatVoltUChange(const char*, uint16_t value, uint16_t) {
+static void onBatVoltUChange(const char* /*label*/, uint16_t value, uint16_t /*max_value*/) {
     int16_t newAngleU = map(value, 0, 65535, -150, -30);
     if (newAngleU != angleU) {
         angleU = newAngleU;
         gaugeDirty = true;
     }
 }
-static void onBatVoltEChange(const char*, uint16_t value, uint16_t) {
+static void onBatVoltEChange(const char* /*label*/, uint16_t value, uint16_t /*max_value*/) {
     int16_t newAngleE = map(value, 0, 65535, 150, 30);
     if (newAngleE != angleE) {
         angleE = newAngleE;
@@ -60,14 +61,12 @@ static void onBatVoltEChange(const char*, uint16_t value, uint16_t) {
 // --- Draw background ONCE at startup or mission start ---
 static void BatteryGauge_drawBackground() {
     BatteryGauge_CS_ON();
-    tft->pushImage(0, 0, 240, 240, psramBackground ? psramBackground : batBackground);
+    tft->pushImage(0, 0, 240, 240, psramBackground ? psramBackground : batBackground); // Fallback to flash if allocation fails
     BatteryGauge_CS_OFF();
 }
 
-// --- DMA-only, fast needle updates ---
-// (Background is static, drawn by CPU; needles use DMA from sprite IRAM buffer)
+// --- Draw only the needles (overlay on static background) ---
 static void BatteryGauge_draw(bool force) {
-    if (!tft || !needleU || !needleE || !gaugeBack) return;
     if (!isMissionRunning() && !force) return;
 
     unsigned long now = millis();
@@ -83,25 +82,30 @@ static void BatteryGauge_draw(bool force) {
     lastDrawnAngleE = e;
     gaugeDirty = false;
 
+    debugPrintf("BATT VOLT U %d\n", u);
+    debugPrintf("BATT VOLT E %d\n", e);
+
 #if DEBUG_PERFORMANCE
     beginProfiling(PERF_TFT_DRAW);
 #endif
 
     BatteryGauge_CS_ON();
 
-    // 1. Clear and redraw background on composite sprite
+    // Start from clean background each time
     gaugeBack->fillSprite(TFT_TRANSPARENT);
     gaugeBack->pushImage(0, 0, 240, 240, psramBackground ? psramBackground : batBackground);
 
-    // 2. Draw/rotate needles into composite
+    // Draw upper needle
     needleU->fillSprite(TFT_TRANSPARENT);
-    needleU->pushImage(0, 0, 15, 88, batNeedle);
+    needleU->pushImage(0, 0, 15, 88, psramNeedle ? psramNeedle : batNeedle);
     needleU->pushRotated(gaugeBack, u, TFT_TRANSPARENT);
 
+    // Draw lower needle
     needleE->fillSprite(TFT_TRANSPARENT);
-    needleE->pushImage(0, 0, 15, 88, batNeedle);
+    needleE->pushImage(0, 0, 15, 88, psramNeedle ? psramNeedle : batNeedle);
     needleE->pushRotated(gaugeBack, e, TFT_TRANSPARENT);
 
+    // Final blit to screen
     gaugeBack->pushSprite(0, 0, TFT_TRANSPARENT);
 
     BatteryGauge_CS_OFF();
@@ -109,11 +113,9 @@ static void BatteryGauge_draw(bool force) {
 #if DEBUG_PERFORMANCE
     endProfiling(PERF_TFT_DRAW);
 #endif
-
 }
 
-
-// --- FreeRTOS task (if used) ---
+// --- FreeRTOS task for ultra-fast, non-blocking rendering ---
 static void BatteryGauge_task(void*) {
     while (1) {
         BatteryGauge_draw();
@@ -137,7 +139,7 @@ void BatteryGauge_init() {
     pinMode(BATTERY_CS_PIN, OUTPUT);
     BatteryGauge_CS_OFF();
 
-    // PSRAM background allocation (optional)
+    // --- Allocate and copy asset images to PSRAM ---
     if (!psramBackground) {
         psramBackground = (uint16_t*)PS_MALLOC(batBackgroundLen * sizeof(uint16_t));
         if (psramBackground) {
@@ -146,6 +148,16 @@ void BatteryGauge_init() {
         }
         else {
             debugPrintln("[PSRAM] ❌ Failed to allocate batBackground in PSRAM!");
+        }
+    }
+    if (!psramNeedle) {
+        psramNeedle = (uint16_t*)PS_MALLOC(batNeedleLen * sizeof(uint16_t));
+        if (psramNeedle) {
+            memcpy(psramNeedle, batNeedle, batNeedleLen * sizeof(uint16_t));
+            debugPrintln("[PSRAM] ✅ batNeedle copied to PSRAM.");
+        }
+        else {
+            debugPrintln("[PSRAM] ❌ Failed to allocate batNeedle in PSRAM!");
         }
     }
 
@@ -159,26 +171,19 @@ void BatteryGauge_init() {
     gaugeBack->setSwapBytes(true);
     gaugeBack->setPivot(120, 120);
 
-    BatteryGauge_drawBackground();
-
-    // --- Needles: IRAM sprites only ---
     needleU = new TFT_eSprite(tft);
-    if (!needleU->createSprite(15, 88)) {
-        debugPrintln("FATAL: needleU createSprite failed!");
-        while (1); // halt!
-    }
     needleU->setColorDepth(colorDepth);
+    needleU->createSprite(15, 88);
     needleU->setSwapBytes(true);
     needleU->setPivot(7, 84);
 
     needleE = new TFT_eSprite(tft);
-    if (!needleE->createSprite(15, 88)) {
-        debugPrintln("FATAL: needleE createSprite failed!");
-        while (1);
-    }
     needleE->setColorDepth(colorDepth);
+    needleE->createSprite(15, 88);
     needleE->setSwapBytes(true);
     needleE->setPivot(7, 84);
+
+    BatteryGauge_drawBackground();
 
 #if DEBUG_PERFORMANCE
     endProfiling(PERF_TFT_INIT);
@@ -195,16 +200,19 @@ void BatteryGauge_init() {
 
     BatteryGauge_bitTest();
 
-    debugPrintln("✅ BatteryGauge display initialized (DMA needles, static background)");
+    debugPrintln("✅ BatteryGauge display initialized (DMA, background drawn from PSRAM, FreeRTOS rendering task)");
 }
 
+// --- LOOP: No longer needed (kept for compatibility, does nothing) ---
 void BatteryGauge_loop() {
 #if !RUN_GAUGE_AS_TASK
     BatteryGauge_draw();
 #endif
 }
 
+// --- LOOP: For buttons and switches only ---
 void BatteryButtons_loop() {
+
     static unsigned long lastPoll = 0;
     if (!shouldPollMs(lastPoll)) return;
 
@@ -271,20 +279,23 @@ void BatteryGauge_bitTest() {
         gaugeDirty = true;
         vTaskDelay(pdMS_TO_TICKS(10));
     }
+
     BatteryGauge_draw(true);
+
 #if DEBUG_PERFORMANCE
     endProfiling(PERF_TFT_BITTEST);
 #endif
 }
 
 void BatteryGauge_deinit() {
-    if (needleU) { needleU->deleteSprite(); delete needleU; needleU = nullptr; }
-    if (needleE) { needleE->deleteSprite(); delete needleE; needleE = nullptr; }
     if (gaugeBack) { gaugeBack->deleteSprite(); delete gaugeBack; gaugeBack = nullptr; }
-    if (tft) { delete tft; tft = nullptr; }
+    if (needleU) { needleU->deleteSprite();   delete needleU;   needleU = nullptr; }
+    if (needleE) { needleE->deleteSprite();   delete needleE;   needleE = nullptr; }
+    if (tft) { delete tft;                tft = nullptr; }
     if (tftTaskHandle) {
         vTaskDelete(tftTaskHandle);
         tftTaskHandle = nullptr;
     }
     if (psramBackground) { PS_FREE(psramBackground); psramBackground = nullptr; }
+    if (psramNeedle) { PS_FREE(psramNeedle); psramNeedle = nullptr; }
 }

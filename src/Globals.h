@@ -8,8 +8,8 @@
 #define DEBUG_CONSOLE_IP_ADDRESS                  "255.255.255.255" // Also a place holder, this sends debug info to any computer on your network
 */
 
+#include "PsramConfig.h"
 #include <Arduino.h>
-
 #include "../Config.h"
 
 // DO NOT CHANGE ANYTHING ABOVE THIS LINE....

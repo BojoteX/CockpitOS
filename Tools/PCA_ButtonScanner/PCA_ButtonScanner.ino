@@ -5,8 +5,8 @@
 #define I2C_FREQ 400000
 
 // Configurable parameters
-#define PCA9555_MIN_ADDR 0x20
-#define PCA9555_MAX_ADDR 0x27
+#define PCA9555_MIN_ADDR 0x03
+#define PCA9555_MAX_ADDR 0x77
 
 // Cache up to 8 devices
 static uint8_t detectedPcas[8];
@@ -60,7 +60,7 @@ void printPortsState(uint8_t p0, uint8_t p1) {
 // Setup
 void setup() {
   Serial.begin(115200);
-  delay(500);
+  delay(3000);
   Serial.println("🔍 Scanning I²C Bus for PCA9555 devices...");
 
   Wire.begin(I2C_SDA, I2C_SCL, I2C_FREQ);

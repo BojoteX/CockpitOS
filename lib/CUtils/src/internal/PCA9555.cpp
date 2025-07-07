@@ -1,4 +1,5 @@
 // Max 8 PCA9555 devices
+static uint8_t pcaConfigCache[128][2] = { {0xFF, 0xFF} }; // default all pins as input at boot
 static byte prevPort0Cache[8];
 static byte prevPort1Cache[8];
 static uint8_t addrCache[8];
@@ -106,6 +107,11 @@ void PCA9555_initCache() {
         Wire.write((uint8_t)0xFF);
         Wire.write((uint8_t)0xFF);
         Wire.endTransmission();
+
+		// Store initial config states in cache
+        pcaConfigCache[addr][0] = configPort0;
+        pcaConfigCache[addr][1] = configPort1;
+
     }
 }
 
@@ -221,6 +227,10 @@ void initPCA9555AsInput(uint8_t addr) {
     Wire.write(configPort0);   // Set directions for PORT0
     Wire.write(configPort1);   // Set directions for PORT1
     Wire.endTransmission();
+
+	// Update the cache for config ports
+    pcaConfigCache[addr][0] = configPort0;
+    pcaConfigCache[addr][1] = configPort1;
 }
 
 // Corrected readPCA9555 function (Wire-style)
@@ -600,66 +610,148 @@ bool isPCA9555LoggingEnabled() {
   return loggingEnabled;
 }
 
-void logExpanderState(uint8_t p0, uint8_t p1) {
-  char buffer[32];
+// Max selector groups (tune as needed)
+#define MAX_SELECTOR_GROUPS 32
 
-  // Formatting p0
-  int idx = 0;
-  idx += snprintf(buffer + idx, sizeof(buffer) - idx, " → [ p0:");
-  for (int8_t b = 6; b >= 0; --b) {
-    idx += snprintf(buffer + idx, sizeof(buffer) - idx, "%u", (p0 >> b) & 1);
-  }
+// Keep track of last label ID (or use pointer or unique value) per group, per device
+struct SelectorGroupState {
+    uint8_t addr;
+    uint16_t group;
+    const char* lastLabel;
+};
+static SelectorGroupState selectorStates[MAX_SELECTOR_GROUPS];
+static size_t selectorStatesCount = 0;
 
-  // Formatting p1
-  idx += snprintf(buffer + idx, sizeof(buffer) - idx, " | p1:");
-  for (int8_t b = 6; b >= 0; --b) {
-    idx += snprintf(buffer + idx, sizeof(buffer) - idx, "%u", (p1 >> b) & 1);
-  }
+// Find or create selector state slot
+static SelectorGroupState* getSelectorState(uint8_t addr, uint16_t group) {
+    for (size_t i = 0; i < selectorStatesCount; ++i) {
+        if (selectorStates[i].addr == addr && selectorStates[i].group == group) {
+            return &selectorStates[i];
+        }
+    }
+    if (selectorStatesCount < MAX_SELECTOR_GROUPS) {
+        selectorStates[selectorStatesCount] = { addr, group, nullptr };
+        return &selectorStates[selectorStatesCount++];
+    }
+    return nullptr;
+}
 
-  idx += snprintf(buffer + idx, sizeof(buffer) - idx, " ]");
+// Returns the active InputMapping* for a given group, device, and current port states
+static const InputMapping* getActiveSelectorPosition(uint8_t addr, uint16_t group, byte port0, byte port1) {
+    const InputMapping* composite = nullptr;
+    for (size_t i = 0; i < InputMappingSize; ++i) {
+        const InputMapping& m = InputMappings[i];
+        if (!m.source || m.group != group) continue;
+        char deviceName[20];
+        snprintf(deviceName, sizeof(deviceName), "PCA_0x%02X", addr);
+        if (strcmp(m.source, deviceName) != 0) continue;
+        uint8_t port = m.port;
+        int8_t bit = m.bit;
 
-  debugPrintln(buffer);  // Send the complete buffer to your debug handler
+        if (bit == -1) {
+            // Composite: all group bits HIGH
+            bool allHigh = true;
+            for (size_t j = 0; j < InputMappingSize; ++j) {
+                const InputMapping& mj = InputMappings[j];
+                if (!mj.source || mj.group != group) continue;
+                if (strcmp(mj.source, deviceName) != 0) continue;
+                if (mj.port != port || mj.bit < 0) continue;
+                uint8_t val = (port == 0) ? port0 : port1;
+                if ((val & (1 << mj.bit)) == 0)
+                    allHigh = false;
+            }
+            if (allHigh) composite = &m;
+        }
+        else if (bit >= 0) {
+            uint8_t val = (port == 0) ? port0 : port1;
+            // Bit LOW means this position is active
+            if ((val & (1 << bit)) == 0)
+                return &m;
+        }
+    }
+    // If none are LOW, return composite state if present
+    if (composite) return composite;
+    return nullptr;
+}
+
+void logExpanderState(uint8_t p0, uint8_t p1, char* buffer, size_t buflen) {
+    int idx = 0;
+    idx += snprintf(buffer + idx, buflen - idx, " [p0:");
+    for (int8_t b = 6; b >= 0; --b)
+        idx += snprintf(buffer + idx, buflen - idx, "%u", (p0 >> b) & 1);
+
+    idx += snprintf(buffer + idx, buflen - idx, " | p1:");
+    for (int8_t b = 6; b >= 0; --b)
+        idx += snprintf(buffer + idx, buflen - idx, "%u", (p1 >> b) & 1);
+
+    idx += snprintf(buffer + idx, buflen - idx, "]");
 }
 
 void logPCA9555State(uint8_t address, byte port0, byte port1) {
-  int idx = getCacheIndex(address);
-  if (idx < 0) return;
+    int idx = getCacheIndex(address);
+    if (idx < 0) return;
 
-  byte prev0 = prevPort0Cache[idx];
-  byte prev1 = prevPort1Cache[idx];
+    byte prev0 = prevPort0Cache[idx];
+    byte prev1 = prevPort1Cache[idx];
 
-  bool printedNewLine = false;
+    // Always print per-bit logs for discovery
+    for (int port = 0; port <= 1; port++) {
+        byte prev = (port == 0) ? prev0 : prev1;
+        byte curr = (port == 0) ? port0 : port1;
+        for (int b = 0; b < 8; b++) {
+            if (bitRead(prev, b) != bitRead(curr, b)) {
+                char line[192], expander[48];
+                logExpanderState(port0, port1, expander, sizeof(expander));
 
-  for (int port = 0; port <= 1; port++) {
-    byte prev = (port == 0) ? prev0 : prev1;
-    byte curr = (port == 0) ? port0 : port1;
+                // Find the group for this bit (if any)
+                const InputMapping* mapping = resolveInputMapping(address, port, b);
+                if (mapping && mapping->group > 0 && strcmp(mapping->controlType, "selector") == 0) {
+                    // Check which selector position is now active in this group:
+                    const InputMapping* active = getActiveSelectorPosition(address, mapping->group, port0, port1);
+                    if (active) {
+                        snprintf(
+                            line, sizeof(line),
+                            "🔘 SELECTOR GROUP %u PCA 0x%02X%s → %s (port=%d, bit=%d)",
+                            mapping->group, address, expander,
+                            active->label,
+                            active->port,
+                            active->bit
+                        );
+                    }
+                    else {
+                        // Find the group's port (use current mapping's port)
+                        snprintf(
+                            line, sizeof(line),
+                            "🔘 SELECTOR GROUP %u PCA 0x%02X%s → UNKNOWN/INVALID STATE (add composite: port=%d, bit=-1)",
+                            mapping->group, address, expander,
+                            mapping->port
+                        );
+                    }
+                }
+                else {
+                    // Not a selector group: just print per-bit state
+                    bool isOutput = ((pcaConfigCache[address][port] & (1 << b)) == 0);
+                    snprintf(
+                        line, sizeof(line),
+                        "⚡PCA 0x%02X%s → Port%d Bit%d [%s] %s",
+                        address, expander, port, b,
+                        isOutput ? "LED" : "BUTTON/SWITCH/ENCODER",
+                        (mapping ? mapping->label : "❌ No label mapped")
+                    );
 
-    for (int b = 0; b < 8; b++) {
-      if (bitRead(prev, b) != bitRead(curr, b)) {
+                }
+                debugPrintln(line);
 
-        const InputMapping* mapping = resolveInputMapping(address, port, b);
-
-        if (printedNewLine) debugPrintln("");
-
-        debugPrintf("⚡PCA 0x%02X ", address);
-        logExpanderState(port0, port1);
-        debugPrint(" ");
-
-        debugPrintf("→ Port%d Bit%d ", port, b);
-
-        if (!mapping) {
-          debugPrint("❌ No label mapped");
-        } else {
-          debugPrintf("✅ DCS Command = %s", mapping->oride_label ? mapping->oride_label : "(none)");
+                // Always print the template for new mapping (if no mapping)
+                if (!mapping) {
+                    char mappingTemplate[256];
+                    snprintf(mappingTemplate, sizeof(mappingTemplate), 
+                        "Discovery: { \"<LABEL>\", \"PCA_0x%02X\", %d, %d, .... },\n", address, port, b);
+                    debugPrintln(mappingTemplate);
+                }
+            }
         }
-
-        printedNewLine = true;
-      }
     }
-  }
-
-  debugPrintln("");
-
-  prevPort0Cache[idx] = port0;
-  prevPort1Cache[idx] = port1;
+    prevPort0Cache[idx] = port0;
+    prevPort1Cache[idx] = port1;
 }

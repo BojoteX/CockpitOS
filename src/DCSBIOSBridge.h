@@ -6,6 +6,11 @@
 
 void initPanels();
 
+// --- Prototypes for Selector Validation/Sync ---
+void validateSelectorSync();
+void initializeSelectorValidation();
+static void selectorValidationCallback(const char* label, uint16_t value);
+
 // ───── Subscribe to metadata changes ─────
 #define MAX_METADATA_SUBSCRIPTIONS 32
 struct MetadataSubscription {

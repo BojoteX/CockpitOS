@@ -7,28 +7,6 @@ void HIDManager_loop();
 void HIDSenderTask(void* param);
 size_t getMaxUsedGroup();
 
-// ───── Axis Input ─────
-void HIDManager_moveAxis(const char* dcsIdentifier, uint8_t pin);
-
-// ───── Named Button State Setters (zero heap) ─────
-void HIDManager_setNamedButton(const char* name, bool deferSend = false, bool pressed = true);
-void HIDManager_setToggleNamedButton(const char* name, bool deferSend = false);
-void HIDManager_toggleIfPressed(bool isPressed, const char* label, bool deferSend = false);
-void HIDManager_setSelectorState(const char* name, bool deferSend);
-
-// ───── Guarded Helpers ─────
-void HIDManager_handleGuardedToggleIfPressed(bool isPressed, const char* buttonLabel, const char* coverLabel, bool deferSend = false);
-void HIDManager_handleCosmeticGuardedSelector(bool switchOn, const char* labelOn, const char* labelOff, const char* coverLabel, bool deferSend = false);
-void HIDManager_handleGuardedToggle(bool isPressed, const char* switchLabel, const char* coverLabel, const char* fallbackLabel = nullptr, bool deferSend = false);
-void HIDManager_handleGuardedMomentary(bool isPressed, const char* buttonLabel, const char* coverLabel, bool deferSend = false);
-
-// ───── Utility / Maintenance ─────
-void HIDManager_commitDeferredReport(const char* deviceName);
-bool shouldPollMs(unsigned long &lastPoll);
-bool shouldPollDisplayRefreshMs(unsigned long& lastPoll);
-void HIDManager_keepAlive();
-void HIDManager_sendReport(const char* label, int32_t value = -1);
-
 // ───── HID Axis ─────
 enum HIDAxis : uint8_t {
   AXIS_X = 0,
@@ -41,9 +19,24 @@ enum HIDAxis : uint8_t {
   AXIS_SLIDER2,
   HID_AXIS_COUNT
 };
-void HIDManager_resetAllAxes();
 
+// ───── Axis Input ─────
+// void HIDManager_moveAxis(const char* dcsIdentifier, uint8_t pin);
+void HIDManager_resetAllAxes();
 void HIDManager_moveAxis(const char* dcsIdentifier, uint8_t pin, HIDAxis axis);
+
+// ───── Named Button State Setters (zero heap) ─────
+void HIDManager_setNamedButton(const char* name, bool deferSend = false, bool pressed = true);
+void HIDManager_setToggleNamedButton(const char* name, bool deferSend = false);
+void HIDManager_toggleIfPressed(bool isPressed, const char* label, bool deferSend = false);
+void HIDManager_handleGuardedToggleIfPressed(bool isPressed, const char* buttonLabel, const char* coverLabel, bool deferSend = false);
+
+// ───── Utility / Maintenance ─────
+void HIDManager_commitDeferredReport(const char* deviceName);
+bool shouldPollMs(unsigned long &lastPoll);
+bool shouldPollDisplayRefreshMs(unsigned long& lastPoll);
+void HIDManager_keepAlive();
+void HIDManager_sendReport(const char* label, int32_t value = -1);
 void flushBufferedHidCommands();
 void HIDManager_dispatchReport(bool force = false);
 void HID_keepAlive();

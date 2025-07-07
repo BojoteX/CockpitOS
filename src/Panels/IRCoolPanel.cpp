@@ -109,45 +109,6 @@ void IRCool_init() {
     }
 }
 
-/*
-void IRCool_init() {
-  delay(50);  // Small delay to ensure when init is called DCS has settled
-
-  // "impossible" value to force controller reset and cache invalidation
-  prevIRCPort0 = 0xAA;
-  prevIRCPort1 = 0xAA;
-
-  byte port0, port1;
-  if (readPCA9555(IRCOOL_PCA_ADDR, port0, port1)) {
-    prevIRCPort0 = port0;
-    prevIRCPort1 = port1;
-
-    // SPIN switch and cosmetic cover sync on init
-    bool currSpin = !bitRead(port1, SPIN_RCVY);
-    // bool currSpin = (digitalRead(0) == LOW);
-    updateSpinRecovery(true, currSpin);
-
-    // IR COOL 3-position logic (PORT1 bits 0 & 1)
-    if (!bitRead(port1, IR_COOL_OFF))
-      HIDManager_setNamedButton("IR_COOL_SW_OFF", true);
-    else if (!bitRead(port1, IR_COOL_ORIDE))
-      HIDManager_setNamedButton("IR_COOL_SW_ORIDE", true);
-    else
-      HIDManager_setNamedButton("IR_COOL_SW_NORM", true);
-
-    // Analog input for HMD knob
-    HIDManager_moveAxis("HMD_OFF_BRT", HMD_KNOB_PIN, AXIS_RX);
-
-    // Send deferred HID report
-    // HIDManager_commitDeferredReport("IR Cool Panel");
-
-    debugPrintf("✅ Initialized IR Cool Panel\n", IRCOOL_PCA_ADDR);
-  } else {
-    debugPrintf("❌ Could not initialize IR Cool Panel\n", IRCOOL_PCA_ADDR);
-  }
-}
-*/
-
 void IRCool_loop() {
   static unsigned long lastIRCoolPoll = 0;
   if (!shouldPollMs(lastIRCoolPoll)) return;

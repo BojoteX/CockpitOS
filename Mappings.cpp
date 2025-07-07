@@ -8,6 +8,10 @@
 #include "src/WiFiDebug.h"
 #endif
 
+// TM1637 device instances (must match externs)
+TM1637Device RA_Device;
+TM1637Device LA_Device;
+
 // ---- Panel presence flags (all initialized to false, set in initMappings) ----
 bool hasBrain     = false;
 bool hasECM       = false;
@@ -21,7 +25,25 @@ bool hasIR        = false;
 bool hasLockShoot = false;
 bool hasGauge     = false;
 bool hasTFTGauge  = false;
+bool hasTFTSwitch = false;
 // Add more runtime panel conditionals here when adding custom panels/other aircraft
+
+PanelID getPanelID(uint8_t address) {
+  for (auto &p : kPanels)
+    if (p.addr == address) return p.id;
+  return PanelID::UNKNOWN;
+}
+
+const char* panelIDToString(PanelID id) {
+  for (auto &p : kPanels)
+    if (p.id == id) return p.label;
+  return "Unknown Panel";
+}
+
+const char* getPanelName(uint8_t addr) {
+    const char* n = (addr < I2C_ADDR_SPACE) ? panelNameByAddr[addr] : nullptr;
+    return n ? n : panelIDToString(getPanelID(addr));
+}
 
 // -- Panel Modules --
 #if defined(LABEL_SET_MAIN) || defined(LABEL_SET_ALL) 
@@ -59,6 +81,7 @@ void initMappings() {
       hasIFEI = true;
     #endif
     #if defined(LABEL_SET_BATTERY_GAUGE) || defined(LABEL_SET_ALL)
+      hasTFTSwitch = true;
       hasTFTGauge = true;
     #endif
     #if defined(LABEL_SET_ALTIMETER) || defined(LABEL_SET_ALL)
@@ -67,6 +90,7 @@ void initMappings() {
     // Any conditional logic for custom panels should be nested above
 
     // Runs a discovery routine to check for PCA panels automatically, but they still need to be added manually in kPanels[] (see Mappings.h)
+    debugPrintf("Using SDA %d and SCL %d for I2C\n", SDA_PIN, SCL_PIN);
     PCA9555_scanConnectedPanels();
 
     // ---- Runtime detection ---- (This is used so that outputs to PCA panels only work when they are present)
@@ -170,6 +194,10 @@ void initializePanels(bool force) {
     if (hasIR) IRCool_init();
     if (hasMasterARM) MasterARM_init();
   #endif
+
+  #if defined(LABEL_SET_BATTERY_GAUGE) || defined(LABEL_SET_ALL)
+    if (hasTFTSwitch) BatteryButtons_init();
+  #endif  
   // Your custom panels init routine should go here
 
     if (!isModeSelectorDCS()) HIDManager_commitDeferredReport("All devices");
@@ -196,6 +224,7 @@ void panelLoop() {
 
   #if defined(LABEL_SET_BATTERY_GAUGE) || defined(LABEL_SET_ALL)
     if (hasTFTGauge) BatteryGauge_loop();
+    if (hasTFTSwitch) BatteryButtons_loop();
   #endif
 
   #if defined(LABEL_SET_MAIN) || defined(LABEL_SET_ALL)
@@ -218,17 +247,10 @@ void panelLoop() {
     #endif
 
     if (isPCA9555LoggingEnabled()) {
-        if (hasBrain) {
+        for (uint8_t i = 0; i < discoveredDeviceCount; ++i) {
+            uint8_t addr = discoveredDevices[i].address;
             byte p0, p1;
-            readPCA9555(0x26, p0, p1);
-        }
-        if (hasECM) {
-            byte p0, p1;
-            readPCA9555(0x22, p0, p1);
-        }
-        if (hasMasterARM) {
-            byte p0, p1;
-            readPCA9555(0x5B, p0, p1);
+            readPCA9555(addr, p0, p1);
         }
     }
 }

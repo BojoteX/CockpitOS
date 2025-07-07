@@ -245,103 +245,93 @@ void HIDManager_resetAllAxes() {
     }
 }
 
-/*
-void HIDManager_moveAxis(const char* dcsIdentifier,
-                        uint8_t      pin,
-                        HIDAxis      axis) {
-    constexpr int DEADZONE_LOW        = 256;
-    constexpr int DEADZONE_HIGH       = 4000;
-    constexpr int THRESHOLD           = 64;
-    constexpr int SMOOTHING_FACTOR    = 8;
-    constexpr int STABILIZATION_CYCLES = 10;
+// Commit Deferred HID report for an entire panel
+void HIDManager_commitDeferredReport(const char* deviceName) {
 
-    // 1) Read & smooth
-    int raw = analogRead(pin);
-    if (stabCount[pin] == 0) {
-        lastFiltered[pin] = raw;
-    } else {
-        lastFiltered[pin] = (lastFiltered[pin] * (SMOOTHING_FACTOR - 1) + raw)
-                             / SMOOTHING_FACTOR;
-    }
-    int filtered = lastFiltered[pin];
-    if (filtered < DEADZONE_LOW)  filtered = 0;
-    if (filtered > DEADZONE_HIGH) filtered = 4095;
+      // Skip is we are in DCS-MODE
+    if (isModeSelectorDCS()) return;
 
-    // 2) Stabilization period
-    if (!stabilized[pin]) {
-        stabCount[pin]++;
-        if (stabCount[pin] >= STABILIZATION_CYCLES) {
-            stabilized[pin] = true;
-            // --- Always send initial value after stabilization ---
-            lastOutput[pin] = filtered;
-            uint16_t dcsValue = map(filtered, 0, 4095, 0, 65535);
-
-            if (isModeSelectorDCS()) {
-                auto* e = findCmdEntry(dcsIdentifier);
-                bool force = forcePanelSyncThisMission;
-                if (e && applyThrottle(*e, dcsIdentifier, dcsValue, force)) {
-                    sendDCSBIOSCommand(dcsIdentifier, dcsValue, force);
-                    e->lastValue    = dcsValue;
-                    e->lastSendTime = millis();
-                }
-            } else {
-                switch (axis) {
-                  case AXIS_RX:      report.rx = filtered; break;
-                  case AXIS_SLIDER1: report.slider1 = filtered; break;
-                  case AXIS_SLIDER2: report.slider2 = filtered; break;
-                  default:           report.rx = filtered; break;
-                }
-                auto* e = findCmdEntry(dcsIdentifier);
-                if (e && applyThrottle(*e, dcsIdentifier, dcsValue, false)) {
-                    HIDManager_dispatchReport(false);
-                    e->lastValue    = dcsValue;
-                    e->lastSendTime = millis();
-                    debugPrintf("🛩️ [HID] Axis(%u) %s = %u [INITIAL]\n",
-                                axis, dcsIdentifier, dcsValue);
-                }
-            }
-            return; // Done with initial send after stabilization
-        } else {
-            return; // Still stabilizing
-        }
-    }
-
-    // 3) Only send if the change exceeds the threshold
-    if (abs(filtered - lastOutput[pin]) <= THRESHOLD) {
+  #if !USE_DCSBIOS_WIFI
+    if (!cdcEnsureRxReady(CDC_TIMEOUT_RX_TX) || !cdcEnsureTxReady(CDC_TIMEOUT_RX_TX)) {
+        debugPrintln("❌ [HID] No stream active yet or Tx buffer full");
         return;
     }
-    lastOutput[pin] = filtered;
+  #endif    
 
-    // 4) Map filtered [0..4095] → DCS [0..65535]
-    uint16_t dcsValue = map(filtered, 0, 4095, 0, 65535);
+    // 2) Send the raw 64-byte gamepad report
+    HIDManager_dispatchReport(false);
 
-    // 5) Throttle & dispatch
-    if (isModeSelectorDCS()) {
-        auto* e = findCmdEntry(dcsIdentifier);
-        bool force = forcePanelSyncThisMission;
-        if (e && applyThrottle(*e, dcsIdentifier, dcsValue, force)) {
-            sendDCSBIOSCommand(dcsIdentifier, dcsValue, force);
-            e->lastValue    = dcsValue;
-            e->lastSendTime = millis();
-        }
-    } else {
-        switch (axis) {
-          case AXIS_RX:      report.rx = filtered; break;
-          case AXIS_SLIDER1: report.slider1 = filtered; break;
-          case AXIS_SLIDER2: report.slider2 = filtered; break;
-          default:           report.rx = filtered; break;
-        }
-        auto* e = findCmdEntry(dcsIdentifier);
-        if (e && applyThrottle(*e, dcsIdentifier, dcsValue, false)) {
-            HIDManager_dispatchReport(false);
-            e->lastValue    = dcsValue;
-            e->lastSendTime = millis();
-            debugPrintf("🛩️ [HID] Axis(%u) %s = %u\n",
-                        axis, dcsIdentifier, dcsValue);
-        }
-    }
+    // 3) (Optional) Debug
+    debugPrintf("🛩️ [HID] Deferred report sent for: \"%s\"\n", deviceName);
 }
-*/
+
+// For polling rate on panels that need it
+bool shouldPollMs(unsigned long &lastPoll) {
+  const unsigned long pollingIntervalMs = 1000 / POLLING_RATE_HZ;
+  unsigned long now = millis();
+  if (now - lastPoll < pollingIntervalMs) return false;
+  lastPoll = now;
+  return true;
+}
+
+// USB Events
+void onUsbStarted(void* arg, esp_event_base_t base, int32_t event_id, void* data) {
+  debugPrintln("🔌 USB Started");
+}
+
+void onUsbStopped(void* arg, esp_event_base_t base, int32_t event_id, void* data) {
+  debugPrintln("❌ USB Stopped");
+}
+
+void onUsbSuspended(void* arg, esp_event_base_t base, int32_t event_id, void* data) {
+  debugPrintln("💤 USB Suspended");
+}
+
+void onUsbResumed(void* arg, esp_event_base_t base, int32_t event_id, void* data) {
+  debugPrintln("🔁 USB Resumed");
+}
+
+void setupUSBEvents() {
+    USB.onEvent(ARDUINO_USB_STARTED_EVENT, onUsbStarted);
+    USB.onEvent(ARDUINO_USB_STOPPED_EVENT, onUsbStopped);
+    USB.onEvent(ARDUINO_USB_SUSPEND_EVENT, onUsbSuspended);
+    USB.onEvent(ARDUINO_USB_RESUME_EVENT, onUsbResumed);
+}
+
+void HIDManager_dispatchReport(bool force) {
+
+// Only situation in which we are allowed to send HID reports while in DCS mode is when USE_DCSBIOS_USB is enabled, so we skip this check.
+#if USE_DCSBIOS_USB
+    if (HID.ready()) {
+        gamepad.sendReport(report.raw, sizeof(report.raw)); // Already using HID_SENDREPORT_TIMEOUT
+    }
+    else {
+		debugPrintln("❌ [HID] Not ready, cannot send report. Retry 3 times");
+    }
+#else
+    // DCS mode disables HID entirely
+    if (isModeSelectorDCS()) return;
+
+    uint32_t now = micros();
+
+    if (force) {
+        // REGULAR INTERVAL: Enforce minimum interval
+        if ((now - lastHidSendUs) < HID_REPORT_MIN_INTERVAL_US) return;
+        // Else, proceed and update last send time below
+    }
+
+    // Skip if report is identical and not forced
+    if (!force && memcmp(lastSentReport, report.raw, sizeof(report.raw)) == 0) return;
+
+    // We also check for HID_can_send_report to check for special Rx ready condition (ESP32 Arduino Core bug workaround!) 
+    if(HID.ready())
+      gamepad.sendReport(report.raw, sizeof(report.raw)); // Already using HID_SENDREPORT_TIMEOUT
+
+    // Mark success
+    memcpy(lastSentReport, report.raw, sizeof(report.raw));
+    lastHidSendUs = now;
+#endif    
+}
 
 void HIDManager_moveAxis(const char* dcsIdentifier,
     uint8_t      pin,
@@ -444,89 +434,6 @@ void HIDManager_moveAxis(const char* dcsIdentifier,
     }
 }
 
-// Commit Deferred HID report for an entire panel
-void HIDManager_commitDeferredReport(const char* deviceName) {
-
-      // Skip is we are in DCS-MODE
-    if (isModeSelectorDCS()) return;
-
-  #if !USE_DCSBIOS_WIFI
-    if (!cdcEnsureRxReady(CDC_TIMEOUT_RX_TX) || !cdcEnsureTxReady(CDC_TIMEOUT_RX_TX)) {
-        debugPrintln("❌ [HID] No stream active yet or Tx buffer full");
-        return;
-    }
-  #endif    
-
-    // 2) Send the raw 64-byte gamepad report
-    HIDManager_dispatchReport(false);
-
-    // 3) (Optional) Debug
-    debugPrintf("🛩️ [HID] Deferred report sent for: \"%s\"\n", deviceName);
-}
-
-// For polling rate on panels that need it
-bool shouldPollMs(unsigned long &lastPoll) {
-  const unsigned long pollingIntervalMs = 1000 / POLLING_RATE_HZ;
-  unsigned long now = millis();
-  if (now - lastPoll < pollingIntervalMs) return false;
-  lastPoll = now;
-  return true;
-}
-
-// USB Events
-void onUsbStarted(void* arg, esp_event_base_t base, int32_t event_id, void* data) {
-  debugPrintln("🔌 USB Started");
-}
-
-void onUsbStopped(void* arg, esp_event_base_t base, int32_t event_id, void* data) {
-  debugPrintln("❌ USB Stopped");
-}
-
-void onUsbSuspended(void* arg, esp_event_base_t base, int32_t event_id, void* data) {
-  debugPrintln("💤 USB Suspended");
-}
-
-void onUsbResumed(void* arg, esp_event_base_t base, int32_t event_id, void* data) {
-  debugPrintln("🔁 USB Resumed");
-}
-
-void setupUSBEvents() {
-    USB.onEvent(ARDUINO_USB_STARTED_EVENT, onUsbStarted);
-    USB.onEvent(ARDUINO_USB_STOPPED_EVENT, onUsbStopped);
-    USB.onEvent(ARDUINO_USB_SUSPEND_EVENT, onUsbSuspended);
-    USB.onEvent(ARDUINO_USB_RESUME_EVENT, onUsbResumed);
-}
-
-void HIDManager_dispatchReport(bool force) {
-
-// Only situation in which we are allowed to send HID reports while in DCS mode is when USE_DCSBIOS_USB is enabled, so we skip this check.
-#if USE_DCSBIOS_USB
-    if (HID.ready()) gamepad.sendReport(report.raw, sizeof(report.raw)); // Already using HID_SENDREPORT_TIMEOUT
-#else
-    // DCS mode disables HID entirely
-    if (isModeSelectorDCS()) return;
-
-    uint32_t now = micros();
-
-    if (force) {
-        // REGULAR INTERVAL: Enforce minimum interval
-        if ((now - lastHidSendUs) < HID_REPORT_MIN_INTERVAL_US) return;
-        // Else, proceed and update last send time below
-    }
-
-    // Skip if report is identical and not forced
-    if (!force && memcmp(lastSentReport, report.raw, sizeof(report.raw)) == 0) return;
-
-    // We also check for HID_can_send_report to check for special Rx ready condition (ESP32 Arduino Core bug workaround!) 
-    if(HID.ready())
-      gamepad.sendReport(report.raw, sizeof(report.raw)); // Already using HID_SENDREPORT_TIMEOUT
-
-    // Mark success
-    memcpy(lastSentReport, report.raw, sizeof(report.raw));
-    lastHidSendUs = now;
-#endif    
-}
-
 void HIDManager_toggleIfPressed(bool isPressed, const char* label, bool deferSend) {
   
     CommandHistoryEntry* e = findCmdEntry(label);
@@ -582,66 +489,6 @@ void HIDManager_setToggleNamedButton(const char* name, bool deferSend) {
   }
 }
 
-void HIDManager_handleGuardedToggle(bool isPressed, const char* switchLabel, const char* coverLabel, const char* fallbackLabel, bool deferSend) {
-
-  CommandHistoryEntry* e = findCmdEntry(switchLabel);
-  if (!e) return;
-
-  static std::array<bool, MAX_TRACKED_RECORDS> lastStates = {false};
-  int index = e - dcsbios_getCommandHistory();
-  if (index < 0 || index >= MAX_TRACKED_RECORDS) return;
-    
-  bool wasPressed = lastStates[index];
-  lastStates[index] = isPressed;
-
-  if (isPressed && !wasPressed) {
-    CommandHistoryEntry* cover = findCmdEntry(coverLabel);
-    if (!cover || cover->lastValue == 0) {
-      HIDManager_setToggleNamedButton(coverLabel, deferSend);
-      debugPrintf("✅ Cover [%s] opened for [%s]\n", coverLabel, switchLabel);
-    }
-    HIDManager_setNamedButton(switchLabel, deferSend, true);
-  }
-
-  if (!isPressed && wasPressed) {
-    HIDManager_setNamedButton(switchLabel, deferSend, false);
-    if (isCoverOpen(coverLabel)) {
-      HIDManager_setToggleNamedButton(coverLabel, deferSend);
-      debugPrintf("✅ Cover [%s] closed after releasing [%s]\n", coverLabel, switchLabel);
-    }
-    if (fallbackLabel) {
-      HIDManager_setNamedButton(fallbackLabel, deferSend, true);
-    }
-  }
-}
-
-void HIDManager_handleGuardedMomentary(bool isPressed, const char* buttonLabel, const char* coverLabel, bool deferSend) {
-
-  CommandHistoryEntry* e = findCmdEntry(buttonLabel);
-  if (!e) return;
-
-  static std::array<bool, MAX_TRACKED_RECORDS> lastStates = {false};
-  int index = e - dcsbios_getCommandHistory();
-  if (index < 0 || index >= MAX_TRACKED_RECORDS) return;
-
-  bool wasPressed = lastStates[index];
-  lastStates[index] = isPressed;
-
-  if (isPressed && !wasPressed) {
-    CommandHistoryEntry* cover = findCmdEntry(coverLabel);
-    if (!cover || cover->lastValue == 0) {
-      HIDManager_setToggleNamedButton(coverLabel, deferSend);
-      debugPrintf("✅ Cover [%s] auto-opened\n", coverLabel);
-      return; // Do not press button yet — wait for user to release and press again
-    }
-    HIDManager_setNamedButton(buttonLabel, deferSend, true);
-  }
-
-  if (!isPressed && wasPressed) {
-    HIDManager_setNamedButton(buttonLabel, deferSend, false);
-  }
-}
-
 void HIDManager_setNamedButton(const char* name, bool deferSend, bool pressed) {
   const InputMapping* m = findInputByLabel(name);
   if (!m) {
@@ -673,58 +520,6 @@ void HIDManager_setNamedButton(const char* name, bool deferSend, bool pressed) {
   if (!deferSend) {
     HIDManager_sendReport(name, pressed ? m->oride_value : 0);
   }
-}
-
-void HIDManager_setSelectorState(const char* name, bool deferSend) {
-  const InputMapping* m = findInputByLabel(name);
-  if (!m) {
-    debugPrintf("⚠️ [HIDManager] %s UNKNOWN\n", name);
-    return;
-  }
-
-  // Always clear the group and set ONLY this bit, regardless of prior state
-  if (m->group > 0) {
-      report.buttons &= ~groupBitmask[m->group];
-      if (m->hidId > 0 && m->hidId <= 32) {
-          report.buttons |= (1UL << (m->hidId - 1));
-      }
-  }
-  else if (m->hidId > 0 && m->hidId <= 32) {
-      report.buttons |= (1UL << (m->hidId - 1));
-  }
-
-  // Always send the DCS command, even if already set
-  if (isModeSelectorDCS()) {
-    if (m->oride_label && m->oride_value >= 0) {
-        bool force = forcePanelSyncThisMission;
-        sendDCSBIOSCommand(m->oride_label, m->oride_value, force);
-    }
-    return;
-  }
-
-  if (!deferSend) {
-    HIDManager_sendReport(name, m->oride_value);
-  }
-}
-
-void HIDManager_handleCosmeticGuardedSelector(
-    bool switchOn,
-    const char* labelOn,
-    const char* labelOff,
-    const char* coverLabel,
-    bool deferSend
-) {
-    bool coverOpen = isCoverOpen(coverLabel);
-
-    if (switchOn) {
-        if (!coverOpen)
-            HIDManager_setToggleNamedButton(coverLabel, deferSend);
-        HIDManager_setSelectorState(labelOn, deferSend);   // always set, always asserts state
-    } else {
-        HIDManager_setSelectorState(labelOff, deferSend);
-        if (coverOpen)
-            HIDManager_setToggleNamedButton(coverLabel, deferSend);
-    }
 }
 
 // Handles a guarded latching toggle button:

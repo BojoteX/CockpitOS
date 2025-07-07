@@ -16,10 +16,6 @@ I2CDeviceInfo   discoveredDevices[MAX_DEVICES];
 uint8_t         discoveredDeviceCount = 0;
 const char*     panelNameByAddr[I2C_ADDR_SPACE] = { nullptr };
 
-// TM1637 device instances (must match externs)
-TM1637Device RA_Device;
-TM1637Device LA_Device;
-
 // PCA9555 write/read cache
 // indexed by (address - 0x20), port 0 or 1
 uint8_t PCA9555_cachedPortStates[8][2] = {{0}};
@@ -34,18 +30,6 @@ uint8_t PCA9555_cachedPortStates[8][2] = {{0}};
 #include "internal/MatrixRotary.cpp"
 #include "internal/HC165.cpp"
 #include "internal/AnalogG.cpp"
-
-PanelID getPanelID(uint8_t address) {
-  for (auto &p : kPanels)
-    if (p.addr == address) return p.id;
-  return PanelID::UNKNOWN;
-}
-
-const char* panelIDToString(PanelID id) {
-  for (auto &p : kPanels)
-    if (p.id == id) return p.label;
-  return "Unknown Panel";
-}
 
 bool panelExists(uint8_t targetAddr) {
   for (uint8_t i = 0; i < discoveredDeviceCount; ++i)

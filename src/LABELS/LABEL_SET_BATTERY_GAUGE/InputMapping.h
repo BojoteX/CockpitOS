@@ -4,8 +4,8 @@
 struct InputMapping {
     const char* label;        // Unique selector label
     const char* source;       // Hardware source identifier
-    uint8_t     port;         // Port index
-    uint8_t     bit;          // Bit position
+    int8_t     port;         // Port index
+    int8_t     bit;          // Bit position
     int8_t      hidId;        // HID usage ID
     const char* oride_label;  // Override command label (dcsCommand)
     uint16_t    oride_value;  // Override command value (value)
@@ -15,13 +15,14 @@ struct InputMapping {
 
 //  label                       source     port bit hidId  DCSCommand           value   Type        group
 static const InputMapping InputMappings[] = {
-    { "BATTERY_SW_ON"   , "PCA_0x00" ,  0 ,  0 ,  -1 , "BATTERY_SW",     2 , "selector",  1 },
-    { "BATTERY_SW_OFF"  , "PCA_0x00" ,  0 ,  0 ,  -1 , "BATTERY_SW",     1 , "selector",  1 },
-    { "BATTERY_SW_ORIDE", "PCA_0x00" ,  0 ,  0 ,  -1 , "BATTERY_SW",     0 , "selector",  1 },
-    { "L_GEN_SW_NORM"   , "PCA_0x00" ,  0 ,  0 ,  -1 , "L_GEN_SW"  ,     1 , "selector",  2 },
-    { "L_GEN_SW_OFF"    , "PCA_0x00" ,  0 ,  0 ,  -1 , "L_GEN_SW"  ,     0 , "selector",  2 },
-    { "R_GEN_SW_NORM"   , "PCA_0x00" ,  0 ,  0 ,  -1 , "R_GEN_SW"  ,     1 , "selector",  3 },
-    { "R_GEN_SW_OFF"    , "PCA_0x00" ,  0 ,  0 ,  -1 , "R_GEN_SW"  ,     0 , "selector",  3 },
+    { "BATTERY_SW_ON"          , "PCA_0x27" ,  1 ,  6 ,   1 , "BATTERY_SW"             ,     2 , "selector" ,  1 },
+    { "BATTERY_SW_OFF"         , "PCA_0x27" ,  1 , -1 ,   2 , "BATTERY_SW"             ,     1 , "selector" ,  1 },
+    { "BATTERY_SW_ORIDE"       , "PCA_0x27" ,  1 ,  7 ,   3 , "BATTERY_SW"             ,     0 , "selector" ,  1 },
+    { "L_GEN_SW_NORM"          , "PCA_0x00" ,  0 ,  0 ,  -1 , "L_GEN_SW"               ,     1 , "selector" ,  2 },
+    { "L_GEN_SW_OFF"           , "PCA_0x00" ,  0 , -1 ,  -1 , "L_GEN_SW"               ,     0 , "selector" ,  2 },
+    { "R_GEN_SW_NORM"          , "PCA_0x27" ,  0 ,  0 ,  -1 , "R_GEN_SW"               ,     1 , "selector" ,  3 },
+    { "R_GEN_SW_OFF"           , "PCA_0x27" ,  0 , -1 ,  -1 , "R_GEN_SW"               ,     0 , "selector" ,  3 },
+    { "MASTER_CAUTION_RESET_SW", "PCA_0x00" ,  0 ,  0 ,  -1 , "MASTER_CAUTION_RESET_SW",     1 , "momentary",  0 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);
 
@@ -40,7 +41,7 @@ static const InputHashEntry inputHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"MASTER_CAUTION_RESET_SW", &InputMappings[7]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {"L_GEN_SW_OFF", &InputMappings[4]},

@@ -57,7 +57,7 @@ Electrical Power Panel
 # Lock Shoot Lights
 # Map Gain/Spin Recovery Panel
 # Master Arm Panel
-# Master Caution Light
+Master Caution Light
 # Mission Computer and Hydraulic Isolate Panel
 # RH Advisory Panel
 # RWR Control Indicator
@@ -82,7 +82,7 @@ Electrical Power Panel
 # Wing Fold Switch
 # Altitude
 # Heading
-# Metadata
+Metadata
 # Position
 # Speed
 # Time

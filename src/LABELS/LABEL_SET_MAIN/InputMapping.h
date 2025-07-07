@@ -4,8 +4,8 @@
 struct InputMapping {
     const char* label;        // Unique selector label
     const char* source;       // Hardware source identifier
-    uint8_t     port;         // Port index
-    uint8_t     bit;          // Bit position
+    int8_t     port;         // Port index
+    int8_t     bit;          // Bit position
     int8_t      hidId;        // HID usage ID
     const char* oride_label;  // Override command label (dcsCommand)
     uint16_t    oride_value;  // Override command value (value)

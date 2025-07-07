@@ -28,6 +28,17 @@ static uint8_t reassemblyBuf[DCS_UDP_MAX_REASSEMBLED];
 static uint32_t maxFramesDrainOverflow = 0;  // Global or file-scope
 #endif
 
+// --- Selector Sync Validation (stage 1/3) ---
+#define MAX_VALIDATED_SELECTORS 32  // Tune to match maximum selectors you need to track
+
+struct SelectorValidationEntry {
+    const char* label;
+    uint16_t lastSimValue; // Value as reported by DCS-BIOS subscription
+};
+
+static SelectorValidationEntry validatedSelectors[MAX_VALIDATED_SELECTORS];
+static size_t numValidatedSelectors = 0;
+
 // Force Panel Sync Global flag
 bool forcePanelSyncThisMission = false;
 
@@ -302,6 +313,7 @@ void initPanels() {
 
     // This ensures your cockpit and sim always sync on mission start
     initializePanels(1);
+	validateSelectorSync(); // Validate selectors against InputMappings
 
     forcePanelSyncThisMission = false;        // <--- CLEAR FLAG
 }
@@ -445,6 +457,46 @@ void onDisplayChange(const char* label, const char* value) {
     renderField(label, value);
 }
 
+// Stage 3: Initialize validation selectors from InputMappings
+void initializeSelectorValidation() {
+    for (size_t i = 0; i < InputMappingSize; ++i) {
+        const auto& m = InputMappings[i];
+        if (m.group > 0 && strcmp(m.source, "PCA_0x00") != 0) {
+            // Prevent duplicates
+            bool alreadyRegistered = false;
+            for (size_t j = 0; j < numValidatedSelectors; ++j) {
+                if (strcmp(validatedSelectors[j].label, m.label) == 0) {
+                    alreadyRegistered = true;
+                    break;
+                }
+            }
+            if (!alreadyRegistered && numValidatedSelectors < MAX_VALIDATED_SELECTORS) {
+                validatedSelectors[numValidatedSelectors].label = m.label;
+                validatedSelectors[numValidatedSelectors].lastSimValue = 0xFFFF; // Invalid/unknown
+                ++numValidatedSelectors;
+
+                subscribeToSelectorChange(m.label, selectorValidationCallback);
+            }
+        }
+    }
+}
+
+void validateSelectorSync() {
+    debugPrintf("\n[SELECTOR SYNC VALIDATION]\n");
+    for (size_t i = 0; i < numValidatedSelectors; ++i) {
+        const char* label = validatedSelectors[i].label;
+        uint16_t simValue = validatedSelectors[i].lastSimValue;
+        uint16_t fwValue = getLastKnownState(label);
+
+        if (fwValue == simValue) {
+            debugPrintf("  OK: %s => FW=%u, SIM=%u\n", label, fwValue, simValue);
+        }
+        else {
+            debugPrintf(" MISMATCH: %s => FW=%u, SIM=%u   <---\n", label, fwValue, simValue);
+        }
+    }
+}
+
 // Works for both UDP and HID incoming pipes
 void parseDcsBiosUdpPacket(const uint8_t* data, size_t len) {
     for (size_t i = 0; i < len; ++i) {
@@ -499,7 +551,7 @@ void onDcsBiosUdpPacket() {
 // DcsbiosReplayData.h is generated from dcsbios_data.json using Python (see ReplayData directory). This was used in early development
 // to test locally via Serial Console. The preferred method for live debugging is WiFi UDP. See Config.h for configuration.
 #if IS_REPLAY
-#include "../PsramConfig.h"
+// #include "../PsramConfig.h"
 // ReplayDataBuffer
 uint8_t* replayBuffer = nullptr;
 #include "../../ReplayData/DcsbiosReplayData.h"
@@ -968,6 +1020,16 @@ void sendDCSBIOSCommand(const char* label, uint16_t value, bool force /*=false*/
     e->lastSendTime = now;
 }
 
+// Stage 2: Callback for selector subscription
+static void selectorValidationCallback(const char* label, uint16_t value) {
+    for (size_t i = 0; i < numValidatedSelectors; ++i) {
+        if (strcmp(validatedSelectors[i].label, label) == 0) {
+            validatedSelectors[i].lastSimValue = value;
+            return;
+        }
+    }
+}
+
 void DCSBIOSBridge_setup() {
 
     // If CDC ON BOOT means Serial has started already, so, we'll stop it
@@ -987,6 +1049,9 @@ void DCSBIOSBridge_setup() {
             debugPrintf("[DISPLAY BUFFERS] Registered display buffer: %s (len=%u, ptr=%p, dirty=%p), last=%p\n", e.label, e.length, (void*)e.buffer, (void*)e.dirty, (void*)e.last);
         }
     }
+
+	// For selector validation after panel sync
+    initializeSelectorValidation(); // [Selector sync validation] Register tracked selectors
 
  }
 
