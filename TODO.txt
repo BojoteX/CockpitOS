@@ -4,10 +4,7 @@ and/or interference, however, this seems to only happen with Arduino Core 2.x. (
 issue as WiFi is supposed to be DISABLED for production and if you need Networked panels you are better off using the
 HID manager python script on a remote computer (Windows/Linux/Mac/Raspberry Pi) which automatically enables your panels
 over the network. A way to reproduce the issue is: Compile the MAIN_PANEL label set with Arduino Core 2.x and WiFi
-enabled, notice the Lockshoot indicator staying WHITE. It stops working. Just disable WiFi and it will work again.
-
-TODO:
-Implement logger for 74HC165 and test swtithces encoer
+enabled, notice the Lockshoot indicator staying WHITE. It stops working. Just disable WiFi and it will work again. This is most likely a WiFI/RMT conflict issue/bug in Arduino Core 2.x
 
 BUGS:
 Fix SELECTOR SYNC VALIDATION. Currently always showing FW=0 and SIM=65535 (Test live)

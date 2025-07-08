@@ -1,4 +1,4 @@
-#define GAUGE_DRAW_MIN_INTERVAL_MS 60   // 60Hz
+#define GAUGE_DRAW_MIN_INTERVAL_MS 30   // 30Hz
 #define RUN_GAUGE_AS_TASK 0
 
 #include "../Globals.h"
@@ -111,7 +111,6 @@ static void BatteryGauge_draw(bool force) {
 #endif
 
 }
-
 
 // --- FreeRTOS task (if used) ---
 static void BatteryGauge_task(void*) {

@@ -704,7 +704,7 @@ static void flushBufferedDcsCommands() {
                 snprintf(buf, sizeof(buf), "0");              
 
                 // Send Command
-                sendCommand(e.label,buf);
+                sendCommand(e.label,buf, false);
 
                 e.lastValue = 0;
                 e.lastSendTime = now;
@@ -719,7 +719,7 @@ static void flushBufferedDcsCommands() {
             snprintf(buf, sizeof(buf), "%u", winner->pendingValue);
 
             // Send command
-            sendCommand(winner->label,buf);
+            sendCommand(winner->label,buf, false);
 
             winner->lastValue    = winner->pendingValue;
             winner->lastSendTime = now;
@@ -927,11 +927,10 @@ void sendCommand(const char* msg, const char* arg, bool silent) {
         dcsCmd[pos++] = '\r';
         dcsCmd[pos++] = '\n';
         dcsRawUsbOutRingbufPushChunked((const uint8_t*)dcsCmd, pos);
+        if (!silent) debugPrintf("🛩️ [DCS-USB] %s %s\n", msg, arg);
 
         // This is a dummy report, it will just trigger on the host side a Feature request to our device, which will drain our ring buffer on each call, host will keep calling until end of message received
         HIDManager_dispatchReport(true);
-
-        if(!silent) debugPrintf("🛩️ [DCS-USB] %s %s\n", msg, arg);
     // }
 #else
     if(!isConnected) {
@@ -1013,7 +1012,7 @@ void sendDCSBIOSCommand(const char* label, uint16_t value, bool force /*=false*/
     }          
 
     // Send Command
-    sendCommand(label,buf);
+    sendCommand(label,buf, false);
 
     // 6) Update history
     e->lastValue    = value;
