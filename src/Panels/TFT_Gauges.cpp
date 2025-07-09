@@ -15,6 +15,10 @@
 static byte prevPort0 = 0xFF;
 static byte prevPort1 = 0xFF;
 
+// Analog pin connected to HMD Knob (Rx axis)
+constexpr int HMD_KNOB_PIN = 18;
+
+// Chip Select pin for battery gauge (TFT CS pin)
 #define BATTERY_CS_PIN 12
 
 static TFT_eSPI* tft = nullptr;
@@ -123,6 +127,8 @@ static void BatteryGauge_task(void*) {
 void BatteryButtons_init() {
     prevPort0 = 0xAA;
     prevPort1 = 0xAA;
+
+    HIDManager_moveAxis("HMD_OFF_BRT", HMD_KNOB_PIN, AXIS_RX);
     debugPrintln("✅ Battery Panel initialized");
 }
 
@@ -206,6 +212,9 @@ void BatteryGauge_loop() {
 void BatteryButtons_loop() {
     static unsigned long lastPoll = 0;
     if (!shouldPollMs(lastPoll)) return;
+
+    // Always read the HMD knob
+    HIDManager_moveAxis("HMD_OFF_BRT", HMD_KNOB_PIN, AXIS_RX);
 
     byte port0, port1;
     if (!readPCA9555(BATTERY_PCA_ADDR, port0, port1)) return;

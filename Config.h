@@ -6,10 +6,10 @@
 // ** ATTENTION ** REMEBER TO RUN generate_data.py (see LABELS directory) BEFORE compiling for each label set below 
 
 // #define LABEL_SET_F16_TEST
-// #define LABEL_SET_BATTERY_GAUGE
+#define LABEL_SET_BATTERY_GAUGE
 // #define LABEL_SET_IFEI_NO_VIDEO  
 // #define LABEL_SET_ALR67                            
-#define LABEL_SET_MAIN                           
+// #define LABEL_SET_MAIN                           
 // #define LABEL_SET_ALTIMETER                           
 // #define LABEL_SET_ALL                           
 

@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
-  DEVICE_GPIO,
   DEVICE_GN1640T,
-  DEVICE_WS2812,
-  DEVICE_TM1637,
-  DEVICE_PCA9555,
   DEVICE_NONE,
+  DEVICE_TM1637,
+  DEVICE_GPIO,
   DEVICE_GAUGE,
+  DEVICE_WS2812,
+  DEVICE_PCA9555,
 };
 
 struct LEDMapping {
@@ -31,6 +31,8 @@ struct LEDMapping {
 static const LEDMapping panelLEDs[] = {
   { "VOLT_E"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "VOLT_U"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "HMD_OFF_BRT"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "SPIN_LT"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MASTER_CAUTION_LT", DEVICE_PCA9555 , {.pcaInfo = {0x27,1,5}}, false, false }, // PCA 0x27 Port 1 Bit 5
 };
 
@@ -78,10 +80,8 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"MASTER_CAUTION_LT", &panelLEDs[2]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"HMD_OFF_BRT", &panelLEDs[2]},
+  {"MASTER_CAUTION_LT", &panelLEDs[4]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -92,6 +92,8 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"SPIN_LT", &panelLEDs[3]},
 };
 
 // Reuse shared recursive hash implementation

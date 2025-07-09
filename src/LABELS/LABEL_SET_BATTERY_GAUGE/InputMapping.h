@@ -22,6 +22,13 @@ static const InputMapping InputMappings[] = {
     { "L_GEN_SW_OFF"           , "PCA_0x00" ,  0 , -1 ,  -1 , "L_GEN_SW"               ,     0 , "selector" ,  2 },
     { "R_GEN_SW_NORM"          , "PCA_0x27" ,  0 ,  0 ,  -1 , "R_GEN_SW"               ,     1 , "selector" ,  3 },
     { "R_GEN_SW_OFF"           , "PCA_0x27" ,  0 , -1 ,  -1 , "R_GEN_SW"               ,     0 , "selector" ,  3 },
+    { "HMD_OFF_BRT"            , "PCA_0x00" ,  0 ,  0 ,  -1 , "HMD_OFF_BRT"            , 0xFFFF , "analog"   ,  0 },
+    { "IR_COOL_SW_ORIDE"       , "PCA_0x00" ,  0 ,  0 ,  -1 , "IR_COOL_SW"             ,     2 , "selector" ,  4 },
+    { "IR_COOL_SW_NORM"        , "PCA_0x00" ,  0 ,  0 ,  -1 , "IR_COOL_SW"             ,     1 , "selector" ,  4 },
+    { "IR_COOL_SW_OFF"         , "PCA_0x00" ,  0 ,  0 ,  -1 , "IR_COOL_SW"             ,     0 , "selector" ,  4 },
+    { "SPIN_RECOVERY_COVER"    , "PCA_0x00" ,  0 ,  0 ,  -1 , "SPIN_RECOVERY_COVER"    ,     1 , "momentary",  0 },
+    { "SPIN_RECOVERY_SW_RCVY"  , "PCA_0x00" ,  0 ,  0 ,  -1 , "SPIN_RECOVERY_SW"       ,     1 , "selector" ,  5 },
+    { "SPIN_RECOVERY_SW_NORM"  , "PCA_0x00" ,  0 ,  0 ,  -1 , "SPIN_RECOVERY_SW"       ,     0 , "selector" ,  5 },
     { "MASTER_CAUTION_RESET_SW", "PCA_0x00" ,  0 ,  0 ,  -1 , "MASTER_CAUTION_RESET_SW",     1 , "momentary",  0 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);
@@ -29,8 +36,10 @@ static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMapping
 // Auto-generated: selector DCS labels with group > 0 (panel sync)
 static const char* const TrackedSelectorLabels[] = {
     "BATTERY_SW",
+    "IR_COOL_SW",
     "L_GEN_SW",
     "R_GEN_SW",
+    "SPIN_RECOVERY_SW",
 };
 static const size_t TrackedSelectorLabelsCount = sizeof(TrackedSelectorLabels)/sizeof(TrackedSelectorLabels[0]);
 
@@ -38,10 +47,10 @@ static const size_t TrackedSelectorLabelsCount = sizeof(TrackedSelectorLabels)/s
 // Static hash lookup table for InputMappings[]
 struct InputHashEntry { const char* label; const InputMapping* mapping; };
 static const InputHashEntry inputHashTable[53] = {
+  {"SPIN_RECOVERY_SW_RCVY", &InputMappings[12]},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"MASTER_CAUTION_RESET_SW", &InputMappings[7]},
+  {"MASTER_CAUTION_RESET_SW", &InputMappings[14]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {"L_GEN_SW_OFF", &InputMappings[4]},
@@ -59,11 +68,11 @@ static const InputHashEntry inputHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"IR_COOL_SW_OFF", &InputMappings[10]},
   {nullptr, nullptr},
   {"BATTERY_SW_ORIDE", &InputMappings[2]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"IR_COOL_SW_ORIDE", &InputMappings[8]},
+  {"SPIN_RECOVERY_COVER", &InputMappings[11]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {"L_GEN_SW_NORM", &InputMappings[3]},
@@ -71,20 +80,20 @@ static const InputHashEntry inputHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"SPIN_RECOVERY_SW_NORM", &InputMappings[13]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {"R_GEN_SW_NORM", &InputMappings[5]},
   {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"HMD_OFF_BRT", &InputMappings[7]},
   {"R_GEN_SW_OFF", &InputMappings[6]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"IR_COOL_SW_NORM", &InputMappings[9]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},

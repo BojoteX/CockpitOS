@@ -306,16 +306,25 @@ void dumpAllMetadata() {
 void initPanels() {
         
     debugPrintf("[SYNC PANELS] 🔁 Mission Started %u ms ago\n", msSinceMissionStart());
-    forcePanelSyncThisMission = true;         // <--- SET FLAG
+
+    forcePanelSyncThisMission = true;
     panelsSyncedThisMission = true;
 
+	flushBufferedDcsCommands();  // <-- Forces all pending selector changes out now (before panels are initialized)
+
+	// Initialize all axes
     HIDManager_resetAllAxes();
 
     // This ensures your cockpit and sim always sync on mission start
     initializePanels(1);
-	validateSelectorSync(); // Validate selectors against InputMappings
 
-    forcePanelSyncThisMission = false;        // <--- CLEAR FLAG
+    // Forces all pending selector changes out now (after panels are initialized)
+	flushBufferedDcsCommands();  
+
+	// Ensures cockpit state and selectors are in sync
+	validateSelectorSync();
+
+    forcePanelSyncThisMission = false;
 }
 
 void onAircraftName(const char* str) {
@@ -459,24 +468,26 @@ void onDisplayChange(const char* label, const char* value) {
 
 // Stage 3: Initialize validation selectors from InputMappings
 void initializeSelectorValidation() {
+    numValidatedSelectors = 0;
+    // Build a unique set of oride_label entries
     for (size_t i = 0; i < InputMappingSize; ++i) {
-        const auto& m = InputMappings[i];
-        if (m.group > 0 && strcmp(m.source, "PCA_0x00") != 0) {
-            // Prevent duplicates
-            bool alreadyRegistered = false;
-            for (size_t j = 0; j < numValidatedSelectors; ++j) {
-                if (strcmp(validatedSelectors[j].label, m.label) == 0) {
-                    alreadyRegistered = true;
-                    break;
-                }
-            }
-            if (!alreadyRegistered && numValidatedSelectors < MAX_VALIDATED_SELECTORS) {
-                validatedSelectors[numValidatedSelectors].label = m.label;
-                validatedSelectors[numValidatedSelectors].lastSimValue = 0xFFFF; // Invalid/unknown
-                ++numValidatedSelectors;
+        const char* dcs_label = InputMappings[i].oride_label;
+        if (!dcs_label || !*dcs_label) continue;
 
-                subscribeToSelectorChange(m.label, selectorValidationCallback);
+        // Prevent duplicates
+        bool alreadyRegistered = false;
+        for (size_t j = 0; j < numValidatedSelectors; ++j) {
+            if (strcmp(validatedSelectors[j].label, dcs_label) == 0) {
+                alreadyRegistered = true;
+                break;
             }
+        }
+        if (!alreadyRegistered && numValidatedSelectors < MAX_VALIDATED_SELECTORS) {
+            validatedSelectors[numValidatedSelectors].label = dcs_label;
+            validatedSelectors[numValidatedSelectors].lastSimValue = 0xFFFF; // Invalid/unknown
+            ++numValidatedSelectors;
+            // Subscribe (if not already)
+            subscribeToSelectorChange(dcs_label, selectorValidationCallback);
         }
     }
 }
@@ -492,7 +503,8 @@ void validateSelectorSync() {
             debugPrintf("  OK: %s => FW=%u, SIM=%u\n", label, fwValue, simValue);
         }
         else {
-            debugPrintf(" MISMATCH: %s => FW=%u, SIM=%u   <---\n", label, fwValue, simValue);
+            debugPrintf(" SYNC: %s => FW=%u, SIM=%u   <--- Forcing sim to FW\n", label, fwValue, simValue);
+            sendDCSBIOSCommand(label, fwValue, true); // true = force
         }
     }
 }

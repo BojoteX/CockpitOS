@@ -6,10 +6,3 @@ HID manager python script on a remote computer (Windows/Linux/Mac/Raspberry Pi) 
 over the network. A way to reproduce the issue is: Compile the MAIN_PANEL label set with Arduino Core 2.x and WiFi
 enabled, notice the Lockshoot indicator staying WHITE. It stops working. Just disable WiFi and it will work again. This is most likely a WiFI/RMT conflict issue/bug in Arduino Core 2.x
 
-BUGS:
-Fix SELECTOR SYNC VALIDATION. Currently always showing FW=0 and SIM=65535 (Test live)
-[14:42:09 - 192.168.7.152] MISMATCH: BATTERY_SW_ON => FW=0, SIM=65535   <---
-[14:42:09 - 192.168.7.152] MISMATCH: BATTERY_SW_OFF => FW=0, SIM=65535   <---
-[14:42:09 - 192.168.7.152] MISMATCH: BATTERY_SW_ORIDE => FW=0, SIM=65535   <---
-[14:42:09 - 192.168.7.152] MISMATCH: R_GEN_SW_NORM => FW=0, SIM=65535   <---
-[14:42:09 - 192.168.7.152] MISMATCH: R_GEN_SW_OFF => FW=0, SIM=65535   <---
