@@ -133,20 +133,16 @@ def try_fifo_handshake(dev, uiq=None, device_name=None):
                 return True
         except Exception as e:
             if uiq: uiq.put(('handshake', device_name, f"GET FEATURE exception: {e}"))
-            try:
-                dev.close()
-            except Exception:
-                pass
-            return False
+            time.sleep(0.2)
+            continue
+
         try:
             dev.send_feature_report(bytes([FEATURE_REPORT_ID]) + payload)
         except Exception as e:
             if uiq: uiq.put(('handshake', device_name, f"SET FEATURE exception: {e}"))
-            try:
-                dev.close()
-            except Exception:
-                pass
-            return False
+            time.sleep(0.2)
+            continue
+
         try:
             resp = dev.get_feature_report(FEATURE_REPORT_ID, DEFAULT_REPORT_SIZE + 1)
             d = bytes(resp[1:]) if len(resp) > DEFAULT_REPORT_SIZE else bytes(resp)
@@ -155,11 +151,9 @@ def try_fifo_handshake(dev, uiq=None, device_name=None):
                 return True
         except Exception as e:
             if uiq: uiq.put(('handshake', device_name, f"GET FEATURE exception: {e}"))
-            try:
-                dev.close()
-            except Exception:
-                pass
-            return False
+            time.sleep(0.2)
+            continue
+
         attempts += 1
         if attempts % 10 == 0 and uiq:
             uiq.put(('handshake', device_name, "Waiting for handshake..."))
@@ -169,7 +163,8 @@ class DeviceEntry:
     def __init__(self, dev, dev_info):
         self.dev = dev
         self.info = dev_info
-        self.name = (dev_info.get('product_string','') or '') + " [" + (dev_info.get('serial_number','') or '') + "]"
+        # self.name = (dev_info.get('product_string','') or '') + " [" + (dev_info.get('serial_number','') or '') + "]"
+        self.name = str(dev_info.get('serial_number', ''))
         self.status = "WAIT HANDSHAKE"
         self.last_sent = time.time()
         self.disconnected = False
@@ -187,60 +182,47 @@ class DeviceEntry:
 
 def device_reader(entry, uiq, udp_send):
     dev = entry.dev
-    global reply_addr
     try:
         while not entry.handshaked and not entry.disconnected:
             entry.handshaked = try_fifo_handshake(dev, uiq=uiq, device_name=entry.name)
             if not entry.handshaked:
                 entry.disconnected = True
-                try:
-                    dev.close()
-                except Exception:
-                    pass
                 uiq.put(('status', entry.name, "DISCONNECTED"))
                 return
             uiq.put(('status', entry.name, "READY"))
             uiq.put(('log', entry.name, "Handshake complete, ready to process input."))
             entry.status = "READY"
-        if reply_addr is None and not entry.disconnected:
+        if reply_addr[0] is None and not entry.disconnected:
             uiq.put(('log', entry.name, "Waiting for DCS mission start..."))
         while reply_addr[0] is None and not entry.disconnected:
             time.sleep(0.2)
         if entry.disconnected:
-            try:
-                dev.close()
-            except Exception:
-                pass
             return
         uiq.put(('log', entry.name, f"DCS detected on {reply_addr[0]} — Starting normal operation."))
-        try:
-            for _ in range(10):
-                try:
-                    resp = dev.get_feature_report(FEATURE_REPORT_ID, DEFAULT_REPORT_SIZE + 1)
-                    d = bytes(resp[1:]) if len(resp) > DEFAULT_REPORT_SIZE else bytes(resp)
-                    if not any(d):
-                        break
-                except Exception as e:
-                    entry.disconnected = True
-                    try:
-                        dev.close()
-                    except Exception:
-                        pass
-                    uiq.put(('status', entry.name, "DISCONNECTED"))
-                    return
-        except Exception:
-            entry.disconnected = True
+        # Clear backlog with attempt limit
+        cleared = False
+        max_attempts = 100
+        attempt = 0
+        while not cleared and not entry.disconnected and attempt < max_attempts:
             try:
-                dev.close()
+                resp = dev.get_feature_report(FEATURE_REPORT_ID, DEFAULT_REPORT_SIZE + 1)
+                d = bytes(resp[1:]) if len(resp) > DEFAULT_REPORT_SIZE else bytes(resp)
+                if not any(d):
+                    cleared = True
             except Exception:
-                pass
-            uiq.put(('status', entry.name, "DISCONNECTED"))
+                entry.disconnected = True
+                uiq.put(('status', entry.name, "DISCONNECTED"))
+                return
+            attempt += 1
+        if not cleared:
+            entry.disconnected = True
+            uiq.put(('status', entry.name, "DISCONNECTED (backlog timeout)"))
             return
         while not entry.disconnected and entry.handshaked:
             try:
-                data = dev.read(DEFAULT_REPORT_SIZE, timeout_ms=0)
+                data = dev.read(DEFAULT_REPORT_SIZE, timeout_ms=-1)  # Blocking read
                 if data:
-                    while True:
+                    while not entry.disconnected:
                         try:
                             resp = dev.get_feature_report(FEATURE_REPORT_ID, DEFAULT_REPORT_SIZE + 1)
                             d = bytes(resp[1:]) if len(resp) > DEFAULT_REPORT_SIZE else bytes(resp)
@@ -249,30 +231,19 @@ def device_reader(entry, uiq, udp_send):
                                 break
                             uiq.put(('log', entry.name, f"IN: {msg}"))
                             udp_send(msg + "\r\n")
-                        except Exception as e:
+                        except Exception:
                             entry.disconnected = True
-                            try:
-                                dev.close()
-                            except Exception:
-                                pass
                             uiq.put(('status', entry.name, "DISCONNECTED"))
                             return
-            except Exception as e:
+            except Exception:
                 entry.disconnected = True
-                try:
-                    dev.close()
-                except Exception:
-                    pass
                 uiq.put(('status', entry.name, "DISCONNECTED"))
                 return
-    except Exception as e:
-        entry.disconnected = True
+    finally:
         try:
             dev.close()
         except Exception:
             pass
-        uiq.put(('status', entry.name, "DISCONNECTED"))
-        return
 
 # --- network.py ---
 import socket
@@ -286,28 +257,31 @@ class NetworkManager:
         self.get_devices = get_devices_callback
         self.udp_rx_sock = None
         self.udp_tx_sock = None
-        self._running = False
+        self._running = threading.Event()
 
     def start(self):
-        self._running = True
-        self._start_udp_rx_thread()
+        self._running.set()
+        threading.Thread(target=self._udp_rx_processor, daemon=True).start()
         self._start_udp_tx_sock()
 
     def stop(self):
-        self._running = False
+        self._running.clear()
+        if self.udp_rx_sock:
+            self.udp_rx_sock.close()
+        if self.udp_tx_sock:
+            self.udp_tx_sock.close()
 
-    def _start_udp_rx_thread(self):
-        threading.Thread(target=self._udp_rx_processor, daemon=True).start()
+    def _start_udp_tx_sock(self):
+        self.udp_tx_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 
     def _udp_rx_processor(self):
-        print("[NetworkManager] UDP RX thread starting...")
-        self.udp_rx_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        self.udp_rx_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.udp_rx_sock.bind(('', DEFAULT_UDP_PORT))
-        mreq = struct.pack("=4sl", socket.inet_aton(DEFAULT_MULTICAST_IP), socket.INADDR_ANY)
-        self.udp_rx_sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-        while self._running:
-            try:
+        try:
+            self.udp_rx_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+            self.udp_rx_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.udp_rx_sock.bind(('', DEFAULT_UDP_PORT))
+            mreq = struct.pack("=4sl", socket.inet_aton(DEFAULT_MULTICAST_IP), socket.INADDR_ANY)
+            self.udp_rx_sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+            while self._running.is_set():
                 data, addr = self.udp_rx_sock.recvfrom(4096)
                 if addr and addr[0] != '0.0.0.0':
                     if self.reply_addr[0] != addr[0]:
@@ -317,25 +291,26 @@ class NetworkManager:
                     stats["frame_count_total"] += 1
                     stats["frame_count_window"] += 1
                     stats["bytes"] += len(data)
-                for entry in self.get_devices():
+                devices = self.get_devices()
+                for entry in devices:
                     if entry.handshaked and not entry.disconnected:
                         offset = 0
                         while offset < len(data):
                             chunk = data[offset:offset + DEFAULT_REPORT_SIZE]
                             report = bytes([0]) + chunk
-                            report += bytes((DEFAULT_REPORT_SIZE + 1) - len(report))
-                            entry.dev.write(report)
+                            report += b'\x00' * ((DEFAULT_REPORT_SIZE + 1) - len(report))
+                            try:
+                                entry.dev.write(report)
+                            except Exception:
+                                entry.disconnected = True
+                                self.uiq.put(('status', entry.name, "DISCONNECTED"))
                             offset += DEFAULT_REPORT_SIZE
-            except Exception as e:
-                if "WinError 10054" not in str(e):
-                    self.uiq.put(('log', "UDP", f"UDP RX processor error: {e}"))
-                time.sleep(1)
-
-    def _start_udp_tx_sock(self):
-        self.udp_tx_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        except Exception as e:
+            if self._running.is_set():
+                self.uiq.put(('log', "UDP", f"UDP RX processor error: {e}"))
 
     def udp_send_report(self, msg, port=7778):
-        if self.udp_tx_sock is not None and self.reply_addr[0]:
+        if self.udp_tx_sock and self.reply_addr[0]:
             try:
                 self.udp_tx_sock.sendto(msg.encode(), (self.reply_addr[0], port))
             except Exception as e:
@@ -355,6 +330,7 @@ def log_ts():
 
 class CockpitGUI:
     def __init__(self, root, network_mgr):
+        self.devices_lock = threading.Lock()
         self.root = root
         root.title("CockpitOS Updater")
         self.uiq = queue.Queue()
@@ -405,6 +381,7 @@ class CockpitGUI:
         self.statusbar.pack(fill='x', side='bottom')
 
         self.known_devices = {}
+        self.devices = []
 
         self._start_device_thread()
         self._start_stats_thread()
@@ -414,22 +391,27 @@ class CockpitGUI:
         threading.Thread(target=self._device_monitor, daemon=True).start()
 
     def _device_monitor(self):
-        import hid
         while True:
             dev_infos = list_target_devices()
-            current_serials = set(d.get('serial_number', '') for d in dev_infos)
-            to_remove = set(self.known_devices.keys()) - current_serials
+            current_serials = {d.get('serial_number', '') for d in dev_infos}
+            to_remove = set(self.known_devices) - current_serials
             for serial in to_remove:
-                devname = self.known_devices[serial].name
-                self.uiq.put(('status', devname, "REMOVED"))
+                entry = self.known_devices[serial]
+                entry.disconnected = True
+                try:
+                    entry.dev.close()
+                except Exception:
+                    pass
+                # Calculate last reconnection count for this device (0 on first connect, then increments)
+                reconn = prev_reconnections.get(serial, 1) - 1
+                self.uiq.put(('status', entry.name, f"DISCONNECTED (Reconnects: {reconn})"))
                 del self.known_devices[serial]
-                if devname in self.device_nodes:
-                    self.tree.delete(self.device_nodes[devname])
-                    del self.device_nodes[devname]
-            new_devices = []
+                if entry.name in self.device_nodes:
+                    self.uiq.put(('remove_device', entry.name))
+                with self.devices_lock:
+                    self.devices = [dev for dev in self.devices if dev.name != entry.name]
             for d in dev_infos:
                 serial = d.get('serial_number', '')
-                devname = (d.get('product_string','') or '') + " [" + (serial or '') + "]"
                 if serial not in self.known_devices:
                     dev = hid.device()
                     try:
@@ -437,37 +419,26 @@ class CockpitGUI:
                     except Exception:
                         continue
                     entry = DeviceEntry(dev, d)
+                    # reconnections starts at 0 for first connect, increments on every unplug/replug
                     entry.reconnections = prev_reconnections.get(serial, 0)
-                    if serial in prev_reconnections:
-                        entry.reconnections += 1
-                    prev_reconnections[serial] = entry.reconnections
-                    entry.name = serial
+                    prev_reconnections[serial] = entry.reconnections + 1
                     self.known_devices[serial] = entry
-                    new_devices.append(entry)
-                    threading.Thread(target=self.device_reader_wrapper, args=(entry,), daemon=True).start()
+                    with self.devices_lock:
+                        self.devices.append(entry)
+                    threading.Thread(
+                        target=device_reader,
+                        args=(entry, self.uiq, self.network_mgr.udp_send_report),
+                        daemon=True
+                    ).start()
                     self.uiq.put(('status', entry.name, "WAIT HANDSHAKE"))
-                else:
-                    entry = self.known_devices[serial]
-                    new_devices.append(entry)
-            self.devices = new_devices
-            dev_count = len(new_devices)
+            dev_count = len(self.devices)
             if dev_count:
                 self.uiq.put(('statusbar', None, f"{dev_count} device(s) connected."))
             else:
                 self.uiq.put(('statusbar', None, "No CockpitOS devices found."))
                 time.sleep(2)
                 continue
-            while True:
-                current_dev_infos = list_target_devices()
-                current_serials_now = set(d.get('serial_number', '') for d in current_dev_infos)
-                if current_serials_now != set(self.known_devices.keys()):
-                    break
-                time.sleep(1)
-
-    def device_reader_wrapper(self, entry):
-        def udp_send(msg):
-            self.network_mgr.udp_send_report(msg)
-        device_reader(entry, self.uiq, udp_send)
+            time.sleep(1)  # Poll every second for changes
 
     def _start_stats_thread(self):
         threading.Thread(target=self._stats_updater, daemon=True).start()
@@ -499,30 +470,17 @@ class CockpitGUI:
         self.root.after(100, self.update_ui)
 
     def _handle_event(self, evt):
-        if len(evt) == 3:
-            typ, devname, data = evt
-        elif len(evt) == 2:
-            typ, data = evt
-            devname = None
-        else:
-            print(f"[ERROR] Malformed event: {evt}")
-            return
-
+        typ, *rest = evt
         if typ == 'data_source':
-            self.data_source_var.set(f"Data Source: {data}")
-
+            self.data_source_var.set(f"Data Source: {rest[1]}")
         elif typ == 'statusbar':
-            self.statusbar.config(text=data)
-
+            self.statusbar.config(text=rest[1])
         elif typ == 'status':
-            entry = None
-            for dev in getattr(self, 'devices', []):
-                if dev.name == devname:
-                    entry = dev
-                    break
+            devname, data = rest
+            entry = next((dev for dev in self.devices if dev.name == devname), None)
             reconns = entry.reconnections if entry else 0
             tag = ()
-            status_lower = str(data).lower()
+            status_lower = data.lower()
             if 'ready' in status_lower:
                 tag = ('ready',)
             elif 'wait' in status_lower or 'handshake' in status_lower:
@@ -534,27 +492,37 @@ class CockpitGUI:
                 self.device_nodes[devname] = idx
             else:
                 idx = self.device_nodes[devname]
-                vals = list(self.tree.item(idx, 'values'))
-                vals[0] = devname
-                vals[1] = data
-                vals[2] = reconns
-                self.tree.item(idx, values=vals, tags=tag)
-
-        elif typ == 'log' or typ == 'handshake':
+                # Defensive: check if idx is still in the tree before updating
+                if self.tree.exists(idx):
+                    vals = list(self.tree.item(idx)['values'])
+                    vals[1] = data
+                    vals[2] = reconns
+                    self.tree.item(idx, values=vals, tags=tag)
+                else:
+                    # Stale: remove from device_nodes to avoid future errors
+                    del self.device_nodes[devname]
+        elif typ in ('log', 'handshake'):
+            devname, data = rest
             self.log_text['state'] = 'normal'
-            ts = log_ts()
-            line = f"{ts} [{devname}] {data}\n"
+            line = f"{log_ts()} [{devname}] {data}\n"
             self.log_text.insert('end', line)
             self.log_text.see('end')
             self.log_text['state'] = 'disabled'
-
         elif typ == 'globalstats':
-            stats = data
-            for k in self.stats_vars:
-                self.stats_vars[k].set(stats.get(k, "0"))
+            for k, v in rest[0].items():
+                self.stats_vars[k].set(v)
+        elif typ == 'remove_device':
+            devname = rest[0]
+            if devname in self.device_nodes:
+                idx = self.device_nodes[devname]
+                if self.tree.exists(idx):
+                    self.tree.delete(idx)
+                del self.device_nodes[devname]
 
     def get_devices(self):
-        return getattr(self, 'devices', [])
+        with self.devices_lock:
+            return list(self.devices)
+
 
 # --- main.py (continued) ---
 def main():
@@ -564,6 +532,8 @@ def main():
     gui.network_mgr = net
     net.start()
     root.mainloop()
+    net.stop()
+    lock.release()
 
 if __name__ == "__main__":
     main()
