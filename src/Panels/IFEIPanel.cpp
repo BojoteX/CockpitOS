@@ -1,35 +1,76 @@
 // IFEIPanel.cpp
 
 #define RUN_IFEI_DISPLAY_AS_TASK 0
-#define IFEI_DISPLAY_REFRESH_RATE_HZ 120 // Profilers show better performance when doing fast partial commits, so even 1000Hz works well 
+#define IFEI_DISPLAY_REFRESH_RATE_HZ 120
+
+#define MODE_SELECTOR_MAN_BIT   6
+#define MODE_SELECTOR_AUTO_BIT  0
+#define HMD_UP_BIT              1
+#define HMD_DOWN_BIT            2
+#define HUD_UP_BIT              3
+#define HUD_DOWN_BIT            4
 
 #include "../Globals.h"
 #include "../IFEIPanel.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
 
-// To enforce refresh rate for the display
-static uint32_t lastCommitTimeMs = 0;
-
-// Bit mapping (top-to-bottom, see your test order and confirmed labels)
-enum {
-    IFEI_MODE_BIT = 0,  // 0x01
-    IFEI_QTY_BIT = 1,  // 0x02
-    IFEI_UP_BIT = 2,  // 0x04
-    IFEI_DWN_BIT = 3,  // 0x08
-    IFEI_ZONE_BIT = 4,  // 0x10
-    IFEI_ET_BIT = 5   // 0x20
+// Map: [POS_UP, POS_MIDDLE, POS_DOWN]
+static const char* const MODE_SELECTOR_LABELS[3] = {
+    "MODE_SELECTOR_SW_MAN",    // UP (MAN)
+    "MODE_SELECTOR_SW_OFF",    // MIDDLE (OFF)
+    "MODE_SELECTOR_SW_AUTO"    // DOWN (AUTO)
 };
 
-// --- Button labels (order: top to bottom on panel) ---
+static const char* const HMD_SELECTOR_LABELS[3] = {
+    "SELECT_HMD_LDDI_RDDI_HMD",   // UP
+    "SELECT_HMD_LDDI_RDDI_LDDI",  // MIDDLE
+    "SELECT_HMD_LDDI_RDDI_RDDI"   // DOWN
+};
+
+static const char* const HUD_SELECTOR_LABELS[3] = {
+    "SELECT_HUD_LDDI_RDDI_HUD",   // UP
+    "SELECT_HUD_LDDI_RDDI_LDIR",  // MIDDLE
+    "SELECT_HUD_LDDI_RDDI_RDDI"   // DOWN
+};
+
+enum SelectorPos { POS_MIDDLE = 0, POS_DOWN = 1, POS_UP = 2 };
+
+inline SelectorPos getSelectorState(uint16_t bits, uint8_t upBit, uint8_t downBit) {
+    bool up = !(bits & (1 << upBit));
+    bool down = !(bits & (1 << downBit));
+    if (up)   return POS_UP;
+    if (down) return POS_DOWN;
+    return POS_MIDDLE;
+}
+
+// Polls a selector, updates HID on state change
+inline void pollSelector(
+    uint16_t currBits,
+    SelectorPos& lastState,
+    uint8_t upBit,
+    uint8_t downBit,
+    const char* const labels[3])
+{
+    SelectorPos currState = getSelectorState(currBits, upBit, downBit);
+    if (currState != lastState) {
+        HIDManager_setNamedButton(labels[currState], true);
+        lastState = currState;
+    }
+}
+
+// --- Button labels (top to bottom on panel) ---
 static const char* const IFEI_BUTTON_LABELS[6] = {
-    "IFEI_MODE_BTN",
-    "IFEI_QTY_BTN",
-    "IFEI_UP_BTN",
-    "IFEI_DWN_BTN",
-    "IFEI_ZONE_BTN",
-    "IFEI_ET_BTN"
+    "IFEI_MODE_BTN", "IFEI_QTY_BTN", "IFEI_UP_BTN",
+    "IFEI_DWN_BTN", "IFEI_ZONE_BTN", "IFEI_ET_BTN"
 };
+
+// Bit positions (as per scan order)
+static const uint8_t IFEI_BUTTON_BITS[6] = { 8, 9, 10, 11, 12, 13 };
+// Corresponds to: MODE, QTY, UP, DWN, ZONE, ET
+
+static uint64_t prevButtonBits = 0xFF;
+static uint64_t buttonBits = 0xFF;
 
 // [a, b, c, d, e, f, g] -- top, top-right, bottom-right, bottom, bottom-left, top-left, middle
 // INDEX:  0    1     2     3      4      5      6
@@ -337,8 +378,6 @@ bool isFieldBlank(const char* s) {
     return true;
 }
 
-static uint8_t prevButtonBits = 0xFF;
-
 // ---- Instantiate chips and driver ----
 HT1622 chip0(CS0_PIN, WR0_PIN, DATA0_PIN);
 HT1622 chip1(CS1_PIN, WR1_PIN, DATA1_PIN);
@@ -347,6 +386,9 @@ IFEIDisplay ifei(chips);
 
 static uint8_t currentIFEIMode = 0;
 static uint8_t currentIFEIIntensity = 255; // default to max for power-up
+
+// To enforce refresh rate for the display
+static uint32_t lastCommitTimeMs = 0;
 
 inline void ensureBacklightPins() {
     static bool pinsInitialized = false;
@@ -436,19 +478,6 @@ void onBackLightChange(const char* label, uint16_t val) {
     setBacklightMode(currentIFEIMode, currentIFEIIntensity);
 }
 
-/*
-void onBackLightIntensityChange(const char* label, uint16_t value, uint16_t max_value) {
-    int16_t backlightMode = getLastKnownState("COCKKPIT_LIGHT_MODE_SW");
-    // FIX: Use 255 for analogWrite, not 100!
-    uint8_t intensity = (value * 255UL) / max_value;
-    setBacklightMode(backlightMode, intensity);
-}
-
-void onBackLightChange(const char* label, uint16_t val) {
-    setBacklightMode(val, 255);
-}
-*/
-
 inline void itoa_percent(char* out, int val) {
     if (val >= 100) { out[0] = '1'; out[1] = '0'; out[2] = '0'; out[3] = 0; return; }
     if (val >= 10)  { out[0] = '0' + val / 10; out[1] = '0' + val % 10; out[2] = 0; return; }
@@ -535,39 +564,50 @@ void IFEIDisplayTask(void* pv) {
 }
 #endif
 
-// Imit for the buttons, NOT the Display
 void IFEI_init() {
+    delay(50);
+    HIDManager_moveAxis("IFEI", IFEI_BRIGHTNESS_PIN, AXIS_SLIDER1);
+    HC165_init(HC165_PL, HC165_CP, HC165_QH, 16);
 
-    delay(50);  // Small delay to ensure when init is called DCS has settled
+    buttonBits = HC165_read();
 
-    HC165_init(HC165_PL, HC165_CP, HC165_QH);
+    // Report all selector initial positions
+    SelectorPos modeInit = getSelectorState(buttonBits, MODE_SELECTOR_MAN_BIT, MODE_SELECTOR_AUTO_BIT);
+    SelectorPos hmdInit = getSelectorState(buttonBits, HMD_UP_BIT, HMD_DOWN_BIT);
+    SelectorPos hudInit = getSelectorState(buttonBits, HUD_UP_BIT, HUD_DOWN_BIT);
 
-    // Optionally read and set initial state
-    prevButtonBits = HC165_read();
+    HIDManager_setNamedButton(MODE_SELECTOR_LABELS[modeInit], true);
+    HIDManager_setNamedButton(HMD_SELECTOR_LABELS[hmdInit], true);
+    HIDManager_setNamedButton(HUD_SELECTOR_LABELS[hudInit], true);
 
-    // Clear shadow/state, INCLUDING all integrer Buffers
+    prevButtonBits = buttonBits;
     ifei.blankBuffersAndDirty();
-
     debugPrintln("✅ Initialized IFEI Buttons and cleared IFEI display");
 }
 
-// Loop for the buttons, NOT the Display
 void IFEI_loop() {
     static unsigned long lastIFEIPoll = 0;
     if (!shouldPollMs(lastIFEIPoll)) return;
 
-    uint8_t buttonBits = HC165_read();
+    HIDManager_moveAxis("IFEI", IFEI_BRIGHTNESS_PIN, AXIS_SLIDER1);
+    buttonBits = HC165_read();
+
+    static SelectorPos lastMode = POS_MIDDLE;
+    static SelectorPos lastHmd = POS_MIDDLE;
+    static SelectorPos lastHud = POS_MIDDLE;
+
+    pollSelector(buttonBits, lastMode, MODE_SELECTOR_MAN_BIT, MODE_SELECTOR_AUTO_BIT, MODE_SELECTOR_LABELS);
+    pollSelector(buttonBits, lastHmd, HMD_UP_BIT, HMD_DOWN_BIT, HMD_SELECTOR_LABELS);
+    pollSelector(buttonBits, lastHud, HUD_UP_BIT, HUD_DOWN_BIT, HUD_SELECTOR_LABELS);
 
     for (uint8_t i = 0; i < 6; ++i) {
-        uint8_t mask = (1 << i);
-        // Edge detection: only on change
+        uint16_t mask = (1 << IFEI_BUTTON_BITS[i]);
         if ((prevButtonBits ^ buttonBits) & mask) {
-            // active-low: pressed = 0
             bool pressed = !(buttonBits & mask);
             HIDManager_setNamedButton(IFEI_BUTTON_LABELS[i], false, pressed);
         }
     }
-    prevButtonBits = buttonBits;  
+    prevButtonBits = buttonBits;
 }
 
 // Init for the actual Display only
@@ -599,18 +639,6 @@ void IFEIDisplay_init() {
     // Create FreeRTOS task to update our display
     xTaskCreate(IFEIDisplayTask, "IFEIDisplay", 4096, NULL, 1, NULL);
     #endif
-
-    /*
-    // Register our Display buffers automatically (the ones starting with IFEI_)
-    for (size_t i = 0; i < numCTDisplayBuffers; ++i) {
-        const auto& e = CT_DisplayBuffers[i];
-        if (strncmp(e.label, "IFEI_", 5) == 0) {
-            if (registerDisplayBuffer(e.label, e.buffer, e.length, e.dirty, e.last)) {
-                if (DEBUG) debugPrintf("[IFEI_INIT] Registered display buffer: %s (len=%u, ptr=%p, dirty=%p), last=%p\n", e.label, e.length, (void*)e.buffer, (void*)e.dirty, (void*)e.last);
-            }
-        }
-    }    
-    */
 
     debugPrintln("✅ Initialized IFEI Display");
 }

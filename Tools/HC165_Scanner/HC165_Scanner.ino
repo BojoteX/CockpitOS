@@ -1,43 +1,38 @@
-// 74HC165 Key Logger - Minimal Standalone
-// Pin assignments (per your code)
-#define HC165_PL   35
-#define HC165_CP   34
-#define HC165_QH   33
+// 74HC165 Generic Bit Scanner - 64 Bit Version
+#define HC165_QH   38
+#define HC165_PL   39
+#define HC165_CP   40
 
 #include <Arduino.h>
+
+#define HC165_NUM_BITS 16   // Scan up to 8 chips
 
 static bool hc165_initialized = false;
 static uint8_t plPin, cpPin, qhPin;
 
-// ----------- HC165 RAW FUNCTIONS ------------
 void HC165_init(uint8_t pinPL, uint8_t pinCP, uint8_t pinQH) {
   plPin = pinPL;
   cpPin = pinCP;
   qhPin = pinQH;
-
   pinMode(plPin, OUTPUT);
   pinMode(cpPin, OUTPUT);
   pinMode(qhPin, INPUT);
-
   digitalWrite(plPin, HIGH);
   digitalWrite(cpPin, LOW);
   hc165_initialized = true;
 }
 
-uint8_t HC165_read() {
-  if (!hc165_initialized) return 0xFF;
-
-  uint8_t result = 0;
-
-  digitalWrite(plPin, LOW);
+uint64_t HC165_readBits(uint8_t numBits) {
+  if (!hc165_initialized || numBits == 0 || numBits > 64) return 0xFFFFFFFFFFFFFFFFULL;
+  uint64_t result = 0;
+  digitalWrite(plPin, LOW);      // Latch inputs
   delayMicroseconds(5);
   digitalWrite(plPin, HIGH);
   delayMicroseconds(1);
 
-  for (int i = 0; i < 8; i++) {
+  for (uint8_t i = 0; i < numBits; i++) {
     result <<= 1;
     result |= digitalRead(qhPin);
-
     digitalWrite(cpPin, HIGH);
     delayMicroseconds(1);
     digitalWrite(cpPin, LOW);
@@ -46,44 +41,49 @@ uint8_t HC165_read() {
   return result;
 }
 
-// ----------- BUTTON LOGGER ------------
+// --- State Tracking ---
+static uint64_t prevBits = 0xFFFFFFFFFFFFFFFFULL;
 
-static uint8_t prevBits = 0xFF;
-
-void printBits(const char* prefix, uint8_t value) {
+void printBits(const char* prefix, uint64_t value, uint8_t numBits) {
   Serial.print(prefix);
   Serial.print(": ");
-  for (int i = 7; i >= 0; --i) {
+  for (int i = numBits - 1; i >= 0; --i) {
     Serial.print((value >> i) & 1 ? '1' : '0');
   }
   Serial.println();
 }
 
-void logChangedBits(uint8_t prev, uint8_t curr) {
-  uint8_t changed = prev ^ curr;
-  for (uint8_t i = 0; i < 8; ++i) {
-    if (changed & (1 << i)) {
+void printBitChanges(uint64_t prev, uint64_t curr, uint8_t numBits) {
+  uint64_t changed = prev ^ curr;
+  for (uint8_t i = 0; i < numBits; ++i) {
+    if (changed & (1ULL << i)) {
       Serial.print("  BIT ");
       Serial.print(i);
       Serial.print(": ");
-      Serial.println((curr & (1 << i)) ? "RELEASED" : "PRESSED"); // Active LOW!
+      Serial.print((prev & (1ULL << i)) ? "1" : "0");
+      Serial.print(" -> ");
+      Serial.println((curr & (1ULL << i)) ? "1" : "0");
     }
   }
 }
 
 void setup() {
   Serial.begin(115200);
+  delay(3000);
   HC165_init(HC165_PL, HC165_CP, HC165_QH);
-  Serial.println("74HC165 Key Logger Ready");
+  Serial.print("74HC165 Generic Bit Scanner Ready, scanning ");
+  Serial.print(HC165_NUM_BITS);
+  Serial.println(" bits");
 }
 
 void loop() {
-  uint8_t bits = HC165_read();
+  uint64_t bits = HC165_readBits(HC165_NUM_BITS);
 
   if (bits != prevBits) {
-    printBits("[HC165]", bits);
-    logChangedBits(prevBits, bits);
+    printBits("[HC165]", bits, HC165_NUM_BITS);
+    printBitChanges(prevBits, bits, HC165_NUM_BITS);
     prevBits = bits;
+    Serial.println();
   }
-  delay(3); // Fast polling
+  delay(3);
 }

@@ -82,7 +82,6 @@ void setup() {
     analogSetAttenuation(ADC_11db);      
 
     // Init our CDC + HID Interfaces
-    delay(3000);
     DCSBIOSBridge_setup();  // We get CDC started here    
     HIDManager_setup();     // We get HID started here 
 

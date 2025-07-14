@@ -1,10 +1,7 @@
 #pragma once
 
-// Only define it if compiling on S3 and using TEK Panels/Brain Controller or backplanes hardcoded for S2's
-// #define IS_S3_PINS
-
-// Global GPIO centralized PIN assignments. This ones should be carefully MANAGED. 
-#if defined(IS_S3_PINS)
+// Global GPIO centralized PIN assignments. This ones should be carefully MANAGED. Use your board ARDUINO_ name for custom PINs
+#if defined(ARDUINO_LOLIN_S3_MINI)
 
    // General Pins
    #define SDA_PIN                                    7 // SDA for S3
@@ -37,7 +34,7 @@
    #define RWR_DMR_PIN                                3    
 
    // Chip Select pin for battery gauge (TFT CS pin)
-   #define BATTERY_CS_PIN                            10   
+   #define BATTERY_CS_PIN                            10    
 
    // --- 74HC165 IFEI pins ---
    #define HC165_QH                                  37
@@ -59,6 +56,9 @@
    #define BL_WHITE_PIN                               3
    #define BL_NVG_PIN                                 5      
 
+   // BRT Axis
+   #define IFEI_BRIGHTNESS_PIN                        2   
+
    // ALR-67 Pins (S3)
    #define RWR_SPECIAL_LT_PIN                         8
    #define RWR_SPECIAL_EN_LT_PIN                     12
@@ -72,7 +72,7 @@
    #define PRESSURE_ALT_GAUGE_PIN                    18
    #define INST_BACKLIGHT_PIN_ALR67                  14     
 
-#else 
+#else // Below are PINs used with the LOLIN S2 Mini board. Create elif branch if adding different boards
 
    // General Pins
    #define SDA_PIN                                    8 // This could be overriden from a panel file if needed
@@ -126,6 +126,9 @@
    #define BL_GREEN_PIN                               1
    #define BL_WHITE_PIN                               2
    #define BL_NVG_PIN                                 4   
+
+   // BRT Axis
+   #define IFEI_BRIGHTNESS_PIN                        3
 
    // ALR-67 Pins (S2)
    #define RWR_SPECIAL_LT_PIN                        10
@@ -247,7 +250,7 @@ const char* getPanelName(uint8_t addr);  // Declaration
 
 #elif defined(LABEL_SET_BATTERY_GAUGE)
 
-#if defined(IS_S3_PINS)
+#if defined(ARDUINO_LOLIN_S3_MINI)
    #define SDA_PIN 35
    #define SCL_PIN 36
 #else
