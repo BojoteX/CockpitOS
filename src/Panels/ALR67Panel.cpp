@@ -13,18 +13,10 @@
 #include "../Globals.h"
 #include "../ALR67Panel.h"
 #include "../HIDManager.h"
+#include "../DCSBIOSBridge.h" // Needed for #defines in Mappings.h 
 
-#define HC165_PL  35
-#define HC165_CP  34
-#define HC165_QH  33
-
-const int ALR67_Strobes[] = {16, 17, 21, 37};
+const int ALR67_Strobes[] = { ALR67_STROBE_1, ALR67_STROBE_2, ALR67_STROBE_3, ALR67_STROBE_4 };
 const int ALR67_StrobeCount = sizeof(ALR67_Strobes) / sizeof(ALR67_Strobes[0]);
-const int ALR67_DataPin = 38;
-
-// Analog axes
-const int RWR_AUDIO_PIN = 1;
-const int RWR_DMR_PIN   = 2;
 
 static uint8_t prevPattern = 0xFF;
 static uint8_t prevButtonBits = 0xFF;
@@ -53,7 +45,7 @@ void ALR67_init() {
   prevButtonBits = 0xAA;     // HC165 cache (for that panel's buttons)
 
   // Init HC165 Pins
-  HC165_init(HC165_PL, HC165_CP, HC165_QH);  // PL, CP, QH
+  HC165_init(ALR67_HC165_PL, ALR67_HC165_CP, ALR67_HC165_QH);  // PL, CP, QH
 
   pinMode(ALR67_DataPin, INPUT_PULLUP);
   for (int i = 0; i < ALR67_StrobeCount; i++) {

@@ -1,5 +1,5 @@
 #define GAUGE_DRAW_MIN_INTERVAL_MS 30   // 30Hz
-#define RUN_GAUGE_AS_TASK 0
+#define RUN_GAUGE_AS_TASK 1
 
 #include "../Globals.h"
 #include "../TFT_Gauges.h"
@@ -14,12 +14,6 @@
 
 static byte prevPort0 = 0xFF;
 static byte prevPort1 = 0xFF;
-
-// Analog pin connected to HMD Knob (Rx axis)
-constexpr int HMD_KNOB_PIN = 18;
-
-// Chip Select pin for battery gauge (TFT CS pin)
-#define BATTERY_CS_PIN 12
 
 static TFT_eSPI* tft = nullptr;
 static TFT_eSprite* needleU = nullptr;
@@ -194,7 +188,11 @@ void BatteryGauge_init() {
 
     if (tftTaskHandle == nullptr) {
 #if RUN_GAUGE_AS_TASK
-        xTaskCreatePinnedToCore(BatteryGauge_task, "BatteryGaugeTask", 4096, NULL, 1, &tftTaskHandle, 0);
+    #if defined(IS_S3_PINS)
+		xTaskCreatePinnedToCore(BatteryGauge_task, "BatteryGaugeTask", 4096, NULL, 2, &tftTaskHandle, 1); // S3 has 2 cores, use core 1 for TFT tasks
+    #else
+		xTaskCreatePinnedToCore(BatteryGauge_task, "BatteryGaugeTask", 4096, NULL, 2, &tftTaskHandle, 0); // S2 has 1 core, use core 0
+    #endif
 #endif
     }
 

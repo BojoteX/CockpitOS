@@ -12,26 +12,6 @@ void IFEIDisplay_commit();  // (flushes shadow RAM)
 // Helpers
 bool isFieldBlank(const char* s);
 
-// --- 74HC165 IFEI pins ---
-#define HC165_QH  38
-#define HC165_PL  39
-#define HC165_CP  40
-
-// Left LCD
-#define DATA0_PIN 34
-#define WR0_PIN   35
-#define CS0_PIN   36
-
-// Right LCD
-#define DATA1_PIN 18
-#define WR1_PIN   21
-#define CS1_PIN   33
-
-// Backlight PINs
-#define BL_GREEN_PIN 1
-#define BL_WHITE_PIN 2
-#define BL_NVG_PIN   4
-
 // Max Display Regions
 #define MAX_DISPLAY_FIELDS 64
 

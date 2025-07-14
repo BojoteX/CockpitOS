@@ -500,7 +500,7 @@ void validateSelectorSync() {
         uint16_t fwValue = getLastKnownState(label);
 
         if (fwValue == simValue) {
-            debugPrintf("  OK: %s => FW=%u, SIM=%u\n", label, fwValue, simValue);
+            // debugPrintf("  OK: %s => FW=%u, SIM=%u\n", label, fwValue, simValue);
         }
         else {
             debugPrintf(" SYNC: %s => FW=%u, SIM=%u   <--- Forcing sim to FW\n", label, fwValue, simValue);
@@ -740,6 +740,7 @@ static void flushBufferedDcsCommands() {
         winner->hasPending = false;
         lastGroupSendUs[g] = nowUs;
     }
+
 }
 
 // ----------------------------------------------------------------------------

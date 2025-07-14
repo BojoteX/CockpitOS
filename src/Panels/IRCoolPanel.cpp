@@ -21,9 +21,6 @@
 static byte prevIRCPort0 = 0xFF;
 static byte prevIRCPort1 = 0xFF;
 
-// Analog pin connected to HMD Knob (Rx axis)
-constexpr int HMD_KNOB_PIN = 18;
-
 // Deferred cover close logic
 static bool pendingCoverClose = false;
 

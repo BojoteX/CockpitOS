@@ -8,8 +8,8 @@
 // #define LABEL_SET_F16_TEST
 // #define LABEL_SET_BATTERY_GAUGE
 // #define LABEL_SET_IFEI_NO_VIDEO  
-// #define LABEL_SET_ALR67                            
-#define LABEL_SET_MAIN                           
+#define LABEL_SET_ALR67                            
+// #define LABEL_SET_MAIN                                                      
 // #define LABEL_SET_ALTIMETER                           
 // #define LABEL_SET_ALL                           
 
@@ -58,7 +58,7 @@
 #define MAX_GROUPS                               128 // default safety cap, DO NOT change
 #define VALUE_THROTTLE_MS                         50 // How long (ms) to skip sending the same value again (debouncing)
 #define ANY_VALUE_THROTTLE_MS                     33 // How long (ms) to skip sending different values (prevents spamming the USB endpoint, while debouncing at the same time)
-#define SELECTOR_DWELL_MS                        100 // Wait time (in ms) for stable selector value. Used by our dwell-time fitering logic
+#define SELECTOR_DWELL_MS                        250 // Wait time (in ms) for stable selector value. Used by our dwell-time fitering logic
 #define DCS_GROUP_MIN_INTERVAL_US               (1000000UL / DCS_UPDATE_RATE_HZ) // min spacing/separation between selector positions
 #define HID_REPORT_MIN_INTERVAL_US              (1000000UL / HID_REPORT_RATE_HZ) // min spacing/separation between reports
 #define DCS_KEEP_ALIVE_MS                       (1000 / DCS_UPDATE_RATE_HZ) // send PING 0 (ASCII command) every x ms (when using keep-alives)
@@ -85,11 +85,11 @@
 #endif
 
 // DCS Commands USB Send Ring Buffer (outgoing packets) - *MANDATORY* this one is REQUIRED to be set to send via USB pipe for transport (due to 64 byte report size limitation)
-#define DCS_USB_RINGBUF_SIZE                    8  // Number of packets buffered (tune as needed)
-#define DCS_USB_PACKET_MAXLEN                  64  // Max USB packet size (safe for DCS-BIOS)
-#define MAX_UDP_FRAMES_PER_DRAIN                1  // Max number to hold in buffer before parsing (increase for bursty processing) 1 is deterministic, best.
+#define DCS_USB_RINGBUF_SIZE                     16  // Number of packets buffered (tune as needed)
+#define DCS_USB_PACKET_MAXLEN                    64  // Max USB packet size (safe for DCS-BIOS)
 
 // DCS UDP/USB Receive Ring Buffer (incoming packets) - *MANDATORY* when using USB mode, optional in WiFi UDP mode.
+#define MAX_UDP_FRAMES_PER_DRAIN                  1  // Max number to hold in buffer before parsing (increase for bursty processing) 1 is deterministic, best.
 #if USE_DCSBIOS_USB
   #define DCS_USE_RINGBUFFER                      1  // Should ALWAYS be 1 when USE_DCSBIOS_USB. DO NOT CHANGE 
   #define DCS_UDP_RINGBUF_SIZE                   64  // Number of USB packets buffered (tune as needed)
@@ -117,12 +117,12 @@
 #define DCS_UDP_MAX_REASSEMBLED                1472 // Or whatever max UDP/Frame size you want
 
 // Required for Descriptor handling. For custom commercial implementations using your own name (you are free to do so), just by mindful of PID, VID, Manufacturer and the actual USB_PRODUCT string. No need for attribution, you can use this software as per the included LICENSE
-#define USB_VID		                                0xCAFE
-#define USB_PID		                                0xCAF3
-#define USB_SERIAL                                LABEL_SET
-#define USB_PRODUCT                               "CockpitOS Panel"
-#define USB_MANUFACTURER                          "CockpitOS Firmware Project"
-#define USB_LANG_ID                               0x0409  // English (US)
+#define USB_VID		                           0xCAFE
+#define USB_PID		                           0xCAF3
+#define USB_SERIAL                           LABEL_SET
+#define USB_PRODUCT                          "CockpitOS Panel"
+#define USB_MANUFACTURER                     "CockpitOS Firmware Project"
+#define USB_LANG_ID                          0x0409  // English (US)
 
 // Automatically enables what we'll be using, no need to edit.
 #if (ARDUINO_USB_CDC_ON_BOOT == 1)

@@ -3,12 +3,12 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
-  DEVICE_WS2812,
-  DEVICE_TM1637,
-  DEVICE_GAUGE,
   DEVICE_NONE,
-  DEVICE_GPIO,
+  DEVICE_TM1637,
   DEVICE_PCA9555,
+  DEVICE_GPIO,
+  DEVICE_WS2812,
+  DEVICE_GAUGE,
   DEVICE_GN1640T,
 };
 
@@ -29,26 +29,26 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
-  { "PRESSURE_ALT"       , DEVICE_GAUGE   , {.gaugeInfo = {18, 700, 2000, 20000}}, false, false }, // GAUGE GPIO 18,
+  { "PRESSURE_ALT"       , DEVICE_GAUGE   , {.gaugeInfo = {PRESSURE_ALT_GAUGE_PIN, 700, 2000, 20000}}, false, false }, // GAUGE GPIO PRESSURE_ALT_GAUGE_PIN,
   { "CMSD_JET_SEL_L"     , DEVICE_PCA9555 , {.pcaInfo = {0x22, 1, 1}}, false, true }, // PCA 0x22 Port 1 Bit 1,
   { "CHART_DIMMER"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CONSOLES_DIMMER"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "FLOOD_DIMMER"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "INST_PNL_DIMMER"    , DEVICE_GPIO    , {.gpioInfo = {14}}, true, false }, // GPIO 14,
+  { "INST_PNL_DIMMER"    , DEVICE_GPIO    , {.gpioInfo = {INST_BACKLIGHT_PIN_ALR67}}, true, false }, // GPIO INST_BACKLIGHT_PIN_ALR67,
   { "WARN_CAUTION_DIMMER", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "RWR_AUDIO_CTRL"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, true }, // No Info,
-  { "RWR_BIT_LT"         , DEVICE_GPIO    , {.gpioInfo = {4}}, false, true }, // GPIO 4,
-  { "RWR_DISPLAY_LT"     , DEVICE_GPIO    , {.gpioInfo = {13}}, false, true }, // GPIO 13,
+  { "RWR_BIT_LT"         , DEVICE_GPIO    , {.gpioInfo = {RWR_BIT_LT_PIN}}, false, true }, // GPIO RWR_BIT_LT_PIN,
+  { "RWR_DISPLAY_LT"     , DEVICE_GPIO    , {.gpioInfo = {RWR_DISPLAY_LT_PIN}}, false, true }, // GPIO RWR_DISPLAY_LT_PIN,
   { "RWR_DMR_CTRL"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, true }, // No Info,
-  { "RWR_ENABLE_LT"      , DEVICE_GPIO    , {.gpioInfo = {5}}, false, true }, // GPIO 5,
-  { "RWR_FAIL_LT"        , DEVICE_GPIO    , {.gpioInfo = {3}}, false, true }, // GPIO 3,
-  { "RWR_LIMIT_LT"       , DEVICE_GPIO    , {.gpioInfo = {11}}, false, true }, // GPIO 11,
-  { "RWR_LOWER_LT"       , DEVICE_GPIO    , {.gpioInfo = {12}}, false, true }, // GPIO 12,
+  { "RWR_ENABLE_LT"      , DEVICE_GPIO    , {.gpioInfo = {RWR_ENABLE_LT_PIN}}, false, true }, // GPIO RWR_ENABLE_LT_PIN,
+  { "RWR_FAIL_LT"        , DEVICE_GPIO    , {.gpioInfo = {RWR_FAIL_LT_PIN}}, false, true }, // GPIO RWR_FAIL_LT_PIN,
+  { "RWR_LIMIT_LT"       , DEVICE_GPIO    , {.gpioInfo = {RWR_LIMIT_LT_PIN}}, false, true }, // GPIO RWR_LIMIT_LT_PIN,
+  { "RWR_LOWER_LT"       , DEVICE_GPIO    , {.gpioInfo = {RWR_LOWER_LT_PIN}}, false, true }, // GPIO RWR_LOWER_LT_PIN,
   { "RWR_LT_BRIGHT"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, true }, // No Info,
-  { "RWR_OFFSET_LT"      , DEVICE_GPIO    , {.gpioInfo = {6}}, false, true }, // GPIO 6,
+  { "RWR_OFFSET_LT"      , DEVICE_GPIO    , {.gpioInfo = {RWR_OFFSET_LT_PIN}}, false, true }, // GPIO RWR_OFFSET_LT_PIN,
   { "RWR_RWR_INTESITY"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, true }, // No Info,
-  { "RWR_SPECIAL_EN_LT"  , DEVICE_GPIO    , {.gpioInfo = {7}}, false, true }, // GPIO 7,
-  { "RWR_SPECIAL_LT"     , DEVICE_GPIO    , {.gpioInfo = {10}}, false, true }, // GPIO 10
+  { "RWR_SPECIAL_EN_LT"  , DEVICE_GPIO    , {.gpioInfo = {RWR_SPECIAL_EN_LT_PIN}}, false, true }, // GPIO RWR_SPECIAL_EN_LT_PIN,
+  { "RWR_SPECIAL_LT"     , DEVICE_GPIO    , {.gpioInfo = {RWR_SPECIAL_LT_PIN}}, false, true }, // GPIO RWR_SPECIAL_LT_PIN
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);

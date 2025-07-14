@@ -107,7 +107,9 @@ stats = {
     "frame_count_total": 0,
     "frame_count_window": 0,
     "bytes": 0,
-    "start_time": time.time()
+    "start_time": time.time(),
+    "bytes_rolling": 0,
+    "frames_rolling": 0,
 }
 global_stats_lock = threading.Lock()
 
@@ -290,6 +292,8 @@ class NetworkManager:
                 with global_stats_lock:
                     stats["frame_count_total"] += 1
                     stats["frame_count_window"] += 1
+                    stats["bytes_rolling"] += len(data)
+                    stats["frames_rolling"] += 1
                     stats["bytes"] += len(data)
                 devices = self.get_devices()
                 for entry in devices:
@@ -343,7 +347,9 @@ class CockpitGUI:
             'frames': tk.StringVar(value="0"),
             'hz': tk.StringVar(value="0.0"),
             'bw': tk.StringVar(value="0.0"),
+            'avgudp': tk.StringVar(value="0.0"),
         }
+        self.data_source_var = tk.StringVar(value="Data Source: (waiting...)") 
 
         ttk.Label(self.stats_frame, text="Frames:").grid(row=0, column=0, padx=5)
         ttk.Label(self.stats_frame, textvariable=self.stats_vars['frames']).grid(row=0, column=1, padx=5)
@@ -351,10 +357,10 @@ class CockpitGUI:
         ttk.Label(self.stats_frame, textvariable=self.stats_vars['hz']).grid(row=0, column=3, padx=5)
         ttk.Label(self.stats_frame, text="kB/s:").grid(row=0, column=4, padx=5)
         ttk.Label(self.stats_frame, textvariable=self.stats_vars['bw']).grid(row=0, column=5, padx=5)
-
-        self.data_source_var = tk.StringVar(value="Data Source: (waiting...)")
+        ttk.Label(self.stats_frame, text="Avg UDP Frame size (Bytes):").grid(row=0, column=6, padx=5)  # <--- New column header
+        ttk.Label(self.stats_frame, textvariable=self.stats_vars['avgudp']).grid(row=0, column=7, padx=5)  # <--- Value
         self.data_source_label = ttk.Label(self.stats_frame, textvariable=self.data_source_var, foreground="blue")
-        self.data_source_label.grid(row=0, column=6, padx=12)
+        self.data_source_label.grid(row=0, column=8, padx=12)  # Shift to column 8
 
         self.devices_frame = ttk.LabelFrame(root, text="Devices")
         self.devices_frame.pack(fill='both', expand=True, padx=10, pady=10)
@@ -447,13 +453,15 @@ class CockpitGUI:
         while True:
             time.sleep(1)
             with global_stats_lock:
+                avg_frame = (stats["bytes_rolling"] / stats["frames_rolling"]) if stats["frames_rolling"] else 0
                 duration = time.time() - stats["start_time"]
                 hz = stats["frame_count_window"] / duration if duration > 0 else 0
                 kbps = (stats["bytes"] / 1024) / duration if duration > 0 else 0
                 stat_dict = {
                     'frames': stats["frame_count_total"],
                     'hz': f"{hz:.1f}",
-                    'bw': f"{kbps:.1f}"
+                    'bw': f"{kbps:.1f}",
+                    'avgudp': f"{avg_frame:.1f}",
                 }
                 self.uiq.put(('globalstats', stat_dict))
                 stats["frame_count_window"] = 0

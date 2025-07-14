@@ -3,6 +3,7 @@
 #include "../Globals.h"
 #include "../MasterARMPanel.h"
 #include "../HIDManager.h"
+#include "../DCSBIOSBridge.h" // Needed for #defines in Mappings.h 
 
 // Cache local del estado
 static byte prevMasterPort0 = 0xFF;

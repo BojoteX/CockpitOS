@@ -12,6 +12,7 @@
 #include "../Globals.h"
 #include "../ECMPanel.h"
 #include "../HIDManager.h"
+#include "../DCSBIOSBridge.h" // Needed for #defines in Mappings.h 
 
 // Track previous PCA9555 state for ECM panel only
 static byte prevECMPort0 = 0xFF;
