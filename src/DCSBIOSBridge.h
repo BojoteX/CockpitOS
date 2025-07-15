@@ -5,6 +5,7 @@
 #include "../Mappings.h"
 
 void initPanels();
+void DCSBIOS_forceMissionStop();
 
 // --- Prototypes for Selector Validation/Sync ---
 void validateSelectorSync();

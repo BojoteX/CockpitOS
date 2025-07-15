@@ -30,6 +30,9 @@
 // Extern declarations								  /
 ///////////////////////////////////////////////////////////////////////////////////
 
+// For edge cases
+extern volatile bool forcePanelResyncNow;
+
 // From our main .ino file
 extern bool isModeSelectorDCS();	// To Check in which mode we are operating
 

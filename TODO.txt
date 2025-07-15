@@ -6,3 +6,15 @@ HID manager python script on a remote computer (Windows/Linux/Mac/Raspberry Pi) 
 over the network. A way to reproduce the issue is: Compile the MAIN_PANEL label set with Arduino Core 2.x and WiFi
 enabled, notice the Lockshoot indicator staying WHITE. It stops working. Just disable WiFi and it will work again. This is most likely a WiFI/RMT conflict issue/bug in Arduino Core 2.x
 
+
+SYNC BUG, HOW TO REPLICATE:
+1) Start DCS, ESP32 Device and HID manager normally
+2) Once in the sim, receiving data, close HID Manager
+3) Now go to DCS Main menu
+4) Start HID manager
+5) Start a mission again.
+The above does NOT sync because Aircraft name is NOT sent again.
+
+
+
+Resync force logic requires HID ID set for selectors to sync

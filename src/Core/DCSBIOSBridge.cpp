@@ -22,6 +22,9 @@
     #include "DcsBios.h"    
 #endif
 
+// For edge cases where we need to force a resync of the panel
+volatile bool forcePanelResyncNow = false;
+
 #if (USE_DCSBIOS_WIFI || USE_DCSBIOS_USB)
 // Size of max packet for DCS Receive
 static uint8_t reassemblyBuf[DCS_UDP_MAX_REASSEMBLED];
@@ -161,9 +164,13 @@ public:
         pendingUpdateOverflow(0),
         _lastWriteMs(0),
         _streamUp(false)
-    {}   
+    {}
 
+    uint8_t frameCounter = 0;
     void onDcsBiosWrite(unsigned int addr, unsigned int value) override {
+
+        frameCounter++;
+        if (frameCounter >= 100) frameCounter = 0;
 
         // This is used for debugging and testing
         if(TEMP_DISABLE_LISTENER) return;
@@ -269,9 +276,29 @@ public:
         commitAnonymousStringField(aircraftNameField);
     }
 
+    // New method to forcibly simulate mission stop
+    void forceMissionStop() {
+        memset(aircraftNameBuf, ' ', 24);    // force 24 spaces
+        aircraftNameBuf[24] = '\0';
+        // Set lastAircraftName to IMPOSSIBLE value so next frame will *always* be seen as different
+        memset(lastAircraftName, 0xAA, 24);  // 0xAA is an impossible ASCII aircraft name
+        lastAircraftName[24] = '\0';
+        aircraftNameDirty = true;            // Will trigger commit on next cycle
+
+        // Reset global/volatile mission state
+        lastMissionStart = 0;
+        panelsSyncedThisMission = false;
+        aircraftNameReceivedAt = 0;
+        panelsInitializedThisMission = false;
+
+        debugPrintf("[SYNC] forceMissionStop(): All mission state reset to menu, lastAircraftName set to impossible value.\n");
+    }
+
     bool isStreamAlive() const {
         return (millis() - _lastWriteMs) < STREAM_TIMEOUT_MS;
     }
+
+    unsigned long msSinceLastWrite() const { return millis() - _lastWriteMs; }
 
 protected:
     virtual void onStreamUp()   { debugPrintln("[STREAM] UP"); }
@@ -295,6 +322,10 @@ private:
 };
 DcsBiosSniffer mySniffer;
 
+void DCSBIOS_forceMissionStop() {
+    mySniffer.forceMissionStop();
+}
+
 void dumpAllMetadata() {
     debugPrintf("\n[METADATA DUMP]\n");
     for (size_t i = 0; i < numMetadataStates; ++i) {
@@ -309,6 +340,11 @@ void initPanels() {
 
     forcePanelSyncThisMission = true;
     panelsSyncedThisMission = true;
+
+    // After forcePanelSyncThisMission = true;
+    for (size_t i = 0; i < numValidatedSelectors; ++i) {
+        validatedSelectors[i].lastSimValue = 0xFFFF;
+    }
 
 	flushBufferedDcsCommands();  // <-- Forces all pending selector changes out now (before panels are initialized)
 
@@ -467,6 +503,7 @@ void onDisplayChange(const char* label, const char* value) {
 }
 
 // Stage 3: Initialize validation selectors from InputMappings
+/*
 void initializeSelectorValidation() {
     numValidatedSelectors = 0;
     // Build a unique set of oride_label entries
@@ -487,6 +524,32 @@ void initializeSelectorValidation() {
             validatedSelectors[numValidatedSelectors].lastSimValue = 0xFFFF; // Invalid/unknown
             ++numValidatedSelectors;
             // Subscribe (if not already)
+            subscribeToSelectorChange(dcs_label, selectorValidationCallback);
+        }
+    }
+}
+*/
+
+void initializeSelectorValidation() {
+    numValidatedSelectors = 0;
+    for (size_t i = 0; i < InputMappingSize; ++i) {
+        const char* dcs_label = InputMappings[i].oride_label;
+        if (!dcs_label || !*dcs_label) continue;
+        // Only selectors, only with valid HID
+        if (strcmp(InputMappings[i].controlType, "selector") != 0) continue;
+        if (InputMappings[i].hidId <= 0) continue;
+
+        bool alreadyRegistered = false;
+        for (size_t j = 0; j < numValidatedSelectors; ++j) {
+            if (strcmp(validatedSelectors[j].label, dcs_label) == 0) {
+                alreadyRegistered = true;
+                break;
+            }
+        }
+        if (!alreadyRegistered && numValidatedSelectors < MAX_VALIDATED_SELECTORS) {
+            validatedSelectors[numValidatedSelectors].label = dcs_label;
+            validatedSelectors[numValidatedSelectors].lastSimValue = 0xFFFF;
+            ++numValidatedSelectors;
             subscribeToSelectorChange(dcs_label, selectorValidationCallback);
         }
     }
@@ -1104,19 +1167,27 @@ void DCSBIOSBridge_loop() {
     #if defined(SELECTOR_DWELL_MS) && (SELECTOR_DWELL_MS > 0)
     if (isModeSelectorDCS()) flushBufferedDcsCommands();
     #endif    
-
-	// Initialize panels only once per mission, after we receive the aircraft name
-    static bool panelsInitializedThisMission = false;
+    
     if (aircraftNameReceivedAt != 0 && !panelsInitializedThisMission) {
-        if (millis() - aircraftNameReceivedAt > 250) { // 250ms debounce
+        if (millis() - aircraftNameReceivedAt > 500) {
             initPanels();
             panelsInitializedThisMission = true;
+            forcePanelResyncNow = false;
+            debugPrintln("[SYNC] Normal mission start panel sync");
         }
     }
+    else if (forcePanelResyncNow && mySniffer.isStreamAlive() && mySniffer.frameCounter > 50) {
+        debugPrintln("[SYNC] Fallback: forced panel re-sync");
+        initPanels();
+        panelsInitializedThisMission = true;
+        forcePanelResyncNow = false;
+    }
+
     if (!isMissionRunning()) {
         panelsInitializedThisMission = false;
         aircraftNameReceivedAt = 0;
     }
+
 }
 
 /*

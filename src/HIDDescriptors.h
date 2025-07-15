@@ -64,6 +64,7 @@ public:
   // SET FEATURE: any host message is just pushed to ring buffer, even before main loop
   void _onSetFeature(uint8_t report_id, const uint8_t* buffer, uint16_t len) override {
     if(mainLoopStarted && len > 0) {
+	forcePanelResyncNow = true;
         dcsRawUsbOutRingbufPushChunked(buffer, len);
         debugPrintf("[SET FEATURE] pushed %.*s to ring buffer\n", len, buffer);
     }
