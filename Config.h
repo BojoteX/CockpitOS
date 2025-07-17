@@ -13,10 +13,10 @@
 // #define LABEL_SET_ALTIMETER                           
 // #define LABEL_SET_ALL                           
 
-// Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. Pure USB or WIFI. This methods COMPLETELY bypass Serial. If both are set to 0, then standard CDC / Serial is used. Both CAN NOT be set to 1 at the same time
-#define USE_DCSBIOS_WIFI                          0 // Completely bypasses socat and uses WiFi to connect to DCS. 
-// or (not both)
-#define USE_DCSBIOS_USB                           1 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work.
+// Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. Pure USB or WIFI. This methods COMPLETELY bypasses Serial. If both are set to 0, then standard CDC / Serial is used. Both CAN NOT be set to 1 at the same time
+#define USE_DCSBIOS_WIFI                          0   // Completely bypasses socat and uses WiFi to connect to DCS. 
+// DO NOT set both to 1. Only ONE can be active -or- both set to 0 to operate in legacy CDC mode (Serial+socat)
+#define USE_DCSBIOS_USB                           1   // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work.
 
 // Wi-Fi network credentials (used for WiFi remote Debug Console and DCSBIOS WiFi mode if selected)
 #define WIFI_SSID                                 "MyHotspotNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
@@ -53,7 +53,7 @@
 #define POLLING_RATE_HZ                          250 // Panel/buttons update rate in Hz (125, 250, 500 Hz) during main loop. Leave at 250
 #define DISPLAY_REFRESH_RATE_HZ                   60 // General refresh rate used for displays.  
 #define DCS_KEEP_ALIVE_ENABLED                     0 // Should we enable DCSBIOS Keepalives? should ONLY used for testing
-#define HID_KEEP_ALIVE_ENABLED                     0 // Should we enable HID Keepalives? should ONLY used for testing
+#define HID_KEEP_ALIVE_ENABLED                     1 // Should we enable HID Keepalives? should ONLY used for testing
 #define MAX_TRACKED_RECORDS                      512 // default safety cap, DO NOT change
 #define MAX_GROUPS                               128 // default safety cap, DO NOT change
 #define VALUE_THROTTLE_MS                         50 // How long (ms) to skip sending the same value again (debouncing)

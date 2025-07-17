@@ -8,7 +8,7 @@
 
 // Initialization routine for LEFT annunciator buttons
 void LeftAnnunciator_init() {
-    delay(50);  // Small delay to ensure when init is called DCS has settled
+    // delay(50);  // Small delay to ensure when init is called DCS has settled
     
     uint8_t rawKeys = tm1637_readKeys(LA_Device);
 

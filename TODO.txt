@@ -18,3 +18,7 @@ The above does NOT sync because Aircraft name is NOT sent again.
 
 
 Resync force logic requires HID ID set for selectors to sync
+Implement logic to read current, real, uncached FW position
+
+
+HID Hanlder edge cases (replicate starting the computer or resuming from sleep with device already connected)

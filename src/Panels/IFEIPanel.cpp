@@ -565,7 +565,7 @@ void IFEIDisplayTask(void* pv) {
 #endif
 
 void IFEI_init() {
-    delay(50);
+    // delay(50);
     HIDManager_moveAxis("IFEI", IFEI_BRIGHTNESS_PIN, AXIS_SLIDER1);
     HC165_init(HC165_PL, HC165_CP, HC165_QH, 16);
 
@@ -613,7 +613,7 @@ void IFEI_loop() {
 // Init for the actual Display only
 void IFEIDisplay_init() {
 
-    delay(50);  // Small delay to ensure when init is called DCS has settled
+    // delay(50);  // Small delay to ensure when init is called DCS has settled
 
     ifei.buildCommitRegions();  // Automatically builds per-field update regions
 

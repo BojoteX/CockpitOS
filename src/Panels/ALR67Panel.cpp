@@ -45,7 +45,7 @@ void dispatchRotaryPosition(uint8_t pattern) {
 }
 
 void ALR67_init() {
-  delay(50);  // Small delay to ensure when init is called DCS has settled
+  // delay(50);  // Small delay to ensure when init is called DCS has settled
 
   // "impossible" value to force controller reset and cache invalidation
   prevPattern = 0xAA;        // Matrix rotary cache

@@ -8,7 +8,7 @@
 
 // Initialization routine for RIGHT annunciator buttons
 void RightAnnunciator_init() {
-    delay(50);  // Small delay to ensure when init is called DCS has settled
+    // delay(50);  // Small delay to ensure when init is called DCS has settled
 
     // If RIGHT_FIRE_BTN is already physically pressed
     if (!(tm1637_readKeys(RA_Device) & 0x01)) {

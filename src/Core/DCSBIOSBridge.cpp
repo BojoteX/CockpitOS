@@ -33,6 +33,7 @@ static uint32_t maxFramesDrainOverflow = 0;  // Global or file-scope
 
 // --- Selector Sync Validation (stage 1/3) ---
 #define MAX_VALIDATED_SELECTORS 32  // Tune to match maximum selectors you need to track
+#define MISSION_START_DEBOUNCE 500  // ms to wait before panel sync
 
 struct SelectorValidationEntry {
     const char* label;
@@ -60,8 +61,11 @@ struct PendingUpdate {
 // ——— Configuration ———
 #define MAX_PENDING_UPDATES 220
 
+// ——— Stream Health ———
+#define STREAM_TIMEOUT_MS   1000 // ms without activity → consider dead
+
 // Used for reliably detecting an active stream and when it goes up or down.
-static constexpr unsigned long STREAM_TIMEOUT_MS = 3;  // ms without activity → consider dead
+// static constexpr unsigned long STREAM_TIMEOUT_MS = 3;  // ms without activity → consider dead
 
 // Max display fields across all panels (tune as needed, e.g., 64 or 128)
 #define MAX_REGISTERED_DISPLAY_BUFFERS 64
@@ -155,6 +159,9 @@ bool isPanelsSyncedThisMission() {
 // For debugging ONLY
 static bool TEMP_DISABLE_LISTENER = false;
 
+// Frame counter for debugging purposes
+uint64_t frameCounter = 0;
+
 // DcsBiosSniffer Listener
 class DcsBiosSniffer : public DcsBios::ExportStreamListener {
 public:
@@ -166,11 +173,7 @@ public:
         _streamUp(false)
     {}
 
-    uint8_t frameCounter = 0;
     void onDcsBiosWrite(unsigned int addr, unsigned int value) override {
-
-        frameCounter++;
-        if (frameCounter >= 100) frameCounter = 0;
 
         // This is used for debugging and testing
         if(TEMP_DISABLE_LISTENER) return;
@@ -346,19 +349,19 @@ void initPanels() {
         validatedSelectors[i].lastSimValue = 0xFFFF;
     }
 
-	flushBufferedDcsCommands();  // <-- Forces all pending selector changes out now (before panels are initialized)
+	// flushBufferedDcsCommands();  // <-- Forces all pending selector changes out now (before panels are initialized)
 
 	// Initialize all axes
     HIDManager_resetAllAxes();
+
+    // Ensures cockpit state and selectors are in sync
+    // validateSelectorSync();
 
     // This ensures your cockpit and sim always sync on mission start
     initializePanels(1);
 
     // Forces all pending selector changes out now (after panels are initialized)
-	flushBufferedDcsCommands();  
-
-	// Ensures cockpit state and selectors are in sync
-	validateSelectorSync();
+	// flushBufferedDcsCommands();  
 
     forcePanelSyncThisMission = false;
 }
@@ -392,6 +395,7 @@ void onAircraftName(const char* str) {
     }
 }
 
+/*
 // Frame counter for reference measure frame skips
 void onUpdateCounterChange(unsigned int value) {
     uint8_t frameCounter = value & 0xFF;          // low byte
@@ -399,8 +403,12 @@ void onUpdateCounterChange(unsigned int value) {
     // Used for debugging only
     debugPrintf("Frame: %u | Skips: %u\n", frameCounter, frameSkipCounter);
 }
+*/
 
 void onLedChange(const char* label, uint16_t value, uint16_t max_value) {
+
+	// Count how many times an "onChange" function was called to ensure we have a valid frame
+    frameCounter++;
 
     if (max_value <= 1) {
         setLED(label, value > 0);
@@ -432,6 +440,9 @@ void onLedChange(const char* label, uint16_t value, uint16_t max_value) {
 }
 
 void onSelectorChange(const char* label, unsigned int value) {
+
+    // Count how many times an "onChange" function was called to ensure we have a valid frame
+    frameCounter++;
 
     CommandHistoryEntry* e = findCmdEntry(label);
     if (e) e->lastValue = value;
@@ -482,6 +493,10 @@ void onSelectorChange(const char* label, unsigned int value) {
 }
 
 void onMetaDataChange(const char* label, unsigned int value) {
+
+    // Count how many times an "onChange" function was called to ensure we have a valid frame
+    frameCounter++;
+
     MetadataState* st = findMetadataState(label);
     if (st) st->value = value;    
 
@@ -496,6 +511,9 @@ void onMetaDataChange(const char* label, unsigned int value) {
 }
 
 void onDisplayChange(const char* label, const char* value) {
+
+    // Count how many times an "onChange" function was called to ensure we have a valid frame
+    frameCounter++;
 
     if(DEBUG) debugPrintf("[DISPLAY] %s value is %s\n", label, value);
 
@@ -977,7 +995,7 @@ void sendCommand(const char* msg, const char* arg, bool silent) {
 
 #if USE_DCSBIOS_WIFI
     // We completely bypass Serial+Socat and send our DCSBIOS command via UDP directly to the PC running DCS if mission is active
-    if(isMissionRunning() && isPanelsSyncedThisMission()) {
+    if(isMissionRunning() && isPanelsSyncedThisMission() && mySniffer.isStreamAlive()) {
         if(tryToSendDcsBiosMessageUDP(msg, arg)) {
             if(!silent) debugPrintf("🛩️ [DCS-WIFI] %s %s\n", msg, arg);
         }
@@ -985,8 +1003,11 @@ void sendCommand(const char* msg, const char* arg, bool silent) {
             if(!silent) debugPrintln("❌ [DCS-WIFI] Failed to send via UDP");
         }
     }
+    else {
+        if (!silent) debugPrintf("🛩️ [DCS-WIFI] DCS NOT READY! could not send %s %s\n", msg, arg);
+	}
 #elif USE_DCSBIOS_USB
-    // if(isMissionRunning() && isPanelsSyncedThisMission()) {
+    if(isMissionRunning() && isPanelsSyncedThisMission() && mySniffer.isStreamAlive()) {
    
         // This is the MAX size for our msg and arg. Lets try to fit INSIDE 63 Bytes to avoid chunking (faster)
         constexpr size_t maxMsgLen = 48;
@@ -1007,7 +1028,10 @@ void sendCommand(const char* msg, const char* arg, bool silent) {
 
         // This is a dummy report, it will just trigger on the host side a Feature request to our device, which will drain our ring buffer on each call, host will keep calling until end of message received
         HIDManager_dispatchReport(true);
-    // }
+    }
+    else {
+        if (!silent) debugPrintf("🛩️ [DCS-USB] DCS NOT READY! could not send %s %s\n", msg, arg);
+    }
 #else
     if(!isConnected) {
         // Since socat does NOT assert DTR, we need to be able to send even if no Serial connection is detected, 
@@ -1105,6 +1129,12 @@ static void selectorValidationCallback(const char* label, uint16_t value) {
     }
 }
 
+void forceResync() {
+    forcePanelResyncNow = true;
+    frameCounter = 0;
+
+}
+
 void DCSBIOSBridge_setup() {
 
     // If CDC ON BOOT means Serial has started already, so, we'll stop it
@@ -1167,27 +1197,39 @@ void DCSBIOSBridge_loop() {
     #if defined(SELECTOR_DWELL_MS) && (SELECTOR_DWELL_MS > 0)
     if (isModeSelectorDCS()) flushBufferedDcsCommands();
     #endif    
-    
+
     if (aircraftNameReceivedAt != 0 && !panelsInitializedThisMission) {
-        if (millis() - aircraftNameReceivedAt > 500) {
+        if (millis() - aircraftNameReceivedAt > MISSION_START_DEBOUNCE) {
             initPanels();
             panelsInitializedThisMission = true;
             forcePanelResyncNow = false;
+            frameCounter = 0;
             debugPrintln("[SYNC] Normal mission start panel sync");
         }
     }
-    else if (forcePanelResyncNow && mySniffer.isStreamAlive() && mySniffer.frameCounter > 50) {
-        debugPrintln("[SYNC] Fallback: forced panel re-sync");
+    else if (forcePanelResyncNow && mySniffer.isStreamAlive() && (frameCounter > 1) && (msSinceMissionStart() > MISSION_START_DEBOUNCE + 10) ) {
         initPanels();
         panelsInitializedThisMission = true;
         forcePanelResyncNow = false;
+        frameCounter = 0;
+        debugPrintln("[SYNC] Fallback: forced panel re-sync");
     }
 
     if (!isMissionRunning()) {
         panelsInitializedThisMission = false;
         aircraftNameReceivedAt = 0;
     }
-
+    else {
+        // If Mission is running but stream is not alive it means DCS is either paused or connection to DCS is lost.
+        if (!mySniffer.isStreamAlive()) {
+            static unsigned long lastPauseMsg = 0;
+            unsigned long now = millis();
+            if (now - lastPauseMsg > 1000) {
+                debugPrintln("[MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)");
+                lastPauseMsg = now;
+            }
+        }
+    }
 }
 
 /*

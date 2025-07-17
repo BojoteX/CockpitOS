@@ -77,6 +77,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 import configparser
 import time
 import threading
+import ipaddress
 
 DEFAULT_REPORT_SIZE = 64
 DEFAULT_MULTICAST_IP = "239.255.50.10"
@@ -87,10 +88,11 @@ IDLE_TIMEOUT = 2.0
 MAX_DEVICES = 20
 LOCKFILE = "cockpitos_dashboard.lock"
 
-def read_vid_pid_from_ini(filename="settings.ini"):
+def read_settings_from_ini(filename="settings.ini"):
     config = configparser.ConfigParser()
     if not os.path.isfile(filename):
         config['USB'] = {'VID': '0xCAFE', 'PID': '0xCAF3'}
+        config['DCS'] = {'UDP_SOURCE_IP': '127.0.0.1'}
         with open(filename, 'w') as configfile:
             config.write(configfile)
     config.read(filename)
@@ -99,10 +101,34 @@ def read_vid_pid_from_ini(filename="settings.ini"):
         pid = int(config['USB']['PID'], 0)
     except Exception:
         vid, pid = 0xCAFE, 0xCAF3
-    return vid, pid
+    try:
+        dcs_ip = config['DCS'].get('UDP_SOURCE_IP', '127.0.0.1')
+    except Exception:
+        dcs_ip = '127.0.0.1'
+    return vid, pid, dcs_ip
 
-USB_VID, USB_PID = read_vid_pid_from_ini()
+def write_settings_dcs_ip(new_ip, filename="settings.ini"):
+    config = configparser.ConfigParser()
+    config.read(filename)
+    if 'DCS' not in config:
+        config['DCS'] = {}
+    config['DCS']['UDP_SOURCE_IP'] = new_ip
+    with open(filename, 'w') as configfile:
+        config.write(configfile)
 
+def is_valid_ipv4(ip):
+    try:
+        ip_obj = ipaddress.ip_address(ip)
+        return (
+            isinstance(ip_obj, ipaddress.IPv4Address)
+            and not ip_obj.is_multicast
+            and not ip_obj.is_unspecified
+            and not ip_obj.is_loopback  # Remove if you want to allow 127.x.x.x for local test only!
+        )
+    except Exception:
+        return False
+
+USB_VID, USB_PID, STORED_DCS_IP = read_settings_from_ini()
 stats = {
     "frame_count_total": 0,
     "frame_count_window": 0,
@@ -113,7 +139,7 @@ stats = {
 }
 global_stats_lock = threading.Lock()
 
-reply_addr = [None]  # As a mutable list!
+reply_addr = [STORED_DCS_IP]
 prev_reconnections = {}
 
 # --- hid_device.py ---
@@ -277,6 +303,7 @@ class NetworkManager:
         self.udp_tx_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 
     def _udp_rx_processor(self):
+        self._ip_committed = False  # Only allow one commit per run
         try:
             self.udp_rx_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
             self.udp_rx_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -285,10 +312,17 @@ class NetworkManager:
             self.udp_rx_sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
             while self._running.is_set():
                 data, addr = self.udp_rx_sock.recvfrom(4096)
-                if addr and addr[0] != '0.0.0.0':
-                    if self.reply_addr[0] != addr[0]:
-                        self.reply_addr[0] = addr[0]
-                        self.uiq.put(('data_source', None, addr[0]))
+                # Only do IP learning once, only if valid and different from current, and not already committed
+                if (
+                    not self._ip_committed
+                    and addr
+                    and is_valid_ipv4(addr[0])
+                    and self.reply_addr[0] != addr[0]
+                ):
+                    self.reply_addr[0] = addr[0]
+                    write_settings_dcs_ip(addr[0])
+                    self._ip_committed = True
+                    self.uiq.put(('data_source', None, addr[0]))
                 with global_stats_lock:
                     stats["frame_count_total"] += 1
                     stats["frame_count_window"] += 1
@@ -349,7 +383,8 @@ class CockpitGUI:
             'bw': tk.StringVar(value="0.0"),
             'avgudp': tk.StringVar(value="0.0"),
         }
-        self.data_source_var = tk.StringVar(value="Data Source: (waiting...)") 
+        self.data_source_var = tk.StringVar(value=f"Data Source: {reply_addr[0]}")
+        # self.data_source_var = tk.StringVar(value=f"Data Source: {self.network_mgr.reply_addr[0] if self.network_mgr else '(waiting...)'}")  
 
         ttk.Label(self.stats_frame, text="Frames:").grid(row=0, column=0, padx=5)
         ttk.Label(self.stats_frame, textvariable=self.stats_vars['frames']).grid(row=0, column=1, padx=5)

@@ -3,9 +3,9 @@
 // PIN 2   3V3
 // PIN 3   GPIO 6  (Panel Backlight)
 // PIN 4   GPIO 18 (HMD Knob)
-// PIN 5   
-// PIN 6   
-// PIN 7   
+// PIN 5   3-Position Switch (Connects directly to PCA @ 0x26 on TEKBrain)
+// PIN 6   3-Position Switch (Connects directly to PCA @ 0x26 on TEKBrain)
+// PIN 7   2-Position Switch (Connects directly to PCA @ 0x26 on TEKBrain)
 // PIN 8   GPIO 34 (SPIN RCVY LED)
 //
 // Shared across all panels GPIO 8 (SDA) and GPIO 9 (SCL)
@@ -71,10 +71,12 @@ void updateSpinRecovery(bool deferredSend, bool pressed) {
 }
 
 void IRCool_init() {
-    delay(50);  // Small delay to ensure when init is called DCS has settled
+    // delay(50);  // Small delay to ensure when init is called DCS has settled
 
     prevIRCPort0 = 0xAA;
     prevIRCPort1 = 0xAA;
+
+    HIDManager_moveAxis("HMD_OFF_BRT", HMD_KNOB_PIN, AXIS_RX);
 
     byte port0, port1;
     if (readPCA9555(IRCOOL_PCA_ADDR, port0, port1)) {
@@ -95,8 +97,6 @@ void IRCool_init() {
             HIDManager_setNamedButton("IR_COOL_SW_ORIDE", true);
         else
             HIDManager_setNamedButton("IR_COOL_SW_NORM", true);
-
-        HIDManager_moveAxis("HMD_OFF_BRT", HMD_KNOB_PIN, AXIS_RX);
 
         // HIDManager_commitDeferredReport("IR Cool Panel");
         debugPrintf("✅ Initialized IR Cool Panel\n", IRCOOL_PCA_ADDR);

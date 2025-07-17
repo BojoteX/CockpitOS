@@ -306,7 +306,7 @@ void HIDManager_dispatchReport(bool force) {
         gamepad.sendReport(report.raw, sizeof(report.raw)); // Already using HID_SENDREPORT_TIMEOUT
     }
     else {
-		debugPrintln("❌ [HID] Not ready, cannot send report. Retry 3 times");
+		debugPrintln("❌ [HID] Not ready, cannot send HID report.");
     }
 #else
     // DCS mode disables HID entirely
