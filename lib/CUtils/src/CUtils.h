@@ -161,10 +161,12 @@ void PCA9555_scanConnectedPanels();
 uint8_t MatrixRotary_readPattern(const int* strobes, int count, int dataPin);
 
 // —— 74HC165 Shift Register Input Reader Implementation ——
-// void HC165_init(uint8_t pinPL, uint8_t pinCP, uint8_t pinQH);
-// uint8_t HC165_read();
-void HC165_init(uint8_t pinPL, uint8_t pinCP, uint8_t pinQH, uint8_t numBits);  // new
-uint64_t HC165_read();  // always reads as many bits as configured
+void HC165_init(uint8_t pinPL, uint8_t pinCP, uint8_t pinQH, uint8_t numBits);
+uint64_t HC165_read();
+void HC165_printBits(const char* prefix, uint64_t value, uint8_t numBits);
+void HC165_printBitChanges(uint64_t prev, uint64_t curr, uint8_t numBits);
+// void HC165_init(uint8_t pinPL, uint8_t pinCP, uint8_t pinQH, uint8_t numBits);  // new
+// uint64_t HC165_read();  // always reads as many bits as configured
 
 // —— Analog Gauge Implementation ——
 extern bool hasGauge; // If we find ONE we run the 20 ms ticker 

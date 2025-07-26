@@ -21,6 +21,18 @@
    #define SPIN_LED_PIN                              34 // GPIO for SPIN Led   
    #define INST_BACKLIGHT_PIN                         6 // GPIO for Instrument Backlight    
 
+   // Right Panel Controller
+   #define HC165_RIGHT_PANEL_CONTROLLER_QH            35  // Serial data output (QH)
+   #define HC165_RIGHT_PANEL_CONTROLLER_CP            34  // Clock input
+   #define HC165_RIGHT_PANEL_CONTROLLER_PL            36  // Latch input (active-low)     
+   #define FLOOD_DIMMER_KNOB_PIN                      1     
+   #define INST_PNL_DIMMER_KNOB_PIN                   3     
+   #define CABIN_TEMP_KNOB_PIN                        2
+   #define SUIT_TEMP_KNOB_PIN                         5 
+   #define CONSOLES_DIMMER_KNOB_PIN                   4 
+   #define WARN_CAUTION_DIMMER_KNOB_PIN               6   
+   #define CHART_DIMMER_KNOB_PIN                      12 
+
    // ALR-67 Pins
    #define ALR67_HC165_PL                            36
    #define ALR67_HC165_CP                            34
@@ -90,7 +102,19 @@
    #define MODE_SWITCH_PIN                           33 // Mode Selector Pin 
    #define HMD_KNOB_PIN                              18 // Acis for HMD Knob
    #define SPIN_LED_PIN                              34 // GPIO for SPIN Led     
-   #define INST_BACKLIGHT_PIN                         6 // GPIO for Instrument Backlight        
+   #define INST_BACKLIGHT_PIN                         6 // GPIO for Instrument Backlight   
+
+   // Right Panel Controller
+   #define HC165_RIGHT_PANEL_CONTROLLER_QH            33  // Serial data output (QH)
+   #define HC165_RIGHT_PANEL_CONTROLLER_CP            34  // Clock input
+   #define HC165_RIGHT_PANEL_CONTROLLER_PL            35  // Latch input (active-low)   
+   #define FLOOD_DIMMER_KNOB_PIN                      1     
+   #define INST_PNL_DIMMER_KNOB_PIN                   2     
+   #define CABIN_TEMP_KNOB_PIN                        3
+   #define SUIT_TEMP_KNOB_PIN                         4 
+   #define CONSOLES_DIMMER_KNOB_PIN                   5 
+   #define WARN_CAUTION_DIMMER_KNOB_PIN               6   
+   #define CHART_DIMMER_KNOB_PIN                      7 
    
    // ALR-67 Pins
    #define ALR67_HC165_PL                            35
@@ -105,7 +129,7 @@
    #define RWR_DMR_PIN                                2
 
    // Chip Select pin for battery gauge (TFT CS pin)
-   #define BATTERY_CS_PIN                            12   
+   #define BATTERY_CS_PIN                            36   
 
    // --- 74HC165 IFEI pins ---
    #define HC165_QH                                  38
@@ -162,7 +186,8 @@ extern bool hasLA;
 extern bool hasRA;
 extern bool hasIR;
 extern bool hasLockShoot;
-extern bool hasTFTSwitch;
+extern bool hasTFTBattGauge;
+extern bool hasRightPanelController;
 
 // Give your PCA custom panel a basic short name and address where it is located (use the I2C scanner in Tools) 
 enum class PanelID : uint8_t { 
@@ -247,6 +272,18 @@ const char* getPanelName(uint8_t addr);  // Declaration
    #include "src/LABELS/LABEL_SET_MAIN/InputMapping.h"
    #include "src/LABELS/LABEL_SET_MAIN/LEDMapping.h"
    #include "src/LABELS/LABEL_SET_MAIN/DisplayMapping.h"
+
+#elif defined(LABEL_SET_RIGHT_PANEL_CONTROLLER)
+
+   #define LABEL_SET "Right Panel Controller"
+   #define HAS_HID_MODE_SELECTOR 0
+   #define MODE_DEFAULT_IS_HID 0
+
+   #include "src/LABELS/LABEL_SET_RIGHT_PANEL_CONTROLLER/CT_Display.h"
+   #include "src/LABELS/LABEL_SET_RIGHT_PANEL_CONTROLLER/DCSBIOSBridgeData.h"
+   #include "src/LABELS/LABEL_SET_RIGHT_PANEL_CONTROLLER/InputMapping.h"
+   #include "src/LABELS/LABEL_SET_RIGHT_PANEL_CONTROLLER/LEDMapping.h"
+   #include "src/LABELS/LABEL_SET_RIGHT_PANEL_CONTROLLER/DisplayMapping.h"
 
 #elif defined(LABEL_SET_BATTERY_GAUGE)
 

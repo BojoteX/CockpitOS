@@ -1,10 +1,6 @@
 // TFT_Gauges.h
 #pragma once
 
-// Buttons
-void BatteryButtons_init();
-void BatteryButtons_loop();
-
 // Gauge
 void BatteryGauge_init();
 void BatteryGauge_loop();

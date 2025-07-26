@@ -333,6 +333,7 @@ void HIDManager_dispatchReport(bool force) {
 #endif    
 }
 
+/*
 void HIDManager_moveAxis(const char* dcsIdentifier,
     uint8_t      pin,
     HIDAxis      axis) {
@@ -430,6 +431,95 @@ void HIDManager_moveAxis(const char* dcsIdentifier,
             e->lastSendTime = millis();
             debugPrintf("🛩️ [HID] Axis(%u) %s = %u\n",
                 axis, dcsIdentifier, dcsValue);
+        }
+    }
+}
+*/
+
+void HIDManager_moveAxis(const char* dcsIdentifier,
+    uint8_t      pin,
+    HIDAxis      axis) {
+    constexpr int DEADZONE_LOW = 512;
+    constexpr int DEADZONE_HIGH = 8000;
+    constexpr int THRESHOLD = 128;
+    constexpr int SMOOTHING_FACTOR = 8;
+    constexpr int STABILIZATION_CYCLES = 10;
+    constexpr int HID_MAX = 8191;
+
+    // 1) Read & smooth
+    int raw = analogRead(pin);
+    if (stabCount[pin] == 0) {
+        lastFiltered[pin] = raw;
+    }
+    else {
+        lastFiltered[pin] = (lastFiltered[pin] * (SMOOTHING_FACTOR - 1) + raw) / SMOOTHING_FACTOR;
+    }
+    int filtered = lastFiltered[pin];
+    if (filtered < DEADZONE_LOW)  filtered = 0;
+    if (filtered > DEADZONE_HIGH) filtered = HID_MAX;
+
+    // 2) Stabilization
+    if (!stabilized[pin]) {
+        stabCount[pin]++;
+        if (stabCount[pin] >= STABILIZATION_CYCLES) {
+            stabilized[pin] = true;
+            lastOutput[pin] = filtered;
+            uint16_t dcsValue = map(filtered, 0, HID_MAX, 0, 65535);
+
+            if (isModeSelectorDCS()) {
+                auto* e = findCmdEntry(dcsIdentifier);
+                bool force = forcePanelSyncThisMission;
+                if (e && applyThrottle(*e, dcsIdentifier, dcsValue, force)) {
+                    sendDCSBIOSCommand(dcsIdentifier, dcsValue, force);
+                    e->lastValue = dcsValue;
+                    e->lastSendTime = millis();
+                }
+            }
+            else {
+                if (axis < HID_AXIS_COUNT) {
+                    report.axes[axis] = filtered;
+                }
+                auto* e = findCmdEntry(dcsIdentifier);
+                if (e && applyThrottle(*e, dcsIdentifier, dcsValue, false)) {
+                    HIDManager_dispatchReport(false);
+                    e->lastValue = dcsValue;
+                    e->lastSendTime = millis();
+                    debugPrintf("🛩️ [HID] Axis(%u) %s = %u [INITIAL]\n", axis, dcsIdentifier, dcsValue);
+                }
+            }
+            return;
+        }
+        return;
+    }
+
+    // 3) Threshold check
+    if (abs(filtered - lastOutput[pin]) <= THRESHOLD) {
+        return;
+    }
+    lastOutput[pin] = filtered;
+
+    // 4) Map and send
+    uint16_t dcsValue = map(filtered, 0, HID_MAX, 0, 65535);
+
+    if (isModeSelectorDCS()) {
+        auto* e = findCmdEntry(dcsIdentifier);
+        bool force = forcePanelSyncThisMission;
+        if (e && applyThrottle(*e, dcsIdentifier, dcsValue, force)) {
+            sendDCSBIOSCommand(dcsIdentifier, dcsValue, force);
+            e->lastValue = dcsValue;
+            e->lastSendTime = millis();
+        }
+    }
+    else {
+        if (axis < HID_AXIS_COUNT) {
+            report.axes[axis] = filtered;
+        }
+        auto* e = findCmdEntry(dcsIdentifier);
+        if (e && applyThrottle(*e, dcsIdentifier, dcsValue, false)) {
+            HIDManager_dispatchReport(false);
+            e->lastValue = dcsValue;
+            e->lastSendTime = millis();
+            debugPrintf("🛩️ [HID] Axis(%u) %s = %u\n", axis, dcsIdentifier, dcsValue);
         }
     }
 }

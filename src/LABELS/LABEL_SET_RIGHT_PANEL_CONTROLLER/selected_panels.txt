@@ -1,0 +1,32 @@
+# selected_panels.txt - List panels to include, one per line.
+# To enable a panel, remove the leading '#'. Only panels listed in panels.txt are valid.
+# Example:
+# Master Arm Panel
+# Caution Light Panel
+#
+# To update the list of available panels, just re-run this script.
+
+# Arresting Hook Handle and Light
+# Auxiliary Power Unit Panel
+# Canopy Internal Jettison Handle
+# Caution Light Panel
+# Clock
+# Cockpit Altimeter
+# Comms frequency
+# Communication Panel
+# Defog Panel
+
+Electrical Power Panel
+Environment Control System Panel
+Interior Lights Panel
+Sensor Panel
+
+# Fire Systems
+# Fire Test Panel
+# Exterior Lights Panel
+# External Aircraft Model
+# Flight Computer Cool Switch
+# Internal Canopy Switch
+# Internal Lights
+# LOX Indicator
+# Wing Fold Switch

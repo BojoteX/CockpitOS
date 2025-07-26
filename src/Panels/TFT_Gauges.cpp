@@ -6,14 +6,14 @@
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
 
+// NVG TFT images
+#include "Assets/BatteryGauge/batBackgroundNVG.h"
+#include "Assets/BatteryGauge/batNeedleNVG.h"
+
+// Day TFT images
 #include "Assets/BatteryGauge/batBackground.h"
 #include "Assets/BatteryGauge/batNeedle.h"
 #include <TFT_eSPI.h>
-
-#define BATTERY_PCA_ADDR 0x27
-
-static byte prevPort0 = 0xFF;
-static byte prevPort1 = 0xFF;
 
 static TFT_eSPI* tft = nullptr;
 static TFT_eSprite* needleU = nullptr;
@@ -118,14 +118,6 @@ static void BatteryGauge_task(void*) {
     }
 }
 
-void BatteryButtons_init() {
-    prevPort0 = 0xAA;
-    prevPort1 = 0xAA;
-
-    HIDManager_moveAxis("HMD_OFF_BRT", HMD_KNOB_PIN, AXIS_RX);
-    debugPrintln("✅ Battery Panel initialized");
-}
-
 // --- INIT: Run ONCE at boot ---
 void BatteryGauge_init() {
 
@@ -205,55 +197,6 @@ void BatteryGauge_loop() {
 #if !RUN_GAUGE_AS_TASK
     BatteryGauge_draw();
 #endif
-}
-
-void BatteryButtons_loop() {
-    static unsigned long lastPoll = 0;
-    if (!shouldPollMs(lastPoll)) return;
-
-    // Always read the HMD knob
-    HIDManager_moveAxis("HMD_OFF_BRT", HMD_KNOB_PIN, AXIS_RX);
-
-    byte port0, port1;
-    if (!readPCA9555(BATTERY_PCA_ADDR, port0, port1)) return;
-
-    if (port1 != prevPort1) {
-        bool on = !bitRead(port1, 6);
-        bool oride = !bitRead(port1, 7);
-        bool off = bitRead(port1, 6) && bitRead(port1, 7);
-
-        if (on) {
-            HIDManager_setNamedButton("BATTERY_SW_ON", false, true);
-        }
-        else if (oride) {
-            HIDManager_setNamedButton("BATTERY_SW_ORIDE", false, true);
-        }
-        else if (off) {
-            HIDManager_setNamedButton("BATTERY_SW_OFF", false, true);
-        }
-    }
-
-    if (port0 != prevPort0) {
-        bool norm = !bitRead(port0, 0);
-        bool off = bitRead(port0, 0);
-
-        if (norm) {
-            HIDManager_setNamedButton("R_GEN_SW_NORM", false, true);
-        }
-        else if (off) {
-            HIDManager_setNamedButton("R_GEN_SW_OFF", false, true);
-        }
-    }
-
-    static bool prevCaution = false;
-    bool currCaution = (digitalRead(0) == LOW);
-    if (currCaution != prevCaution) {
-        HIDManager_setNamedButton("MASTER_CAUTION_RESET_SW", false, currCaution);
-        prevCaution = currCaution;
-    }
-
-    prevPort0 = port0;
-    prevPort1 = port1;
 }
 
 void BatteryGauge_notifyMissionStart() {

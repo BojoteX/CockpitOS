@@ -13,19 +13,19 @@ TM1637Device RA_Device;
 TM1637Device LA_Device;
 
 // ---- Panel presence flags (all initialized to false, set in initMappings) ----
-bool hasBrain     = false;
-bool hasECM       = false;
-bool hasMasterARM = false;
-bool hasIFEI      = false;
-bool hasALR67     = false;
-bool hasCA        = false;
-bool hasLA        = false;
-bool hasRA        = false;
-bool hasIR        = false;
-bool hasLockShoot = false;
-bool hasGauge     = false;
-bool hasTFTGauge  = false;
-bool hasTFTSwitch = false;
+bool hasBrain                 = false;
+bool hasECM                   = false;
+bool hasMasterARM             = false;
+bool hasIFEI                  = false;
+bool hasALR67                 = false;
+bool hasCA                    = false;
+bool hasLA                    = false;
+bool hasRA                    = false;
+bool hasIR                    = false;
+bool hasLockShoot             = false;
+bool hasGauge                 = false;
+bool hasTFTBattGauge          = false;
+bool hasRightPanelController  = false;
 // Add more runtime panel conditionals here when adding custom panels/other aircraft
 
 PanelID getPanelID(uint8_t address) {
@@ -62,6 +62,11 @@ const char* getPanelName(uint8_t addr) {
 #if defined(LABEL_SET_BATTERY_GAUGE) || defined(LABEL_SET_ALL)
   #include "src/TFT_Gauges.h"
 #endif
+#if defined(LABEL_SET_RIGHT_PANEL_CONTROLLER) || defined(LABEL_SET_ALL)
+  #include "src/TFT_Gauges.h"
+  #include "src/RightPanelController.h"
+#endif
+
 // Don't forget to include headers for any custom panels added
 
 void initMappings() {
@@ -81,8 +86,11 @@ void initMappings() {
       hasIFEI = true;
     #endif
     #if defined(LABEL_SET_BATTERY_GAUGE) || defined(LABEL_SET_ALL)
-      hasTFTSwitch = true;
-      hasTFTGauge = true;
+      hasTFTBattGauge = true;
+    #endif
+    #if defined(LABEL_SET_RIGHT_PANEL_CONTROLLER) || defined(LABEL_SET_ALL)
+      hasRightPanelController = true;
+      hasTFTBattGauge = true;
     #endif
     #if defined(LABEL_SET_ALTIMETER) || defined(LABEL_SET_ALL)
       // If needed, set specific panels
@@ -109,8 +117,8 @@ void initializeDisplays() {
   #endif
 
     // Why init it here and not panels? because Display's should be INITIALIZED once! not on every mission start
-  #if defined(LABEL_SET_BATTERY_GAUGE)  || defined(LABEL_SET_ALL)
-    if (hasTFTGauge) BatteryGauge_init();
+  #if defined(LABEL_SET_BATTERY_GAUGE)  || defined(LABEL_SET_RIGHT_PANEL_CONTROLLER) || defined(LABEL_SET_ALL)
+    if (hasTFTBattGauge) BatteryGauge_init();
   #endif
   // Any custom displays should be initialized here
 }
@@ -168,7 +176,7 @@ void initializeLEDs() {
     GPIO_setAllLEDs(true); delay(1000); GPIO_setAllLEDs(false);
 
     // Always init GPIO 0 (ESP32S2) for testing and debugging
-    pinMode(0, INPUT_PULLUP);
+    // pinMode(0, INPUT_PULLUP);
 
     // Any custom outputs such as LEDs, Analog gauges or mechanical levers should go here.
 }
@@ -195,9 +203,10 @@ void initializePanels(bool force) {
     if (hasMasterARM) MasterARM_init();
   #endif
 
-  #if defined(LABEL_SET_BATTERY_GAUGE) || defined(LABEL_SET_ALL)
-    if (hasTFTSwitch) BatteryButtons_init();
+  #if defined(LABEL_SET_RIGHT_PANEL_CONTROLLER) || defined(LABEL_SET_ALL)
+    if (hasRightPanelController) RightPanelButtons_init();
   #endif  
+
   // Your custom panels init routine should go here
 
     if (!isModeSelectorDCS()) HIDManager_commitDeferredReport("All devices");
@@ -223,8 +232,12 @@ void panelLoop() {
   #endif
 
   #if defined(LABEL_SET_BATTERY_GAUGE) || defined(LABEL_SET_ALL)
-    if (hasTFTGauge) BatteryGauge_loop();
-    if (hasTFTSwitch) BatteryButtons_loop();
+    if (hasTFTBattGauge) BatteryGauge_loop();
+  #endif
+
+  #if defined(LABEL_SET_RIGHT_PANEL_CONTROLLER) || defined(LABEL_SET_ALL)
+    if (hasTFTBattGauge) BatteryGauge_loop();
+    if (hasRightPanelController) RightPanelButtons_loop();
   #endif
 
   #if defined(LABEL_SET_MAIN) || defined(LABEL_SET_ALL)

@@ -1,0 +1,202 @@
+#include "../Globals.h"
+#include "../RightPanelController.h"
+#include "../HIDManager.h"
+#include "../DCSBIOSBridge.h"
+
+/* Available axes:
+  AXIS_X = 0,         // 0x30
+  AXIS_Y,             // 0x31
+  AXIS_Z,             // 0x32
+  AXIS_RX,            // 0x33
+  AXIS_RY,            // 0x34
+  AXIS_RZ,            // 0x35
+  AXIS_SLIDER1,       // 0x36
+  AXIS_SLIDER2,       // 0x36 (again)
+  AXIS_DIAL,          // 0x37
+  AXIS_WHEEL,         // 0x38
+  AXIS_BRAKE,         // reuse Slider or vendor page
+  AXIS_THROTTLE,      // reuse Slider or vendor page
+  AXIS_CUSTOM1,       // vendor-defined (or Slider)
+  AXIS_CUSTOM2,       // vendor-defined (or Slider)
+  AXIS_CUSTOM3,       // vendor-defined (or Slider)
+  AXIS_CUSTOM4,       // vendor-defined (or Slider)
+*/
+
+struct AnalogInput {
+    const char* label;        // Unique label
+    uint8_t     gpio;         // ADC pin
+    HIDAxis     axis;         // HID axis ID (enum)
+};
+
+static const AnalogInput AnalogInputs[] = {
+    { "FLOOD_DIMMER",         FLOOD_DIMMER_KNOB_PIN,       AXIS_SLIDER1 },
+    { "INST_PNL_DIMMER",      INST_PNL_DIMMER_KNOB_PIN,    AXIS_SLIDER2 },
+    { "SUIT_TEMP",            SUIT_TEMP_KNOB_PIN,          AXIS_CUSTOM1 },
+    { "CABIN_TEMP",           CABIN_TEMP_KNOB_PIN,         AXIS_CUSTOM2 },
+    { "CONSOLES_DIMMER",      CONSOLES_DIMMER_KNOB_PIN,    AXIS_CUSTOM3 },
+    { "WARN_CAUTION_DIMMER",  WARN_CAUTION_DIMMER_KNOB_PIN,AXIS_CUSTOM4 },
+    { "CHART_DIMMER",         CHART_DIMMER_KNOB_PIN,       AXIS_DIAL }
+};
+
+// Inversion mask for incorrectly wired switches (bitwise OR of affected bits)
+constexpr uint64_t INVERTED_BITS_MASK = (1ULL << 28) | (1ULL << 29);
+
+// 74HC165 Generic Bit Scanner - 48 Bit Version (GPIO pins defined in Mappings.h)
+#define HC165_RIGHT_PANEL_CONTROLLER_NUM_BITS   48   // Scan 6 chips (8x6 = 48 bits)
+
+static uint64_t prevButtonBits = 0xFFFFFFFFFFFFULL;
+static uint64_t buttonBits = 0xFFFFFFFFFFFFULL;
+
+// --- Selector state cache (indexed by group ID) ---
+constexpr uint8_t MAX_SELECTOR_GROUPS = 16;
+static uint16_t selectorStates[MAX_SELECTOR_GROUPS]; // Stores label hash or value for each group
+
+// --- Helpers ---
+// Per-bit-aware check for active-low behavior, but apply inversion override
+inline bool isPressedCorrected(uint64_t bits, uint8_t bit) {
+    bool logicLevel = ((bits >> bit) & 1);
+    if (INVERTED_BITS_MASK & (1ULL << bit)) {
+        logicLevel = !logicLevel; // invert this bit’s logic
+    }
+    return logicLevel == 0;
+}
+
+void pollGPIOSelectors() {
+    static uint16_t gpioSelectorStates[MAX_SELECTOR_GROUPS] = { 0xFFFF };
+    bool groupActive[MAX_SELECTOR_GROUPS] = { false };
+
+    // Read each active GPIO selector pin
+    for (size_t i = 0; i < InputMappingSize; ++i) {
+        const InputMapping& m = InputMappings[i];
+        if (!m.label || m.group == 0 || strcmp(m.source, "GPIO") != 0 || m.port < 0) continue;
+
+        bool pressed = (digitalRead(m.port) == LOW);  // Active LOW
+        if (pressed) {
+            groupActive[m.group] = true;
+            if (gpioSelectorStates[m.group] != m.oride_value) {
+                gpioSelectorStates[m.group] = m.oride_value;
+                HIDManager_setNamedButton(m.label, true);
+            }
+        }
+    }
+
+    // Handle fallback OFF state for GPIO selectors (e.g., no pin active in group)
+    for (size_t i = 0; i < InputMappingSize; ++i) {
+        const InputMapping& m = InputMappings[i];
+        if (!m.label || m.group == 0 || strcmp(m.source, "GPIO") != 0 || m.port != -1) continue;
+
+        if (!groupActive[m.group] && gpioSelectorStates[m.group] != m.oride_value) {
+            gpioSelectorStates[m.group] = m.oride_value;
+            HIDManager_setNamedButton(m.label, true);
+        }
+    }
+}
+
+void RightPanelButtons_init() {
+
+    // Initialize all GPIO selector pins once
+    for (size_t i = 0; i < InputMappingSize; ++i) {
+        const InputMapping& m = InputMappings[i];
+        if (!m.label || m.group == 0 || strcmp(m.source, "GPIO") != 0 || m.port < 0) continue;
+        pinMode(m.port, INPUT_PULLUP);
+    }
+
+    // --- Init axis knobs ---
+    for (size_t i = 0; i < sizeof(AnalogInputs) / sizeof(AnalogInputs[0]); ++i) {
+        const AnalogInput& a = AnalogInputs[i];
+        HIDManager_moveAxis(a.label, a.gpio, a.axis);
+    }
+
+    // --- Init HC165 shift register ---
+    HC165_init(HC165_RIGHT_PANEL_CONTROLLER_PL, HC165_RIGHT_PANEL_CONTROLLER_CP, HC165_RIGHT_PANEL_CONTROLLER_QH, HC165_RIGHT_PANEL_CONTROLLER_NUM_BITS);
+    buttonBits = HC165_read();
+    prevButtonBits = buttonBits;
+
+    // --- Init selector state caches ---
+    for (uint8_t g = 0; g < MAX_SELECTOR_GROUPS; ++g) selectorStates[g] = 0xFFFF;
+
+    // --- Initial HC165 selector dispatch ---
+    bool groupActive[MAX_SELECTOR_GROUPS] = { false };
+    for (size_t i = 0; i < InputMappingSize; ++i) {
+        const InputMapping& m = InputMappings[i];
+        if (!m.label || m.group == 0 || strcmp(m.source, "HC165") != 0 || m.bit < 0 || m.bit >= 64) continue;
+        if (isPressedCorrected(buttonBits, m.bit)) {
+            groupActive[m.group] = true;
+            selectorStates[m.group] = m.oride_value;
+            HIDManager_setNamedButton(m.label, true);
+        }
+    }
+
+    // --- Initial fallback (bit == -1) handling for HC165 entries ---
+    for (size_t i = 0; i < InputMappingSize; ++i) {
+        const InputMapping& m = InputMappings[i];
+        if (!m.label || m.group == 0 || strcmp(m.source, "HC165") != 0 || m.bit != -1) continue;
+        if (!groupActive[m.group]) {
+            selectorStates[m.group] = m.oride_value;
+            HIDManager_setNamedButton(m.label, true);
+        }
+    }
+
+    // --- Initial state for GPIO-based selectors (e.g. BLEED AIR) ---
+    pollGPIOSelectors();
+
+    debugPrintln("✅ Initialized Right Panel Controller Buttons");
+}
+
+void RightPanelButtons_loop() {
+    static unsigned long lastPoll = 0;
+    if (!shouldPollMs(lastPoll)) return;
+
+    // --- Axes ---
+    for (size_t i = 0; i < sizeof(AnalogInputs) / sizeof(AnalogInputs[0]); ++i) {
+        const AnalogInput& a = AnalogInputs[i];
+        HIDManager_moveAxis(a.label, a.gpio, a.axis);
+    }
+
+    // --- HC165 buttons ---
+    uint64_t newBits = HC165_read();
+    bool changed = (newBits != prevButtonBits);
+    buttonBits = newBits;
+
+    bool groupActive[MAX_SELECTOR_GROUPS] = { false };
+
+    for (size_t i = 0; i < InputMappingSize; ++i) {
+        const InputMapping& m = InputMappings[i];
+        if (!m.label || strcmp(m.source, "HC165") != 0 || m.bit < 0 || m.bit >= 64) continue;
+
+        bool pressed = isPressedCorrected(buttonBits, m.bit);
+        if (strcmp(m.controlType, "momentary") == 0) {
+            bool prevPressed = isPressedCorrected(prevButtonBits, m.bit);
+            if (pressed != prevPressed) {
+                HIDManager_setNamedButton(m.label, false, pressed);
+            }
+        }
+        else if (m.group > 0) {
+            if (pressed) {
+                groupActive[m.group] = true;
+                if (selectorStates[m.group] != m.oride_value) {
+                    selectorStates[m.group] = m.oride_value;
+                    HIDManager_setNamedButton(m.label, true);
+                }
+            }
+        }
+    }
+
+    // --- Fallback OFF entries for HC165 ---
+    for (size_t i = 0; i < InputMappingSize; ++i) {
+        const InputMapping& m = InputMappings[i];
+        if (!m.label || m.group == 0 || strcmp(m.source, "HC165") != 0 || m.bit != -1) continue;
+
+        if (!groupActive[m.group] && selectorStates[m.group] != m.oride_value) {
+            selectorStates[m.group] = m.oride_value;
+            HIDManager_setNamedButton(m.label, true);
+        }
+    }
+
+    if (changed) {
+        prevButtonBits = buttonBits;
+    }
+
+    // ✅ BLEED AIR (and other GPIO-based selectors)
+    pollGPIOSelectors();
+}

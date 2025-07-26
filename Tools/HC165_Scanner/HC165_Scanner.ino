@@ -1,11 +1,11 @@
-// 74HC165 Generic Bit Scanner - 64 Bit Version
-#define HC165_QH   38
-#define HC165_PL   39
-#define HC165_CP   40
+// 74HC165 Generic Bit Scanner - 48 Bit Version
+#define HC165_QH   33  // Serial data output (QH)
+#define HC165_CP   34  // Clock input
+#define HC165_PL   35  // Latch input (active-low)
 
 #include <Arduino.h>
 
-#define HC165_NUM_BITS 16   // Scan up to 8 chips
+#define HC165_NUM_BITS 48   // Scan up to 8 chips
 
 static bool hc165_initialized = false;
 static uint8_t plPin, cpPin, qhPin;
