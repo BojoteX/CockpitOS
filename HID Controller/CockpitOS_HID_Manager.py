@@ -258,7 +258,7 @@ def device_reader(entry, uiq, udp_send):
                             if not msg or msg == HANDSHAKE_REQ.decode():
                                 break
                             uiq.put(('log', entry.name, f"IN: {msg}"))
-                            udp_send(msg + "\r\n")
+                            udp_send(msg + "\n")
                         except Exception:
                             entry.disconnected = True
                             uiq.put(('status', entry.name, "DISCONNECTED"))

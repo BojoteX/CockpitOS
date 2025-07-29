@@ -18,3 +18,4 @@ Map Gain/Spin Recovery Panel
 Master Arm Panel
 Caution Light Panel
 Interior Lights Panel
+Angle of Attack Indexer Lights

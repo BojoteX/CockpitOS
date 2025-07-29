@@ -62,8 +62,18 @@ void resetAllGauges();
 void GPIO_setAllLEDs(bool state);  
 void preconfigureGPIO();
 
-// —— WS2812 —— 
-#define NUM_LEDS 3
+// —— WS2812 —— (Lockshoot + AoA Indexer)
+
+// Index mapping for WS2812 LEDs
+// 0 - Lockshoot 1
+// 1 - Lockshoot 2
+// 2 - Lockshoot 3
+// 3 - AOA HIGH (Red)
+// 4 - AOA LOW (Yellow)
+// 5 - AOA NORMAL (Green)
+
+// #define NUM_LEDS 3
+#define NUM_LEDS 6
 struct CRGB {
     uint8_t r, g, b;
     constexpr CRGB() : r(0), g(0), b(0) {}

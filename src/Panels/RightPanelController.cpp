@@ -1,3 +1,6 @@
+// RightPanelController.cpp - Handles the right panel controller buttons and axes
+// This implementation uses the InputMappings.h for automated button and selector mappings, axes are managed separately (see AnalogInputs).
+
 #include "../Globals.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"

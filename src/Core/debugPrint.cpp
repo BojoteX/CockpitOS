@@ -216,7 +216,7 @@ void serialDebugPrintf(const char* format, ...) {
 
 void serialDebugPrintln(const char* msg) {
     serialDebugPrint(msg);
-    serialDebugPrint("\r\n");
+    serialDebugPrint("\n");
 }
 
 void dumpSerialRingBuffer() {

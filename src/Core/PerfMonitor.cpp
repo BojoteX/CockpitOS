@@ -212,7 +212,7 @@ void appendOnly_perfDebugPrintf(const char* format, ...) {
 
 void appendOnly_perfDebugPrintln(const char* msg = "") {
     appendOnly_perfDebugPrint(msg);
-    appendOnly_perfDebugPrint("\r\n");
+    appendOnly_perfDebugPrint("\n");
 }
 
 void printTaskList() {
@@ -221,7 +221,7 @@ void printTaskList() {
     TaskStatus_t taskStatusArray[MAX_TASKS];
     UBaseType_t taskCount = uxTaskGetSystemState(taskStatusArray, MAX_TASKS, nullptr);
 
-    appendOnly_perfDebugPrintln("\r\n📋 Detailed FreeRTOS Task List:");
+    appendOnly_perfDebugPrintln("\n📋 Detailed FreeRTOS Task List:");
     appendOnly_perfDebugPrintln("---------------------------------------------------------------------------------------");
     appendOnly_perfDebugPrintln("Name              State   Prio  Core  StackFree  Handle     ID");
     appendOnly_perfDebugPrintln("---------------------------------------------------------------------------------------");
@@ -259,7 +259,7 @@ void printTaskList() {
     }
     flushAllprintsAbove();
 #else
-    appendOnly_perfDebugPrintln("\r\n📋 Detailed FreeRTOS Task List: Not available (ESP32 Arduino Core 2.x).");
+    appendOnly_perfDebugPrintln("\n📋 Detailed FreeRTOS Task List: Not available (ESP32 Arduino Core 2.x).");
 #endif
 }
 

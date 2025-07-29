@@ -146,11 +146,31 @@ static const CRGB VZColors[] = { Yellow, Blue, Red };
 
 void WS2812_allOn(CRGB color) {
     for (uint8_t i = 0; i < NUM_LEDS; i++) {
-        leds[i] = color;
-        pixels[i * 3 + 0] = color.g;
-        pixels[i * 3 + 1] = color.r;
-        pixels[i * 3 + 2] = color.b;
+        CRGB thisColor = Black;
+
+        if (i <= 2) {
+            // Lockshoot: always Green
+            thisColor = Green;
+        }
+        else if (i == 3) {
+            // AOA HIGH
+            thisColor = CRGB(0, 255, 0); // Green
+        }
+        else if (i == 4) {
+            // AOA NORMAL (Orange-ish)
+			thisColor = CRGB(255, 165, 0); // Slightly off-yellow (orange)
+        }
+        else if (i == 5) {
+            // AOA LOW
+            thisColor = CRGB(255, 0, 0); // Red
+        }
+
+        leds[i] = thisColor;
+        pixels[i * 3 + 0] = thisColor.g;
+        pixels[i * 3 + 1] = thisColor.r;
+        pixels[i * 3 + 2] = thisColor.b;
     }
+
     WS2812_show();
 }
 
@@ -173,17 +193,28 @@ void WS2812_sweep(const CRGB* colors, uint8_t count) {
     debugPrintln("✅ WS2812 Sweep complete.");
 }
 
+void testAOALevels() {
+    WS2812_clearAll();
+    WS2812_setLEDColor(3, CRGB(255, 0, 0));   // HIGH
+    WS2812_setLEDColor(4, CRGB(255, 255, 0)); // LOW
+    WS2812_setLEDColor(5, CRGB(0, 255, 0));   // NORMAL
+    WS2812_show();
+}
+
 void WS2812_testPattern() {
     debugPrintln("🧪 WS2812 Test Pattern Start");
     WS2812_allOff();
-    WS2812_sweep(VZColors, sizeof(VZColors) / sizeof(CRGB));
-    WS2812_allOn(Green);
+    WS2812_allOn(CRGB(0, 0, 0));  // Color will be overridden per index
     debugPrintln("✅ WS2812 Test Pattern Complete");
 }
 
 void WS2812_setAllLEDs(bool state) {
-    if (state) WS2812_allOn(Green);
-    else WS2812_clearAll();
+    if (state) {
+        WS2812_allOn(CRGB(0, 0, 0)); // `color` arg is ignored, overridden inside
+    }
+    else {
+        WS2812_clearAll();
+    }
 }
 
 void WS2812_tick() {

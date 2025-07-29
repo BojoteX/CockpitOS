@@ -553,8 +553,11 @@ void initializeSelectorValidation() {
     for (size_t i = 0; i < InputMappingSize; ++i) {
         const char* dcs_label = InputMappings[i].oride_label;
         if (!dcs_label || !*dcs_label) continue;
+
         // Only selectors, only with valid HID
-        if (strcmp(InputMappings[i].controlType, "selector") != 0) continue;
+        // if (strcmp(InputMappings[i].controlType, "selector") != 0) continue;
+        if (InputMappings[i].group == 0) continue;
+
         if (InputMappings[i].hidId <= 0) continue;
 
         bool alreadyRegistered = false;
@@ -971,7 +974,7 @@ bool tryToSendDcsBiosMessage(const char* msg, const char* arg) {
 
     if (msgLen == maxMsgLen || argLen == maxArgLen) return false;
 
-    size_t len = msgLen + 1 + argLen + 2; // "CMD ARG\r\n"
+    size_t len = msgLen + 1 + argLen + 2; // "CMD ARG\n"
 
 #if (ARDUINO_USB_CDC_ON_BOOT == 1)
     // Serial ONLY send
@@ -979,7 +982,7 @@ bool tryToSendDcsBiosMessage(const char* msg, const char* arg) {
     tud_cdc_write(msg, msgLen);
     tud_cdc_write_str(" ");
     tud_cdc_write(arg, argLen);
-    tud_cdc_write_str("\r\n");
+    tud_cdc_write_str("\n");
     size_t before = tud_cdc_write_available();
     tud_cdc_write_flush();
     size_t after = tud_cdc_write_available();

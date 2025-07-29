@@ -115,7 +115,7 @@ bool tryToSendDcsBiosMessageUDP(const char* msg, const char* arg) {
 
     if (msgLen == maxMsgLen || argLen == maxArgLen) return false;
 
-    char buf[maxMsgLen + 1 + maxArgLen + 3]; // "MSG ARG\r\n\0"
+    char buf[maxMsgLen + 1 + maxArgLen + 3]; // "MSG ARG\n\0"
     size_t len = 0;
     memcpy(buf, msg, msgLen);
     buf[msgLen] = ' ';

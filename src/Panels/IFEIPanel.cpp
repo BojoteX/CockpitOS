@@ -384,11 +384,11 @@ HT1622 chip1(CS1_PIN, WR1_PIN, DATA1_PIN);
 HT1622* chips[IFEI_MAX_CHIPS] = { &chip0, &chip1 };
 IFEIDisplay ifei(chips);
 
-static uint8_t currentIFEIMode = 0;
-static uint8_t currentIFEIIntensity = 255; // default to max for power-up
-
 // To enforce refresh rate for the display
 static uint32_t lastCommitTimeMs = 0;
+
+static uint8_t currentIFEIMode = 0;
+static uint8_t currentIFEIIntensity = 255; // default to max for power-up
 
 inline void ensureBacklightPins() {
     static bool pinsInitialized = false;

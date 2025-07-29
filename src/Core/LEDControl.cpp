@@ -98,14 +98,43 @@ void setLED(const char* label, bool state, uint8_t intensity, uint16_t rawValue,
         case DEVICE_WS2812:
             #if DEBUG_PERFORMANCE
             beginProfiling(PERF_LED_WS2812);
-            #endif        
-            WS2812_setLEDColor(
-                led->info.ws2812Info.index,
-                state ? Green : Black
-            );
+            #endif
+
+            {
+                uint8_t index = led->info.ws2812Info.index;
+                CRGB color = Black;
+
+                if (state) {
+                    if (index <= 2) {
+                        // Lockshoot (green or off, no brightness)
+                        color = Green;
+                    }
+                    else {
+                        // AOA (dimmable: red, yellow, green)
+                        uint8_t level = map(intensity, 0, 100, 0, 255);
+                        if (strstr(led->label, "AOA_INDEXER_HIGH_F")) {
+                            color = CRGB(0, level, 0); // Green
+                        }
+                        else if (strstr(led->label, "AOA_INDEXER_LOW_F")) {
+                            color = CRGB(level, 0, 0); // Red
+                        }
+                        else if (strstr(led->label, "AOA_INDEXER_NORMAL_F")) {
+                            // Orange-ish: strong red, 75% green
+                            color = CRGB(level, (uint8_t)(level * 0.65), 0);
+
+                        }
+                        else {
+                            color = CRGB(level, level, level); // Fallback whiteish
+                        }
+                    }
+                }
+
+                WS2812_setLEDColor(index, color);
+            }
+
             #if DEBUG_PERFORMANCE
             endProfiling(PERF_LED_WS2812);
-            #endif            
+            #endif
             break;
 
         case DEVICE_NONE:
