@@ -26,6 +26,8 @@ bool hasLockShoot             = false;
 bool hasGauge                 = false;
 bool hasTFTBattGauge          = false;
 bool hasRightPanelController  = false;
+bool hasLeftPanelController   = false;
+bool hasFrontLeftPanel        = false;
 // Add more runtime panel conditionals here when adding custom panels/other aircraft
 
 PanelID getPanelID(uint8_t address) {
@@ -66,6 +68,12 @@ const char* getPanelName(uint8_t addr) {
   #include "src/TFT_Gauges.h"
   #include "src/RightPanelController.h"
 #endif
+#if defined(LABEL_SET_LEFT_PANEL_CONTROLLER) || defined(LABEL_SET_ALL)
+  #include "src/LeftPanelController.h"
+#endif
+#if defined(LABEL_SET_FRONT_LEFT_PANEL) || defined(LABEL_SET_ALL)
+  #include "src/FrontLeftPanel.h"
+#endif
 
 // Don't forget to include headers for any custom panels added
 
@@ -92,6 +100,12 @@ void initMappings() {
       hasRightPanelController = true;
       hasTFTBattGauge = true;
     #endif
+    #if defined(LABEL_SET_LEFT_PANEL_CONTROLLER) || defined(LABEL_SET_ALL)
+      hasLeftPanelController = true;
+    #endif
+    #if defined(LABEL_SET_FRONT_LEFT_PANEL) || defined(LABEL_SET_ALL)
+      hasFrontLeftPanel = true;
+    #endif    
     #if defined(LABEL_SET_ALTIMETER) || defined(LABEL_SET_ALL)
       // If needed, set specific panels
     #endif
@@ -207,6 +221,14 @@ void initializePanels(bool force) {
     if (hasRightPanelController) RightPanelButtons_init();
   #endif  
 
+  #if defined(LABEL_SET_LEFT_PANEL_CONTROLLER) || defined(LABEL_SET_ALL)
+    if (hasLeftPanelController) LeftPanelButtons_init();
+  #endif  
+
+  #if defined(LABEL_SET_FRONT_LEFT_PANEL) || defined(LABEL_SET_ALL)
+    if (hasFrontLeftPanel) FrontLeftPanelButtons_init();
+  #endif  
+
   // Your custom panels init routine should go here
 
     if (!isModeSelectorDCS()) HIDManager_commitDeferredReport("All devices");
@@ -238,6 +260,14 @@ void panelLoop() {
   #if defined(LABEL_SET_RIGHT_PANEL_CONTROLLER) || defined(LABEL_SET_ALL)
     if (hasTFTBattGauge) BatteryGauge_loop();
     if (hasRightPanelController) RightPanelButtons_loop();
+  #endif
+
+  #if defined(LABEL_SET_LEFT_PANEL_CONTROLLER) || defined(LABEL_SET_ALL)
+    if (hasLeftPanelController) LeftPanelButtons_loop();
+  #endif
+
+  #if defined(LABEL_SET_FRONT_LEFT_PANEL) || defined(LABEL_SET_ALL)
+    if (hasFrontLeftPanel) FrontLeftPanelButtons_loop();
   #endif
 
   #if defined(LABEL_SET_MAIN) || defined(LABEL_SET_ALL)

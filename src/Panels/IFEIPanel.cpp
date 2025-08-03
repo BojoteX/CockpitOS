@@ -34,7 +34,7 @@ static const char* const HUD_SELECTOR_LABELS[3] = {
     "SELECT_HUD_LDDI_RDDI_RDDI"   // DOWN
 };
 
-enum SelectorPos { POS_MIDDLE = 0, POS_DOWN = 1, POS_UP = 2 };
+enum SelectorPos { POS_MIDDLE = 1, POS_DOWN = 0, POS_UP = 2 };
 
 inline SelectorPos getSelectorState(uint16_t bits, uint8_t upBit, uint8_t downBit) {
     bool up = !(bits & (1 << upBit));

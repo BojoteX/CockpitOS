@@ -8,21 +8,6 @@ void HIDSenderTask(void* param);
 size_t getMaxUsedGroup();
 
 // ───── HID Axis ─────
-/*
-enum HIDAxis : uint8_t {
-  AXIS_X = 0,
-  AXIS_Y,
-  AXIS_Z,
-  AXIS_RX,
-  AXIS_RY,
-  AXIS_RZ,
-  AXIS_SLIDER1,
-  AXIS_SLIDER2,
-  HID_AXIS_COUNT
-};
-*/
-
-// ───── HID Axis ─────
 enum HIDAxis : uint8_t {
   AXIS_X = 0,         // 0x30
   AXIS_Y,             // 0x31

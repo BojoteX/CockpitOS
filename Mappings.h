@@ -33,6 +33,23 @@
    #define WARN_CAUTION_DIMMER_KNOB_PIN               6   
    #define CHART_DIMMER_KNOB_PIN                      12 
 
+   // Left Panel Controller
+   #define HC165_LEFT_PANEL_CONTROLLER_QH            38  // Serial data output (QH)
+   #define HC165_LEFT_PANEL_CONTROLLER_CP            37  // Clock input
+   #define HC165_LEFT_PANEL_CONTROLLER_PL            43  // Latch input (active-low)   
+   #define LED_APU_READY                             17
+   #define LED_CONSOLE_BACKLIGHT                     10
+
+   #define COM_AUX_KNOB_PIN                                    1
+   #define COM_ICS_KNOB_PIN                                    2
+   #define COM_MIDS_A_KNOB_PIN                                 3
+   #define COM_MIDS_B_KNOB_PIN                                 4
+   #define COM_RWR_KNOB_PIN                                    5
+   #define COM_TACAN_KNOB_PIN                                  6
+   #define COM_VOX_KNOB_PIN                                    7
+   #define COM_WPN_KNOB_PIN                                   14
+   #define OXYFLOW_KNOB_PIN                                   16
+   
    // ALR-67 Pins
    #define ALR67_HC165_PL                            36
    #define ALR67_HC165_CP                            34
@@ -104,7 +121,7 @@
    #define SPIN_LED_PIN                              34 // GPIO for SPIN Led     
    #define INST_BACKLIGHT_PIN                         6 // GPIO for Instrument Backlight   
 
-   // Right Panel Controller
+   // Right Panel Controller (S2)
    #define HC165_RIGHT_PANEL_CONTROLLER_QH            33  // Serial data output (QH)
    #define HC165_RIGHT_PANEL_CONTROLLER_CP            34  // Clock input
    #define HC165_RIGHT_PANEL_CONTROLLER_PL            35  // Latch input (active-low)   
@@ -115,7 +132,30 @@
    #define CONSOLES_DIMMER_KNOB_PIN                   5 
    #define WARN_CAUTION_DIMMER_KNOB_PIN               6   
    #define CHART_DIMMER_KNOB_PIN                      7 
+   #define LED_CONSOLE_BACKLIGHT_RIGHT_PANEL         14
    
+// Left Panel Controller (S2)
+   #define HC165_LEFT_PANEL_CONTROLLER_QH            36  // Serial data output (QH)
+   #define HC165_LEFT_PANEL_CONTROLLER_CP            38  // Clock input
+   #define HC165_LEFT_PANEL_CONTROLLER_PL            39  // Latch input (active-low)   
+   #define LED_APU_READY                             17
+   #define LED_CONSOLE_BACKLIGHT_LEFT_PANEL          12
+
+   #define COM_ICS_KNOB_PIN                           1
+   #define COM_WPN_KNOB_PIN                           2
+   #define COM_MIDS_A_KNOB_PIN                        3
+   #define COM_AUX_KNOB_PIN                           4   
+   #define COM_VOX_KNOB_PIN                           5
+   #define COM_RWR_KNOB_PIN                           6
+   #define COM_MIDS_B_KNOB_PIN                        7
+   #define OXYFLOW_KNOB_PIN                          14
+   #define COM_TACAN_KNOB_PIN                        16
+
+   // Front Left Panel Controller
+   #define FORMATION_LTS_KNOB_PIN                    1
+   #define POSITION_LTS_KNOB_PIN                     2
+   #define LED_CONSOLE_BACKLIGHT_FRONT_LEFT_PANEL   12
+
    // ALR-67 Pins
    #define ALR67_HC165_PL                            35
    #define ALR67_HC165_CP                            34
@@ -188,6 +228,8 @@ extern bool hasIR;
 extern bool hasLockShoot;
 extern bool hasTFTBattGauge;
 extern bool hasRightPanelController;
+extern bool hasLeftPanelController;
+extern bool hasFrontLeftPanel;
 
 // Give your PCA custom panel a basic short name and address where it is located (use the I2C scanner in Tools) 
 enum class PanelID : uint8_t { 
@@ -284,6 +326,30 @@ const char* getPanelName(uint8_t addr);  // Declaration
    #include "src/LABELS/LABEL_SET_RIGHT_PANEL_CONTROLLER/InputMapping.h"
    #include "src/LABELS/LABEL_SET_RIGHT_PANEL_CONTROLLER/LEDMapping.h"
    #include "src/LABELS/LABEL_SET_RIGHT_PANEL_CONTROLLER/DisplayMapping.h"
+
+#elif defined(LABEL_SET_LEFT_PANEL_CONTROLLER)
+
+   #define LABEL_SET "Left Panel Controller"
+   #define HAS_HID_MODE_SELECTOR 0
+   #define MODE_DEFAULT_IS_HID 0
+
+   #include "src/LABELS/LABEL_SET_LEFT_PANEL_CONTROLLER/CT_Display.h"
+   #include "src/LABELS/LABEL_SET_LEFT_PANEL_CONTROLLER/DCSBIOSBridgeData.h"
+   #include "src/LABELS/LABEL_SET_LEFT_PANEL_CONTROLLER/InputMapping.h"
+   #include "src/LABELS/LABEL_SET_LEFT_PANEL_CONTROLLER/LEDMapping.h"
+   #include "src/LABELS/LABEL_SET_LEFT_PANEL_CONTROLLER/DisplayMapping.h"
+
+#elif defined(LABEL_SET_FRONT_LEFT_PANEL)
+
+   #define LABEL_SET "Front Left Panel"
+   #define HAS_HID_MODE_SELECTOR 0
+   #define MODE_DEFAULT_IS_HID 0
+
+   #include "src/LABELS/LABEL_SET_FRONT_LEFT_PANEL/CT_Display.h"
+   #include "src/LABELS/LABEL_SET_FRONT_LEFT_PANEL/DCSBIOSBridgeData.h"
+   #include "src/LABELS/LABEL_SET_FRONT_LEFT_PANEL/InputMapping.h"
+   #include "src/LABELS/LABEL_SET_FRONT_LEFT_PANEL/LEDMapping.h"
+   #include "src/LABELS/LABEL_SET_FRONT_LEFT_PANEL/DisplayMapping.h"
 
 #elif defined(LABEL_SET_BATTERY_GAUGE)
 

@@ -1,262 +1,862 @@
-🔭 Listening for ESP32S2 Debug/Info messages on 192.168.7.243 port 4210...
+🔭 Listening for ESP32S2 Debug/Info messages on 192.168.7.171 port 4210...
 
-[15:26:03 - 192.168.7.231] ❌ USB Stopped
-[15:26:03 - 192.168.7.231] 🔌 USB Started
-[15:26:03 - 192.168.7.231] [HID EVENT] SET_IDLE: Interface 0 → no periodic reports required
-[15:26:03 - 192.168.7.231] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.231
-[15:26:03 - 192.168.7.231] =================== [STARTING DEVICE] ===================
-[15:26:03 - 192.168.7.231] SRAM free:     71 KB, largest:     47 KB, frag:  32.5%
-[15:26:03 - 192.168.7.231] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
-[15:26:03 - 192.168.7.231] I²C Initialized using the ESP-IDF Library (Fast mode)
-[15:26:03 - 192.168.7.231] Using SDA 8 and SCL 9 for I2C
-[15:26:04 - 192.168.7.231] 🔎 === Discovered I2C Devices ===
-[15:26:04 - 192.168.7.231] 📋 Address    | Device Description
-[15:26:04 - 192.168.7.231] ──────────────|─────────────────────────────
-[15:26:04 - 192.168.7.231] 📡 0x26       | Brain / IRCool Panel
-[15:26:04 - 192.168.7.231] ────────────────────────────────────────────
-[15:26:04 - 192.168.7.231] Initializing PCA_0x26 inputs and cached port states
-[15:26:04 - 192.168.7.231] Initializing Displays
-[15:26:04 - 192.168.7.231] Initializing LEDs
-[15:26:04 - 192.168.7.231] PCA9555 0x26: 0 pins set as OUTPUT (LED)
-[15:26:04 - 192.168.7.231] ✅ Lock/Shoot detected, initializing...
-[15:26:04 - 192.168.7.231] ✅ Caution Advisory detected, initializing...
-[15:26:04 - 192.168.7.231] ✅ Left & Right Annunciators detected, initializing...
-[15:26:05 - 192.168.7.231] 🔆 Turning ALL LEDs ON (simultaneously)
-[15:26:06 - 192.168.7.231] ⚫ Turning ALL LEDs OFF (simultaneously)
-[15:26:07 - 192.168.7.231] ⚫ WS2812 All OFF
-[15:26:07 - 192.168.7.231] 🔆 Turning ALL GPIO LEDs ON
-[15:26:08 - 192.168.7.231] ⚫ Turning ALL GPIO LEDs OFF
-[15:26:08 - 192.168.7.231] Syncronizing Panel state....
-[15:26:08 - 192.168.7.231] ✅ RIGHT Annunciator initialized for buttons
-[15:26:08 - 192.168.7.231] ✅ LEFT Annunciator initialized for buttons
-[15:26:08 - 192.168.7.231] ✅ Initialized IR Cool Panel
-[15:26:08 - 192.168.7.231] Selected mode: DCS-BIOS
-[15:26:08 - 192.168.7.231] Device "Main Instruments" is ready
-[15:26:08 - 192.168.7.231] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
-[15:26:08 - 192.168.7.231] 🛩️ [DCS-USB] DCS NOT READY! could not send HMD_OFF_BRT 65535
-[15:26:08 - 192.168.7.231] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
-[15:26:08 - 192.168.7.231] [STREAM] UP
-[15:26:08 - 192.168.7.231] 🛩️ [DCS-USB] DCS NOT READY! could not send IR_COOL_SW 1
-[15:26:08 - 192.168.7.231] [MISSION START] FA-18C_hornet
-[15:26:09 - 192.168.7.231] [SYNC PANELS] 🔁 Mission Started 501 ms ago
-[15:26:09 - 192.168.7.231] Syncronizing Panel state....
-[15:26:09 - 192.168.7.231] ✅ RIGHT Annunciator initialized for buttons
-[15:26:09 - 192.168.7.231] ✅ LEFT Annunciator initialized for buttons
-[15:26:09 - 192.168.7.231] 🛩️ [DCS-USB] SPIN_RECOVERY_SW 0
-[15:26:09 - 192.168.7.231] 🛩️ [DCS-USB] IR_COOL_SW 1
-[15:26:09 - 192.168.7.231] ✅ Initialized IR Cool Panel
-[15:26:09 - 192.168.7.231] [SYNC] Normal mission start panel sync
-[15:26:09 - 192.168.7.231] 🛩️ [DCS-USB] HMD_OFF_BRT 65535
-[15:26:10 - 192.168.7.231] [STATE UPDATE] 🔁 MASTER_ARM_SW = ARM
-[15:26:10 - 192.168.7.231] [STATE UPDATE] 🔁 COCKKPIT_LIGHT_MODE_SW = NITE
-[15:26:20 - 192.168.7.231] [STATE UPDATE] 🔁 COCKKPIT_LIGHT_MODE_SW = DAY
-[15:26:23 - 192.168.7.231] 🛩️ [DCS-USB] LEFT_FIRE_BTN_COVER 1
-[15:26:23 - 192.168.7.231] ✅ Cover [LEFT_FIRE_BTN_COVER] opened for [LEFT_FIRE_BTN]
-[15:26:24 - 192.168.7.231] [STATE UPDATE] 🔁 COCKKPIT_LIGHT_MODE_SW = NITE
-[15:26:24 - 192.168.7.231] 🛩️ [DCS-USB] LEFT_FIRE_BTN 1
-[15:26:25 - 192.168.7.231] 🛩️ [DCS-USB] LEFT_FIRE_BTN 0
-[15:26:25 - 192.168.7.231] 🛩️ [DCS-USB] LEFT_FIRE_BTN 1
-[15:26:25 - 192.168.7.231] 🛩️ [DCS-USB] LEFT_FIRE_BTN 0
-[15:26:26 - 192.168.7.231] 🛩️ [DCS-USB] LEFT_FIRE_BTN 1
-[15:26:27 - 192.168.7.231] 🛩️ [DCS-USB] LEFT_FIRE_BTN 0
-[15:26:28 - 192.168.7.231] [STATE UPDATE] 🔁 COCKKPIT_LIGHT_MODE_SW = DAY
-[15:26:29 - 192.168.7.231] [STATE UPDATE] 🔁 COCKKPIT_LIGHT_MODE_SW = NITE
-[15:26:43 - 192.168.7.231] [MISSION STOP]
-[15:26:47 - 192.168.7.231] [MISSION START] FA-18C_hornet
-[15:26:48 - 192.168.7.231] [SYNC PANELS] 🔁 Mission Started 501 ms ago
-[15:26:48 - 192.168.7.231] Syncronizing Panel state....
-[15:26:48 - 192.168.7.231] ✅ RIGHT Annunciator initialized for buttons
-[15:26:48 - 192.168.7.231] ✅ LEFT Annunciator initialized for buttons
-[15:26:48 - 192.168.7.231] 🛩️ [DCS-USB] SPIN_RECOVERY_SW 0
-[15:26:48 - 192.168.7.231] 🛩️ [DCS-USB] IR_COOL_SW 1
-[15:26:48 - 192.168.7.231] ✅ Initialized IR Cool Panel
-[15:26:48 - 192.168.7.231] [SYNC] Normal mission start panel sync
-[15:26:48 - 192.168.7.231] 🛩️ [DCS-USB] HMD_OFF_BRT 65535
-[15:26:55 - 192.168.7.231] [STATE UPDATE] 🔁 COCKKPIT_LIGHT_MODE_SW = DAY
-[15:27:03 - 192.168.7.231] [STATE UPDATE] 🔁 COCKKPIT_LIGHT_MODE_SW = NITE
-[15:27:06 - 192.168.7.231] [STATE UPDATE] 🔁 COCKKPIT_LIGHT_MODE_SW = NVG
-[15:27:08 - 192.168.7.231] 
-[15:27:08 - 192.168.7.231] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
-[15:27:08 - 192.168.7.231] 🔍  Profiling Averages:
-[15:27:08 - 192.168.7.231] ∘ [LED] GPIO      :   0.05 ms
-[15:27:08 - 192.168.7.231] ∘ Main Loop       :   0.05 ms
-[15:27:08 - 192.168.7.231] +----------------------------------------------------------------+
-[15:27:08 - 192.168.7.231] 🕑  System Status:
-[15:27:08 - 192.168.7.231] ∘ Poll Load     :   1.3% of 4.00 ms slot
-[15:27:08 - 192.168.7.231] ∘ Headroom      : 3.947 ms ( 98.7%)
-[15:27:08 - 192.168.7.231] ∘ Scale Cap.    : 75.16x current workload
-[15:27:08 - 192.168.7.231] ∘ Uptime        : 1m11s
-[15:27:08 - 192.168.7.231] ∘ CPU Frequency : 240 MHz
-[15:27:08 - 192.168.7.231] ∘ Last Reset    : Power-on
-[15:27:08 - 192.168.7.231] +----------------------------------------------------------------+
-[15:27:08 - 192.168.7.231] 💾  Memory Fragmentation:
-[15:27:08 - 192.168.7.231] ∘ Internal SRAM : free     69 KB, largest     45 KB, frag  34.0%
-[15:27:08 - 192.168.7.231] ∘ PSRAM Pool    : free   2027 KB, largest   2015 KB, frag   0.6%
-[15:27:08 - 192.168.7.231] +----------------------------------------------------------------+
-[15:27:08 - 192.168.7.231] 📡  USB-CDC Buffer Health:
-[15:27:08 - 192.168.7.231] ∘ TX Free Slots :      0 bytes
-[15:27:08 - 192.168.7.231] ∘ RX Pending    :      0 bytes
-[15:27:08 - 192.168.7.231] +----------------------------------------------------------------+
-[15:27:08 - 192.168.7.231] 🔁  Ring Buffer Health:
-[15:27:08 - 192.168.7.231] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
-[15:27:08 - 192.168.7.231] ∘ UDP Send Debug   : avg  37.4 bytes, max 63 bytes, pending  7, max 11, overruns 0
-[15:27:08 - 192.168.7.231] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  2, overruns 0
-[15:27:08 - 192.168.7.231] ∘ USB Send DCS  : avg  21.1 bytes, max 64 bytes, pending  0, max  2, overruns 0
-[15:27:08 - 192.168.7.231] +----------------------------------------------------------------+
-[15:27:09 - 192.168.7.231] [STATE UPDATE] 🔁 COCKKPIT_LIGHT_MODE_SW = NITE
-[15:27:10 - 192.168.7.231] [STATE UPDATE] 🔁 COCKKPIT_LIGHT_MODE_SW = DAY
-[15:27:14 - 192.168.7.231] [STATE UPDATE] 🔁 COCKKPIT_LIGHT_MODE_SW = NITE
-[15:27:19 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:20 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:21 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:22 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:23 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:24 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:25 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:26 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:27 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:28 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:29 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:30 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:31 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:32 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:33 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:34 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:35 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:36 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:37 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:38 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:39 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:40 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:41 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:42 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:43 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:44 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:45 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:46 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:47 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:48 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:49 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:49 - 192.168.7.231] [STATE UPDATE] 🔁 COCKKPIT_LIGHT_MODE_SW = DAY
-[15:27:50 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:27:54 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = OPEN
-[15:27:55 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = ON
-[15:27:56 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = OFF
-[15:27:57 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = CLOSED
-[15:27:58 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = OPEN
-[15:27:58 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = CLOSED
-[15:27:59 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = OPEN
-[15:27:59 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = ON
-[15:28:00 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = OFF
-[15:28:02 - 192.168.7.231] [STATE UPDATE] 🔁 LEFT_FIRE_BTN_COVER = OPEN
-[15:28:03 - 192.168.7.231] [STATE UPDATE] 🔁 LEFT_FIRE_BTN = ON
-[15:28:04 - 192.168.7.231] [STATE UPDATE] 🔁 LEFT_FIRE_BTN = OFF
-[15:28:04 - 192.168.7.231] [STATE UPDATE] 🔁 LEFT_FIRE_BTN = ON
-[15:28:05 - 192.168.7.231] [STATE UPDATE] 🔁 LEFT_FIRE_BTN = OFF
-[15:28:06 - 192.168.7.231] [STATE UPDATE] 🔁 LEFT_FIRE_BTN_COVER = CLOSED
-[15:28:07 - 192.168.7.231] [STATE UPDATE] 🔁 LEFT_FIRE_BTN_COVER = OPEN
-[15:28:08 - 192.168.7.231] 
-[15:28:08 - 192.168.7.231] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
-[15:28:08 - 192.168.7.231] 🔍  Profiling Averages:
-[15:28:08 - 192.168.7.231] ∘ [LED] TM1637    :   0.01 ms
-[15:28:08 - 192.168.7.231] ∘ Main Loop       :   0.05 ms
-[15:28:08 - 192.168.7.231] 🕑  System Status:
-[15:28:08 - 192.168.7.231] ∘ Poll Load     :   1.3% of 4.00 ms slot
-[15:28:08 - 192.168.7.231] ∘ Headroom      : 3.946 ms ( 98.7%)
-[15:28:08 - 192.168.7.231] ∘ Scale Cap.    : 74.51x current workload
-[15:28:08 - 192.168.7.231] ∘ Uptime        : 2m11s
-[15:28:08 - 192.168.7.231] ∘ CPU Frequency : 240 MHz
-[15:28:08 - 192.168.7.231] ∘ Last Reset    : Power-on
-[15:28:08 - 192.168.7.231] +----------------------------------------------------------------+
-[15:28:08 - 192.168.7.231] 💾  Memory Fragmentation:
-[15:28:08 - 192.168.7.231] ∘ PSRAM Pool    : free   2027 KB, largest   2015 KB, frag   0.6%
-[15:28:08 - 192.168.7.231] +----------------------------------------------------------------+
-[15:28:08 - 192.168.7.231] 📡  USB-CDC Buffer Health:
-[15:28:08 - 192.168.7.231] ∘ TX Free Slots :      0 bytes
-[15:28:08 - 192.168.7.231] ∘ RX Pending    :      0 bytes
-[15:28:08 - 192.168.7.231] +----------------------------------------------------------------+
-[15:28:08 - 192.168.7.231] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
-[15:28:08 - 192.168.7.231] ∘ UDP Send Debug   : avg  41.6 bytes, max 63 bytes, pending  7, max 16, overruns 0
-[15:28:08 - 192.168.7.231] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  3, overruns 0
-[15:28:08 - 192.168.7.231] ∘ USB Send DCS  : avg  21.1 bytes, max 64 bytes, pending  0, max  2, overruns 0
-[15:28:08 - 192.168.7.231] +----------------------------------------------------------------+
-[15:28:09 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = ON
-[15:28:09 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = OFF
-[15:28:10 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = CLOSED
-[15:28:12 - 192.168.7.231] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
-[15:28:13 - 192.168.7.231] [STATE UPDATE] 🔁 IR_COOL_SW = OFF
-[15:28:20 - 192.168.7.231] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
-[15:28:20 - 192.168.7.231] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
-[15:28:21 - 192.168.7.231] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
-[15:28:22 - 192.168.7.231] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
-[15:28:23 - 192.168.7.231] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
-[15:28:24 - 192.168.7.231] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
-[15:28:26 - 192.168.7.231] [STATE UPDATE] 🔁 FIRE_EXT_BTN = ON
-[15:28:27 - 192.168.7.231] [STATE UPDATE] 🔁 FIRE_EXT_BTN = OFF
-[15:28:28 - 192.168.7.231] [STATE UPDATE] 🔁 MASTER_CAUTION_RESET_SW = PRESS
-[15:28:28 - 192.168.7.231] [STATE UPDATE] 🔁 MASTER_CAUTION_RESET_SW = POS 0
-[15:28:33 - 192.168.7.231] [STATE UPDATE] 🔁 LIGHTS_TEST_SW = TEST
-[15:28:37 - 192.168.7.231] [STATE UPDATE] 🔁 LIGHTS_TEST_SW = OFF
-[15:28:39 - 192.168.7.231] [STATE UPDATE] 🔁 LIGHTS_TEST_SW = TEST
-[15:28:40 - 192.168.7.231] [STATE UPDATE] 🔁 LIGHTS_TEST_SW = OFF
-[15:28:41 - 192.168.7.231] [STATE UPDATE] 🔁 FIRE_EXT_BTN = ON
-[15:28:43 - 192.168.7.231] [STATE UPDATE] 🔁 FIRE_EXT_BTN = OFF
-[15:28:57 - 192.168.7.231] [MISSION STOP]
-[15:28:59 - 192.168.7.231] [STATE UPDATE] 🔁 LEFT_FIRE_BTN_COVER = CLOSED
-[15:28:59 - 192.168.7.231] [MISSION START] FA-18C_hornet
-[15:29:00 - 192.168.7.231] [SYNC PANELS] 🔁 Mission Started 501 ms ago
-[15:29:00 - 192.168.7.231] Syncronizing Panel state....
-[15:29:00 - 192.168.7.231] ✅ RIGHT Annunciator initialized for buttons
-[15:29:00 - 192.168.7.231] ✅ LEFT Annunciator initialized for buttons
-[15:29:00 - 192.168.7.231] 🛩️ [DCS-USB] SPIN_RECOVERY_SW 0
-[15:29:00 - 192.168.7.231] 🛩️ [DCS-USB] IR_COOL_SW 1
-[15:29:00 - 192.168.7.231] ✅ Initialized IR Cool Panel
-[15:29:00 - 192.168.7.231] [SYNC] Normal mission start panel sync
-[15:29:00 - 192.168.7.231] 🛩️ [DCS-USB] HMD_OFF_BRT 65535
-[15:29:00 - 192.168.7.231] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
-[15:29:05 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = OPEN
-[15:29:06 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = ON
-[15:29:07 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = OFF
-[15:29:08 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = CLOSED
-[15:29:08 - 192.168.7.231] 
-[15:29:08 - 192.168.7.231] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
-[15:29:08 - 192.168.7.231] 🔍  Profiling Averages:
-[15:29:08 - 192.168.7.231] ∘ [LED] GPIO      :   0.02 ms
-[15:29:08 - 192.168.7.231] ∘ [LED] WS2812    :   0.01 ms
-[15:29:08 - 192.168.7.231] ∘ Main Loop       :   0.05 ms
-[15:29:08 - 192.168.7.231] +----------------------------------------------------------------+
-[15:29:08 - 192.168.7.231] 🕑  System Status:
-[15:29:08 - 192.168.7.231] ∘ Poll Load     :   1.3% of 4.00 ms slot
-[15:29:08 - 192.168.7.231] ∘ Headroom      : 3.946 ms ( 98.7%)
-[15:29:08 - 192.168.7.231] ∘ Uptime        : 3m11s
-[15:29:08 - 192.168.7.231] ∘ CPU Frequency : 240 MHz
-[15:29:08 - 192.168.7.231] ∘ Last Reset    : Power-on
-[15:29:08 - 192.168.7.231] +----------------------------------------------------------------+
-[15:29:08 - 192.168.7.231] 💾  Memory Fragmentation:
-[15:29:08 - 192.168.7.231] ∘ Internal SRAM : free     69 KB, largest     45 KB, frag  33.6%
-[15:29:08 - 192.168.7.231] ∘ PSRAM Pool    : free   2027 KB, largest   2015 KB, frag   0.6%
-[15:29:08 - 192.168.7.231] +----------------------------------------------------------------+
-[15:29:08 - 192.168.7.231] 📡  USB-CDC Buffer Health:
-[15:29:08 - 192.168.7.231] ∘ TX Free Slots :      0 bytes
-[15:29:08 - 192.168.7.231] ∘ RX Pending    :      0 bytes
-[15:29:08 - 192.168.7.231] +----------------------------------------------------------------+
-[15:29:08 - 192.168.7.231] 🔁  Ring Buffer Health:
-[15:29:08 - 192.168.7.231] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
-[15:29:08 - 192.168.7.231] ∘ UDP Send Debug   : avg  40.7 bytes, max 63 bytes, pending  7, max 16, overruns 0
-[15:29:08 - 192.168.7.231] ∘ USB Send DCS  : avg  20.5 bytes, max 64 bytes, pending  0, max  2, overruns 0
-[15:29:08 - 192.168.7.231] +----------------------------------------------------------------+
-[15:29:08 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = OPEN
-[15:29:09 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = CLOSED
-[15:29:09 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = OPEN
-[15:29:10 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = ON
-[15:29:11 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = OFF
-[15:29:13 - 192.168.7.231] [STATE UPDATE] 🔁 LEFT_FIRE_BTN_COVER = OPEN
-[15:29:13 - 192.168.7.231] [STATE UPDATE] 🔁 LEFT_FIRE_BTN = ON
-[15:29:14 - 192.168.7.231] [STATE UPDATE] 🔁 LEFT_FIRE_BTN = OFF
-[15:29:15 - 192.168.7.231] [STATE UPDATE] 🔁 LEFT_FIRE_BTN = ON
-[15:29:16 - 192.168.7.231] [STATE UPDATE] 🔁 LEFT_FIRE_BTN = OFF
-[15:29:16 - 192.168.7.231] [STATE UPDATE] 🔁 LEFT_FIRE_BTN_COVER = CLOSED
-[15:29:17 - 192.168.7.231] [STATE UPDATE] 🔁 LEFT_FIRE_BTN_COVER = OPEN
-[15:29:19 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = ON
-[15:29:20 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = OFF
-[15:29:20 - 192.168.7.231] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = CLOSED
+[22:51:16 - 192.168.7.184] [SYNC] Command history has been initialized from InputMappings (lastValue cleared).
+[22:51:16 - 192.168.7.184] ❌ USB Stopped
+[22:51:16 - 192.168.7.184] 🔌 USB Started
+[22:51:16 - 192.168.7.184] [HID EVENT] SET_IDLE: Interface 0 → no periodic reports required
+[22:51:16 - 192.168.7.184] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.184
+[22:51:16 - 192.168.7.184] =================== [STARTING DEVICE] ===================
+[22:51:16 - 192.168.7.184] SRAM free:     62 KB, largest:     53 KB, frag:  13.2%
+[22:51:16 - 192.168.7.184] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[22:51:16 - 192.168.7.184] I²C Initialized using the ESP-IDF Library (Fast mode)
+[22:51:16 - 192.168.7.184] Using SDA 8 and SCL 9 for I2C
+[22:51:17 - 192.168.7.184] No I2C devices found.
+[22:51:17 - 192.168.7.184] Initializing Displays
+[22:51:17 - 192.168.7.184] Initializing LEDs
+[22:51:17 - 192.168.7.184] ⚠️ Lock/Shoot NOT detected!
+[22:51:17 - 192.168.7.184] ⚠️ Caution Advisory NOT detected!
+[22:51:17 - 192.168.7.184] ⚠️ No Annunciators detected!
+[22:51:17 - 192.168.7.184] 🔆 Turning ALL GPIO LEDs ON
+[22:51:18 - 192.168.7.184] ⚫ Turning ALL GPIO LEDs OFF
+[22:51:18 - 192.168.7.184] Syncronizing Panel state....
+[22:51:18 - 192.168.7.184] ✅ Initialized Front Left Panel Buttons
+[22:51:18 - 192.168.7.184] Selected mode: DCS-BIOS
+[22:51:18 - 192.168.7.184] Device "Front Left Panel" is ready
+[22:51:18 - 192.168.7.184] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[22:51:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send FORMATION_DIMMER 65535
+[22:51:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 65535
+[22:51:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send INT_WNG_TANK_SW 0
+[22:51:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send STROBE_SW 1
+[22:51:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send FIRE_TEST_SW 1
+[22:51:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GEN_TIE_SW 0
+[22:51:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send EXT_PWR_SW 0
+[22:51:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_1_SW 0
+[22:51:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_2_SW 0
+[22:51:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_3_SW 0
+[22:51:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_4_SW 0
+[22:51:53 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_4_SW 1
+[22:51:54 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_4_SW 2
+[22:51:55 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_4_SW 1
+[22:51:56 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_4_SW 0
+[22:51:58 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 63798
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (12ms < 33ms)
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (20ms < 33ms)
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (28ms < 33ms)
+[22:51:58 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 58846
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (8ms < 33ms)
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (16ms < 33ms)
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (24ms < 33ms)
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (32ms < 33ms)
+[22:51:58 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 52501
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (8ms < 33ms)
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (16ms < 33ms)
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (24ms < 33ms)
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (32ms < 33ms)
+[22:51:58 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 46492
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (8ms < 33ms)
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (16ms < 33ms)
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (24ms < 33ms)
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (32ms < 33ms)
+[22:51:58 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 41148
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (8ms < 33ms)
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (16ms < 33ms)
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (24ms < 33ms)
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (32ms < 33ms)
+[22:51:58 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 35611
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (8ms < 33ms)
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (16ms < 33ms)
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (28ms < 33ms)
+[22:51:58 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 30827
+[22:51:58 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (16ms < 33ms)
+[22:51:58 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 28491
+[22:51:59 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 27410
+[22:51:59 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (32ms < 33ms)
+[22:51:59 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 25242
+[22:51:59 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (20ms < 33ms)
+[22:51:59 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 22882
+[22:51:59 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (16ms < 33ms)
+[22:51:59 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (32ms < 33ms)
+[22:51:59 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 19106
+[22:51:59 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (16ms < 33ms)
+[22:51:59 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (28ms < 33ms)
+[22:51:59 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 15617
+[22:51:59 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (12ms < 33ms)
+[22:51:59 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (24ms < 33ms)
+[22:51:59 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 12145
+[22:51:59 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (16ms < 33ms)
+[22:51:59 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (32ms < 33ms)
+[22:51:59 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 8568
+[22:51:59 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (16ms < 33ms)
+[22:51:59 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (28ms < 33ms)
+[22:51:59 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 5024
+[22:51:59 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 0
+[22:52:00 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 4320
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (8ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (16ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (24ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (32ms < 33ms)
+[22:52:00 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 12993
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (8ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (16ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (24ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (32ms < 33ms)
+[22:52:00 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 21930
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (8ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (16ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (24ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (32ms < 33ms)
+[22:52:00 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 29779
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (8ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (16ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (24ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (32ms < 33ms)
+[22:52:00 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 37003
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (8ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (16ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (24ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (32ms < 33ms)
+[22:52:00 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 43004
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (8ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (16ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (24ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (32ms < 33ms)
+[22:52:00 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 48565
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (12ms < 33ms)
+[22:52:00 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 53149
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (12ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (24ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (32ms < 33ms)
+[22:52:00 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 58766
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (8ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (16ms < 33ms)
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (28ms < 33ms)
+[22:52:00 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 63382
+[22:52:00 - 192.168.7.184] [DCS] ⚠️ SKIP: POSITION_DIMMER rate limited (12ms < 33ms)
+[22:52:18 - 192.168.7.184] 
+[22:52:18 - 192.168.7.184] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:52:18 - 192.168.7.184] 🔍  Profiling Averages:
+[22:52:18 - 192.168.7.184] ∘ Main Loop       :   0.02 ms
+[22:52:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:52:18 - 192.168.7.184] 🕑  System Status:
+[22:52:18 - 192.168.7.184] ∘ Poll Load     :   0.6% of 4.00 ms slot
+[22:52:18 - 192.168.7.184] ∘ Headroom      : 3.978 ms ( 99.4%)
+[22:52:18 - 192.168.7.184] ∘ Scale Cap.    : 179.54x current workload
+[22:52:18 - 192.168.7.184] ∘ Uptime        : 1m07s
+[22:52:18 - 192.168.7.184] ∘ CPU Frequency : 240 MHz
+[22:52:18 - 192.168.7.184] ∘ Last Reset    : Software
+[22:52:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:52:18 - 192.168.7.184] 💾  Memory Fragmentation:
+[22:52:18 - 192.168.7.184] ∘ Internal SRAM : free     61 KB, largest     51 KB, frag  16.1%
+[22:52:18 - 192.168.7.184] ∘ PSRAM Pool    : free   2027 KB, largest   2015 KB, frag   0.6%
+[22:52:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:52:18 - 192.168.7.184] 📡  USB-CDC Buffer Health:
+[22:52:18 - 192.168.7.184] ∘ TX Free Slots :     64 bytes
+[22:52:18 - 192.168.7.184] ∘ RX Pending    :      0 bytes
+[22:52:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:52:18 - 192.168.7.184] 🔁  Ring Buffer Health:
+[22:52:18 - 192.168.7.184] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[22:52:18 - 192.168.7.184] ∘ UDP Send Debug   : avg  46.1 bytes, max 63 bytes, pending  7, max 11, overruns 0
+[22:52:18 - 192.168.7.184] ∘ UDP Receive DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:52:18 - 192.168.7.184] ∘ USB Send DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:52:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:52:31 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_2_SW 1
+[22:52:33 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_2_SW 2
+[22:52:35 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_2_SW 1
+[22:52:38 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_2_SW 0
+[22:52:40 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_2_SW 1
+[22:53:18 - 192.168.7.184] 
+[22:53:18 - 192.168.7.184] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:53:18 - 192.168.7.184] 🔍  Profiling Averages:
+[22:53:18 - 192.168.7.184] ∘ Main Loop       :   0.02 ms
+[22:53:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:53:18 - 192.168.7.184] 🕑  System Status:
+[22:53:18 - 192.168.7.184] ∘ Poll Load     :   0.6% of 4.00 ms slot
+[22:53:18 - 192.168.7.184] ∘ Headroom      : 3.978 ms ( 99.4%)
+[22:53:18 - 192.168.7.184] ∘ Scale Cap.    : 179.78x current workload
+[22:53:18 - 192.168.7.184] ∘ Uptime        : 2m07s
+[22:53:18 - 192.168.7.184] ∘ CPU Frequency : 240 MHz
+[22:53:18 - 192.168.7.184] ∘ Last Reset    : Software
+[22:53:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:53:18 - 192.168.7.184] 💾  Memory Fragmentation:
+[22:53:18 - 192.168.7.184] ∘ Internal SRAM : free     62 KB, largest     51 KB, frag  16.4%
+[22:53:18 - 192.168.7.184] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[22:53:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:53:18 - 192.168.7.184] 📡  USB-CDC Buffer Health:
+[22:53:18 - 192.168.7.184] ∘ TX Free Slots :     64 bytes
+[22:53:18 - 192.168.7.184] ∘ RX Pending    :      0 bytes
+[22:53:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:53:18 - 192.168.7.184] 🔁  Ring Buffer Health:
+[22:53:18 - 192.168.7.184] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[22:53:18 - 192.168.7.184] ∘ UDP Send Debug   : avg  44.6 bytes, max 63 bytes, pending  7, max 16, overruns 0
+[22:53:18 - 192.168.7.184] ∘ UDP Receive DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:53:18 - 192.168.7.184] ∘ USB Send DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:53:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:54:18 - 192.168.7.184] 
+[22:54:18 - 192.168.7.184] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:54:18 - 192.168.7.184] 🔍  Profiling Averages:
+[22:54:18 - 192.168.7.184] ∘ Main Loop       :   0.02 ms
+[22:54:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:54:18 - 192.168.7.184] 🕑  System Status:
+[22:54:18 - 192.168.7.184] ∘ Poll Load     :   0.6% of 4.00 ms slot
+[22:54:18 - 192.168.7.184] ∘ Headroom      : 3.978 ms ( 99.4%)
+[22:54:18 - 192.168.7.184] ∘ Scale Cap.    : 179.72x current workload
+[22:54:18 - 192.168.7.184] ∘ Uptime        : 3m07s
+[22:54:18 - 192.168.7.184] ∘ CPU Frequency : 240 MHz
+[22:54:18 - 192.168.7.184] ∘ Last Reset    : Software
+[22:54:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:54:18 - 192.168.7.184] 💾  Memory Fragmentation:
+[22:54:18 - 192.168.7.184] ∘ Internal SRAM : free     62 KB, largest     51 KB, frag  16.4%
+[22:54:18 - 192.168.7.184] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[22:54:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:54:18 - 192.168.7.184] 📡  USB-CDC Buffer Health:
+[22:54:18 - 192.168.7.184] ∘ TX Free Slots :     64 bytes
+[22:54:18 - 192.168.7.184] ∘ RX Pending    :      0 bytes
+[22:54:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:54:18 - 192.168.7.184] 🔁  Ring Buffer Health:
+[22:54:18 - 192.168.7.184] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[22:54:18 - 192.168.7.184] ∘ UDP Send Debug   : avg  43.2 bytes, max 63 bytes, pending  7, max 16, overruns 0
+[22:54:18 - 192.168.7.184] ∘ UDP Receive DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:54:18 - 192.168.7.184] ∘ USB Send DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:54:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:55:14 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_2_SW 2
+[22:55:15 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_2_SW 1
+[22:55:18 - 192.168.7.184] 
+[22:55:18 - 192.168.7.184] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:55:18 - 192.168.7.184] 🔍  Profiling Averages:
+[22:55:18 - 192.168.7.184] ∘ Main Loop       :   0.02 ms
+[22:55:18 - 192.168.7.184] 🕑  System Status:
+[22:55:18 - 192.168.7.184] ∘ Poll Load     :   0.6% of 4.00 ms slot
+[22:55:18 - 192.168.7.184] ∘ Headroom      : 3.978 ms ( 99.4%)
+[22:55:18 - 192.168.7.184] ∘ Scale Cap.    : 179.68x current workload
+[22:55:18 - 192.168.7.184] ∘ Uptime        : 4m07s
+[22:55:18 - 192.168.7.184] ∘ CPU Frequency : 240 MHz
+[22:55:18 - 192.168.7.184] ∘ Last Reset    : Software
+[22:55:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:55:18 - 192.168.7.184] 💾  Memory Fragmentation:
+[22:55:18 - 192.168.7.184] ∘ Internal SRAM : free     61 KB, largest     51 KB, frag  15.5%
+[22:55:18 - 192.168.7.184] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[22:55:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:55:18 - 192.168.7.184] 📡  USB-CDC Buffer Health:
+[22:55:18 - 192.168.7.184] ∘ TX Free Slots :     64 bytes
+[22:55:18 - 192.168.7.184] ∘ RX Pending    :      0 bytes
+[22:55:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:55:18 - 192.168.7.184] 🔁  Ring Buffer Health:
+[22:55:18 - 192.168.7.184] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[22:55:18 - 192.168.7.184] ∘ UDP Send Debug   : avg  42.4 bytes, max 63 bytes, pending  7, max 16, overruns 0
+[22:55:18 - 192.168.7.184] ∘ UDP Receive DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:55:18 - 192.168.7.184] ∘ USB Send DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:55:18 - 192.168.7.184] +----------------------------------------------------------------+
+[22:55:40 - 192.168.7.184] [SYNC] Command history has been initialized from InputMappings (lastValue cleared).
+[22:55:40 - 192.168.7.184] 🔌 USB Started
+[22:55:40 - 192.168.7.184] [HID EVENT] SET_IDLE: Interface 0 → no periodic reports required
+[22:55:40 - 192.168.7.184] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.184
+[22:55:40 - 192.168.7.184] =================== [STARTING DEVICE] ===================
+[22:55:40 - 192.168.7.184] SRAM free:     62 KB, largest:     53 KB, frag:  13.9%
+[22:55:40 - 192.168.7.184] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[22:55:40 - 192.168.7.184] I²C Initialized using the ESP-IDF Library (Fast mode)
+[22:55:40 - 192.168.7.184] Using SDA 8 and SCL 9 for I2C
+[22:55:41 - 192.168.7.184] No I2C devices found.
+[22:55:41 - 192.168.7.184] Initializing Displays
+[22:55:41 - 192.168.7.184] Initializing LEDs
+[22:55:41 - 192.168.7.184] ⚠️ Lock/Shoot NOT detected!
+[22:55:41 - 192.168.7.184] ⚠️ Caution Advisory NOT detected!
+[22:55:41 - 192.168.7.184] ⚠️ No Annunciators detected!
+[22:55:41 - 192.168.7.184] 🔆 Turning ALL GPIO LEDs ON
+[22:55:42 - 192.168.7.184] ⚫ Turning ALL GPIO LEDs OFF
+[22:55:42 - 192.168.7.184] Syncronizing Panel state....
+[22:55:42 - 192.168.7.184] ✅ Initialized Front Left Panel Buttons
+[22:55:42 - 192.168.7.184] Selected mode: DCS-BIOS
+[22:55:42 - 192.168.7.184] Device "Front Left Panel" is ready
+[22:55:42 - 192.168.7.184] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[22:55:42 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send FORMATION_DIMMER 65535
+[22:55:42 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 65535
+[22:55:42 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send INT_WNG_TANK_SW 0
+[22:55:42 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send STROBE_SW 1
+[22:55:42 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send FIRE_TEST_SW 1
+[22:55:42 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GEN_TIE_SW 0
+[22:55:42 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send EXT_PWR_SW 0
+[22:55:42 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_1_SW 0
+[22:55:42 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_2_SW 1
+[22:55:42 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_3_SW 0
+[22:55:42 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_4_SW 0
+[22:56:03 - 192.168.7.184] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
+[22:56:03 - 192.168.7.184] [STREAM] UP
+[22:56:04 - 192.168.7.184] [MISSION START] FA-18C_hornet
+[22:56:04 - 192.168.7.184] [STATE UPDATE] 🔁 FIRE_TEST_SW = POS1
+[22:56:04 - 192.168.7.184] [STATE UPDATE] 🔁 EXT_PWR_SW = NORM
+[22:56:04 - 192.168.7.184] [STATE UPDATE] 🔁 GND_PWR_1_SW = AUTO
+[22:56:04 - 192.168.7.184] [STATE UPDATE] 🔁 GND_PWR_2_SW = AUTO
+[22:56:04 - 192.168.7.184] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:56:04 - 192.168.7.184] [SYNC] Command history has been initialized from InputMappings (lastValue cleared).
+[22:56:04 - 192.168.7.184] Syncronizing Panel state....
+[22:56:04 - 192.168.7.184] 🛩️ [DCS] ATTEMPING SEND: INT_WNG_TANK_SW = 0 (forced)
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] INT_WNG_TANK_SW 0
+[22:56:04 - 192.168.7.184] 🛩️ [DCS] ATTEMPING SEND: STROBE_SW = 1 (forced)
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] STROBE_SW 1
+[22:56:04 - 192.168.7.184] 🛩️ [DCS] ATTEMPING SEND: FIRE_TEST_SW = 1 (forced)
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] FIRE_TEST_SW 1
+[22:56:04 - 192.168.7.184] 🛩️ [DCS] ATTEMPING SEND: GEN_TIE_SW = 0 (forced)
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] GEN_TIE_SW 0
+[22:56:04 - 192.168.7.184] 🛩️ [DCS] ATTEMPING SEND: EXT_PWR_SW = 0 (forced)
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] EXT_PWR_SW 0
+[22:56:04 - 192.168.7.184] 🛩️ [DCS] ATTEMPING SEND: GND_PWR_1_SW = 0 (forced)
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] GND_PWR_1_SW 0
+[22:56:04 - 192.168.7.184] 🛩️ [DCS] ATTEMPING SEND: GND_PWR_2_SW = 1 (forced)
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] GND_PWR_2_SW 1
+[22:56:04 - 192.168.7.184] 🛩️ [DCS] ATTEMPING SEND: GND_PWR_3_SW = 0 (forced)
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] GND_PWR_3_SW 0
+[22:56:04 - 192.168.7.184] 🛩️ [DCS] ATTEMPING SEND: GND_PWR_4_SW = 0 (forced)
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] GND_PWR_4_SW 0
+[22:56:04 - 192.168.7.184] 🛩️ [DCS] ATTEMPING SEND: INT_WNG_TANK_SW = 0 (forced)
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] INT_WNG_TANK_SW 0
+[22:56:04 - 192.168.7.184] 🛩️ [DCS] ATTEMPING SEND: STROBE_SW = 1 (forced)
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] STROBE_SW 1
+[22:56:04 - 192.168.7.184] 🛩️ [DCS] ATTEMPING SEND: FIRE_TEST_SW = 1 (forced)
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] FIRE_TEST_SW 1
+[22:56:04 - 192.168.7.184] 🛩️ [DCS] ATTEMPING SEND: GEN_TIE_SW = 0 (forced)
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] GEN_TIE_SW 0
+[22:56:04 - 192.168.7.184] 🛩️ [DCS] ATTEMPING SEND: EXT_PWR_SW = 0 (forced)
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] EXT_PWR_SW 0
+[22:56:04 - 192.168.7.184] 🛩️ [DCS] ATTEMPING SEND: GND_PWR_1_SW = 0 (forced)
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] GND_PWR_1_SW 0
+[22:56:04 - 192.168.7.184] 🛩️ [DCS] ATTEMPING SEND: GND_PWR_2_SW = 1 (forced)
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] GND_PWR_2_SW 1
+[22:56:04 - 192.168.7.184] 🛩️ [DCS] ATTEMPING SEND: GND_PWR_3_SW = 0 (forced)
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] GND_PWR_3_SW 0
+[22:56:04 - 192.168.7.184] 🛩️ [DCS] ATTEMPING SEND: GND_PWR_4_SW = 0 (forced)
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] GND_PWR_4_SW 0
+[22:56:04 - 192.168.7.184] ✅ Initialized Front Left Panel Buttons
+[22:56:04 - 192.168.7.184] [SYNC] Normal mission start panel sync
+[22:56:04 - 192.168.7.184] [STATE UPDATE] 🔁 STROBE_SW = POS2
+[22:56:04 - 192.168.7.184] [STATE UPDATE] 🔁 GND_PWR_3_SW = AUTO
+[22:56:04 - 192.168.7.184] [STATE UPDATE] 🔁 GND_PWR_4_SW = AUTO
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] FORMATION_DIMMER 65535
+[22:56:04 - 192.168.7.184] 🛩️ [DCS-USB] POSITION_DIMMER 65535
+[22:56:10 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:11 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:12 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:13 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:14 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:15 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:16 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:17 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:18 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:19 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:20 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:21 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:22 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:23 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:24 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:25 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:26 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:27 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:28 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:29 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:30 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:31 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:32 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:34 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:35 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:36 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:37 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:38 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:39 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:40 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:41 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:42 - 192.168.7.184] 
+[22:56:42 - 192.168.7.184] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:56:42 - 192.168.7.184] 🔍  Profiling Averages:
+[22:56:42 - 192.168.7.184] ∘ Main Loop       :   0.02 ms
+[22:56:42 - 192.168.7.184] +----------------------------------------------------------------+
+[22:56:42 - 192.168.7.184] 🕑  System Status:
+[22:56:42 - 192.168.7.184] ∘ Headroom      : 3.976 ms ( 99.4%)
+[22:56:42 - 192.168.7.184] ∘ Scale Cap.    : 166.86x current workload
+[22:56:42 - 192.168.7.184] ∘ Uptime        : 1m07s
+[22:56:42 - 192.168.7.184] ∘ CPU Frequency : 240 MHz
+[22:56:42 - 192.168.7.184] ∘ Last Reset    : Power-on
+[22:56:42 - 192.168.7.184] +----------------------------------------------------------------+
+[22:56:42 - 192.168.7.184] 💾  Memory Fragmentation:
+[22:56:42 - 192.168.7.184] ∘ Internal SRAM : free     61 KB, largest     51 KB, frag  15.3%
+[22:56:42 - 192.168.7.184] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[22:56:42 - 192.168.7.184] +----------------------------------------------------------------+
+[22:56:42 - 192.168.7.184] 📡  USB-CDC Buffer Health:
+[22:56:42 - 192.168.7.184] ∘ TX Free Slots :     64 bytes
+[22:56:42 - 192.168.7.184] ∘ RX Pending    :      0 bytes
+[22:56:42 - 192.168.7.184] +----------------------------------------------------------------+
+[22:56:42 - 192.168.7.184] 🔁  Ring Buffer Health:
+[22:56:42 - 192.168.7.184] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[22:56:42 - 192.168.7.184] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  4, overruns 0
+[22:56:42 - 192.168.7.184] ∘ USB Send DCS  : avg  18.6 bytes, max 64 bytes, pending 13, max 15, overruns 0
+[22:56:42 - 192.168.7.184] +----------------------------------------------------------------+
+[22:56:42 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:43 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:44 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:45 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:46 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:47 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:48 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:49 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:50 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:51 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:52 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:53 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:54 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:55 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:56 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:57 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:58 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:56:59 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:00 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:01 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:02 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:03 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:04 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:05 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:06 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:07 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:08 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:09 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:10 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:11 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:12 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:13 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:14 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:15 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:16 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:17 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:18 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:19 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:20 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:21 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:22 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:23 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:24 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:25 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:26 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:27 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:28 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:29 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:30 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:57:31 - 192.168.7.184] ❌ USB Stopped
+[22:57:39 - 192.168.7.184] [SYNC] Command history has been initialized from InputMappings (lastValue cleared).
+[22:57:39 - 192.168.7.184] 🔌 USB Started
+[22:57:39 - 192.168.7.184] [HID EVENT] SET_IDLE: Interface 0 → no periodic reports required
+[22:57:39 - 192.168.7.184] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.184
+[22:57:39 - 192.168.7.184] =================== [STARTING DEVICE] ===================
+[22:57:39 - 192.168.7.184] SRAM free:     62 KB, largest:     53 KB, frag:  13.9%
+[22:57:39 - 192.168.7.184] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[22:57:39 - 192.168.7.184] I²C Initialized using the ESP-IDF Library (Fast mode)
+[22:57:39 - 192.168.7.184] Using SDA 8 and SCL 9 for I2C
+[22:57:40 - 192.168.7.184] No I2C devices found.
+[22:57:40 - 192.168.7.184] Initializing Displays
+[22:57:40 - 192.168.7.184] Initializing LEDs
+[22:57:40 - 192.168.7.184] ⚠️ Caution Advisory NOT detected!
+[22:57:40 - 192.168.7.184] ⚠️ No Annunciators detected!
+[22:57:40 - 192.168.7.184] 🔆 Turning ALL GPIO LEDs ON
+[22:57:41 - 192.168.7.184] ⚫ Turning ALL GPIO LEDs OFF
+[22:57:41 - 192.168.7.184] Syncronizing Panel state....
+[22:57:41 - 192.168.7.184] ✅ Initialized Front Left Panel Buttons
+[22:57:41 - 192.168.7.184] Selected mode: DCS-BIOS
+[22:57:41 - 192.168.7.184] Device "Front Left Panel" is ready
+[22:57:41 - 192.168.7.184] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[22:57:41 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send FORMATION_DIMMER 65535
+[22:57:41 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 65535
+[22:57:41 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send INT_WNG_TANK_SW 0
+[22:57:41 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send STROBE_SW 1
+[22:57:41 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send FIRE_TEST_SW 1
+[22:57:41 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GEN_TIE_SW 0
+[22:57:41 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send EXT_PWR_SW 0
+[22:57:41 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_1_SW 0
+[22:57:41 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_2_SW 1
+[22:57:41 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_3_SW 0
+[22:57:41 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_4_SW 0
+[22:58:20 - 192.168.7.184] [SYNC] Command history has been initialized from InputMappings (lastValue cleared).
+[22:58:20 - 192.168.7.184] 🔌 USB Started
+[22:58:20 - 192.168.7.184] [HID EVENT] SET_IDLE: Interface 0 → no periodic reports required
+[22:58:20 - 192.168.7.184] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.184
+[22:58:20 - 192.168.7.184] =================== [STARTING DEVICE] ===================
+[22:58:20 - 192.168.7.184] SRAM free:     62 KB, largest:     53 KB, frag:  13.5%
+[22:58:20 - 192.168.7.184] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[22:58:20 - 192.168.7.184] I²C Initialized using the ESP-IDF Library (Fast mode)
+[22:58:20 - 192.168.7.184] Using SDA 8 and SCL 9 for I2C
+[22:58:21 - 192.168.7.184] No I2C devices found.
+[22:58:21 - 192.168.7.184] Initializing Displays
+[22:58:21 - 192.168.7.184] Initializing LEDs
+[22:58:21 - 192.168.7.184] ⚠️ Lock/Shoot NOT detected!
+[22:58:21 - 192.168.7.184] ⚠️ Caution Advisory NOT detected!
+[22:58:21 - 192.168.7.184] ⚠️ No Annunciators detected!
+[22:58:21 - 192.168.7.184] 🔆 Turning ALL GPIO LEDs ON
+[22:58:22 - 192.168.7.184] ⚫ Turning ALL GPIO LEDs OFF
+[22:58:22 - 192.168.7.184] Syncronizing Panel state....
+[22:58:22 - 192.168.7.184] ✅ Initialized Front Left Panel Buttons
+[22:58:22 - 192.168.7.184] Selected mode: DCS-BIOS
+[22:58:22 - 192.168.7.184] Device "Front Left Panel" is ready
+[22:58:22 - 192.168.7.184] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[22:58:23 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send FORMATION_DIMMER 65535
+[22:58:23 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 65535
+[22:58:23 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send INT_WNG_TANK_SW 0
+[22:58:23 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send STROBE_SW 1
+[22:58:23 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send FIRE_TEST_SW 1
+[22:58:23 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GEN_TIE_SW 0
+[22:58:23 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send EXT_PWR_SW 0
+[22:58:23 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_1_SW 0
+[22:58:23 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_2_SW 1
+[22:58:23 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_3_SW 0
+[22:58:23 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_4_SW 0
+[22:58:41 - 192.168.7.184] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
+[22:58:41 - 192.168.7.184] [STREAM] UP
+[22:58:41 - 192.168.7.184] [MISSION START] FA-18C_hornet
+[22:58:42 - 192.168.7.184] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:58:42 - 192.168.7.184] [SYNC] Command history has been initialized from InputMappings (lastValue cleared).
+[22:58:42 - 192.168.7.184] Syncronizing Panel state....
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] INT_WNG_TANK_SW 0
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] STROBE_SW 1
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] FIRE_TEST_SW 1
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] GEN_TIE_SW 0
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] EXT_PWR_SW 0
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] GND_PWR_1_SW 0
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] GND_PWR_2_SW 1
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] GND_PWR_3_SW 0
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] GND_PWR_4_SW 0
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] INT_WNG_TANK_SW 0
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] STROBE_SW 1
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] FIRE_TEST_SW 1
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] GEN_TIE_SW 0
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] EXT_PWR_SW 0
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] GND_PWR_1_SW 0
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] GND_PWR_2_SW 1
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] GND_PWR_3_SW 0
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] GND_PWR_4_SW 0
+[22:58:42 - 192.168.7.184] ✅ Initialized Front Left Panel Buttons
+[22:58:42 - 192.168.7.184] [SYNC] Normal mission start panel sync
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] FORMATION_DIMMER 65535
+[22:58:42 - 192.168.7.184] 🛩️ [DCS-USB] POSITION_DIMMER 65535
+[22:58:42 - 192.168.7.184] [STATE UPDATE] 🔁 FIRE_TEST_SW = POS1
+[22:58:42 - 192.168.7.184] [STATE UPDATE] 🔁 EXT_PWR_SW = NORM
+[22:58:42 - 192.168.7.184] [STATE UPDATE] 🔁 GND_PWR_1_SW = AUTO
+[22:58:42 - 192.168.7.184] [STATE UPDATE] 🔁 GND_PWR_2_SW = AUTO
+[22:58:45 - 192.168.7.184] [STATE UPDATE] 🔁 STROBE_SW = POS2
+[22:58:45 - 192.168.7.184] [STATE UPDATE] 🔁 GND_PWR_3_SW = AUTO
+[22:58:45 - 192.168.7.184] [STATE UPDATE] 🔁 GND_PWR_4_SW = AUTO
+[22:58:48 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:58:49 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:58:50 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:58:51 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:58:52 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:58:53 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:58:54 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:58:55 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:58:56 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:58:57 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:58:58 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:58:59 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:00 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:01 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:02 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:03 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:04 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:05 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:06 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:07 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:08 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:09 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:10 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:11 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:12 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:13 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:14 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:15 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:16 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:17 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:18 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:19 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:20 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:21 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:22 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:22 - 192.168.7.184] 
+[22:59:22 - 192.168.7.184] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:59:22 - 192.168.7.184] 🔍  Profiling Averages:
+[22:59:22 - 192.168.7.184] ∘ Main Loop       :   0.03 ms
+[22:59:22 - 192.168.7.184] +----------------------------------------------------------------+
+[22:59:22 - 192.168.7.184] 🕑  System Status:
+[22:59:22 - 192.168.7.184] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:59:22 - 192.168.7.184] ∘ Headroom      : 3.965 ms ( 99.1%)
+[22:59:22 - 192.168.7.184] ∘ Scale Cap.    : 114.75x current workload
+[22:59:22 - 192.168.7.184] ∘ Uptime        : 1m06s
+[22:59:22 - 192.168.7.184] ∘ CPU Frequency : 240 MHz
+[22:59:23 - 192.168.7.184] ∘ Last Reset    : Software
+[22:59:23 - 192.168.7.184] +----------------------------------------------------------------+
+[22:59:23 - 192.168.7.184] 💾  Memory Fragmentation:
+[22:59:23 - 192.168.7.184] ∘ Internal SRAM : free     61 KB, largest     51 KB, frag  15.9%
+[22:59:23 - 192.168.7.184] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[22:59:23 - 192.168.7.184] +----------------------------------------------------------------+
+[22:59:23 - 192.168.7.184] 📡  USB-CDC Buffer Health:
+[22:59:23 - 192.168.7.184] ∘ TX Free Slots :     64 bytes
+[22:59:23 - 192.168.7.184] ∘ RX Pending    :      0 bytes
+[22:59:23 - 192.168.7.184] +----------------------------------------------------------------+
+[22:59:23 - 192.168.7.184] 🔁  Ring Buffer Health:
+[22:59:23 - 192.168.7.184] ∘ Serial Debug     : avg  13.7 bytes, max 63 bytes, pending  6, max  6, overruns 0
+[22:59:23 - 192.168.7.184] ∘ UDP Send Debug   : avg  43.1 bytes, max 63 bytes, pending  7, max 24, overruns 0
+[22:59:23 - 192.168.7.184] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[22:59:23 - 192.168.7.184] ∘ USB Send DCS  : avg  18.6 bytes, max 64 bytes, pending 13, max 15, overruns 0
+[22:59:23 - 192.168.7.184] +----------------------------------------------------------------+
+[22:59:23 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:24 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:25 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:26 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:27 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:28 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:29 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[22:59:30 - 192.168.7.184] [MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)
+[23:09:35 - 192.168.7.184] [SYNC] Command history has been initialized from InputMappings (lastValue cleared).
+[23:09:35 - 192.168.7.184] 🔌 USB Started
+[23:09:35 - 192.168.7.184] [HID EVENT] SET_IDLE: Interface 0 → no periodic reports required
+[23:09:35 - 192.168.7.184] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.184
+[23:09:35 - 192.168.7.184] =================== [STARTING DEVICE] ===================
+[23:09:35 - 192.168.7.184] SRAM free:     62 KB, largest:     53 KB, frag:  13.2%
+[23:09:35 - 192.168.7.184] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[23:09:35 - 192.168.7.184] I²C Initialized using the ESP-IDF Library (Fast mode)
+[23:09:35 - 192.168.7.184] Using SDA 8 and SCL 9 for I2C
+[23:09:36 - 192.168.7.184] No I2C devices found.
+[23:09:36 - 192.168.7.184] Initializing Displays
+[23:09:36 - 192.168.7.184] Initializing LEDs
+[23:09:36 - 192.168.7.184] ⚠️ Lock/Shoot NOT detected!
+[23:09:36 - 192.168.7.184] ⚠️ Caution Advisory NOT detected!
+[23:09:36 - 192.168.7.184] ⚠️ No Annunciators detected!
+[23:09:36 - 192.168.7.184] 🔆 Turning ALL GPIO LEDs ON
+[23:09:37 - 192.168.7.184] ⚫ Turning ALL GPIO LEDs OFF
+[23:09:37 - 192.168.7.184] Syncronizing Panel state....
+[23:09:37 - 192.168.7.184] ✅ Initialized Front Left Panel Buttons
+[23:09:37 - 192.168.7.184] Selected mode: DCS-BIOS
+[23:09:37 - 192.168.7.184] Device "Front Left Panel" is ready
+[23:09:37 - 192.168.7.184] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[23:09:37 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send FORMATION_DIMMER 65535
+[23:09:37 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 65535
+[23:09:37 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send INT_WNG_TANK_SW 0
+[23:09:37 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send STROBE_SW 1
+[23:09:37 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send FIRE_TEST_SW 1
+[23:09:37 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GEN_TIE_SW 0
+[23:09:37 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send EXT_PWR_SW 0
+[23:09:37 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_1_SW 0
+[23:09:37 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_2_SW 1
+[23:09:37 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_3_SW 0
+[23:09:37 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_4_SW 0
+[23:10:37 - 192.168.7.184] 
+[23:10:37 - 192.168.7.184] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:10:37 - 192.168.7.184] 🔍  Profiling Averages:
+[23:10:37 - 192.168.7.184] ∘ Main Loop       :   0.03 ms
+[23:10:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:10:37 - 192.168.7.184] 🕑  System Status:
+[23:10:37 - 192.168.7.184] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[23:10:37 - 192.168.7.184] ∘ Headroom      : 3.967 ms ( 99.2%)
+[23:10:37 - 192.168.7.184] ∘ Scale Cap.    : 121.56x current workload
+[23:10:37 - 192.168.7.184] ∘ Uptime        : 1m07s
+[23:10:37 - 192.168.7.184] ∘ CPU Frequency : 240 MHz
+[23:10:37 - 192.168.7.184] ∘ Last Reset    : Power-on
+[23:10:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:10:37 - 192.168.7.184] 💾  Memory Fragmentation:
+[23:10:37 - 192.168.7.184] ∘ Internal SRAM : free     61 KB, largest     51 KB, frag  15.5%
+[23:10:37 - 192.168.7.184] ∘ PSRAM Pool    : free   2027 KB, largest   2015 KB, frag   0.6%
+[23:10:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:10:37 - 192.168.7.184] 📡  USB-CDC Buffer Health:
+[23:10:37 - 192.168.7.184] ∘ TX Free Slots :     64 bytes
+[23:10:37 - 192.168.7.184] ∘ RX Pending    :      0 bytes
+[23:10:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:10:37 - 192.168.7.184] 🔁  Ring Buffer Health:
+[23:10:37 - 192.168.7.184] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[23:10:37 - 192.168.7.184] ∘ UDP Send Debug   : avg  38.1 bytes, max 63 bytes, pending  7, max 11, overruns 0
+[23:10:37 - 192.168.7.184] ∘ UDP Receive DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:10:37 - 192.168.7.184] ∘ USB Send DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:10:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:11:37 - 192.168.7.184] 
+[23:11:37 - 192.168.7.184] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:11:37 - 192.168.7.184] 🔍  Profiling Averages:
+[23:11:37 - 192.168.7.184] ∘ Main Loop       :   0.03 ms
+[23:11:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:11:37 - 192.168.7.184] 🕑  System Status:
+[23:11:37 - 192.168.7.184] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[23:11:37 - 192.168.7.184] ∘ Headroom      : 3.967 ms ( 99.2%)
+[23:11:37 - 192.168.7.184] ∘ Scale Cap.    : 121.56x current workload
+[23:11:37 - 192.168.7.184] ∘ Uptime        : 2m07s
+[23:11:37 - 192.168.7.184] ∘ CPU Frequency : 240 MHz
+[23:11:37 - 192.168.7.184] ∘ Last Reset    : Power-on
+[23:11:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:11:37 - 192.168.7.184] 💾  Memory Fragmentation:
+[23:11:37 - 192.168.7.184] ∘ Internal SRAM : free     62 KB, largest     53 KB, frag  12.9%
+[23:11:37 - 192.168.7.184] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[23:11:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:11:37 - 192.168.7.184] 📡  USB-CDC Buffer Health:
+[23:11:37 - 192.168.7.184] ∘ TX Free Slots :     64 bytes
+[23:11:37 - 192.168.7.184] ∘ RX Pending    :      0 bytes
+[23:11:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:11:37 - 192.168.7.184] 🔁  Ring Buffer Health:
+[23:11:37 - 192.168.7.184] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[23:11:37 - 192.168.7.184] ∘ UDP Send Debug   : avg  36.9 bytes, max 63 bytes, pending  7, max 16, overruns 0
+[23:11:37 - 192.168.7.184] ∘ UDP Receive DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:11:37 - 192.168.7.184] ∘ USB Send DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:11:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:12:37 - 192.168.7.184] 
+[23:12:37 - 192.168.7.184] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:12:37 - 192.168.7.184] 🔍  Profiling Averages:
+[23:12:37 - 192.168.7.184] ∘ Main Loop       :   0.03 ms
+[23:12:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:12:37 - 192.168.7.184] 🕑  System Status:
+[23:12:37 - 192.168.7.184] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[23:12:37 - 192.168.7.184] ∘ Headroom      : 3.967 ms ( 99.2%)
+[23:12:37 - 192.168.7.184] ∘ Scale Cap.    : 121.43x current workload
+[23:12:37 - 192.168.7.184] ∘ Uptime        : 3m07s
+[23:12:37 - 192.168.7.184] ∘ CPU Frequency : 240 MHz
+[23:12:37 - 192.168.7.184] ∘ Last Reset    : Power-on
+[23:12:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:12:37 - 192.168.7.184] 💾  Memory Fragmentation:
+[23:12:37 - 192.168.7.184] ∘ Internal SRAM : free     62 KB, largest     53 KB, frag  12.9%
+[23:12:37 - 192.168.7.184] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[23:12:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:12:37 - 192.168.7.184] 📡  USB-CDC Buffer Health:
+[23:12:37 - 192.168.7.184] ∘ TX Free Slots :     64 bytes
+[23:12:37 - 192.168.7.184] ∘ RX Pending    :      0 bytes
+[23:12:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:12:37 - 192.168.7.184] 🔁  Ring Buffer Health:
+[23:12:37 - 192.168.7.184] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[23:12:37 - 192.168.7.184] ∘ UDP Send Debug   : avg  36.4 bytes, max 63 bytes, pending  7, max 16, overruns 0
+[23:12:37 - 192.168.7.184] ∘ UDP Receive DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:12:37 - 192.168.7.184] ∘ USB Send DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:12:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:13:37 - 192.168.7.184] 
+[23:13:37 - 192.168.7.184] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:13:37 - 192.168.7.184] 🔍  Profiling Averages:
+[23:13:37 - 192.168.7.184] ∘ Main Loop       :   0.03 ms
+[23:13:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:13:37 - 192.168.7.184] 🕑  System Status:
+[23:13:37 - 192.168.7.184] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[23:13:37 - 192.168.7.184] ∘ Headroom      : 3.967 ms ( 99.2%)
+[23:13:37 - 192.168.7.184] ∘ Scale Cap.    : 121.53x current workload
+[23:13:37 - 192.168.7.184] ∘ Uptime        : 4m07s
+[23:13:37 - 192.168.7.184] ∘ CPU Frequency : 240 MHz
+[23:13:37 - 192.168.7.184] ∘ Last Reset    : Power-on
+[23:13:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:13:37 - 192.168.7.184] 💾  Memory Fragmentation:
+[23:13:37 - 192.168.7.184] ∘ Internal SRAM : free     62 KB, largest     53 KB, frag  12.9%
+[23:13:37 - 192.168.7.184] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[23:13:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:13:37 - 192.168.7.184] 📡  USB-CDC Buffer Health:
+[23:13:37 - 192.168.7.184] ∘ TX Free Slots :     64 bytes
+[23:13:37 - 192.168.7.184] ∘ RX Pending    :      0 bytes
+[23:13:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:13:37 - 192.168.7.184] 🔁  Ring Buffer Health:
+[23:13:37 - 192.168.7.184] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[23:13:37 - 192.168.7.184] ∘ UDP Send Debug   : avg  36.1 bytes, max 63 bytes, pending  7, max 16, overruns 0
+[23:13:37 - 192.168.7.184] ∘ UDP Receive DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:13:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:14:37 - 192.168.7.184] 
+[23:14:37 - 192.168.7.184] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:14:37 - 192.168.7.184] 🔍  Profiling Averages:
+[23:14:37 - 192.168.7.184] ∘ Main Loop       :   0.03 ms
+[23:14:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:14:37 - 192.168.7.184] 🕑  System Status:
+[23:14:37 - 192.168.7.184] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[23:14:37 - 192.168.7.184] ∘ Headroom      : 3.967 ms ( 99.2%)
+[23:14:37 - 192.168.7.184] ∘ Scale Cap.    : 121.51x current workload
+[23:14:37 - 192.168.7.184] ∘ Uptime        : 5m07s
+[23:14:37 - 192.168.7.184] ∘ CPU Frequency : 240 MHz
+[23:14:37 - 192.168.7.184] ∘ Last Reset    : Power-on
+[23:14:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:14:37 - 192.168.7.184] 💾  Memory Fragmentation:
+[23:14:37 - 192.168.7.184] ∘ Internal SRAM : free     62 KB, largest     53 KB, frag  12.9%
+[23:14:37 - 192.168.7.184] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[23:14:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:14:37 - 192.168.7.184] 📡  USB-CDC Buffer Health:
+[23:14:37 - 192.168.7.184] ∘ TX Free Slots :     64 bytes
+[23:14:37 - 192.168.7.184] ∘ RX Pending    :      0 bytes
+[23:14:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:14:37 - 192.168.7.184] 🔁  Ring Buffer Health:
+[23:14:37 - 192.168.7.184] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[23:14:37 - 192.168.7.184] ∘ UDP Send Debug   : avg  36.0 bytes, max 63 bytes, pending  7, max 16, overruns 0
+[23:14:37 - 192.168.7.184] ∘ UDP Receive DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:14:37 - 192.168.7.184] ∘ USB Send DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:14:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:15:37 - 192.168.7.184] 
+[23:15:37 - 192.168.7.184] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:15:37 - 192.168.7.184] 🔍  Profiling Averages:
+[23:15:37 - 192.168.7.184] ∘ Main Loop       :   0.03 ms
+[23:15:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:15:37 - 192.168.7.184] 🕑  System Status:
+[23:15:37 - 192.168.7.184] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[23:15:37 - 192.168.7.184] ∘ Headroom      : 3.967 ms ( 99.2%)
+[23:15:37 - 192.168.7.184] ∘ Scale Cap.    : 121.33x current workload
+[23:15:37 - 192.168.7.184] ∘ Uptime        : 6m07s
+[23:15:37 - 192.168.7.184] ∘ CPU Frequency : 240 MHz
+[23:15:37 - 192.168.7.184] ∘ Last Reset    : Power-on
+[23:15:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:15:37 - 192.168.7.184] ∘ Internal SRAM : free     62 KB, largest     53 KB, frag  12.9%
+[23:15:37 - 192.168.7.184] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[23:15:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:15:37 - 192.168.7.184] 📡  USB-CDC Buffer Health:
+[23:15:37 - 192.168.7.184] ∘ TX Free Slots :     64 bytes
+[23:15:37 - 192.168.7.184] ∘ RX Pending    :      0 bytes
+[23:15:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:15:37 - 192.168.7.184] 🔁  Ring Buffer Health:
+[23:15:37 - 192.168.7.184] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[23:15:37 - 192.168.7.184] ∘ UDP Send Debug   : avg  35.8 bytes, max 63 bytes, pending  7, max 16, overruns 0
+[23:15:37 - 192.168.7.184] ∘ UDP Receive DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:15:37 - 192.168.7.184] ∘ USB Send DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:15:37 - 192.168.7.184] +----------------------------------------------------------------+
+[23:16:16 - 192.168.7.184] [SYNC] Command history has been initialized from InputMappings (lastValue cleared).
+[23:16:16 - 192.168.7.184] 🔌 USB Started
+[23:16:16 - 192.168.7.184] [HID EVENT] SET_IDLE: Interface 0 → no periodic reports required
+[23:16:16 - 192.168.7.184] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.184
+[23:16:16 - 192.168.7.184] =================== [STARTING DEVICE] ===================
+[23:16:16 - 192.168.7.184] SRAM free:     62 KB, largest:     53 KB, frag:  13.5%
+[23:16:16 - 192.168.7.184] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[23:16:16 - 192.168.7.184] I²C Initialized using the ESP-IDF Library (Fast mode)
+[23:16:16 - 192.168.7.184] Using SDA 8 and SCL 9 for I2C
+[23:16:17 - 192.168.7.184] No I2C devices found.
+[23:16:17 - 192.168.7.184] Initializing Displays
+[23:16:17 - 192.168.7.184] Initializing LEDs
+[23:16:17 - 192.168.7.184] ⚠️ Lock/Shoot NOT detected!
+[23:16:17 - 192.168.7.184] ⚠️ Caution Advisory NOT detected!
+[23:16:17 - 192.168.7.184] ⚠️ No Annunciators detected!
+[23:16:17 - 192.168.7.184] 🔆 Turning ALL GPIO LEDs ON
+[23:16:18 - 192.168.7.184] ⚫ Turning ALL GPIO LEDs OFF
+[23:16:18 - 192.168.7.184] Syncronizing Panel state....
+[23:16:18 - 192.168.7.184] ✅ Initialized Front Left Panel Buttons
+[23:16:18 - 192.168.7.184] Selected mode: DCS-BIOS
+[23:16:18 - 192.168.7.184] Device "Front Left Panel" is ready
+[23:16:18 - 192.168.7.184] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[23:16:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send FORMATION_DIMMER 65535
+[23:16:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send POSITION_DIMMER 65535
+[23:16:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send INT_WNG_TANK_SW 0
+[23:16:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send STROBE_SW 1
+[23:16:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send FIRE_TEST_SW 1
+[23:16:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GEN_TIE_SW 0
+[23:16:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send EXT_PWR_SW 0
+[23:16:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_1_SW 0
+[23:16:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_2_SW 1
+[23:16:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_3_SW 0
+[23:16:18 - 192.168.7.184] 🛩️ [DCS-USB] DCS NOT READY! could not send GND_PWR_4_SW 0
+[23:17:18 - 192.168.7.184] 
+[23:17:18 - 192.168.7.184] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:17:18 - 192.168.7.184] 🔍  Profiling Averages:
+[23:17:18 - 192.168.7.184] ∘ Main Loop       :   0.03 ms
+[23:17:18 - 192.168.7.184] 🕑  System Status:
+[23:17:18 - 192.168.7.184] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[23:17:18 - 192.168.7.184] ∘ Headroom      : 3.967 ms ( 99.2%)
+[23:17:18 - 192.168.7.184] ∘ Scale Cap.    : 121.67x current workload
+[23:17:18 - 192.168.7.184] ∘ Uptime        : 1m07s
+[23:17:18 - 192.168.7.184] ∘ CPU Frequency : 240 MHz
+[23:17:18 - 192.168.7.184] ∘ Last Reset    : Power-on
+[23:17:18 - 192.168.7.184] +----------------------------------------------------------------+
+[23:17:18 - 192.168.7.184] 💾  Memory Fragmentation:
+[23:17:18 - 192.168.7.184] ∘ Internal SRAM : free     62 KB, largest     53 KB, frag  13.3%
+[23:17:18 - 192.168.7.184] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[23:17:18 - 192.168.7.184] +----------------------------------------------------------------+
+[23:17:18 - 192.168.7.184] 📡  USB-CDC Buffer Health:
+[23:17:18 - 192.168.7.184] ∘ TX Free Slots :     64 bytes
+[23:17:18 - 192.168.7.184] ∘ RX Pending    :      0 bytes
+[23:17:18 - 192.168.7.184] +----------------------------------------------------------------+
+[23:17:18 - 192.168.7.184] 🔁  Ring Buffer Health:
+[23:17:18 - 192.168.7.184] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[23:17:18 - 192.168.7.184] ∘ UDP Send Debug   : avg  38.1 bytes, max 63 bytes, pending  7, max 11, overruns 0
+[23:17:18 - 192.168.7.184] ∘ UDP Receive DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:17:18 - 192.168.7.184] ∘ USB Send DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:17:18 - 192.168.7.184] +----------------------------------------------------------------+

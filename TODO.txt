@@ -7,4 +7,10 @@ over the network. A way to reproduce the issue is: Compile the MAIN_PANEL label 
 enabled, notice the Lockshoot indicator staying WHITE. It stops working. Just disable WiFi and it will work again. This is most likely a WiFI/RMT conflict issue/bug in Arduino Core 2.x
 
 
-HID Hanlder edge cases (replicate starting the computer or resuming from sleep with device already connected)
+HID Handler edge cases (replicate starting the computer or resuming from sleep with device already connected)
+
+Make WS2812 generic and modify panel struct/union to add index characteristics (color) and device instance
+
+Test UART for Serial coms on S3's and C3's simultaneously with USB HIDs (using HID keepalives). To test stability
+
+HID Manager Headless + C++ version

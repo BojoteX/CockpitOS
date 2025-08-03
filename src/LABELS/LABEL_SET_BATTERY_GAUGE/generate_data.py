@@ -304,6 +304,28 @@ for panel, controls in data.items():
                 else:
                     selector_entries.append((f"{ident}_{clean}", ident, i, ctype, 0, clean))
 
+
+
+# -------- PATCH: Assign missing group IDs for exclusive selectors --------
+from collections import defaultdict
+label_to_indices = defaultdict(list)
+for idx, (full, cmd, val, ct, grp, lab) in enumerate(selector_entries):
+    if ct == 'selector':
+        label_to_indices[cmd].append(idx)
+
+next_group_id = groupCounter + 1
+for cmd, indices in label_to_indices.items():
+    # If more than one entry and all groups are 0, assign a new unique group
+    if len(indices) > 1 and all(selector_entries[i][4] == 0 for i in indices):
+        for i in indices:
+            entry = list(selector_entries[i])
+            entry[4] = next_group_id
+            selector_entries[i] = tuple(entry)
+        next_group_id += 1
+# -------- END PATCH --------
+
+
+
 # -------- WRITE HEADER FOR OUTPUT AND SELECTORS -------- 
 
 with open(OUTPUT_HEADER, 'w', encoding='utf-8') as f:
@@ -416,9 +438,19 @@ with open(OUTPUT_HEADER, 'w', encoding='utf-8') as f:
 
     # Build a flat list of all unique oride_labels and mark selectors with group > 0
     command_tracking = {}
+
+    # for full, cmd, val, ct, grp, lab in selector_entries:
+        # if cmd not in command_tracking:
+            # command_tracking[cmd] = (grp > 0, grp)
+
     for full, cmd, val, ct, grp, lab in selector_entries:
-        if cmd not in command_tracking:
+        if cmd in command_tracking:
+            is_sel, old_grp = command_tracking[cmd]
+            command_tracking[cmd] = ((is_sel or grp > 0), max(old_grp, grp))
+        else:
             command_tracking[cmd] = (grp > 0, grp)
+
+
 
     # ——— EMIT THE UNIFIED COMMAND HISTORY TABLE WITH GROUP + BUFFER FIELDS + HID REPORT CACHE ———
     f.write("\n// Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)\n")

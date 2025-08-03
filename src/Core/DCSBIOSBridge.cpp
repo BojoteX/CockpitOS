@@ -336,6 +336,23 @@ void dumpAllMetadata() {
     }
 }
 
+void syncCommandHistoryFromInputMapping() {
+    for (size_t i = 0; i < commandHistorySize; ++i) {
+        CommandHistoryEntry& e = commandHistory[i];
+        e.isSelector = false;
+        e.group = 0;
+        e.lastValue = 0xFFFF;
+        for (size_t j = 0; j < InputMappingSize; ++j) {
+            const InputMapping& m = InputMappings[j];
+            if (strcmp(e.label, m.oride_label) == 0 && strcmp(m.controlType, "selector") == 0) {
+                e.isSelector = true;
+                if (m.group > e.group) e.group = m.group;
+            }
+        }
+    }
+	debugPrint("[SYNC] Command history has been initialized from InputMappings (lastValue cleared).\n");
+}
+
 // this will run only ONCE. Ideally, this should go after we receive data for this first time
 void initPanels() {
         
@@ -356,6 +373,9 @@ void initPanels() {
 
     // Ensures cockpit state and selectors are in sync
     // validateSelectorSync();
+
+	// Reset all tracked command history entries
+    syncCommandHistoryFromInputMapping();
 
     // This ensures your cockpit and sim always sync on mission start
     initializePanels(1);
@@ -1047,28 +1067,49 @@ void sendCommand(const char* msg, const char* arg, bool silent) {
         }
         */
 
-        if (!cdcEnsureTxReady(CDC_TIMEOUT_RX_TX)) {
-            if (!silent) debugPrintln("❌ [DCS] No stream active yet or Tx buffer full");
-            return;
-        }
+        if (isMissionRunning() && isPanelsSyncedThisMission() && mySniffer.isStreamAlive()) {
 
-        cdcTxReady = false;
-        if (tryToSendDcsBiosMessage(msg, arg)) {
-            if(!silent) debugPrintf("🛩️ [DCS] %s %s\n", msg, arg);
-        } else {
-            if(!silent) debugPrintf("❌ [DCS] Failed to send %s %s\n", msg, arg);
-            return;
-        }
-    }
-    else {
-        // This assumes a healthy Serial connection is established
-        cdcTxReady = false;
-        if(tryToSendDcsBiosMessage(msg, arg)) {
-            if(!silent) debugPrintf("🛩️ [DCS-CONNECTED] %s %s\n", msg, arg);       
+            if (!cdcEnsureTxReady(CDC_TIMEOUT_RX_TX)) {
+                if (!silent) debugPrintln("❌ [DCS] Tx buffer full");
+                return;
+            }
+
+            cdcTxReady = false;
+            if (tryToSendDcsBiosMessage(msg, arg)) {
+                if (!silent) debugPrintf("🛩️ [DCS] %s %s\n", msg, arg);
+            }
+            else {
+                if (!silent) debugPrintf("❌ [DCS] Failed to send %s %s\n", msg, arg);
+                return;
+            }
         }
         else {
-            if(!silent) debugPrintf("❌ [DCS-CONNECTED] Failed to send %s %s\n", msg, arg);       
-        }        
+            if (!silent) debugPrintf("🛩️ [DCS-CDC] DCS NOT READY! could not send %s %s\n", msg, arg);
+        }
+
+    }
+    else {
+        bool bypass = false;
+        if ((isMissionRunning() && isPanelsSyncedThisMission() && mySniffer.isStreamAlive()) || bypass) {
+
+            // Testing
+            if (bypass) {
+				debugPrintf("🛩️ [DCS-CDC] Bypassing stream gating due to bypass flag\n");
+            }
+
+            // This assumes a healthy Serial connection is established
+            cdcTxReady = false;
+            if (tryToSendDcsBiosMessage(msg, arg)) {
+                if (!silent) debugPrintf("🛩️ [DCS-UART] %s %s\n", msg, arg);
+            }
+            else {
+                if (!silent) debugPrintf("❌ [DCS-UART] Failed to send %s %s\n", msg, arg);
+            }
+
+        }
+        else {
+            if (!silent) debugPrintf("🛩️ [DCS-UART] DCS NOT READY! could not send %s %s\n", msg, arg);
+        }
     }
 #endif
 }
@@ -1084,12 +1125,15 @@ void DCSBIOS_keepAlive() {
 }
 
 // sendDCSBIOSCommand: shared DCS command sender, with selector buffering & throttle.
-void sendDCSBIOSCommand(const char* label, uint16_t value, bool force /*=false*/) {
-
+void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
+    
     static char buf[10];
     snprintf(buf, sizeof(buf), "%u", value);
-    // debugPrintf("🛩️ [DCS] ATTEMPING SEND: %s = %u%s\n", label, value, force ? " (forced)" : "");
-    
+
+    if (DEBUG_ENABLED) {
+        debugPrintf("🛩️ [DCS] ATTEMPING SEND: %s = %u%s\n", label, value, force ? " (forced)" : "");
+    }
+
     // Lookup history entry
     auto* e = findCmdEntry(label);
     if (!e) {
@@ -1097,6 +1141,11 @@ void sendDCSBIOSCommand(const char* label, uint16_t value, bool force /*=false*/
         return;
     }
     unsigned long now = millis();
+
+    if (DEBUG_ENABLED) {
+        // Log group, label, oride value immediately after finding entry
+        debugPrintf("[DEBUG] LABEL: %s | oride: %u | group: %u\n", label, value, e->group);
+    }
 
     #if defined(SELECTOR_DWELL_MS) && (SELECTOR_DWELL_MS > 0)
     // Selector-group buffering (unchanged)
@@ -1157,6 +1206,9 @@ void DCSBIOSBridge_setup() {
             debugPrintf("[DISPLAY BUFFERS] Registered display buffer: %s (len=%u, ptr=%p, dirty=%p), last=%p\n", e.label, e.length, (void*)e.buffer, (void*)e.dirty, (void*)e.last);
         }
     }
+
+	// Update our command history from InputMappings
+    syncCommandHistoryFromInputMapping();
 
 	// For selector validation after panel sync
     initializeSelectorValidation(); // [Selector sync validation] Register tracked selectors

@@ -6,11 +6,13 @@
 // ** ATTENTION ** REMEBER TO RUN generate_data.py (see LABELS directory) BEFORE compiling for each label set below 
 
 // #define LABEL_SET_F16_TEST
-#define LABEL_SET_BATTERY_GAUGE
+// #define LABEL_SET_BATTERY_GAUGE
 // #define LABEL_SET_IFEI_NO_VIDEO  
 // #define LABEL_SET_ALR67                            
-// #define LABEL_SET_MAIN     
+#define LABEL_SET_MAIN     
 // #define LABEL_SET_RIGHT_PANEL_CONTROLLER                                                 
+// #define LABEL_SET_LEFT_PANEL_CONTROLLER     
+// #define LABEL_SET_FRONT_LEFT_PANEL                                            
 // #define LABEL_SET_ALTIMETER                           
 // #define LABEL_SET_ALL                           
 
@@ -67,7 +69,7 @@
 #define HID_KEEP_ALIVE_MS                       (1000 / HID_REPORT_RATE_HZ) // send HID command every x ms (when using keep-alives)
 
 // Serial Debug Ring Buffer
-#define SERIAL_DEBUG_USE_RINGBUFFER               0 // Should be use a ring buffer for Serial Debug messages? not really necessary
+#define SERIAL_DEBUG_USE_RINGBUFFER               1 // Should be use a ring buffer for Serial Debug messages? not really necessary
 #if SERIAL_DEBUG_USE_RINGBUFFER                    
   #define SERIAL_RINGBUF_SIZE                    64 // How many slots in our buffer
   #define SERIAL_MSG_MAXLEN                      64 // Max size for each slot

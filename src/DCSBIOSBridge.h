@@ -63,7 +63,7 @@ bool applyThrottle(CommandHistoryEntry &e, const char* label, uint16_t value, bo
 void DcsbiosProtocolReplay();
 
 // ───── Command Sender ─────
-void sendDCSBIOSCommand(const char* label, uint16_t value, bool force);
+void sendDCSBIOSCommand(const char* label, uint16_t value, bool force = false);
 void sendCommand(const char* label, const char* value, bool silent = false); // Overload for use with keep-alives
 // void sendCommand(const char* label, const char* value);
 

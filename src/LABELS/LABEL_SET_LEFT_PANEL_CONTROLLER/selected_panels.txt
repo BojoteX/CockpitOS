@@ -1,0 +1,22 @@
+# selected_panels.txt - List panels to include, one per line.
+# To enable a panel, remove the leading '#'. Only panels listed in panels.txt are valid.
+# Example:
+# Master Arm Panel
+# Caution Light Panel
+#
+# To update the list of available panels, just re-run this script.
+
+# Comms frequency
+# Radio Frequencies
+# Electrical Power Panel
+# Fire Systems
+
+Custom
+Flight Control System Panel
+Fuel Panel
+Interior Lights Panel
+Communication Panel
+Auxiliary Power Unit Panel
+Antenna Select Panel
+LOX Indicator
+TODO
