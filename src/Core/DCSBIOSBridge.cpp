@@ -336,6 +336,7 @@ void dumpAllMetadata() {
     }
 }
 
+/*
 void syncCommandHistoryFromInputMapping() {
     for (size_t i = 0; i < commandHistorySize; ++i) {
         CommandHistoryEntry& e = commandHistory[i];
@@ -352,8 +353,34 @@ void syncCommandHistoryFromInputMapping() {
     }
 	debugPrint("[SYNC] Command history has been initialized from InputMappings (lastValue cleared).\n");
 }
+*/
+
+void syncCommandHistoryFromInputMapping() {
+    for (size_t i = 0; i < commandHistorySize; ++i) {
+        CommandHistoryEntry& e = commandHistory[i];
+        e.isSelector = false;
+        e.group = 0;
+        e.lastValue = 0xFFFF;
+
+        // NEW: wipe any stale state from a prior mission
+        e.hasPending = false;
+        e.pendingValue = 0;
+        e.lastChangeTime = 0;
+        e.lastSendTime = 0;
+
+        for (size_t j = 0; j < InputMappingSize; ++j) {
+            const InputMapping& m = InputMappings[j];
+            if (strcmp(e.label, m.oride_label) == 0 && strcmp(m.controlType, "selector") == 0) {
+                e.isSelector = true;
+                if (m.group > e.group) e.group = m.group;
+            }
+        }
+    }
+    debugPrint("[SYNC] Command history has been initialized from InputMappings (state cleared).\n");
+}
 
 // this will run only ONCE. Ideally, this should go after we receive data for this first time
+/*
 void initPanels() {
         
     debugPrintf("[SYNC PANELS] 🔁 Mission Started %u ms ago\n", msSinceMissionStart());
@@ -381,9 +408,29 @@ void initPanels() {
     initializePanels(1);
 
     // Forces all pending selector changes out now (after panels are initialized)
-	// flushBufferedDcsCommands();  
+	flushBufferedDcsCommands();  
 
     forcePanelSyncThisMission = false;
+}
+*/
+
+void initPanels() {
+    debugPrintf("[SYNC PANELS] 🔁 Mission Started %u ms ago\n", msSinceMissionStart());
+
+    forcePanelSyncThisMission = true;
+    panelsSyncedThisMission = true;   // ← move back up so init traffic passes the gate
+
+    for (uint16_t g = 0; g < MAX_GROUPS; ++g) lastGroupSendUs[g] = 0;
+    for (size_t i = 0; i < numValidatedSelectors; ++i) validatedSelectors[i].lastSimValue = 0xFFFF;
+
+    HIDManager_resetAllAxes();
+    syncCommandHistoryFromInputMapping();
+
+    initializePanels(1);        // emits forced selector/axis commands
+    flushBufferedDcsCommands(); // clears losers / commits winners immediately
+
+    forcePanelSyncThisMission = false;
+    // panelsSyncedThisMission stays true
 }
 
 void onAircraftName(const char* str) {
@@ -773,6 +820,7 @@ CommandHistoryEntry* findCmdEntry(const char* label) {
     return nullptr;
 }
 
+/*
 static void flushBufferedDcsCommands() {
     unsigned long now = millis();
     uint32_t nowUs = micros();
@@ -845,6 +893,71 @@ static void flushBufferedDcsCommands() {
         lastGroupSendUs[g] = nowUs;
     }
 
+}
+*/
+
+static void flushBufferedDcsCommands() {
+    unsigned long now = millis();
+    uint32_t nowUs = micros();
+    const bool forceInit = forcePanelSyncThisMission;
+
+    CommandHistoryEntry* groupLatest[MAX_GROUPS] = { nullptr };
+
+    // Step 1: Find winner per group
+    for (size_t i = 0; i < commandHistorySize; ++i) {
+        CommandHistoryEntry& e = commandHistory[i];
+        if (!e.hasPending || e.group == 0) continue;
+
+        // NEW: during forced init, accept immediately
+        const bool dwellOk = forceInit || (now - e.lastChangeTime >= SELECTOR_DWELL_MS);
+        if (dwellOk) {
+            uint16_t g = e.group;
+            if (g >= MAX_GROUPS) {
+                debugPrintf("❌ FATAL: group ID %u exceeds MAX_GROUPS (%u). Halting flush.\n", g, MAX_GROUPS);
+                abort();
+            }
+            if (!groupLatest[g] || e.lastChangeTime > groupLatest[g]->lastChangeTime) {
+                groupLatest[g] = &e;
+            }
+        }
+    }
+
+    // Step 2: Clear losers and send winner
+    for (uint16_t g = 1; g < MAX_GROUPS; ++g) {
+        CommandHistoryEntry* winner = groupLatest[g];
+        if (!winner) continue;
+
+        nowUs = micros();
+        // NEW: during forced init, bypass spacing gate
+        if (!forceInit && (nowUs - lastGroupSendUs[g]) < DCS_GROUP_MIN_INTERVAL_US) {
+            continue;
+        }
+
+        // Clear losers
+        for (size_t i = 0; i < commandHistorySize; ++i) {
+            CommandHistoryEntry& e = commandHistory[i];
+            if (e.group != g || &e == winner) continue;
+
+            if (e.lastValue != 0) {
+                char buf[10]; snprintf(buf, sizeof(buf), "0");
+                sendCommand(e.label, buf, false);
+                e.lastValue = 0;
+                e.lastSendTime = now;
+            }
+            e.hasPending = false;
+        }
+
+        // Send winner
+        if (winner->pendingValue != winner->lastValue) {
+            char buf[10]; snprintf(buf, sizeof(buf), "%u", winner->pendingValue);
+            sendCommand(winner->label, buf, false);
+            winner->lastValue = winner->pendingValue;
+            winner->lastSendTime = now;
+        }
+
+        winner->hasPending = false;
+        lastGroupSendUs[g] = nowUs;
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -1125,6 +1238,8 @@ void DCSBIOS_keepAlive() {
 }
 
 // sendDCSBIOSCommand: shared DCS command sender, with selector buffering & throttle.
+
+/*
 void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
     
     static char buf[10];
@@ -1168,6 +1283,55 @@ void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
 
     // 6) Update history
     e->lastValue    = value;
+    e->lastSendTime = now;
+}
+*/
+
+void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
+    static char buf[10];
+    snprintf(buf, sizeof(buf), "%u", value);
+
+    CommandHistoryEntry* e = findCmdEntry(label);
+    if (!e) { debugPrintf("⚠️ [DCS] REJECTED untracked: %s = %u\n", label, value); return; }
+
+    const unsigned long now = millis();
+
+#if defined(SELECTOR_DWELL_MS) && (SELECTOR_DWELL_MS > 0)
+    if (!force && e->group > 0) {
+        e->pendingValue = value;
+        e->lastChangeTime = now;
+        e->hasPending = true;
+        return;
+    }
+#endif
+
+    if (force && e->group > 0) {
+        const uint16_t g = e->group;
+
+        // 1) kill any buffered state in this group
+        for (size_t i = 0; i < commandHistorySize; ++i) {
+            if (commandHistory[i].group == g) commandHistory[i].hasPending = false;
+        }
+
+        // 2) clear losers now
+        for (size_t i = 0; i < commandHistorySize; ++i) {
+            CommandHistoryEntry& x = commandHistory[i];
+            if (x.group != g || &x == e) continue;
+            if (x.lastValue != 0) {
+                char zbuf[2] = { '0', '\0' };
+                sendCommand(x.label, zbuf, false);  // still gated
+                x.lastValue = 0;
+                x.lastSendTime = now;
+            }
+        }
+
+        if (g < MAX_GROUPS) lastGroupSendUs[g] = micros(); // spacing hygiene
+    }
+
+    if (!applyThrottle(*e, label, value, force)) return;
+
+    sendCommand(label, buf, false); // still gated
+    e->lastValue = value;
     e->lastSendTime = now;
 }
 

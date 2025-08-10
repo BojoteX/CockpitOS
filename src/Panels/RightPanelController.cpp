@@ -65,7 +65,7 @@ void pollGPIOSelectors(bool forceSend = false) {
             groupActive[m.group] = true;
             if (forceSend || gpioSelectorCache[m.group] != m.oride_value) {
                 gpioSelectorCache[m.group] = m.oride_value;
-                HIDManager_setNamedButton(m.label, true);
+                HIDManager_setNamedButton(m.label, false, true);
             }
         }
     }
@@ -82,7 +82,7 @@ void pollGPIOSelectors(bool forceSend = false) {
         if (!groupActive[m.group]) {
             if (forceSend || gpioSelectorCache[m.group] != m.oride_value) {
                 gpioSelectorCache[m.group] = m.oride_value;
-                HIDManager_setNamedButton(m.label, true);
+                HIDManager_setNamedButton(m.label, false, true);
             }
             groupActive[m.group] = true;
         }
@@ -99,7 +99,7 @@ void RightPanelButtons_init() {
 
     // Axes init
     for (const AnalogInput& a : AnalogInputs) {
-        HIDManager_moveAxis(a.label, a.gpio, a.axis);
+        HIDManager_moveAxis(a.label, a.gpio, a.axis, true);
     }
 
     // HC165 init
@@ -121,7 +121,7 @@ void RightPanelButtons_init() {
         if (isPressedCorrected(buttonBits, m.bit)) {
             groupActive[m.group] = true;
             selectorStates[m.group].currentOverride = m.oride_value;
-            HIDManager_setNamedButton(m.label, true);
+            HIDManager_setNamedButton(m.label, true, true);
         }
     }
 
@@ -133,7 +133,7 @@ void RightPanelButtons_init() {
 
         if (!groupActive[m.group]) {
             selectorStates[m.group].currentOverride = m.oride_value;
-            HIDManager_setNamedButton(m.label, true);
+            HIDManager_setNamedButton(m.label, true, true);
         }
     }
 
@@ -175,7 +175,7 @@ void RightPanelButtons_loop() {
                 groupActive[m.group] = true;
                 if (selectorStates[m.group].currentOverride != m.oride_value) {
                     selectorStates[m.group].currentOverride = m.oride_value;
-                    HIDManager_setNamedButton(m.label, true);
+                    HIDManager_setNamedButton(m.label, false, true);
                 }
             }
         }
@@ -192,7 +192,7 @@ void RightPanelButtons_loop() {
         if (!groupActive[m.group] && !groupFallbackHandled[m.group]) {
             if (selectorStates[m.group].currentOverride != m.oride_value) {
                 selectorStates[m.group].currentOverride = m.oride_value;
-                HIDManager_setNamedButton(m.label, true);
+                HIDManager_setNamedButton(m.label, false, true);
             }
             groupFallbackHandled[m.group] = true;
         }

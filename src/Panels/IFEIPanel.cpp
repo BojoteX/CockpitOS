@@ -54,7 +54,7 @@ inline void pollSelector(
 {
     SelectorPos currState = getSelectorState(currBits, upBit, downBit);
     if (currState != lastState) {
-        HIDManager_setNamedButton(labels[currState], true);
+        HIDManager_setNamedButton(labels[currState], false, true);
         lastState = currState;
     }
 }
@@ -566,7 +566,7 @@ void IFEIDisplayTask(void* pv) {
 
 void IFEI_init() {
     // delay(50);
-    HIDManager_moveAxis("IFEI", IFEI_BRIGHTNESS_PIN, AXIS_SLIDER1);
+    HIDManager_moveAxis("IFEI", IFEI_BRIGHTNESS_PIN, AXIS_SLIDER1, true);
     HC165_init(HC165_PL, HC165_CP, HC165_QH, 16);
 
     buttonBits = HC165_read();
@@ -576,9 +576,9 @@ void IFEI_init() {
     SelectorPos hmdInit = getSelectorState(buttonBits, HMD_UP_BIT, HMD_DOWN_BIT);
     SelectorPos hudInit = getSelectorState(buttonBits, HUD_UP_BIT, HUD_DOWN_BIT);
 
-    HIDManager_setNamedButton(MODE_SELECTOR_LABELS[modeInit], true);
-    HIDManager_setNamedButton(HMD_SELECTOR_LABELS[hmdInit], true);
-    HIDManager_setNamedButton(HUD_SELECTOR_LABELS[hudInit], true);
+    HIDManager_setNamedButton(MODE_SELECTOR_LABELS[modeInit], true, true);
+    HIDManager_setNamedButton(HMD_SELECTOR_LABELS[hmdInit], true, true);
+    HIDManager_setNamedButton(HUD_SELECTOR_LABELS[hudInit], true, true);
 
     prevButtonBits = buttonBits;
     ifei.blankBuffersAndDirty();

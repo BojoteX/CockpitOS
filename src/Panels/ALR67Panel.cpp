@@ -30,15 +30,15 @@ static uint64_t buttonBits = 0xFF;
 
 void dispatchRotaryPosition(uint8_t pattern) {
   if (pattern == 0x08) {
-    HIDManager_setNamedButton("RWR_DIS_TYPE_SW_F"); // _N
+    HIDManager_setNamedButton("RWR_DIS_TYPE_SW_F", false, true); // _N
   } else if (pattern == 0x04) {
-    HIDManager_setNamedButton("RWR_DIS_TYPE_SW_U"); // _I
+    HIDManager_setNamedButton("RWR_DIS_TYPE_SW_U", false, true); // _I
   } else if (pattern == 0x02) {
-    HIDManager_setNamedButton("RWR_DIS_TYPE_SW_A"); // _A
+    HIDManager_setNamedButton("RWR_DIS_TYPE_SW_A", false, true); // _A
   } else if (pattern == 0x01) {
-    HIDManager_setNamedButton("RWR_DIS_TYPE_SW_I"); // _U
+    HIDManager_setNamedButton("RWR_DIS_TYPE_SW_I", false, true); // _U
   } else if (pattern == 0x0F) {
-    HIDManager_setNamedButton("RWR_DIS_TYPE_SW_N"); // _F
+    HIDManager_setNamedButton("RWR_DIS_TYPE_SW_N", false, true); // _F
   } else {
     // debugPrintf("⚠️ ALR67 unknown rotary pattern: 0x%02X\n", pattern);
   }
@@ -63,8 +63,8 @@ void ALR67_init() {
   prevPattern = MatrixRotary_readPattern(ALR67_Strobes, ALR67_StrobeCount, ALR67_DataPin);
   dispatchRotaryPosition(prevPattern);
 
-  HIDManager_moveAxis("RWR_AUDIO_CTRL", RWR_AUDIO_PIN, AXIS_SLIDER1);
-  HIDManager_moveAxis("RWR_DMR_CTRL", RWR_DMR_PIN, AXIS_SLIDER2);
+  HIDManager_moveAxis("RWR_AUDIO_CTRL", RWR_AUDIO_PIN, AXIS_SLIDER1,true);
+  HIDManager_moveAxis("RWR_DMR_CTRL", RWR_DMR_PIN, AXIS_SLIDER2, true);
 
   // 74HC165 button inputs
   buttonBits = HC165_read();

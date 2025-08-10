@@ -76,7 +76,7 @@ void IRCool_init() {
     prevIRCPort0 = 0xAA;
     prevIRCPort1 = 0xAA;
 
-    HIDManager_moveAxis("HMD_OFF_BRT", HMD_KNOB_PIN, AXIS_RX);
+    HIDManager_moveAxis("HMD_OFF_BRT", HMD_KNOB_PIN, AXIS_RX, true);
 
     byte port0, port1;
     if (readPCA9555(IRCOOL_PCA_ADDR, port0, port1)) {
@@ -86,17 +86,17 @@ void IRCool_init() {
         // SPIN switch: ONLY set RCVY or NORM, no cover!
         bool currSpin = !bitRead(port1, SPIN_RCVY);
         if (currSpin)
-            HIDManager_setNamedButton("SPIN_RECOVERY_SW_RCVY", true);
+            HIDManager_setNamedButton("SPIN_RECOVERY_SW_RCVY", true, true);
         else
-            HIDManager_setNamedButton("SPIN_RECOVERY_SW_NORM", true);
+            HIDManager_setNamedButton("SPIN_RECOVERY_SW_NORM", true, true);
 
         // IR COOL 3-position logic (PORT1 bits 0 & 1)
         if (!bitRead(port1, IR_COOL_OFF))
-            HIDManager_setNamedButton("IR_COOL_SW_OFF", true);
+            HIDManager_setNamedButton("IR_COOL_SW_OFF", true, true);
         else if (!bitRead(port1, IR_COOL_ORIDE))
-            HIDManager_setNamedButton("IR_COOL_SW_ORIDE", true);
+            HIDManager_setNamedButton("IR_COOL_SW_ORIDE", true, true);
         else
-            HIDManager_setNamedButton("IR_COOL_SW_NORM", true);
+            HIDManager_setNamedButton("IR_COOL_SW_NORM", true, true);
 
         // HIDManager_commitDeferredReport("IR Cool Panel");
         debugPrintf("✅ Initialized IR Cool Panel\n", IRCOOL_PCA_ADDR);
@@ -125,11 +125,11 @@ void IRCool_loop() {
   if ((bitRead(prevIRCPort1, IR_COOL_OFF) != bitRead(port1, IR_COOL_OFF)) ||
       (bitRead(prevIRCPort1, IR_COOL_ORIDE) != bitRead(port1, IR_COOL_ORIDE))) {
     if (!bitRead(port1, IR_COOL_OFF))
-      HIDManager_setNamedButton("IR_COOL_SW_OFF");
+      HIDManager_setNamedButton("IR_COOL_SW_OFF", false, true);
     else if (!bitRead(port1, IR_COOL_ORIDE))
-      HIDManager_setNamedButton("IR_COOL_SW_ORIDE");
+      HIDManager_setNamedButton("IR_COOL_SW_ORIDE", false, true);
     else
-      HIDManager_setNamedButton("IR_COOL_SW_NORM");
+      HIDManager_setNamedButton("IR_COOL_SW_NORM", false, true);
   }
 
   prevIRCPort0 = port0;

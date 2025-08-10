@@ -203,7 +203,7 @@ void LeftPanelButtons_init() {
 
     // Axes init
     for (const AnalogInput& a : AnalogInputs) {
-        HIDManager_moveAxis(a.label, a.gpio, a.axis);
+        HIDManager_moveAxis(a.label, a.gpio, a.axis, true);
     }
 
     // HC165 init
@@ -213,9 +213,9 @@ void LeftPanelButtons_init() {
 
     bool currGain = isPressedCorrected(buttonBits, GAIN_SWITH_BIT);
     if (currGain)
-        HIDManager_setNamedButton("GAIN_SWITCH_POS1", true);
+        HIDManager_setNamedButton("GAIN_SWITCH_POS1", true, true);
     else
-        HIDManager_setNamedButton("GAIN_SWITCH_POS0", true);
+        HIDManager_setNamedButton("GAIN_SWITCH_POS0", true, true);
 
     // Selector state clear
     for (auto& state : selectorStates) state = {};
@@ -234,7 +234,7 @@ void LeftPanelButtons_init() {
         if (isPressedCorrected(buttonBits, m.bit)) {
             groupActive[m.group] = true;
             selectorStates[m.group].currentOverride = m.oride_value;
-            HIDManager_setNamedButton(m.label, true);
+            HIDManager_setNamedButton(m.label, true, true);
         }
     }
 
@@ -249,7 +249,7 @@ void LeftPanelButtons_init() {
 
         if (!groupActive[m.group]) {
             selectorStates[m.group].currentOverride = m.oride_value;
-            HIDManager_setNamedButton(m.label, true);
+            HIDManager_setNamedButton(m.label, true, true);
         }
     }
 
@@ -297,7 +297,7 @@ void LeftPanelButtons_loop() {
                 groupActive[m.group] = true;
                 if (selectorStates[m.group].currentOverride != m.oride_value) {
                     selectorStates[m.group].currentOverride = m.oride_value;
-                    HIDManager_setNamedButton(m.label, true);
+                    HIDManager_setNamedButton(m.label, false, true);
                 }
             }
         }
@@ -317,7 +317,7 @@ void LeftPanelButtons_loop() {
         if (!groupActive[m.group] && !groupFallbackHandled[m.group]) {
             if (selectorStates[m.group].currentOverride != m.oride_value) {
                 selectorStates[m.group].currentOverride = m.oride_value;
-                HIDManager_setNamedButton(m.label, true);
+                HIDManager_setNamedButton(m.label, false, true);
             }
             groupFallbackHandled[m.group] = true;
         }

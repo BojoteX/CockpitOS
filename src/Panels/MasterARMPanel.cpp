@@ -9,10 +9,11 @@
 static byte prevMasterPort0 = 0xFF;
 
 enum Port0Bits {
-  MASTER_ARM_AG     = 0,  // Momentary (LOW = pressed)
-  MASTER_ARM_AA     = 1,  // Momentary
-  MASTER_ARM_DISCH  = 2,  // Momentary
-  MASTER_ARM_SWITCH = 3   // ON = HIGH, OFF = LOW
+  MASTER_ARM_AG         = 0,  // Momentary (LOW = pressed)
+  MASTER_ARM_AA         = 1,  // Momentary
+  MASTER_ARM_DISCH      = 2,  // Momentary
+  MASTER_ARM_SWITCH     = 3,   // ON = HIGH, OFF = LOW
+  MASTER_ARM_EMER_JETT  = 4   // Momentary (LOW = pressed)
 };
 
 void MasterARM_init() {
@@ -28,15 +29,14 @@ void MasterARM_init() {
     // 2-pos switch (OFF / ON)
     HIDManager_setNamedButton(
       bitRead(port0, MASTER_ARM_SWITCH) ? "MASTER_ARM_SW_ARM" : "MASTER_ARM_SW_SAFE",
-      true
+      true, true
     );
 
     // Momentary buttons: detect state at startup (optional)
     HIDManager_setNamedButton("MASTER_MODE_AG",     true, !bitRead(port0, MASTER_ARM_AG));
     HIDManager_setNamedButton("MASTER_MODE_AA",     true, !bitRead(port0, MASTER_ARM_AA));
     HIDManager_setNamedButton("FIRE_EXT_BTN",       true, !bitRead(port0, MASTER_ARM_DISCH));
-
-    // HIDManager_commitDeferredReport("Master ARM Panel");
+    HIDManager_setNamedButton("EMER_JETT_BTN",      true, !bitRead(port0, MASTER_ARM_EMER_JETT));
 
     debugPrintf("✅ Initialized Master ARM Panel\n",MASTERARM_PCA_ADDR);
   } else {
@@ -56,7 +56,7 @@ void MasterARM_loop() {
   // 2-position switch (OFF / ON)
   if (bitRead(prevMasterPort0, MASTER_ARM_SWITCH) != bitRead(port0, MASTER_ARM_SWITCH)) {
     HIDManager_setNamedButton(
-      bitRead(port0, MASTER_ARM_SWITCH) ? "MASTER_ARM_SW_ARM" : "MASTER_ARM_SW_SAFE"
+      bitRead(port0, MASTER_ARM_SWITCH) ? "MASTER_ARM_SW_ARM" : "MASTER_ARM_SW_SAFE", false, true
     );
   }
 
@@ -71,6 +71,10 @@ void MasterARM_loop() {
 
   if (bitRead(prevMasterPort0, MASTER_ARM_DISCH) != bitRead(port0, MASTER_ARM_DISCH)) {
     HIDManager_setNamedButton("FIRE_EXT_BTN", false, !bitRead(port0, MASTER_ARM_DISCH));
+  }
+
+  if (bitRead(prevMasterPort0, MASTER_ARM_EMER_JETT) != bitRead(port0, MASTER_ARM_EMER_JETT)) {
+      HIDManager_setNamedButton("EMER_JETT_BTN", false, !bitRead(port0, MASTER_ARM_EMER_JETT));
   }
 
   prevMasterPort0 = port0;

@@ -89,7 +89,7 @@
 #endif
 
 // DCS Commands USB Send Ring Buffer (outgoing packets) - *MANDATORY* this one is REQUIRED to be set to send via USB pipe for transport (due to 64 byte report size limitation)
-#define DCS_USB_RINGBUF_SIZE                     16  // Number of packets buffered (tune as needed)
+#define DCS_USB_RINGBUF_SIZE                     32  // Number of packets buffered (tune as needed)
 #define DCS_USB_PACKET_MAXLEN                    64  // Max USB packet size (safe for DCS-BIOS)
 
 // DCS UDP/USB Receive Ring Buffer (incoming packets) - *MANDATORY* when using USB mode, optional in WiFi UDP mode.

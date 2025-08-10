@@ -30,12 +30,14 @@ enum HIDAxis : uint8_t {
 
 
 // ───── Axis Input ─────
-// void HIDManager_moveAxis(const char* dcsIdentifier, uint8_t pin);
+// void HIDManager_moveAxis(const char* dcsIdentifier, uint8_t pin, bool forceSend = false);
 void HIDManager_resetAllAxes();
-void HIDManager_moveAxis(const char* dcsIdentifier, uint8_t pin, HIDAxis axis);
+void HIDManager_moveAxis(const char* dcsIdentifier, uint8_t pin, HIDAxis axis, bool forceSend = false);
 
 // ───── Named Button State Setters (zero heap) ─────
-void HIDManager_setNamedButton(const char* name, bool deferSend = false, bool pressed = true);
+// void HIDManager_setNamedButton(const char* name, bool deferSend = false, bool pressed = true);
+void HIDManager_setNamedButton(const char* name, bool deferSend, bool pressed);
+
 void HIDManager_setToggleNamedButton(const char* name, bool deferSend = false);
 void HIDManager_toggleIfPressed(bool isPressed, const char* label, bool deferSend = false);
 void HIDManager_handleGuardedToggleIfPressed(bool isPressed, const char* buttonLabel, const char* coverLabel, bool deferSend = false);

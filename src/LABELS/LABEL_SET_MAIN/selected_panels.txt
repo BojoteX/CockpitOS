@@ -19,3 +19,4 @@ Master Arm Panel
 Caution Light Panel
 Interior Lights Panel
 Angle of Attack Indexer Lights
+Emergency Jettison Button

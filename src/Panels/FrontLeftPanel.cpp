@@ -26,6 +26,11 @@ struct GpioGroupDef {
 };
 static GpioGroupDef groupDef[MAX_SELECTOR_GROUPS];
 
+// ---- GEN TIE Virtual Cover Logic and deferred Pos1 setting ----
+static bool pendingGenTieCoverClose = false;
+static bool pendingGenTiePos1 = false;
+static unsigned long genTieCoverOpenedMs = 0;
+
 void buildGpioGroupDefs() {
     for (uint16_t g = 1; g < MAX_SELECTOR_GROUPS; ++g) {
         groupDef[g].numPins = 0;
@@ -56,6 +61,12 @@ void pollFrontLeftGPIOSelectors(bool forceSend = false, const char* caller = nul
             const InputMapping& m = InputMappings[i];
             if (m.group != g || strcmp(m.source, "GPIO") != 0) continue;
 
+            // Skip GEN TIE manual handled mappings
+            if (m.label && (
+                strcmp(m.label, "GEN_TIE_SW_NORM") == 0 ||
+                strcmp(m.label, "GEN_TIE_SW_RESET") == 0
+                )) continue;
+
             // Build the expected pattern for this mapping:
             uint8_t expected = 0;
             for (uint8_t k = 0; k < n; ++k) {
@@ -75,7 +86,6 @@ void pollFrontLeftGPIOSelectors(bool forceSend = false, const char* caller = nul
             const InputMapping& m = InputMappings[bestIdx];
             if (forceSend) {
                 selectorStates[g].currentOverride = m.oride_value;
-                // debugPrintf(">>> INIT MATCH Group%u: sel=%s oride=%u\n", g, m.label, m.oride_value);
                 HIDManager_setNamedButton(m.label, false, true);
             }
             else if (selectorStates[g].currentOverride != m.oride_value) {
@@ -86,23 +96,68 @@ void pollFrontLeftGPIOSelectors(bool forceSend = false, const char* caller = nul
     }
 }
 
-void FrontLeftPanelButtons_init() {
+void handleDeferredGenTieCoverClose() {
+    if (pendingGenTieCoverClose) {
+        // Only close cover once selector value is observed as POS0 (NORM)
+        if (getLastKnownState("GEN_TIE_SW") == 0) {
+            HIDManager_setNamedButton("GEN_TIE_COVER", false, false);
+            pendingGenTieCoverClose = false;
+        }
+    }
+}
 
-    // Set all GPIO selector pins to INPUT_PULLUP before *any* polling
+void handleDeferredGenTiePos1() {
+    if (pendingGenTiePos1) {
+        // Only set GEN TIE to RESET if cover is already open
+        if (getLastKnownState("GEN_TIE_COVER") == 1 && (millis() - genTieCoverOpenedMs > 100)) {
+            HIDManager_setNamedButton("GEN_TIE_SW_RESET", false, true);
+            pendingGenTiePos1 = false;
+        }
+    }
+}
+
+void updateGenTieSwitch(bool pressed) {
+    static bool prevGenTiePressed = false;
+
+    if (pressed != prevGenTiePressed) {
+        if (pressed) {
+            // Button pressed: always open cover, then set RESET
+            HIDManager_setNamedButton("GEN_TIE_COVER", false, true);
+            genTieCoverOpenedMs = millis();
+            pendingGenTieCoverClose = false;
+            pendingGenTiePos1 = true;
+        }
+        else {
+            // Button released: set POS0 (NORM), and schedule cover close
+            HIDManager_setNamedButton("GEN_TIE_SW_NORM", false, true);
+            pendingGenTieCoverClose = true;
+            pendingGenTiePos1 = false;
+        }
+        prevGenTiePressed = pressed;
+    }
+}
+
+void FrontLeftPanelButtons_init() {
+    // Set all GPIO selector pins to INPUT_PULLUP before any polling
     for (size_t i = 0; i < InputMappingSize; ++i) {
         const InputMapping& m = InputMappings[i];
         if (!m.label || strcmp(m.source, "GPIO") != 0 || m.port < 0) continue;
         pinMode(m.port, INPUT_PULLUP);
     }
     for (const AnalogInput& a : AnalogInputs)
-        HIDManager_moveAxis(a.label, a.gpio, a.axis);
+        HIDManager_moveAxis(a.label, a.gpio, a.axis, true);
 
     buildGpioGroupDefs();
 
     // Forced poll with debug
     for (auto& state : selectorStates) state.currentOverride = 0xDEAD;
-    pollFrontLeftGPIOSelectors(true, "INIT_PASS1");
-    pollFrontLeftGPIOSelectors(true, "INIT_PASS2");
+    pollFrontLeftGPIOSelectors(true, "INIT");
+
+    // Manually handle GEN TIE switch on init based on GPIO 6 state
+    if (digitalRead(6) == LOW)
+        HIDManager_setNamedButton("GEN_TIE_SW_RESET", true, true);
+    else
+        HIDManager_setNamedButton("GEN_TIE_SW_NORM", true, true);
 
     debugPrintln("✅ Initialized Front Left Panel Buttons");
 }
@@ -115,4 +170,11 @@ void FrontLeftPanelButtons_loop() {
         HIDManager_moveAxis(a.label, a.gpio, a.axis);
 
     pollFrontLeftGPIOSelectors(false, "LOOP");
+
+    // GEN TIE logic: LOW=RESET, HIGH=NORM
+    bool currGenTiePressed = (digitalRead(6) == LOW);
+
+    updateGenTieSwitch(currGenTiePressed);
+    handleDeferredGenTieCoverClose();
+    handleDeferredGenTiePos1();
 }
