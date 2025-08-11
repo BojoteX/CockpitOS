@@ -32,6 +32,7 @@
    #define CONSOLES_DIMMER_KNOB_PIN                   4 
    #define WARN_CAUTION_DIMMER_KNOB_PIN               6   
    #define CHART_DIMMER_KNOB_PIN                      12 
+   #define LED_CONSOLE_BACKLIGHT_RIGHT_PANEL          14
 
    // Left Panel Controller
    #define HC165_LEFT_PANEL_CONTROLLER_QH            38  // Serial data output (QH)
@@ -40,15 +41,20 @@
    #define LED_APU_READY                             17
    #define LED_CONSOLE_BACKLIGHT                     10
 
-   #define COM_AUX_KNOB_PIN                                    1
-   #define COM_ICS_KNOB_PIN                                    2
-   #define COM_MIDS_A_KNOB_PIN                                 3
-   #define COM_MIDS_B_KNOB_PIN                                 4
-   #define COM_RWR_KNOB_PIN                                    5
-   #define COM_TACAN_KNOB_PIN                                  6
-   #define COM_VOX_KNOB_PIN                                    7
-   #define COM_WPN_KNOB_PIN                                   14
-   #define OXYFLOW_KNOB_PIN                                   16
+   #define COM_AUX_KNOB_PIN                           1
+   #define COM_ICS_KNOB_PIN                           2
+   #define COM_MIDS_A_KNOB_PIN                        3
+   #define COM_MIDS_B_KNOB_PIN                        4
+   #define COM_RWR_KNOB_PIN                           5
+   #define COM_TACAN_KNOB_PIN                         6
+   #define COM_VOX_KNOB_PIN                           7
+   #define COM_WPN_KNOB_PIN                          14
+   #define OXYFLOW_KNOB_PIN                          16
+
+   // Front Left Panel Controller
+   #define FORMATION_LTS_KNOB_PIN                     1
+   #define POSITION_LTS_KNOB_PIN                      3
+   #define LED_CONSOLE_BACKLIGHT_FRONT_LEFT_PANEL    10
    
    // ALR-67 Pins
    #define ALR67_HC165_PL                            36

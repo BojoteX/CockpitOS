@@ -4,12 +4,12 @@
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
   DEVICE_GPIO,
+  DEVICE_GAUGE,
+  DEVICE_WS2812,
+  DEVICE_NONE,
+  DEVICE_GN1640T,
   DEVICE_TM1637,
   DEVICE_PCA9555,
-  DEVICE_WS2812,
-  DEVICE_GN1640T,
-  DEVICE_NONE,
-  DEVICE_GAUGE,
 };
 
 struct LEDMapping {
@@ -32,9 +32,9 @@ static const LEDMapping panelLEDs[] = {
   { "FORMATION_DIMMER"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "POSITION_DIMMER"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CHART_DIMMER"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "CONSOLES_DIMMER"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "CONSOLES_DIMMER"    , DEVICE_GPIO    , {.gpioInfo = {LED_CONSOLE_BACKLIGHT_FRONT_LEFT_PANEL}}, true, false }, // GPIO LED_CONSOLE_BACKLIGHT_FRONT_LEFT_PANEL,
   { "FLOOD_DIMMER"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "INST_PNL_DIMMER"    , DEVICE_GPIO    , {.gpioInfo = {LED_CONSOLE_BACKLIGHT_FRONT_LEFT_PANEL}}, true, false }, // GPIO LED_CONSOLE_BACKLIGHT_FRONT_LEFT_PANEL,
+  { "INST_PNL_DIMMER"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "WARN_CAUTION_DIMMER", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 
