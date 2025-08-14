@@ -6,7 +6,8 @@
 // ** ATTENTION ** REMEBER TO RUN generate_data.py (see LABELS directory) BEFORE compiling for each label set below 
 
 // #define LABEL_SET_F16_TEST
-#define LABEL_SET_BATTERY_GAUGE
+// #define LABEL_SET_BATTERY_GAUGE
+#define LABEL_SET_HYD_PRESSURE_GAUGE
 // #define LABEL_SET_CABIN_PRESSURE_GAUGE
 // #define LABEL_SET_BRAKE_PRESSURE_GAUGE
 // #define LABEL_SET_IFEI_NO_VIDEO  

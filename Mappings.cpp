@@ -27,6 +27,7 @@ bool hasGauge                 = false;
 bool hasTFTBattGauge          = false;
 bool hasTFTCabPressGauge      = false;
 bool hasTFTBrakePressGauge    = false;
+bool hasTFTHydPressGauge      = false;
 bool hasRightPanelController  = false;
 bool hasLeftPanelController   = false;
 bool hasFrontLeftPanel        = false;
@@ -69,6 +70,9 @@ const char* getPanelName(uint8_t addr) {
 #if defined(LABEL_SET_BRAKE_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
   #include "src/TFT_Gauges_BrakePress.h"
 #endif
+#if defined(LABEL_SET_HYD_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
+  #include "src/TFT_Gauges_HydPress.h"
+#endif
 #if defined(LABEL_SET_BATTERY_GAUGE) || defined(LABEL_SET_ALL)
   #include "src/TFT_Gauges_Batt.h"
 #endif
@@ -109,7 +113,10 @@ void initMappings() {
     #endif 
     #if defined(LABEL_SET_BRAKE_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
       hasTFTBrakePressGauge = true;
-    #endif        
+    #endif       
+    #if defined(LABEL_SET_HYD_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
+      hasTFTHydPressGauge = true;
+    #endif   
     #if defined(LABEL_SET_RIGHT_PANEL_CONTROLLER) || defined(LABEL_SET_ALL)
       hasRightPanelController = true;
       hasTFTBattGauge = true;
@@ -150,6 +157,10 @@ void initializeDisplays() {
 
   #if defined(LABEL_SET_BRAKE_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
     if (hasTFTBrakePressGauge) BrakePressureGauge_init();
+  #endif  
+
+  #if defined(LABEL_SET_HYD_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
+    if (hasTFTHydPressGauge) HydPressureGauge_init();
   #endif  
 
     // Why init it here and not panels? because Display's should be INITIALIZED once! not on every mission start
@@ -286,6 +297,10 @@ void panelLoop() {
 
   #if defined(LABEL_SET_BRAKE_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
     if (hasTFTBrakePressGauge) BrakePressureGauge_loop();
+  #endif
+
+  #if defined(LABEL_SET_HYD_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
+    if (hasTFTHydPressGauge) HydPressureGauge_loop();
   #endif
 
   #if defined(LABEL_SET_RIGHT_PANEL_CONTROLLER) || defined(LABEL_SET_ALL)
