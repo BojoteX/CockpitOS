@@ -55,9 +55,9 @@ Electrical Power Panel
 # Left Engine Fire Warning Extinguisher Light
 # Left Essential Circuit Breakers
 # Lock Shoot Lights
-Map Gain/Spin Recovery Panel
+# Map Gain/Spin Recovery Panel
 # Master Arm Panel
-Master Caution Light
+# Master Caution Light
 # Mission Computer and Hydraulic Isolate Panel
 # RH Advisory Panel
 # RWR Control Indicator
@@ -86,3 +86,4 @@ Metadata
 # Position
 # Speed
 # Time
+Interior Lights Panel

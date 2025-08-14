@@ -6,14 +6,16 @@
 // ** ATTENTION ** REMEBER TO RUN generate_data.py (see LABELS directory) BEFORE compiling for each label set below 
 
 // #define LABEL_SET_F16_TEST
-// #define LABEL_SET_BATTERY_GAUGE
+#define LABEL_SET_BATTERY_GAUGE
+// #define LABEL_SET_CABIN_PRESSURE_GAUGE
+// #define LABEL_SET_BRAKE_PRESSURE_GAUGE
 // #define LABEL_SET_IFEI_NO_VIDEO  
 // #define LABEL_SET_ALR67                            
 // #define LABEL_SET_MAIN     
 // #define LABEL_SET_RIGHT_PANEL_CONTROLLER                                                 
 // #define LABEL_SET_LEFT_PANEL_CONTROLLER     
-#define LABEL_SET_FRONT_LEFT_PANEL                                            
-// #define LABEL_SET_ALTIMETER                           
+// #define LABEL_SET_FRONT_LEFT_PANEL                                            
+// #define LABEL_SET_ALTIMETER // (Analog Cabin Pressure)                           
 // #define LABEL_SET_ALL                           
 
 // Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. Pure USB or WIFI. This methods COMPLETELY bypasses Serial. If both are set to 0, then standard CDC / Serial is used. Both CAN NOT be set to 1 at the same time
@@ -31,12 +33,12 @@
 #define DEBUG_ENABLED                             0  // Use it ONLY when identifying issues or troubleshooting
 #define DEBUG_ENABLED_FOR_PCA_ONLY                0  // Use it ONLY when mapping Port/bit/mask in PCA9xxx devices
 #define DEBUG_ENABLED_FOR_HC165_ONLY              0  // Use it ONLY when mapping bits in HC165 devices
-#define DEBUG_USE_WIFI                            0  // Uses WiFi to output VERBOSE and DEBUG messages
+#define DEBUG_USE_WIFI                            1  // Uses WiFi to output VERBOSE and DEBUG messages
 #define VERBOSE_MODE                              0  // Logs INFO messages to both Serial and UDP (very useful) 
 #define VERBOSE_MODE_SERIAL_ONLY                  0  // Verbose will only output to Serial. 
-#define VERBOSE_MODE_WIFI_ONLY                    0  // Verbose will only output to WiFi so Serial port is clean. Requires DEBUG_USE_WIFI
+#define VERBOSE_MODE_WIFI_ONLY                    1  // Verbose will only output to WiFi so Serial port is clean. Requires DEBUG_USE_WIFI
 #define VERBOSE_PERFORMANCE_ONLY                  0  // Requires DEBUG_PERFORMANCE as well, this will only output perf snapshots, make sure you pick WIFI or SERIAL above and DEBUG_ENABLED is 0
-#define DEBUG_PERFORMANCE                         0  // Shows a performance snapshot every x seconds (interval can be configured below)
+#define DEBUG_PERFORMANCE                         1  // Shows a performance snapshot every x seconds (interval can be configured below)
 #define DEBUG_PERFORMANCE_SHOW_TASKS              0  // Includes the current task list with the snapshot. Not really needed.
 #define PERFORMANCE_SNAPSHOT_INTERVAL_SECONDS     60 // Interval between snapshots (in seconds)
 

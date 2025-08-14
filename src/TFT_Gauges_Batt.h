@@ -1,4 +1,4 @@
-// TFT_Gauges.h
+// TFT_Gauges_Batt.h
 #pragma once
 
 // Gauge

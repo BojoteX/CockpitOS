@@ -25,6 +25,8 @@ bool hasIR                    = false;
 bool hasLockShoot             = false;
 bool hasGauge                 = false;
 bool hasTFTBattGauge          = false;
+bool hasTFTCabPressGauge      = false;
+bool hasTFTBrakePressGauge    = false;
 bool hasRightPanelController  = false;
 bool hasLeftPanelController   = false;
 bool hasFrontLeftPanel        = false;
@@ -61,11 +63,17 @@ const char* getPanelName(uint8_t addr) {
 #if defined(LABEL_SET_IFEI_NO_VIDEO) || defined(LABEL_SET_ALL)
   #include "src/IFEIPanel.h"
 #endif
+#if defined(LABEL_SET_CABIN_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
+  #include "src/TFT_Gauges_CabPress.h"
+#endif
+#if defined(LABEL_SET_BRAKE_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
+  #include "src/TFT_Gauges_BrakePress.h"
+#endif
 #if defined(LABEL_SET_BATTERY_GAUGE) || defined(LABEL_SET_ALL)
-  #include "src/TFT_Gauges.h"
+  #include "src/TFT_Gauges_Batt.h"
 #endif
 #if defined(LABEL_SET_RIGHT_PANEL_CONTROLLER) || defined(LABEL_SET_ALL)
-  #include "src/TFT_Gauges.h"
+  #include "src/TFT_Gauges_Batt.h"
   #include "src/RightPanelController.h"
 #endif
 #if defined(LABEL_SET_LEFT_PANEL_CONTROLLER) || defined(LABEL_SET_ALL)
@@ -96,6 +104,12 @@ void initMappings() {
     #if defined(LABEL_SET_BATTERY_GAUGE) || defined(LABEL_SET_ALL)
       hasTFTBattGauge = true;
     #endif
+    #if defined(LABEL_SET_CABIN_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
+      hasTFTCabPressGauge = true;
+    #endif 
+    #if defined(LABEL_SET_BRAKE_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
+      hasTFTBrakePressGauge = true;
+    #endif        
     #if defined(LABEL_SET_RIGHT_PANEL_CONTROLLER) || defined(LABEL_SET_ALL)
       hasRightPanelController = true;
       hasTFTBattGauge = true;
@@ -130,10 +144,19 @@ void initializeDisplays() {
     if (hasIFEI) IFEIDisplay_init();
   #endif
 
+  #if defined(LABEL_SET_CABIN_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
+    if (hasTFTCabPressGauge) CabinPressureGauge_init();
+  #endif  
+
+  #if defined(LABEL_SET_BRAKE_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
+    if (hasTFTBrakePressGauge) BrakePressureGauge_init();
+  #endif  
+
     // Why init it here and not panels? because Display's should be INITIALIZED once! not on every mission start
   #if defined(LABEL_SET_BATTERY_GAUGE)  || defined(LABEL_SET_RIGHT_PANEL_CONTROLLER) || defined(LABEL_SET_ALL)
     if (hasTFTBattGauge) BatteryGauge_init();
   #endif
+
   // Any custom displays should be initialized here
 }
 
@@ -255,6 +278,14 @@ void panelLoop() {
 
   #if defined(LABEL_SET_BATTERY_GAUGE) || defined(LABEL_SET_ALL)
     if (hasTFTBattGauge) BatteryGauge_loop();
+  #endif
+
+  #if defined(LABEL_SET_CABIN_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
+    if (hasTFTCabPressGauge) CabinPressureGauge_loop();
+  #endif
+
+  #if defined(LABEL_SET_BRAKE_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
+    if (hasTFTBrakePressGauge) BrakePressureGauge_loop();
   #endif
 
   #if defined(LABEL_SET_RIGHT_PANEL_CONTROLLER) || defined(LABEL_SET_ALL)

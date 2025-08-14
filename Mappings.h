@@ -1,3 +1,5 @@
+// Mappings.h
+
 #pragma once
 
 // Global GPIO centralized PIN assignments. This ones should be carefully MANAGED. Use your board ARDUINO_ name for custom PINs
@@ -68,8 +70,14 @@
    #define RWR_AUDIO_PIN                              1
    #define RWR_DMR_PIN                                3    
 
-   // Chip Select pin for battery gauge (TFT CS pin)
+   // Chip Select pin for battery gauge (TFT Battery CS pin)
    #define BATTERY_CS_PIN                            10    
+
+   // Chip Select pin for Cabin Pressure gauge (TFT Cabin Pressure CS pin)
+   #define CABIN_PRESSURE_CS_PIN                     10  
+
+   // Chip Select pin for Brake Pressure gauge (TFT Brake Pressure CS pin)
+   #define BRAKE_PRESSURE_CS_PIN                     10  
 
    // --- 74HC165 IFEI pins ---
    #define HC165_QH                                  37
@@ -177,6 +185,12 @@
    // Chip Select pin for battery gauge (TFT CS pin)
    #define BATTERY_CS_PIN                            36   
 
+   // Chip Select pin for Cabin Pressure gauge (TFT Cabin Pressure CS pin)
+   #define CABIN_PRESSURE_CS_PIN                     36  
+
+   // Chip Select pin for Brake Pressure gauge (TFT Brake Pressure CS pin)
+   #define BRAKE_PRESSURE_CS_PIN                     36  
+
    // --- 74HC165 IFEI pins ---
    #define HC165_QH                                  38
    #define HC165_PL                                  39
@@ -233,6 +247,8 @@ extern bool hasRA;
 extern bool hasIR;
 extern bool hasLockShoot;
 extern bool hasTFTBattGauge;
+extern bool hasTFTCabPressGauge;
+extern bool hasTFTBrakePressGauge;
 extern bool hasRightPanelController;
 extern bool hasLeftPanelController;
 extern bool hasFrontLeftPanel;
@@ -275,7 +291,7 @@ const char* getPanelName(uint8_t addr);  // Declaration
 
 #elif defined(LABEL_SET_ALTIMETER)
 
-   #define LABEL_SET "Cockpit Altimeter"
+   #define LABEL_SET "Analog Cockpit Altimeter"
    #define HAS_HID_MODE_SELECTOR 0
    #define MODE_DEFAULT_IS_HID 0
 
@@ -376,6 +392,46 @@ const char* getPanelName(uint8_t addr);  // Declaration
    #include "src/LABELS/LABEL_SET_BATTERY_GAUGE/InputMapping.h"
    #include "src/LABELS/LABEL_SET_BATTERY_GAUGE/LEDMapping.h"
    #include "src/LABELS/LABEL_SET_BATTERY_GAUGE/DisplayMapping.h"
+
+#elif defined(LABEL_SET_BRAKE_PRESSURE_GAUGE)
+
+#if defined(ARDUINO_LOLIN_S3_MINI)
+   #define SDA_PIN 35
+   #define SCL_PIN 36
+#else
+   #define SDA_PIN 33
+   #define SCL_PIN 35
+#endif
+
+   #define LABEL_SET "Brake Pressure Gauge"
+   #define HAS_HID_MODE_SELECTOR 0
+   #define MODE_DEFAULT_IS_HID 0
+
+   #include "src/LABELS/LABEL_SET_BRAKE_PRESSURE_GAUGE/CT_Display.h"
+   #include "src/LABELS/LABEL_SET_BRAKE_PRESSURE_GAUGE/DCSBIOSBridgeData.h"
+   #include "src/LABELS/LABEL_SET_BRAKE_PRESSURE_GAUGE/InputMapping.h"
+   #include "src/LABELS/LABEL_SET_BRAKE_PRESSURE_GAUGE/LEDMapping.h"
+   #include "src/LABELS/LABEL_SET_BRAKE_PRESSURE_GAUGE/DisplayMapping.h"
+
+#elif defined(LABEL_SET_CABIN_PRESSURE_GAUGE)
+
+#if defined(ARDUINO_LOLIN_S3_MINI)
+   #define SDA_PIN 35
+   #define SCL_PIN 36
+#else
+   #define SDA_PIN 33
+   #define SCL_PIN 35
+#endif
+
+   #define LABEL_SET "Cabin Pressure Gauge"
+   #define HAS_HID_MODE_SELECTOR 0
+   #define MODE_DEFAULT_IS_HID 0
+
+   #include "src/LABELS/LABEL_SET_CABIN_PRESSURE_GAUGE/CT_Display.h"
+   #include "src/LABELS/LABEL_SET_CABIN_PRESSURE_GAUGE/DCSBIOSBridgeData.h"
+   #include "src/LABELS/LABEL_SET_CABIN_PRESSURE_GAUGE/InputMapping.h"
+   #include "src/LABELS/LABEL_SET_CABIN_PRESSURE_GAUGE/LEDMapping.h"
+   #include "src/LABELS/LABEL_SET_CABIN_PRESSURE_GAUGE/DisplayMapping.h"
 
 #elif defined(LABEL_SET_F16_TEST)
 

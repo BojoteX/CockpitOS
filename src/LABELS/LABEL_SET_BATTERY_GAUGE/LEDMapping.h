@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
-  DEVICE_GAUGE,
   DEVICE_PCA9555,
+  DEVICE_TM1637,
   DEVICE_GN1640T,
   DEVICE_WS2812,
-  DEVICE_TM1637,
   DEVICE_NONE,
   DEVICE_GPIO,
+  DEVICE_GAUGE,
 };
 
 struct LEDMapping {
@@ -29,11 +29,13 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
-  { "VOLT_E"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "VOLT_U"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "HMD_OFF_BRT"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "SPIN_LT"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "MASTER_CAUTION_LT", DEVICE_PCA9555 , {.pcaInfo = {0x27,1,5}}, false, false }, // PCA 0x27 Port 1 Bit 5
+  { "VOLT_E"             , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "VOLT_U"             , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "CHART_DIMMER"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "CONSOLES_DIMMER"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "FLOOD_DIMMER"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "INST_PNL_DIMMER"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "WARN_CAUTION_DIMMER", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);
@@ -44,13 +46,13 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {"FLOOD_DIMMER", &panelLEDs[4]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"WARN_CAUTION_DIMMER", &panelLEDs[6]},
   {nullptr, nullptr},
   {"VOLT_E", &panelLEDs[0]},
   {nullptr, nullptr},
@@ -62,8 +64,8 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"CONSOLES_DIMMER", &panelLEDs[3]},
+  {"INST_PNL_DIMMER", &panelLEDs[5]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -80,8 +82,10 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"HMD_OFF_BRT", &panelLEDs[2]},
-  {"MASTER_CAUTION_LT", &panelLEDs[4]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"CHART_DIMMER", &panelLEDs[2]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -92,8 +96,6 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"SPIN_LT", &panelLEDs[3]},
 };
 
 // Reuse shared recursive hash implementation
