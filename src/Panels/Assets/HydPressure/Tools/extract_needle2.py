@@ -12,8 +12,8 @@ IMAGE_WIDTH = 33
 IMAGE_HEIGHT = 120
 
 TRANSPARENT_COLOR = 0x0120  # RGB565 value that marks transparent
-SWAP_ENDIAN = True           # <--- Swap pixel data?
-SWAP_TRANSPARENT_COLOR = True  # <--- Swap transparent color constant?
+SWAP_ENDIAN = False           # <--- Swap pixel data?
+SWAP_TRANSPARENT_COLOR = False  # <--- Swap transparent color constant?
 
 # --- BYTE SWAP FUNCTION ---
 def swap16(x):

@@ -197,6 +197,9 @@
    // Chip Select pin for Hyd Pressure gauge (TFT Hyd Pressure CS pin)
    #define HYD_PRESSURE_CS_PIN                       36  
 
+   // Chip Select pin for Hyd Pressure gauge (TFT Hyd Pressure CS pin)
+   #define RADARALT_CS_PIN                           36  
+
    // --- 74HC165 IFEI pins ---
    #define HC165_QH                                  38
    #define HC165_PL                                  39
@@ -256,6 +259,7 @@ extern bool hasTFTBattGauge;
 extern bool hasTFTCabPressGauge;
 extern bool hasTFTBrakePressGauge;
 extern bool hasTFTHydPressGauge;
+extern bool hasTFTRadarAltGauge;
 extern bool hasRightPanelController;
 extern bool hasLeftPanelController;
 extern bool hasFrontLeftPanel;
@@ -459,6 +463,26 @@ const char* getPanelName(uint8_t addr);  // Declaration
    #include "src/LABELS/LABEL_SET_CABIN_PRESSURE_GAUGE/InputMapping.h"
    #include "src/LABELS/LABEL_SET_CABIN_PRESSURE_GAUGE/LEDMapping.h"
    #include "src/LABELS/LABEL_SET_CABIN_PRESSURE_GAUGE/DisplayMapping.h"
+
+#elif defined(LABEL_SET_RADAR_ALT_GAUGE)
+
+#if defined(ARDUINO_LOLIN_S3_MINI)
+   #define SDA_PIN 35
+   #define SCL_PIN 36
+#else
+   #define SDA_PIN 33
+   #define SCL_PIN 35
+#endif
+
+   #define LABEL_SET "Radar Altimeter Gauge"
+   #define HAS_HID_MODE_SELECTOR 0
+   #define MODE_DEFAULT_IS_HID 0
+
+   #include "src/LABELS/LABEL_SET_RADAR_ALT_GAUGE/CT_Display.h"
+   #include "src/LABELS/LABEL_SET_RADAR_ALT_GAUGE/DCSBIOSBridgeData.h"
+   #include "src/LABELS/LABEL_SET_RADAR_ALT_GAUGE/InputMapping.h"
+   #include "src/LABELS/LABEL_SET_RADAR_ALT_GAUGE/LEDMapping.h"
+   #include "src/LABELS/LABEL_SET_RADAR_ALT_GAUGE/DisplayMapping.h"
 
 #elif defined(LABEL_SET_F16_TEST)
 

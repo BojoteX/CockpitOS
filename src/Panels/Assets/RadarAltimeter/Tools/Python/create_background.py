@@ -5,9 +5,9 @@ from PIL import Image
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 # --- CONFIG ---
-PNG_FILE = "cabinPressBackgroundNVG.png"
-HEADER_FILE = "cabinPressBackgroundNVG.h"
-ARRAY_NAME = "cabinPressBackgroundNVG"
+PNG_FILE = "radarAltBackground.png"
+HEADER_FILE = "radarAltBackground.h"
+ARRAY_NAME = "radarAltBackground"
 EXPECTED_WIDTH = 360
 EXPECTED_HEIGHT = 360
 PIXELS_PER_LINE = 8
@@ -22,7 +22,7 @@ def rgb565_from_rgb(r, g, b):
 
 def write_header_file(pixels, output_path):
     with open(output_path, 'w') as f:
-        f.write('// \'cabin pressure NVG\', 360x360px\n')
+        f.write('// \'Radar Altimeter\', 360x360px\n')
         f.write(f'// This array is generated from PNG (RGB, 16bpp RGB565 {"LE" if SWAP_ENDIAN else "BE"} order)\n')
         f.write(f'const uint16_t {ARRAY_NAME} [] = {{\n')
         for i in range(0, len(pixels), PIXELS_PER_LINE):

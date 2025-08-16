@@ -1,71 +1,79 @@
-// TFT_Gauges_BrakePress.cpp - CockpitOS Brake Pressure Gauge (LovyanGFX)
+// TFT_Gauges_BrakePress.cpp - CockpitOS Brake Pressure Gauge (LovyanGFX, GC9A01) - Double-buffered PSRAM, DMA-safe
 
 #define BRAKE_PRESSURE_GAUGE_DRAW_MIN_INTERVAL_MS 13   // 77 Hz
 #define RUN_BRAKE_PRESSURE_GAUGE_AS_TASK 1
-#define BACKLIGHT_LABEL "INST_PANEL_DIMMER" // Other option is CONSOLES_DIMMER depending on the gauge type
-
-// Pin Definitions (S2 device)
-// #define BRAKE_PRESSURE_CS_PIN   36  // [BLUE] CS pin for the brake pressure gauge
-#define BRAKE_PRESSURE_MOSI_PIN  8  // [YELLOW] MOSI pin for the brake pressure gauge
-#define BRAKE_PRESSURE_SCLK_PIN  9  // [ORANGE] SCLK pin for the brake pressure gauge
-#define BRAKE_PRESSURE_DC_PIN   13  // [GREEN] DC pin for the brake pressure gauge
-#define BRAKE_PRESSURE_RST_PIN  12  // RESET pin for the brake pressure gauge
-
-// Not used in this implementation
-#define BRAKE_PRESSURE_MISO_PIN -1  // MISO pin for the brake pressure gauge
+#define BACKLIGHT_LABEL "INST_PNL_DIMMER"
+#define COLOR_DEPTH_BRAKE_PRESS 16
 
 #include "../Globals.h"
 #include "../TFT_Gauges_BrakePress.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
 #include <LovyanGFX.hpp>
+#include <cstring>
 
-// Brake Pressure Gauge Assets (day/NVG, 240x240 bg, 15x150 needle)
+#if defined(ARDUINO_ARCH_ESP32)
+#include <esp_heap_caps.h>
+#endif
+
+// --- Pins ---
+#define BRAKE_PRESSURE_MOSI_PIN   8
+#define BRAKE_PRESSURE_SCLK_PIN   9
+#define BRAKE_PRESSURE_DC_PIN    13
+#define BRAKE_PRESSURE_RST_PIN   12
+#define BRAKE_PRESSURE_MISO_PIN  -1
+
+// --- Assets (240x240 bg, 15x150 needle) ---
 #include "Assets/BrakePressure/brakePressBackground.h"
 #include "Assets/BrakePressure/brakePressBackgroundNVG.h"
 #include "Assets/BrakePressure/brakePressNeedle.h"
 #include "Assets/BrakePressure/brakePressNeedleNVG.h"
 
 // --- Misc ---
-static constexpr bool shared_bus    = true;
-static constexpr bool use_lock      = true;
+static constexpr bool shared_bus = true;
+static constexpr bool use_lock = true;
+static constexpr uint16_t TRANSPARENT_KEY = 0x2001;
+static constexpr uint16_t NVG_THRESHOLD = 6553;
+static constexpr int16_t SCREEN_W = 240, SCREEN_H = 240;
+static constexpr int16_t CENTER_X = 120, CENTER_Y = 239;
+static constexpr int16_t NEEDLE_PIVOT_X = 7, NEEDLE_PIVOT_Y = 150;
 
-// ---------------------- Panel binding (LovyanGFX) ----------------------
+// --- Panel binding ---
 class LGFX_BrakePress : public lgfx::LGFX_Device {
-    lgfx::Bus_SPI _bus;                 // SPI bus
-    lgfx::Panel_GC9A01 _panel;          // GC9A01 panel
+    lgfx::Bus_SPI _bus;
+    lgfx::Panel_GC9A01 _panel;
 public:
     LGFX_BrakePress() {
-        { // Bus config
-            auto cfg                = _bus.config();
-            cfg.spi_host            = SPI2_HOST;           // ESP32-S2/S3: SPI2_HOST is correct
-            cfg.spi_mode            = 0;
-            cfg.freq_write          = 80000000;            // 80 MHz write
-            cfg.freq_read           = 0;                   // read not used, but set sane value
-            cfg.spi_3wire           = false;               // write-only panel
-            cfg.use_lock            = use_lock;
-            cfg.dma_channel         = 1;                   // auto/1 are fine
-            cfg.pin_mosi            = BRAKE_PRESSURE_MOSI_PIN;
-            cfg.pin_miso            = BRAKE_PRESSURE_MISO_PIN;            // -1
-            cfg.pin_sclk            = BRAKE_PRESSURE_SCLK_PIN;
-            cfg.pin_dc              = BRAKE_PRESSURE_DC_PIN;
+        {
+            auto cfg = _bus.config();
+            cfg.spi_host = SPI2_HOST;
+            cfg.spi_mode = 0;
+            cfg.freq_write = 80000000;
+            cfg.freq_read = 0;
+            cfg.spi_3wire = false;
+            cfg.use_lock = use_lock;
+            cfg.dma_channel = 1;
+            cfg.pin_mosi = BRAKE_PRESSURE_MOSI_PIN;
+            cfg.pin_miso = BRAKE_PRESSURE_MISO_PIN;
+            cfg.pin_sclk = BRAKE_PRESSURE_SCLK_PIN;
+            cfg.pin_dc = BRAKE_PRESSURE_DC_PIN;
             _bus.config(cfg);
             _panel.setBus(&_bus);
         }
-        { // Panel config
-            auto pcfg               = _panel.config();
-            pcfg.pin_cs             = BRAKE_PRESSURE_CS_PIN;
-            pcfg.pin_rst            = BRAKE_PRESSURE_RST_PIN;      // can be -1
-            pcfg.pin_busy           = -1;
-            pcfg.memory_width       = 240;
-            pcfg.memory_height      = 240;
-            pcfg.panel_width        = 240;
-            pcfg.panel_height       = 240;
-            pcfg.offset_x           = 0;
-            pcfg.offset_y           = 0;
-            pcfg.offset_rotation    = 0;
-            pcfg.bus_shared         = shared_bus;
-            pcfg.invert             = true;
+        {
+            auto pcfg = _panel.config();
+            pcfg.pin_cs = BRAKE_PRESSURE_CS_PIN;
+            pcfg.pin_rst = BRAKE_PRESSURE_RST_PIN;
+            pcfg.pin_busy = -1;
+            pcfg.memory_width = SCREEN_W;
+            pcfg.memory_height = SCREEN_H;
+            pcfg.panel_width = SCREEN_W;
+            pcfg.panel_height = SCREEN_H;
+            pcfg.offset_x = 0;
+            pcfg.offset_y = 0;
+            pcfg.offset_rotation = 0;
+            pcfg.bus_shared = shared_bus;
+            pcfg.invert = true;
             _panel.config(pcfg);
         }
         setPanel(&_panel);
@@ -74,50 +82,72 @@ public:
 
 // --- State ---
 static LGFX_BrakePress tft;
-static lgfx::LGFX_Sprite needleU(&tft);
+static lgfx::LGFX_Sprite frameSpr(&tft);
+static lgfx::LGFX_Sprite needleSpr(&tft);
 
-// Pivot point on the needle sprite is at (7, 150), However, we draw it at the bottom center of the panel (120, 240) as needle pivots from the bottom.
-static constexpr uint8_t    COLOR_DEPTH         = 16;
-static constexpr int16_t    CENTER_X            = 120;
-static constexpr int16_t    CENTER_Y            = 239; // Bottom center of the panel (240x240) offset by 1 pixel to account for the pivot point of the needle sprite
-static constexpr uint16_t   TRANSPARENT_KEY     = 0x0120;
-static volatile int16_t     angleU              = -25; // Initial angle for the needle, matches reference logic (-25 to 25 PSI) 
-static volatile int16_t     lastDrawnAngleU     = INT16_MIN;
-static volatile bool        gaugeDirty          = false;
-static volatile uint8_t     currentLightingMode = 0; // 0 = DAY, 2 = NVG
-static unsigned long        lastDrawTime        = 0;
-static TaskHandle_t         tftTaskHandle       = nullptr;
-static uint8_t              lastNeedleMode      = 0xFF;
-static constexpr uint16_t   NVG_THRESHOLD       = 6553;
+// Live values
+static volatile int16_t angleU = -25;
+static volatile int16_t lastDrawnAngleU = INT16_MIN;
+static volatile bool    gaugeDirty = false;
+static volatile uint8_t currentLightingMode = 0; // 0 = DAY, 2 = NVG
+static uint8_t          lastNeedleMode = 0xFF;
+static unsigned long    lastDrawTime = 0;
+static TaskHandle_t     tftTaskHandle = nullptr;
 
-// --- Build needle sprite helper ---
-static void buildNeedle(lgfx::LGFX_Sprite& spr, const uint16_t* img)
-{
-    spr.fillScreen(TRANSPARENT_KEY);      // Clear needle sprite to transparent
-    spr.setSwapBytes(false);              // Match header byte order (false matches your working code)
-    spr.pushImage(0, 0, 15, 150, img);    // 15x150 needle!
+// --- DMA-safe double buffer ---
+static constexpr size_t FRAME_PIXELS = size_t(SCREEN_W) * size_t(SCREEN_H);
+static constexpr size_t FRAME_BYTES = FRAME_PIXELS * sizeof(uint16_t);
+
+static uint16_t* dmaFrame[2] = { nullptr, nullptr };
+static uint8_t   dmaIdx = 0;
+static bool      dmaBusy = false;
+
+static inline void waitDMADone() {
+    if (dmaBusy) {
+        tft.waitDMA();
+        dmaBusy = false;
+    }
+}
+
+// --- Build needle sprite ---
+static void buildNeedle(lgfx::LGFX_Sprite& spr, const uint16_t* img) {
+    spr.fillScreen(TRANSPARENT_KEY);
+    spr.setSwapBytes(true);
+    spr.pushImage(0, 0, 15, 150, img);
 }
 
 // --- DCS-BIOS callback for HYD_IND_BRAKE ---
-static void onBrakePressureChange(const char*, uint16_t value, uint16_t)
-{
-    int16_t newAngle = map(value, 0, 65535, -25, 25); // Matches reference logic!
+static void onBrakePressureChange(const char*, uint16_t value, uint16_t) {
+    int16_t newAngle = map(value, 0, 65535, -25, 25);
     if (newAngle != angleU) { angleU = newAngle; gaugeDirty = true; }
 }
+static void onDimmerChange(const char*, uint16_t v, uint16_t) {
+    uint8_t mode = (v > NVG_THRESHOLD) ? 2u : 0u;
+    if (mode != currentLightingMode) { currentLightingMode = mode; gaugeDirty = true; }
+}
 
-// --- Core drawing ---
-static void BrakePressureGauge_draw(bool force = false)
-{
+// --- Flush helper ---
+static inline void flushFrameToDisplay(uint16_t* buf, bool blocking) {
+    tft.startWrite();
+    if (blocking) {
+        tft.pushImage(0, 0, SCREEN_W, SCREEN_H, buf);
+        dmaBusy = false;
+    }
+    else {
+        waitDMADone();
+        tft.pushImageDMA(0, 0, SCREEN_W, SCREEN_H, buf);
+        dmaBusy = true;
+    }
+    tft.endWrite();
+}
+
+// --- Double-buffered draw ---
+static void BrakePressureGauge_draw(bool force = false, bool blocking = false) {
     if (!force && !isMissionRunning()) return;
-
     const unsigned long now = millis();
-    int16_t u = angleU; // Current angle in U (0-65535 mapped to -25 to 25 PSI)
-    if (u < -25) u = -25; else if (u > 25) u = 25; // Clamp the angle to -25 to 25 range
+    int16_t u = angleU; if (u < -25) u = -25; else if (u > 25) u = 25;
 
-    const bool shouldDraw = force
-        || gaugeDirty
-        || (u != lastDrawnAngleU);
-
+    const bool shouldDraw = force || gaugeDirty || (u != lastDrawnAngleU);
     if (!shouldDraw) return;
     if (!force && (now - lastDrawTime < BRAKE_PRESSURE_GAUGE_DRAW_MIN_INTERVAL_MS)) return;
 
@@ -125,100 +155,71 @@ static void BrakePressureGauge_draw(bool force = false)
     lastDrawnAngleU = u;
     gaugeDirty = false;
 
-#if DEBUG_PERFORMANCE
-    beginProfiling(PERF_TFT_BRAKE_PRESSURE_DRAW);
-#endif
-
-#if DEBUG_ENABLED
-    debugPrintf("🔋 LGFX Brake draw: U=%d, mode=%d\n", u, currentLightingMode);
-#endif
-
-    // --- Asset selection ---
     const uint16_t* bg = (currentLightingMode == 0)
         ? brakePressBackground
         : brakePressBackgroundNVG;
-
     const uint16_t* needleImg = (currentLightingMode == 0)
         ? brakePressNeedle
         : brakePressNeedleNVG;
 
-	// --- Update needle sprite if lighting mode changed ---
     if (lastNeedleMode != currentLightingMode) {
-        buildNeedle(needleU, needleImg);
+        buildNeedle(needleSpr, needleImg);
         lastNeedleMode = currentLightingMode;
     }
 
-    // --- Draw background directly to panel ---
-    tft.startWrite();
-    tft.pushImageDMA(0, 0, 240, 240, bg);
+    frameSpr.fillScreen(TFT_BLACK);
+    frameSpr.pushImage(0, 0, SCREEN_W, SCREEN_H, bg);
+    needleSpr.pushRotateZoom(&frameSpr, CENTER_X, CENTER_Y, (float)u, 1.0f, 1.0f, TRANSPARENT_KEY);
 
-    // --- Draw rotated needle sprite over background ---
-    needleU.pushRotateZoom(&tft, CENTER_X, CENTER_Y, (float)u, 1.0f, 1.0f, TRANSPARENT_KEY);
-
-    tft.endWrite();
-
-#if DEBUG_PERFORMANCE
-    endProfiling(PERF_TFT_BRAKE_PRESSURE_DRAW);
-#endif
+    uint16_t* buf = dmaFrame[dmaIdx ^ 1];
+    std::memcpy(buf, frameSpr.getBuffer(), FRAME_BYTES);
+    flushFrameToDisplay(buf, blocking);
+    dmaIdx ^= 1;
 }
 
-// --- FreeRTOS task ---
-static void BrakePressureGauge_task(void*)
-{
+// --- Task ---
+static void BrakePressureGauge_task(void*) {
     for (;;) {
-        BrakePressureGauge_draw(false);
+        BrakePressureGauge_draw(false, false);
         vTaskDelay(pdMS_TO_TICKS(5));
     }
 }
 
-static void onBrakePressureGaugeLightingChange(const char*, uint16_t value)
-{
-    const uint8_t normalized = (value == 0) ? 0 : 2;
-    if (normalized == currentLightingMode) return;
-    currentLightingMode = normalized;
-#if DEBUG_ENABLED
-    debugPrintf("⚙️ LGFX lighting=%s\n", currentLightingMode == 0 ? "DAY" : "NVG");
-#endif
-    gaugeDirty = true;          
-}
-
-static void onInstPanelDimmerChange(const char*, uint16_t v, uint16_t) {
-    const uint8_t mode = (v > NVG_THRESHOLD) ? 2u : 0u;
-    if (mode == currentLightingMode) return;
-    currentLightingMode = mode;
-    gaugeDirty = true;
-}
-
 // --- API ---
-void BrakePressureGauge_setLightingMode(uint8_t mode)
-{
-    onBrakePressureGaugeLightingChange(nullptr, mode);
-}
-
-void BrakePressureGauge_init()
-{
-#if DEBUG_PERFORMANCE
-    beginProfiling(PERF_TFT_BRAKE_PRESSURE_INIT);
+void BrakePressureGauge_init() {
+#if defined(ARDUINO_ARCH_ESP32)
+    dmaFrame[0] = (uint16_t*)heap_caps_malloc(FRAME_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
+    dmaFrame[1] = (uint16_t*)heap_caps_malloc(FRAME_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
+#else
+    dmaFrame[0] = (uint16_t*)malloc(FRAME_BYTES);
+    dmaFrame[1] = (uint16_t*)malloc(FRAME_BYTES);
 #endif
+    if (!dmaFrame[0] || !dmaFrame[1]) {
+        debugPrintln("❌ PSRAM DMA framebuffer alloc failed!");
+        while (1) vTaskDelay(1000);
+    }
 
     tft.init();
-    tft.setColorDepth(16);
-
+    tft.setColorDepth(COLOR_DEPTH_BRAKE_PRESS);
     tft.setRotation(0);
     tft.setSwapBytes(true);
     tft.fillScreen(TFT_BLACK);
 
-    // Needle sprite (15x150, pivot 7,150)
-    needleU.setColorDepth(COLOR_DEPTH);
-    needleU.createSprite(15, 150);
-    needleU.setPivot(7, 150);
+    frameSpr.setColorDepth(COLOR_DEPTH_BRAKE_PRESS);
+    frameSpr.setPsram(true);
+    frameSpr.setSwapBytes(false);
+    if (!frameSpr.createSprite(SCREEN_W, SCREEN_H)) {
+        debugPrintln("❌ frameSpr alloc failed!");
+        while (1) vTaskDelay(1000);
+    }
 
-    // DCS-BIOS subscription: HYD_IND_BRAKE!
+    needleSpr.setColorDepth(COLOR_DEPTH_BRAKE_PRESS);
+    needleSpr.createSprite(15, 150);
+    needleSpr.setPivot(NEEDLE_PIVOT_X, NEEDLE_PIVOT_Y);
+    buildNeedle(needleSpr, brakePressNeedle);
+
     subscribeToLedChange("HYD_IND_BRAKE", onBrakePressureChange);
-
-	// DCS-BIOS subscription: COCKKPIT_LIGHT_MODE_SW! (Not a typo, this is the correct DCS-BIOS event for lighting mode)
-    // subscribeToSelectorChange("COCKKPIT_LIGHT_MODE_SW", onBrakePressureGaugeLightingChange);
-    subscribeToLedChange(BACKLIGHT_LABEL, onInstPanelDimmerChange);
+    subscribeToLedChange(BACKLIGHT_LABEL, onDimmerChange);
 
     BrakePressureGauge_bitTest();
 
@@ -230,61 +231,45 @@ void BrakePressureGauge_init()
 #endif
 #endif
 
-    debugPrintln("✅ Brake Pressure Gauge (LovyanGFX) initialized");
-
-#if DEBUG_PERFORMANCE
-    endProfiling(PERF_TFT_BRAKE_PRESSURE_INIT);
-#endif
+    debugPrintln("✅ Brake Pressure Gauge (LovyanGFX, PSRAM double-buffered, DMA-safe) initialized");
 }
 
-void BrakePressureGauge_loop()
-{
+void BrakePressureGauge_loop() {
 #if !RUN_BRAKE_PRESSURE_GAUGE_AS_TASK
-    BrakePressureGauge_draw(false);
+    BrakePressureGauge_draw(false, false);
 #endif
 }
 
-void BrakePressureGauge_notifyMissionStart()
-{
-    gaugeDirty = true;
-}
+void BrakePressureGauge_notifyMissionStart() { gaugeDirty = true; }
 
-void BrakePressureGauge_bitTest()
-{
-#if DEBUG_PERFORMANCE
-    beginProfiling(PERF_TFT_BRAKE_PRESSURE_BITTEST);
-#endif
-
+// Visual self-test; use blocking flush to avoid DMA overlap during rapid sweeps
+void BrakePressureGauge_bitTest() {
     int16_t originalU = angleU;
-    const int STEP = 1; // <-- Increase this for faster sweep (try 10, 15, 20)
-    const int DELAY = 2; // <-- Lower for less time per step
-
-    // Sweep inward
+    const int STEP = 5, DELAY = 2;
     for (int i = 0; i <= 50; i += STEP) {
         angleU = map(i, 0, 50, -25, 25);
-        gaugeDirty = true; BrakePressureGauge_draw(true);
+        gaugeDirty = true; BrakePressureGauge_draw(true, true);
         vTaskDelay(pdMS_TO_TICKS(DELAY));
     }
-    // Sweep outward
     for (int i = 50; i >= 0; i -= STEP) {
         angleU = map(i, 0, 50, -25, 25);
-        gaugeDirty = true; BrakePressureGauge_draw(true);
+        gaugeDirty = true; BrakePressureGauge_draw(true, true);
         vTaskDelay(pdMS_TO_TICKS(DELAY));
     }
-
     angleU = originalU;
-    gaugeDirty = true; BrakePressureGauge_draw(true);
-
-#if DEBUG_PERFORMANCE
-    endProfiling(PERF_TFT_BRAKE_PRESSURE_BITTEST);
-#endif
+    gaugeDirty = true; BrakePressureGauge_draw(true, true);
 }
 
-void BrakePressureGauge_deinit()
-{
-    needleU.deleteSprite();
-    if (tftTaskHandle) {
-        vTaskDelete(tftTaskHandle);
-        tftTaskHandle = nullptr;
-    }
+void BrakePressureGauge_deinit() {
+    waitDMADone();
+    needleSpr.deleteSprite();
+    frameSpr.deleteSprite();
+    if (tftTaskHandle) { vTaskDelete(tftTaskHandle); tftTaskHandle = nullptr; }
+#if defined(ARDUINO_ARCH_ESP32)
+    if (dmaFrame[0]) { heap_caps_free(dmaFrame[0]); dmaFrame[0] = nullptr; }
+    if (dmaFrame[1]) { heap_caps_free(dmaFrame[1]); dmaFrame[1] = nullptr; }
+#else
+    if (dmaFrame[0]) { free(dmaFrame[0]); dmaFrame[0] = nullptr; }
+    if (dmaFrame[1]) { free(dmaFrame[1]); dmaFrame[1] = nullptr; }
+#endif
 }

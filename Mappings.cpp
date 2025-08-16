@@ -28,6 +28,7 @@ bool hasTFTBattGauge          = false;
 bool hasTFTCabPressGauge      = false;
 bool hasTFTBrakePressGauge    = false;
 bool hasTFTHydPressGauge      = false;
+bool hasTFTRadarAltGauge      = false;
 bool hasRightPanelController  = false;
 bool hasLeftPanelController   = false;
 bool hasFrontLeftPanel        = false;
@@ -66,6 +67,9 @@ const char* getPanelName(uint8_t addr) {
 #endif
 #if defined(LABEL_SET_CABIN_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
   #include "src/TFT_Gauges_CabPress.h"
+#endif
+#if defined(LABEL_SET_RADAR_ALT_GAUGE) || defined(LABEL_SET_ALL)
+  #include "src/TFT_Gauges_RadarAlt.h"
 #endif
 #if defined(LABEL_SET_BRAKE_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
   #include "src/TFT_Gauges_BrakePress.h"
@@ -111,6 +115,9 @@ void initMappings() {
     #if defined(LABEL_SET_CABIN_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
       hasTFTCabPressGauge = true;
     #endif 
+    #if defined(LABEL_SET_RADAR_ALT_GAUGE) || defined(LABEL_SET_ALL)
+      hasTFTRadarAltGauge = true;
+    #endif 
     #if defined(LABEL_SET_BRAKE_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
       hasTFTBrakePressGauge = true;
     #endif       
@@ -154,6 +161,10 @@ void initializeDisplays() {
   #if defined(LABEL_SET_CABIN_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
     if (hasTFTCabPressGauge) CabinPressureGauge_init();
   #endif  
+
+  #if defined(LABEL_SET_RADAR_ALT_GAUGE) || defined(LABEL_SET_ALL)
+    if (hasTFTRadarAltGauge) RadarAlt_init();
+  #endif    
 
   #if defined(LABEL_SET_BRAKE_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
     if (hasTFTBrakePressGauge) BrakePressureGauge_init();
@@ -293,6 +304,10 @@ void panelLoop() {
 
   #if defined(LABEL_SET_CABIN_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
     if (hasTFTCabPressGauge) CabinPressureGauge_loop();
+  #endif
+
+  #if defined(LABEL_SET_RADAR_ALT_GAUGE) || defined(LABEL_SET_ALL)
+    if (hasTFTRadarAltGauge) RadarAlt_loop();
   #endif
 
   #if defined(LABEL_SET_BRAKE_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
