@@ -20,3 +20,5 @@ try two TFT gauges simultaneously and measure perf
 Axis sending during init is bugged. investigate
 
 Inconsistent sync logic with some buttons/axes. Need to test one by one and debug. Examples: Right Panel not sending axes, LEFT panel some buttons, depending on position are not sent
+
+Use PreProcessesors for selective cpp compilation, only compile panel specific cpp's

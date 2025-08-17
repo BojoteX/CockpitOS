@@ -16,12 +16,29 @@
 #include <esp_heap_caps.h>
 #endif
 
+// Select core (For this gauge, we always use core 0 for all devices)
+#if defined(ARDUINO_LOLIN_S3_MINI)
+#define BRAKEPRESS_CPU_CORE 0
+#else 
+#define BRAKEPRESS_CPU_CORE 0
+#endif
+
 // --- Pins ---
+#if defined(ARDUINO_LOLIN_S3_MINI)
+#define BRAKE_PRESSURE_CS_PIN    38  
 #define BRAKE_PRESSURE_MOSI_PIN   8
 #define BRAKE_PRESSURE_SCLK_PIN   9
-#define BRAKE_PRESSURE_DC_PIN    13
-#define BRAKE_PRESSURE_RST_PIN   12
+#define BRAKE_PRESSURE_DC_PIN    14
+#define BRAKE_PRESSURE_RST_PIN   -1
 #define BRAKE_PRESSURE_MISO_PIN  -1
+#else
+#define BRAKE_PRESSURE_CS_PIN    38  
+#define BRAKE_PRESSURE_MOSI_PIN   8
+#define BRAKE_PRESSURE_SCLK_PIN   9
+#define BRAKE_PRESSURE_DC_PIN    14 // 13 for Right Panel Controller
+#define BRAKE_PRESSURE_RST_PIN   -1 // 12 for Right Panel Controller
+#define BRAKE_PRESSURE_MISO_PIN  -1
+#endif
 
 // --- Assets (240x240 bg, 15x150 needle) ---
 #include "Assets/BrakePressure/brakePressBackground.h"
@@ -52,7 +69,7 @@ public:
             cfg.freq_read = 0;
             cfg.spi_3wire = false;
             cfg.use_lock = use_lock;
-            cfg.dma_channel = 1;
+            cfg.dma_channel = SPI_DMA_CH_AUTO;
             cfg.pin_mosi = BRAKE_PRESSURE_MOSI_PIN;
             cfg.pin_miso = BRAKE_PRESSURE_MISO_PIN;
             cfg.pin_sclk = BRAKE_PRESSURE_SCLK_PIN;
@@ -62,6 +79,7 @@ public:
         }
         {
             auto pcfg = _panel.config();
+            pcfg.readable = false;
             pcfg.pin_cs = BRAKE_PRESSURE_CS_PIN;
             pcfg.pin_rst = BRAKE_PRESSURE_RST_PIN;
             pcfg.pin_busy = -1;
@@ -224,11 +242,7 @@ void BrakePressureGauge_init() {
     BrakePressureGauge_bitTest();
 
 #if RUN_BRAKE_PRESSURE_GAUGE_AS_TASK
-#if defined(IS_S3_PINS)
-    xTaskCreatePinnedToCore(BrakePressureGauge_task, "BrakePressureGaugeTask", 4096, nullptr, 2, &tftTaskHandle, 1);
-#else
-    xTaskCreatePinnedToCore(BrakePressureGauge_task, "BrakePressureGaugeTask", 4096, nullptr, 2, &tftTaskHandle, 0);
-#endif
+    xTaskCreatePinnedToCore(BrakePressureGauge_task, "BrakePressureGaugeTask", 4096, nullptr, 2, &tftTaskHandle, BRAKEPRESS_CPU_CORE);
 #endif
 
     debugPrintln("✅ Brake Pressure Gauge (LovyanGFX, PSRAM double-buffered, DMA-safe) initialized");

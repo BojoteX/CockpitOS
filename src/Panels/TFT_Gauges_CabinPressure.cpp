@@ -16,12 +16,28 @@
 #include <esp_heap_caps.h>
 #endif
 
+// Select core (For this gauge, we always use core 0 for all devices)
+#if defined(ARDUINO_LOLIN_S3_MINI)
+#define CABPRESS_CPU_CORE 0
+#else 
+#define CABPRESS_CPU_CORE 0
+#endif
+
 // --- Pins ---
+#if defined(ARDUINO_LOLIN_S3_MINI)
+#define CABIN_PRESSURE_MOSI_PIN 11  // SDA (Yellow)
+#define CABIN_PRESSURE_SCLK_PIN 12  // SCL (Orange)
+#define CABIN_PRESSURE_CS_PIN   10  // Chip Select (Blue)
+#define CABIN_PRESSURE_DC_PIN   13  // Data/Command (Green)
+#define CABIN_PRESSURE_RST_PIN  -1  // Reset (White)
+#define CABIN_PRESSURE_MISO_PIN -1  // Unused
+#else
 #define CABIN_PRESSURE_MOSI_PIN   8
 #define CABIN_PRESSURE_SCLK_PIN   9
-#define CABIN_PRESSURE_DC_PIN    13
+#define CABIN_PRESSURE_DC_PIN    14
 #define CABIN_PRESSURE_RST_PIN   -1
 #define CABIN_PRESSURE_MISO_PIN  -1
+#endif
 
 // --- Assets (360x360 bg, 23x238 needle) ---
 #include "Assets/CabinPressure/cabinPressBackground.h"
@@ -46,13 +62,13 @@ public:
     LGFX_CabPress() {
         {
             auto cfg = _bus.config();
-            cfg.spi_host = SPI2_HOST;
+            cfg.spi_host = SPI3_HOST;
             cfg.spi_mode = 0;
             cfg.freq_write = 80000000;
             cfg.freq_read = 0;
             cfg.spi_3wire = false;
             cfg.use_lock = use_lock;
-            cfg.dma_channel = 1;
+            cfg.dma_channel = SPI_DMA_CH_AUTO;
             cfg.pin_mosi = CABIN_PRESSURE_MOSI_PIN;
             cfg.pin_miso = CABIN_PRESSURE_MISO_PIN;
             cfg.pin_sclk = CABIN_PRESSURE_SCLK_PIN;
@@ -62,6 +78,7 @@ public:
         }
         {
             auto pcfg = _panel.config();
+            pcfg.readable = false;
             pcfg.pin_cs = CABIN_PRESSURE_CS_PIN;
             pcfg.pin_rst = CABIN_PRESSURE_RST_PIN;
             pcfg.pin_busy = -1;
@@ -239,11 +256,7 @@ void CabinPressureGauge_init() {
     CabinPressureGauge_bitTest();
 
 #if RUN_CABIN_PRESSURE_GAUGE_AS_TASK
-#if defined(IS_S3_PINS)
-    xTaskCreatePinnedToCore(CabinPressureGauge_task, "CabinPressureGaugeTask", 4096, nullptr, 2, &tftTaskHandle, 1);
-#else
-    xTaskCreatePinnedToCore(CabinPressureGauge_task, "CabinPressureGaugeTask", 4096, nullptr, 2, &tftTaskHandle, 0);
-#endif
+    xTaskCreatePinnedToCore(CabinPressureGauge_task, "CabinPressureGaugeTask", 4096, nullptr, 2, &tftTaskHandle, CABPRESS_CPU_CORE);
 #endif
 
     debugPrintln("✅ Cabin Pressure Gauge (LovyanGFX, PSRAM double-buffered, DMA-safe) initialized");

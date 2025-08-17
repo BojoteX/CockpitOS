@@ -1,0 +1,8 @@
+Colors used for dupont
+
+// Custom S3
+#define TFT_MOSI 11  // SDA (Yellow)
+#define TFT_SCLK 12  // SCL (Orange)
+#define TFT_CS   10  // Chip Select (Blue)
+#define TFT_DC   13  // Data/Command (Green)
+#define TFT_RST  14  // Reset (White)

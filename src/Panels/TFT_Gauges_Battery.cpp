@@ -16,12 +16,35 @@
 #include <esp_heap_caps.h>
 #endif
 
+// Select core (For this gauge, we always use core 0 for all devices)
+#if defined(ARDUINO_LOLIN_S3_MINI)
+#define BATT_CPU_CORE 0
+#else 
+#define BATT_CPU_CORE 0
+#endif
+
 // --- Pins ---
+#if defined(ARDUINO_LOLIN_S3_MINI)
+#define BATTERY_CS_PIN    38  
 #define BATTERY_MOSI_PIN   8
 #define BATTERY_SCLK_PIN   9
-#define BATTERY_DC_PIN    13
-#define BATTERY_RST_PIN   12
+#define BATTERY_DC_PIN    14
+#define BATTERY_RST_PIN   -1
 #define BATTERY_MISO_PIN  -1
+#else
+#define BATTERY_CS_PIN    38  
+#define BATTERY_MOSI_PIN   8
+#define BATTERY_SCLK_PIN   9
+#define BATTERY_DC_PIN    14 // 13 for Right Panel Controller
+#define BATTERY_RST_PIN   -1 // 12 for Right Panel Controller
+#define BATTERY_MISO_PIN  -1
+#endif
+
+// Pin overrides for Right Panel Controller
+#if defined(LABEL_SET_RIGHT_PANEL_CONTROLLER)
+#define BATTERY_DC_PIN    13
+#define BATTERY_RST_PIN   12 
+#endif
 
 // --- Assets (240x240 bg, 15x88 needle) ---
 #include "Assets/BatteryGauge/batBackground.h"
@@ -52,7 +75,7 @@ public:
             cfg.freq_read = 0;
             cfg.spi_3wire = false;
             cfg.use_lock = use_lock;
-            cfg.dma_channel = 1;
+            cfg.dma_channel = SPI_DMA_CH_AUTO;
             cfg.pin_mosi = BATTERY_MOSI_PIN;
             cfg.pin_miso = BATTERY_MISO_PIN;
             cfg.pin_sclk = BATTERY_SCLK_PIN;
@@ -62,6 +85,7 @@ public:
         }
         {
             auto pcfg = _panel.config();
+            pcfg.readable = false;
             pcfg.pin_cs = BATTERY_CS_PIN;
             pcfg.pin_rst = BATTERY_RST_PIN;
             pcfg.pin_busy = -1;
@@ -232,11 +256,7 @@ void BatteryGauge_init() {
     BatteryGauge_bitTest();
 
 #if RUN_GAUGE_AS_TASK
-#if defined(IS_S3_PINS)
-    xTaskCreatePinnedToCore(BatteryGauge_task, "BatteryGaugeTask", 4096, nullptr, 2, &tftTaskHandle, 1);
-#else
-    xTaskCreatePinnedToCore(BatteryGauge_task, "BatteryGaugeTask", 4096, nullptr, 2, &tftTaskHandle, 0);
-#endif
+    xTaskCreatePinnedToCore(BatteryGauge_task, "BatteryGaugeTask", 4096, nullptr, 2, &tftTaskHandle, BATT_CPU_CORE);
 #endif
 
     debugPrintln("✅ Battery Gauge (LovyanGFX, PSRAM double-buffered, DMA-safe) initialized");

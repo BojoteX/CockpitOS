@@ -16,12 +16,39 @@
 #include <esp_heap_caps.h>
 #endif
 
+// Select core (For this gauge, we always use core 0 for all devices)
+#if defined(ARDUINO_LOLIN_S3_MINI)
+    #define RA_CPU_CORE 0
+#else 
+    #define RA_CPU_CORE 0
+#endif
+
 // --- Pins ---
-#define RADARALT_MOSI_PIN   8
-#define RADARALT_SCLK_PIN   9
-#define RADARALT_DC_PIN    13
-#define RADARALT_RST_PIN   -1
-#define RADARALT_MISO_PIN  -1
+#if defined(ARDUINO_LOLIN_S3_MINI)
+    #define RADARALT_MOSI_PIN 11  // SDA (Yellow)
+    #define RADARALT_SCLK_PIN 12  // SCL (Orange)
+    #define RADARALT_CS_PIN   10  // Chip Select (Blue)
+    #define RADARALT_DC_PIN   13  // Data/Command (Green)
+    #define RADARALT_RST_PIN  -1  // Reset (White)
+    #define RADARALT_MISO_PIN -1  // Unused
+#else
+    #define RADARALT_MOSI_PIN 11  // SDA (Yellow)
+    #define RADARALT_SCLK_PIN 12  // SCL (Orange)
+    #define RADARALT_CS_PIN   10  // Chip Select (Blue)
+    #define RADARALT_DC_PIN   13  // Data/Command (Green)
+    #define RADARALT_RST_PIN  -1  // Reset (White)
+    #define RADARALT_MISO_PIN -1  // Unused
+#endif
+
+// Pin overrides for Custom Front Right Console
+#if defined(LABEL_SET_CUSTOM_FRONT_RIGHT)
+    #define RADARALT_DC_PIN   13  // Data/Command (Green)
+    #define RADARALT_CS_PIN   14  // Chip Select (Blue)
+    #define RADARALT_MOSI_PIN 16  // SDA (Yellow)
+    #define RADARALT_SCLK_PIN 17  // SCL (Orange)
+    #define RADARALT_RST_PIN  -1  // Reset (White)
+    #define RADARALT_MISO_PIN -1  // Unused
+#endif
 
 // --- Assets ---
 #include "Assets/RadarAltimeter/radarAltBackground.h"
@@ -62,13 +89,13 @@ public:
     LGFX_RadarAlt() {
         {
             auto cfg = _bus.config();
-            cfg.spi_host = SPI2_HOST;
+            cfg.spi_host = SPI3_HOST;
             cfg.spi_mode = 0;
             cfg.freq_write = 80000000;
             cfg.freq_read = 0;
             cfg.spi_3wire = false;
             cfg.use_lock = use_lock;
-            cfg.dma_channel = 1;
+            cfg.dma_channel = SPI_DMA_CH_AUTO;
             cfg.pin_mosi = RADARALT_MOSI_PIN;
             cfg.pin_miso = RADARALT_MISO_PIN;
             cfg.pin_sclk = RADARALT_SCLK_PIN;
@@ -78,6 +105,7 @@ public:
         }
         {
             auto pcfg = _panel.config();
+            pcfg.readable = false;
             pcfg.pin_cs = RADARALT_CS_PIN;
             pcfg.pin_rst = RADARALT_RST_PIN;
             pcfg.pin_busy = -1;
@@ -358,11 +386,7 @@ void RadarAlt_init()
     RadarAlt_bitTest();
 
 #if RUN_RADARALT_AS_TASK
-#if defined(IS_S3_PINS)
-    xTaskCreatePinnedToCore(RadarAlt_task, "RadarAltTask", 4096, nullptr, 2, &tftTaskHandle, 1);
-#else
-    xTaskCreatePinnedToCore(RadarAlt_task, "RadarAltTask", 4096, nullptr, 2, &tftTaskHandle, 0);
-#endif
+    xTaskCreatePinnedToCore(RadarAlt_task, "RadarAltTask", 4096, nullptr, 2, &tftTaskHandle, RA_CPU_CORE);
 #endif
 
     debugPrintln("✅ Radar Altimeter (LovyanGFX, PSRAM double-buffered, DMA-safe) initialized");

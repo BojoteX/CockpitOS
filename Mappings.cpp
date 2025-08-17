@@ -32,6 +32,7 @@ bool hasTFTRadarAltGauge      = false;
 bool hasRightPanelController  = false;
 bool hasLeftPanelController   = false;
 bool hasFrontLeftPanel        = false;
+bool hasCustomFrontRightPanel = false;
 // Add more runtime panel conditionals here when adding custom panels/other aircraft
 
 PanelID getPanelID(uint8_t address) {
@@ -70,6 +71,11 @@ const char* getPanelName(uint8_t addr) {
 #endif
 #if defined(LABEL_SET_RADAR_ALT_GAUGE) || defined(LABEL_SET_ALL)
   #include "src/TFT_Gauges_RadarAlt.h"
+#endif
+#if defined(LABEL_SET_CUSTOM_FRONT_RIGHT) || defined(LABEL_SET_ALL)
+  #include "src/TFT_Gauges_RadarAlt.h"
+  #include "src/TFT_Gauges_HydPress.h"
+  #include "src/CustomFrontRightPanel.h"
 #endif
 #if defined(LABEL_SET_BRAKE_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
   #include "src/TFT_Gauges_BrakePress.h"
@@ -118,6 +124,12 @@ void initMappings() {
     #if defined(LABEL_SET_RADAR_ALT_GAUGE) || defined(LABEL_SET_ALL)
       hasTFTRadarAltGauge = true;
     #endif 
+    #if defined(LABEL_SET_CUSTOM_FRONT_RIGHT) || defined(LABEL_SET_ALL)
+      hasTFTRadarAltGauge = true;
+      hasTFTHydPressGauge = true;
+      hasCustomFrontRightPanel = true;
+      hasCA = true;
+    #endif 
     #if defined(LABEL_SET_BRAKE_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
       hasTFTBrakePressGauge = true;
     #endif       
@@ -141,6 +153,17 @@ void initMappings() {
 
     // Runs a discovery routine to check for PCA panels automatically, but they still need to be added manually in kPanels[] (see Mappings.h)
     debugPrintf("Using SDA %d and SCL %d for I2C\n", SDA_PIN, SCL_PIN);
+
+#if defined(ARDUINO_LOLIN_S3_MINI)
+    debugPrintln("Device is LOLIN S3 Mini by WEMOS");
+#elif defined(ARDUINO_LOLIN_S2_MINI)
+    debugPrintln("Device is LOLIN S2 Mini by WEMOS");
+#elif defined(ARDUINO_LOLIN_C3_MINI)
+    debugPrintln("Device is LOLIN C3 Mini by WEMOS");
+#else
+    debugPrintln("Unknown device type");
+#endif
+
     PCA9555_scanConnectedPanels();
 
     // ---- Runtime detection ---- (This is used so that outputs to PCA panels only work when they are present)
@@ -164,6 +187,11 @@ void initializeDisplays() {
 
   #if defined(LABEL_SET_RADAR_ALT_GAUGE) || defined(LABEL_SET_ALL)
     if (hasTFTRadarAltGauge) RadarAlt_init();
+  #endif    
+
+  #if defined(LABEL_SET_CUSTOM_FRONT_RIGHT) || defined(LABEL_SET_ALL)
+    if (hasTFTRadarAltGauge) RadarAlt_init();
+    if (hasTFTHydPressGauge) HydPressureGauge_init();
   #endif    
 
   #if defined(LABEL_SET_BRAKE_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
@@ -274,6 +302,10 @@ void initializePanels(bool force) {
     if (hasFrontLeftPanel) FrontLeftPanelButtons_init();
   #endif  
 
+  #if defined(LABEL_SET_CUSTOM_FRONT_RIGHT) || defined(LABEL_SET_ALL)
+    if (hasCustomFrontRightPanel) FrontRightPanelButtons_init();
+  #endif    
+
   // Your custom panels init routine should go here
 
     if (!isModeSelectorDCS()) HIDManager_commitDeferredReport("All devices");
@@ -310,6 +342,12 @@ void panelLoop() {
     if (hasTFTRadarAltGauge) RadarAlt_loop();
   #endif
 
+  #if defined(LABEL_SET_CUSTOM_FRONT_RIGHT) || defined(LABEL_SET_ALL)
+    if (hasTFTRadarAltGauge) RadarAlt_loop();
+    if (hasTFTHydPressGauge) HydPressureGauge_loop();
+    if (hasCA) GN1640_tick();
+  #endif
+
   #if defined(LABEL_SET_BRAKE_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
     if (hasTFTBrakePressGauge) BrakePressureGauge_loop();
   #endif
@@ -330,6 +368,10 @@ void panelLoop() {
   #if defined(LABEL_SET_FRONT_LEFT_PANEL) || defined(LABEL_SET_ALL)
     if (hasFrontLeftPanel) FrontLeftPanelButtons_loop();
   #endif
+
+  #if defined(LABEL_SET_CUSTOM_FRONT_RIGHT) || defined(LABEL_SET_ALL)
+    if (hasCustomFrontRightPanel) FrontRightPanelButtons_loop();
+  #endif      
 
   #if defined(LABEL_SET_MAIN) || defined(LABEL_SET_ALL)
     if (hasCA) GN1640_tick();

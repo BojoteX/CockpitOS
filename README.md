@@ -33,7 +33,7 @@ CockpitOS is a high-performance firmware platform for building **DCS-BIOS**-comp
 
 - **IDE:** Arduino IDE ≥ 2.3.6  
 - **ESP32 Arduino Core:** v3.3.0 (2.x also supported)  
-- **Boards Tested:** Wemos LOLIN S2 Mini, ESP32-S3, ESP32-C3  
+- **ESP32 Boards Tested:** LOLIN S2 Mini, LOLIN S3 Mini, LOLIN C3 Mini (All boards by WEMOS)  
 - **Libraries:**  
   - [LovyanGFX](https://github.com/lovyan03/LovyanGFX) — **required** for TFT gauge implementations.  
   - DCS-BIOS library (optional; a "lite" parser is included).  

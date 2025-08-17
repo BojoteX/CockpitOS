@@ -1,6 +1,6 @@
 // CockpitOS — Hydraulic Pressure Gauge (LovyanGFX, GC9A01) - Double-buffered PSRAM, DMA-safe
 
-#define HYD_PRESSURE_GAUGE_DRAW_MIN_INTERVAL_MS 13
+#define HYD_PRESSURE_GAUGE_DRAW_MIN_INTERVAL_MS 50
 #define RUN_HYD_PRESSURE_GAUGE_AS_TASK 1
 #define BACKLIGHT_LABEL "CONSOLES_DIMMER"
 #define COLOR_DEPTH_HYD_PRESS 16
@@ -16,12 +16,39 @@
 #include <esp_heap_caps.h>
 #endif
 
+// Select core (For this gauge, we use core 1 as this usually gets compiled with the Radar Altimeter)
+#if defined(ARDUINO_LOLIN_S3_MINI)
+#define HYD_CPU_CORE 1
+#else 
+#define HYD_CPU_CORE 0
+#endif
+
 // --- Pins ---
-#define HYD_PRESSURE_MOSI_PIN   8
-#define HYD_PRESSURE_SCLK_PIN   9
-#define HYD_PRESSURE_DC_PIN    13
-#define HYD_PRESSURE_RST_PIN   12
-#define HYD_PRESSURE_MISO_PIN  -1
+#if defined(ARDUINO_LOLIN_S3_MINI)
+#define HYD_PRESSURE_CS_PIN    38 // Chip Select (Blue) 
+#define HYD_PRESSURE_MOSI_PIN   8 // SDA (Yellow)
+#define HYD_PRESSURE_SCLK_PIN   9 // SCL (Orange)
+#define HYD_PRESSURE_DC_PIN    14 // Data/Command (Green)
+#define HYD_PRESSURE_RST_PIN   -1 // Reset (White)
+#define HYD_PRESSURE_MISO_PIN  -1 // Not used
+#else
+#define HYD_PRESSURE_CS_PIN    38 // Chip Select (Blue) 
+#define HYD_PRESSURE_MOSI_PIN   8 // SDA (Yellow)
+#define HYD_PRESSURE_SCLK_PIN   9 // SCL (Orange)
+#define HYD_PRESSURE_DC_PIN    14 // Data/Command (Green)
+#define HYD_PRESSURE_RST_PIN   -1 // Reset (White)
+#define HYD_PRESSURE_MISO_PIN  -1 // Not used
+#endif
+
+// Pin overrides for Custom Front Right Console
+#if defined(LABEL_SET_CUSTOM_FRONT_RIGHT)
+#define HYD_PRESSURE_CS_PIN     5 // Chip Select (Blue) 
+#define HYD_PRESSURE_DC_PIN     7 // Data/Command (Green)
+#define HYD_PRESSURE_MOSI_PIN  10 // SDA (Yellow)
+#define HYD_PRESSURE_SCLK_PIN  11 // SCL (Orange)
+#define HYD_PRESSURE_RST_PIN   -1 // Reset (White)
+#define HYD_PRESSURE_MISO_PIN  -1 // Not used
+#endif
 
 // --- Assets (240x240 bg, 33x120 needles) ---
 #include "Assets/HydPressure/hydPressBackground.h"
@@ -54,7 +81,7 @@ public:
             cfg.freq_read = 0;
             cfg.spi_3wire = false;
             cfg.use_lock = use_lock;
-            cfg.dma_channel = 1;
+            cfg.dma_channel = SPI_DMA_CH_AUTO;
             cfg.pin_mosi = HYD_PRESSURE_MOSI_PIN;
             cfg.pin_miso = HYD_PRESSURE_MISO_PIN;
             cfg.pin_sclk = HYD_PRESSURE_SCLK_PIN;
@@ -64,6 +91,7 @@ public:
         }
         {
             auto pcfg = _panel.config();
+            pcfg.readable = false;
             pcfg.pin_cs = HYD_PRESSURE_CS_PIN;
             pcfg.pin_rst = HYD_PRESSURE_RST_PIN;
             pcfg.pin_busy = -1;
@@ -253,11 +281,7 @@ void HydPressureGauge_init() {
     HydPressureGauge_bitTest();
 
 #if RUN_HYD_PRESSURE_GAUGE_AS_TASK
-#if defined(IS_S3_PINS)
-    xTaskCreatePinnedToCore(HydPressureGauge_task, "HydPressureGaugeTask", 4096, nullptr, 2, &tftTaskHandle, 1);
-#else
-    xTaskCreatePinnedToCore(HydPressureGauge_task, "HydPressureGaugeTask", 4096, nullptr, 2, &tftTaskHandle, 0);
-#endif
+    xTaskCreatePinnedToCore(HydPressureGauge_task, "HydPressureGaugeTask", 4096, nullptr, 2, &tftTaskHandle, HYD_CPU_CORE);
 #endif
 
     debugPrintln("✅ Hydraulic Pressure Gauge (LovyanGFX, PSRAM double-buffered, DMA-safe) initialized");

@@ -82,6 +82,9 @@
    // Chip Select pin for Hyd Pressure gauge (TFT Hyd Pressure CS pin)
    #define HYD_PRESSURE_CS_PIN                       10  
 
+   // Chip Select pin for Radar Alt gauge (TFT Radar Alt CS pin)
+   #define RADARALT_CS_PIN                           10  
+
    // --- 74HC165 IFEI pins ---
    #define HC165_QH                                  37
    #define HC165_PL                                  43
@@ -186,19 +189,19 @@
    #define RWR_DMR_PIN                                2
 
    // Chip Select pin for battery gauge (TFT CS pin)
-   #define BATTERY_CS_PIN                            36   
+   #define BATTERY_CS_PIN                            38   
 
    // Chip Select pin for Cabin Pressure gauge (TFT Cabin Pressure CS pin)
-   #define CABIN_PRESSURE_CS_PIN                     36  
+   #define CABIN_PRESSURE_CS_PIN                     38  
 
    // Chip Select pin for Brake Pressure gauge (TFT Brake Pressure CS pin)
-   #define BRAKE_PRESSURE_CS_PIN                     36  
+   #define BRAKE_PRESSURE_CS_PIN                     38  
 
    // Chip Select pin for Hyd Pressure gauge (TFT Hyd Pressure CS pin)
-   #define HYD_PRESSURE_CS_PIN                       36  
+   #define HYD_PRESSURE_CS_PIN                       38  
 
    // Chip Select pin for Hyd Pressure gauge (TFT Hyd Pressure CS pin)
-   #define RADARALT_CS_PIN                           36  
+   #define RADARALT_CS_PIN                           38  
 
    // --- 74HC165 IFEI pins ---
    #define HC165_QH                                  38
@@ -263,6 +266,7 @@ extern bool hasTFTRadarAltGauge;
 extern bool hasRightPanelController;
 extern bool hasLeftPanelController;
 extern bool hasFrontLeftPanel;
+extern bool hasCustomFrontRightPanel;
 
 // Give your PCA custom panel a basic short name and address where it is located (use the I2C scanner in Tools) 
 enum class PanelID : uint8_t { 
@@ -483,6 +487,26 @@ const char* getPanelName(uint8_t addr);  // Declaration
    #include "src/LABELS/LABEL_SET_RADAR_ALT_GAUGE/InputMapping.h"
    #include "src/LABELS/LABEL_SET_RADAR_ALT_GAUGE/LEDMapping.h"
    #include "src/LABELS/LABEL_SET_RADAR_ALT_GAUGE/DisplayMapping.h"
+
+#elif defined(LABEL_SET_CUSTOM_FRONT_RIGHT)
+
+#if defined(ARDUINO_LOLIN_S3_MINI)
+   #define SDA_PIN 35
+   #define SCL_PIN 36
+#else
+   #define SDA_PIN 33
+   #define SCL_PIN 35
+#endif
+
+   #define LABEL_SET "Custom Front Right Console"
+   #define HAS_HID_MODE_SELECTOR 0
+   #define MODE_DEFAULT_IS_HID 0
+
+   #include "src/LABELS/LABEL_SET_CUSTOM_FRONT_RIGHT/CT_Display.h"
+   #include "src/LABELS/LABEL_SET_CUSTOM_FRONT_RIGHT/DCSBIOSBridgeData.h"
+   #include "src/LABELS/LABEL_SET_CUSTOM_FRONT_RIGHT/InputMapping.h"
+   #include "src/LABELS/LABEL_SET_CUSTOM_FRONT_RIGHT/LEDMapping.h"
+   #include "src/LABELS/LABEL_SET_CUSTOM_FRONT_RIGHT/DisplayMapping.h"
 
 #elif defined(LABEL_SET_F16_TEST)
 
