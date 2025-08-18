@@ -8,11 +8,12 @@ enabled, notice the Lockshoot indicator staying WHITE. It stops working. Just di
 
 HID Handler edge cases (replicate starting the computer or resuming from sleep with device already connected)
 
-Test UART for Serial coms on S3's and C3's simultaneously with USB HIDs (using HID keepalives). To test stability
-
 HID Manager Headless + C++ version
 
 Make WS2812 generic and modify panel struct/union to add index characteristics (color) and device instance
 
-Deal with limited dial analogs and multi GPIO (example, RA HEIGHT)without affecting current single GPIO IO like COM_VOX
+Test UART for Serial coms on S3's and C3's simultaneously with USB HIDs (using HID keepalives). To test stability. use DCSBIOS with the hardware CDC option
 
+Deal with limited dial analogs and multi GPIO (example, RA HEIGHT)without affecting current single GPIO IO like COM_VOX. Reconsider suggested new generate data. Test LEFT PANEL RUD TRIM and ILS CHANNEL for testing
+
+Move auto-generator OUT of LABEL_SET directories

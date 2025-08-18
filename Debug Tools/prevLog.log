@@ -1,37 +1,365 @@
 🔭 Listening for ESP32S2 Debug/Info messages on 192.168.7.171 port 4210...
 
-[23:35:10 - 192.168.7.152] ❌ USB Stopped
-[23:35:19 - 192.168.7.152] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.152
-[23:35:19 - 192.168.7.152] =================== [STARTING DEVICE] ===================
-[23:35:19 - 192.168.7.152] SRAM free:     63 KB, largest:     39 KB, frag:  36.9%
-[23:35:19 - 192.168.7.152] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
-[23:35:19 - 192.168.7.152] I²C Initialized using the ESP-IDF Library (Fast mode)
-[23:35:19 - 192.168.7.152] Using SDA 8 and SCL 9 for I2C
-[23:35:19 - 192.168.7.152] Device is LOLIN S2 Mini by WEMOS
-[23:35:20 - 192.168.7.152] 🔎 === Discovered I2C Devices ===
-[23:35:20 - 192.168.7.152] 📋 Address    | Device Description
-[23:35:20 - 192.168.7.152] ──────────────|─────────────────────────────
-[23:35:20 - 192.168.7.152] 📡 0x26       | Brain / IRCool Panel
-[23:35:20 - 192.168.7.152] ────────────────────────────────────────────
-[23:35:20 - 192.168.7.152] Initializing PCA_0x26 inputs and cached port states
-[23:35:20 - 192.168.7.152] Initializing Displays
-[23:35:23 - 192.168.7.152] ✅ Radar Altimeter (LovyanGFX, dirty-rect DMA) initialized
-[23:35:23 - 192.168.7.152] ❌ dmaBounce alloc failed (3840 bytes each)
-[23:36:17 - 192.168.7.152] ❌ USB Stopped
-[23:38:30 - 192.168.7.152] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.152
-[23:38:30 - 192.168.7.152] =================== [STARTING DEVICE] ===================
-[23:38:30 - 192.168.7.152] SRAM free:     65 KB, largest:     41 KB, frag:  35.4%
-[23:38:30 - 192.168.7.152] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
-[23:38:30 - 192.168.7.152] I²C Initialized using the ESP-IDF Library (Fast mode)
-[23:38:30 - 192.168.7.152] Using SDA 8 and SCL 9 for I2C
-[23:38:30 - 192.168.7.152] Device is LOLIN S2 Mini by WEMOS
-[23:38:31 - 192.168.7.152] 🔎 === Discovered I2C Devices ===
-[23:38:31 - 192.168.7.152] 📋 Address    | Device Description
-[23:38:31 - 192.168.7.152] ──────────────|─────────────────────────────
-[23:38:31 - 192.168.7.152] 📡 0x26       | Brain / IRCool Panel
-[23:38:31 - 192.168.7.152] ────────────────────────────────────────────
-[23:38:31 - 192.168.7.152] Initializing PCA_0x26 inputs and cached port states
-[23:38:31 - 192.168.7.152] Initializing Displays
-[23:38:34 - 192.168.7.152] ✅ Radar Altimeter (LovyanGFX, dirty-rect DMA) initialized
-[23:38:34 - 192.168.7.152] ❌ dmaBounce alloc failed (3840 bytes each)
-[23:42:41 - 192.168.7.152] ❌ USB Stopped
+[01:27:26 - 192.168.7.208] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.208
+[01:27:26 - 192.168.7.208] =================== [STARTING DEVICE] ===================
+[01:27:26 - 192.168.7.208] SRAM free:    206 KB, largest:    143 KB, frag:  30.4%
+[01:27:26 - 192.168.7.208] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[01:27:26 - 192.168.7.208] I²C Initialized using the ESP-IDF Library (Fast mode)
+[01:27:26 - 192.168.7.208] Using SDA 7 and SCL 13 for I2C
+[01:27:26 - 192.168.7.208] Device is LOLIN S3 Mini by WEMOS
+[01:27:27 - 192.168.7.208] 🔎 === Discovered I2C Devices ===
+[01:27:27 - 192.168.7.208] 📋 Address    | Device Description
+[01:27:27 - 192.168.7.208] ──────────────|─────────────────────────────
+[01:27:27 - 192.168.7.208] ────────────────────────────────────────────
+[01:27:27 - 192.168.7.208] Initializing PCA_0x26 inputs and cached port states
+[01:27:30 - 192.168.7.208] ✅ Radar Altimeter (LovyanGFX, dirty-rect DMA) initialized
+[01:27:33 - 192.168.7.208] ✅ Hydraulic Pressure Gauge (dirty-rect DMA) initialized
+[01:27:33 - 192.168.7.208] Initializing LEDs
+[01:27:33 - 192.168.7.208] PCA9555 0x26: 0 pins set as OUTPUT (LED)
+[01:27:33 - 192.168.7.208] ⚠️ Lock/Shoot NOT detected!
+[01:27:33 - 192.168.7.208] ✅ Caution Advisory detected, initializing...
+[01:27:33 - 192.168.7.208] ⚠️ No Annunciators detected!
+[01:27:33 - 192.168.7.208] 🔆 Turning ALL LEDs ON (simultaneously)
+[01:27:34 - 192.168.7.208] ⚫ Turning ALL LEDs OFF (simultaneously)
+[01:27:34 - 192.168.7.208] 🔆 Turning ALL GPIO LEDs ON
+[01:27:35 - 192.168.7.208] ⚫ Turning ALL GPIO LEDs OFF
+[01:27:35 - 192.168.7.208] Syncronizing Panel state....
+[01:27:35 - 192.168.7.208] 🛩️ [DCS-CDC] DCS NOT READY! could not send RADALT_TEST_SW 0
+[01:27:35 - 192.168.7.208] [FrontRight] GPIO init complete
+[01:27:35 - 192.168.7.208] Selected mode: DCS-BIOS
+[01:27:35 - 192.168.7.208] Device "Custom Front Right Console" is ready
+[01:28:35 - 192.168.7.208] 
+[01:28:35 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[01:28:35 - 192.168.7.208] 🔍  Profiling Averages:
+[01:28:35 - 192.168.7.208] ∘ [TFT RADAR ALTIMETER] Draw Function :  21.22 ms
+[01:28:35 - 192.168.7.208] ∘ Main Loop       :   0.18 ms
+[01:28:35 - 192.168.7.208] 🕑  System Status:
+[01:28:35 - 192.168.7.208] ∘ Poll Load     :   4.6% of 4.00 ms slot
+[01:28:35 - 192.168.7.208] ∘ Headroom      : 3.817 ms ( 95.4%)
+[01:28:35 - 192.168.7.208] ∘ Scale Cap.    : 21.82x current workload
+[01:28:35 - 192.168.7.208] ∘ Uptime        : 1m13s
+[01:28:35 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[01:28:35 - 192.168.7.208] ∘ Last Reset    : Power-on
+[01:28:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:28:35 - 192.168.7.208] 💾  Memory Fragmentation:
+[01:28:35 - 192.168.7.208] ∘ Internal SRAM : free    111 KB, largest     49 KB, frag  55.1%
+[01:28:35 - 192.168.7.208] ∘ PSRAM Pool    : free    926 KB, largest    911 KB, frag   1.5%
+[01:28:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:28:35 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[01:28:35 - 192.168.7.208] ∘ TX Free Slots :     64 bytes
+[01:28:35 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[01:28:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:28:35 - 192.168.7.208] 🔁  Ring Buffer Health:
+[01:28:35 - 192.168.7.208] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[01:28:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:29:35 - 192.168.7.208] 
+[01:29:35 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[01:29:35 - 192.168.7.208] 🔍  Profiling Averages:
+[01:29:35 - 192.168.7.208] ∘ Main Loop       :   0.18 ms
+[01:29:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:29:35 - 192.168.7.208] 🕑  System Status:
+[01:29:35 - 192.168.7.208] ∘ Poll Load     :   4.6% of 4.00 ms slot
+[01:29:35 - 192.168.7.208] ∘ Headroom      : 3.817 ms ( 95.4%)
+[01:29:35 - 192.168.7.208] ∘ Scale Cap.    : 21.82x current workload
+[01:29:35 - 192.168.7.208] ∘ Uptime        : 2m13s
+[01:29:35 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[01:29:35 - 192.168.7.208] ∘ Last Reset    : Power-on
+[01:29:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:29:35 - 192.168.7.208] 💾  Memory Fragmentation:
+[01:29:35 - 192.168.7.208] ∘ Internal SRAM : free    111 KB, largest     49 KB, frag  55.1%
+[01:29:35 - 192.168.7.208] ∘ PSRAM Pool    : free    926 KB, largest    911 KB, frag   1.6%
+[01:29:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:29:35 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[01:29:35 - 192.168.7.208] ∘ TX Free Slots :     64 bytes
+[01:29:35 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[01:29:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:29:35 - 192.168.7.208] 🔁  Ring Buffer Health:
+[01:29:35 - 192.168.7.208] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[01:29:35 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[01:29:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:30:35 - 192.168.7.208] 
+[01:30:35 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[01:30:35 - 192.168.7.208] 🔍  Profiling Averages:
+[01:30:35 - 192.168.7.208] ∘ Main Loop       :   0.18 ms
+[01:30:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:30:35 - 192.168.7.208] ∘ Poll Load     :   4.6% of 4.00 ms slot
+[01:30:35 - 192.168.7.208] ∘ Headroom      : 3.817 ms ( 95.4%)
+[01:30:35 - 192.168.7.208] ∘ Scale Cap.    : 21.81x current workload
+[01:30:35 - 192.168.7.208] ∘ Uptime        : 3m13s
+[01:30:35 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[01:30:35 - 192.168.7.208] ∘ Last Reset    : Power-on
+[01:30:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:30:35 - 192.168.7.208] 💾  Memory Fragmentation:
+[01:30:35 - 192.168.7.208] ∘ Internal SRAM : free    111 KB, largest     49 KB, frag  55.1%
+[01:30:35 - 192.168.7.208] ∘ PSRAM Pool    : free    926 KB, largest    911 KB, frag   1.6%
+[01:30:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:30:35 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[01:30:35 - 192.168.7.208] ∘ TX Free Slots :     64 bytes
+[01:30:35 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[01:30:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:30:35 - 192.168.7.208] 🔁  Ring Buffer Health:
+[01:30:35 - 192.168.7.208] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[01:30:35 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[01:30:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:31:35 - 192.168.7.208] 
+[01:31:35 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[01:31:35 - 192.168.7.208] 🔍  Profiling Averages:
+[01:31:35 - 192.168.7.208] ∘ Main Loop       :   0.18 ms
+[01:31:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:31:35 - 192.168.7.208] 🕑  System Status:
+[01:31:35 - 192.168.7.208] ∘ Poll Load     :   4.6% of 4.00 ms slot
+[01:31:35 - 192.168.7.208] ∘ Headroom      : 3.817 ms ( 95.4%)
+[01:31:35 - 192.168.7.208] ∘ Scale Cap.    : 21.82x current workload
+[01:31:35 - 192.168.7.208] ∘ Uptime        : 4m13s
+[01:31:35 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[01:31:35 - 192.168.7.208] ∘ Last Reset    : Power-on
+[01:31:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:31:35 - 192.168.7.208] 💾  Memory Fragmentation:
+[01:31:35 - 192.168.7.208] ∘ Internal SRAM : free    111 KB, largest     49 KB, frag  55.1%
+[01:31:35 - 192.168.7.208] ∘ PSRAM Pool    : free    926 KB, largest    911 KB, frag   1.6%
+[01:31:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:31:35 - 192.168.7.208] ∘ TX Free Slots :     64 bytes
+[01:31:35 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[01:31:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:31:35 - 192.168.7.208] 🔁  Ring Buffer Health:
+[01:31:35 - 192.168.7.208] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[01:31:35 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[01:31:35 - 192.168.7.208] +----------------------------------------------------------------+
+[01:31:38 - 192.168.7.208] ❌ USB Stopped
+[01:31:48 - 192.168.7.208] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.208
+[01:31:48 - 192.168.7.208] =================== [STARTING DEVICE] ===================
+[01:31:48 - 192.168.7.208] SRAM free:    206 KB, largest:    143 KB, frag:  30.4%
+[01:31:48 - 192.168.7.208] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[01:31:48 - 192.168.7.208] I²C Initialized using the ESP-IDF Library (Fast mode)
+[01:31:48 - 192.168.7.208] Device is LOLIN S3 Mini by WEMOS
+[01:31:49 - 192.168.7.208] 🔎 === Discovered I2C Devices ===
+[01:31:49 - 192.168.7.208] 📋 Address    | Device Description
+[01:31:49 - 192.168.7.208] ──────────────|─────────────────────────────
+[01:31:49 - 192.168.7.208] ────────────────────────────────────────────
+[01:31:49 - 192.168.7.208] Initializing PCA_0x26 inputs and cached port states
+[01:31:49 - 192.168.7.208] Initializing Displays
+[01:31:52 - 192.168.7.208] ✅ Radar Altimeter (LovyanGFX, dirty-rect DMA) initialized
+[01:31:54 - 192.168.7.208] ✅ Hydraulic Pressure Gauge (dirty-rect DMA) initialized
+[01:31:54 - 192.168.7.208] Initializing LEDs
+[01:31:54 - 192.168.7.208] PCA9555 0x26: 0 pins set as OUTPUT (LED)
+[01:31:54 - 192.168.7.208] ⚠️ Lock/Shoot NOT detected!
+[01:31:54 - 192.168.7.208] ✅ Caution Advisory detected, initializing...
+[01:31:54 - 192.168.7.208] ⚠️ No Annunciators detected!
+[01:31:54 - 192.168.7.208] 🔆 Turning ALL LEDs ON (simultaneously)
+[01:31:55 - 192.168.7.208] ⚫ Turning ALL LEDs OFF (simultaneously)
+[01:31:55 - 192.168.7.208] 🔆 Turning ALL GPIO LEDs ON
+[01:31:56 - 192.168.7.208] ⚫ Turning ALL GPIO LEDs OFF
+[01:31:56 - 192.168.7.208] Syncronizing Panel state....
+[01:31:56 - 192.168.7.208] 🛩️ [DCS-CDC] DCS NOT READY! could not send RADALT_TEST_SW 0
+[01:31:56 - 192.168.7.208] [FrontRight] GPIO init complete
+[01:31:56 - 192.168.7.208] Selected mode: DCS-BIOS
+[01:31:56 - 192.168.7.208] Device "Custom Front Right Console" is ready
+[01:32:39 - 192.168.7.208] ❌ USB Stopped
+[01:32:54 - 192.168.7.208] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.208
+[01:32:54 - 192.168.7.208] =================== [STARTING DEVICE] ===================
+[01:32:54 - 192.168.7.208] SRAM free:    206 KB, largest:    143 KB, frag:  30.4%
+[01:32:54 - 192.168.7.208] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[01:32:54 - 192.168.7.208] I²C Initialized using the ESP-IDF Library (Fast mode)
+[01:32:54 - 192.168.7.208] Using SDA 7 and SCL 13 for I2C
+[01:32:54 - 192.168.7.208] Device is LOLIN S3 Mini by WEMOS
+[01:32:55 - 192.168.7.208] 🔎 === Discovered I2C Devices ===
+[01:32:55 - 192.168.7.208] 📋 Address    | Device Description
+[01:32:55 - 192.168.7.208] ──────────────|─────────────────────────────
+[01:32:55 - 192.168.7.208] 📡 0x26       | Brain / IRCool Panel
+[01:32:55 - 192.168.7.208] ────────────────────────────────────────────
+[01:32:55 - 192.168.7.208] Initializing PCA_0x26 inputs and cached port states
+[01:32:55 - 192.168.7.208] Initializing Displays
+[01:32:58 - 192.168.7.208] ✅ Radar Altimeter (LovyanGFX, dirty-rect DMA) initialized
+[01:33:00 - 192.168.7.208] ✅ Hydraulic Pressure Gauge (dirty-rect DMA) initialized
+[01:33:00 - 192.168.7.208] Initializing LEDs
+[01:33:00 - 192.168.7.208] PCA9555 0x26: 0 pins set as OUTPUT (LED)
+[01:33:00 - 192.168.7.208] ⚠️ Lock/Shoot NOT detected!
+[01:33:00 - 192.168.7.208] ✅ Caution Advisory detected, initializing...
+[01:33:01 - 192.168.7.208] ⚠️ No Annunciators detected!
+[01:33:01 - 192.168.7.208] 🔆 Turning ALL LEDs ON (simultaneously)
+[01:33:02 - 192.168.7.208] ⚫ Turning ALL LEDs OFF (simultaneously)
+[01:33:02 - 192.168.7.208] 🔆 Turning ALL GPIO LEDs ON
+[01:33:02 - 192.168.7.208] ❌ USB Stopped
+[01:51:44 - 192.168.7.208] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.208
+[01:51:44 - 192.168.7.208] =================== [STARTING DEVICE] ===================
+[01:51:44 - 192.168.7.208] SRAM free:    199 KB, largest:    135 KB, frag:  31.8%
+[01:51:44 - 192.168.7.208] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[01:51:44 - 192.168.7.208] I²C Initialized using the ESP-IDF Library (Fast mode)
+[01:51:44 - 192.168.7.208] Using SDA 7 and SCL 13 for I2C
+[01:51:44 - 192.168.7.208] Device is LOLIN S3 Mini by WEMOS
+[01:51:45 - 192.168.7.208] 🔎 === Discovered I2C Devices ===
+[01:51:45 - 192.168.7.208] 📋 Address    | Device Description
+[01:51:45 - 192.168.7.208] ──────────────|─────────────────────────────
+[01:51:45 - 192.168.7.208] 📡 0x26       | Brain / IRCool Panel
+[01:51:45 - 192.168.7.208] ────────────────────────────────────────────
+[01:51:45 - 192.168.7.208] Initializing PCA_0x26 inputs and cached port states
+[01:51:45 - 192.168.7.208] Initializing Displays
+[01:51:48 - 192.168.7.208] ✅ Radar Altimeter (LovyanGFX, dirty-rect DMA) initialized
+[01:51:50 - 192.168.7.208] ✅ Hydraulic Pressure Gauge (dirty-rect DMA) initialized
+[01:51:50 - 192.168.7.208] Initializing LEDs
+[01:51:50 - 192.168.7.208] PCA9555 0x26: 0 pins set as OUTPUT (LED)
+[01:51:50 - 192.168.7.208] ⚠️ Lock/Shoot NOT detected!
+[01:51:50 - 192.168.7.208] ✅ Caution Advisory detected, initializing...
+[01:51:50 - 192.168.7.208] ⚠️ No Annunciators detected!
+[01:51:50 - 192.168.7.208] 🔆 Turning ALL LEDs ON (simultaneously)
+[01:51:52 - 192.168.7.208] ⚫ Turning ALL GPIO LEDs OFF
+[01:51:52 - 192.168.7.208] Syncronizing Panel state....
+[01:51:52 - 192.168.7.208] 🛩️ [DCS-USB] DCS NOT READY! could not send RADALT_TEST_SW 0
+[01:51:52 - 192.168.7.208] [FrontRight] GPIO init complete
+[01:51:52 - 192.168.7.208] Selected mode: DCS-BIOS
+[01:51:52 - 192.168.7.208] Device "Custom Front Right Console" is ready
+[01:51:52 - 192.168.7.208] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[01:52:16 - 192.168.7.208] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
+[01:52:16 - 192.168.7.208] [STREAM] UP
+[01:52:16 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[01:52:16 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[01:52:16 - 192.168.7.208] [SYNC] Command history has been initialized from InputMappings (state cleared).
+[01:52:16 - 192.168.7.208] Syncronizing Panel state....
+[01:52:16 - 192.168.7.208] 🛩️ [DCS-USB] RADALT_TEST_SW 0
+[01:52:16 - 192.168.7.208] [FrontRight] GPIO init complete
+[01:52:16 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[01:52:19 - 192.168.7.208] [STATE UPDATE] 🔁 HOOK_LEVER = POS1
+[01:52:19 - 192.168.7.208] [STATE UPDATE] 🔁 WING_FOLD_ROTATE = FOLD
+[01:52:52 - 192.168.7.208] 
+[01:52:52 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[01:52:52 - 192.168.7.208] 🔍  Profiling Averages:
+[01:52:52 - 192.168.7.208] ∘ [TFT HYD PRESSURE] Draw Function :  12.53 ms
+[01:52:52 - 192.168.7.208] ∘ [TFT RADAR ALTIMETER] Draw Function :  23.14 ms
+[01:52:52 - 192.168.7.208] ∘ Main Loop       :   0.19 ms
+[01:52:52 - 192.168.7.208] +----------------------------------------------------------------+
+[01:52:52 - 192.168.7.208] 🕑  System Status:
+[01:52:52 - 192.168.7.208] ∘ Poll Load     :   4.6% of 4.00 ms slot
+[01:52:52 - 192.168.7.208] ∘ Headroom      : 3.815 ms ( 95.4%)
+[01:52:52 - 192.168.7.208] ∘ Scale Cap.    : 21.60x current workload
+[01:52:52 - 192.168.7.208] ∘ Uptime        : 1m14s
+[01:52:52 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[01:52:52 - 192.168.7.208] ∘ Last Reset    : Power-on
+[01:52:52 - 192.168.7.208] +----------------------------------------------------------------+
+[01:52:52 - 192.168.7.208] 💾  Memory Fragmentation:
+[01:52:52 - 192.168.7.208] ∘ Internal SRAM : free    107 KB, largest     43 KB, frag  58.9%
+[01:52:52 - 192.168.7.208] ∘ PSRAM Pool    : free    926 KB, largest    911 KB, frag   1.6%
+[01:52:52 - 192.168.7.208] +----------------------------------------------------------------+
+[01:52:52 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[01:52:52 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[01:52:52 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[01:52:52 - 192.168.7.208] +----------------------------------------------------------------+
+[01:52:52 - 192.168.7.208] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[01:52:52 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[01:52:52 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[01:52:52 - 192.168.7.208] ∘ USB Send DCS  : avg  41.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[01:52:52 - 192.168.7.208] +----------------------------------------------------------------+
+[01:53:13 - 192.168.7.208] ❌ USB Stopped
+[01:53:23 - 192.168.7.208] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.208
+[01:53:23 - 192.168.7.208] =================== [STARTING DEVICE] ===================
+[01:53:23 - 192.168.7.208] SRAM free:    199 KB, largest:    135 KB, frag:  31.9%
+[01:53:23 - 192.168.7.208] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[01:53:23 - 192.168.7.208] I²C Initialized using the ESP-IDF Library (Fast mode)
+[01:53:23 - 192.168.7.208] Using SDA 7 and SCL 13 for I2C
+[01:53:23 - 192.168.7.208] Device is LOLIN S3 Mini by WEMOS
+[01:53:24 - 192.168.7.208] 🔎 === Discovered I2C Devices ===
+[01:53:24 - 192.168.7.208] 📋 Address    | Device Description
+[01:53:24 - 192.168.7.208] ──────────────|─────────────────────────────
+[01:53:24 - 192.168.7.208] 📡 0x26       | Brain / IRCool Panel
+[01:53:24 - 192.168.7.208] ────────────────────────────────────────────
+[01:53:24 - 192.168.7.208] Initializing PCA_0x26 inputs and cached port states
+[01:53:24 - 192.168.7.208] Initializing Displays
+[01:53:27 - 192.168.7.208] ✅ Radar Altimeter (LovyanGFX, dirty-rect DMA) initialized
+[01:53:29 - 192.168.7.208] ✅ Hydraulic Pressure Gauge (dirty-rect DMA) initialized
+[01:53:29 - 192.168.7.208] Initializing LEDs
+[01:53:29 - 192.168.7.208] PCA9555 0x26: 0 pins set as OUTPUT (LED)
+[01:53:29 - 192.168.7.208] ⚠️ Lock/Shoot NOT detected!
+[01:53:29 - 192.168.7.208] ✅ Caution Advisory detected, initializing...
+[01:53:29 - 192.168.7.208] ⚠️ No Annunciators detected!
+[01:53:29 - 192.168.7.208] 🔆 Turning ALL LEDs ON (simultaneously)
+[01:53:30 - 192.168.7.208] ⚫ Turning ALL LEDs OFF (simultaneously)
+[01:53:30 - 192.168.7.208] 🔆 Turning ALL GPIO LEDs ON
+[01:53:31 - 192.168.7.208] ⚫ Turning ALL GPIO LEDs OFF
+[01:53:31 - 192.168.7.208] Syncronizing Panel state....
+[01:53:31 - 192.168.7.208] 🛩️ [DCS-USB] DCS NOT READY! could not send RADALT_TEST_SW 0
+[01:53:31 - 192.168.7.208] [FrontRight] GPIO init complete
+[01:53:31 - 192.168.7.208] Selected mode: DCS-BIOS
+[01:53:31 - 192.168.7.208] Device "Custom Front Right Console" is ready
+[01:53:31 - 192.168.7.208] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[01:53:31 - 192.168.7.208] ❌ [HID] Not ready, cannot send HID report.
+[01:54:31 - 192.168.7.208] 
+[01:54:31 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[01:54:31 - 192.168.7.208] 🔍  Profiling Averages:
+[01:54:31 - 192.168.7.208] ∘ [TFT HYD PRESSURE] Draw Function :  12.52 ms
+[01:54:31 - 192.168.7.208] ∘ [TFT RADAR ALTIMETER] Draw Function :  21.21 ms
+[01:54:31 - 192.168.7.208] ∘ Main Loop       :   0.18 ms
+[01:54:31 - 192.168.7.208] +----------------------------------------------------------------+
+[01:54:31 - 192.168.7.208] 🕑  System Status:
+[01:54:31 - 192.168.7.208] ∘ Poll Load     :   4.6% of 4.00 ms slot
+[01:54:31 - 192.168.7.208] ∘ Headroom      : 3.818 ms ( 95.4%)
+[01:54:31 - 192.168.7.208] ∘ Scale Cap.    : 21.96x current workload
+[01:54:31 - 192.168.7.208] ∘ Uptime        : 1m13s
+[01:54:31 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[01:54:31 - 192.168.7.208] ∘ Last Reset    : Power-on
+[01:54:31 - 192.168.7.208] +----------------------------------------------------------------+
+[01:54:31 - 192.168.7.208] 💾  Memory Fragmentation:
+[01:54:31 - 192.168.7.208] ∘ Internal SRAM : free    104 KB, largest     43 KB, frag  57.8%
+[01:54:31 - 192.168.7.208] ∘ PSRAM Pool    : free    926 KB, largest    911 KB, frag   1.6%
+[01:54:31 - 192.168.7.208] +----------------------------------------------------------------+
+[01:54:31 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[01:54:31 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[01:54:31 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[01:54:31 - 192.168.7.208] +----------------------------------------------------------------+
+[01:54:31 - 192.168.7.208] 🔁  Ring Buffer Health:
+[01:54:31 - 192.168.7.208] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[01:54:31 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[01:54:31 - 192.168.7.208] ∘ UDP Receive DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[01:54:31 - 192.168.7.208] ∘ USB Send DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[01:54:31 - 192.168.7.208] +----------------------------------------------------------------+
+[01:55:31 - 192.168.7.208] 
+[01:55:31 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[01:55:31 - 192.168.7.208] 🔍  Profiling Averages:
+[01:55:31 - 192.168.7.208] ∘ Main Loop       :   0.18 ms
+[01:55:31 - 192.168.7.208] +----------------------------------------------------------------+
+[01:55:31 - 192.168.7.208] 🕑  System Status:
+[01:55:31 - 192.168.7.208] ∘ Poll Load     :   4.6% of 4.00 ms slot
+[01:55:31 - 192.168.7.208] ∘ Headroom      : 3.818 ms ( 95.4%)
+[01:55:31 - 192.168.7.208] ∘ Uptime        : 2m13s
+[01:55:31 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[01:55:31 - 192.168.7.208] ∘ Last Reset    : Power-on
+[01:55:31 - 192.168.7.208] +----------------------------------------------------------------+
+[01:55:31 - 192.168.7.208] 💾  Memory Fragmentation:
+[01:55:31 - 192.168.7.208] ∘ Internal SRAM : free    104 KB, largest     43 KB, frag  57.9%
+[01:55:31 - 192.168.7.208] ∘ PSRAM Pool    : free    926 KB, largest    911 KB, frag   1.6%
+[01:55:31 - 192.168.7.208] +----------------------------------------------------------------+
+[01:55:31 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[01:55:31 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[01:55:31 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[01:55:31 - 192.168.7.208] +----------------------------------------------------------------+
+[01:55:31 - 192.168.7.208] 🔁  Ring Buffer Health:
+[01:55:31 - 192.168.7.208] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[01:55:31 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[01:55:31 - 192.168.7.208] ∘ UDP Receive DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[01:55:31 - 192.168.7.208] ∘ USB Send DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[01:55:31 - 192.168.7.208] +----------------------------------------------------------------+
+[01:56:31 - 192.168.7.208] 
+[01:56:31 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[01:56:31 - 192.168.7.208] 🔍  Profiling Averages:
+[01:56:31 - 192.168.7.208] ∘ Main Loop       :   0.18 ms
+[01:56:31 - 192.168.7.208] +----------------------------------------------------------------+
+[01:56:31 - 192.168.7.208] 🕑  System Status:
+[01:56:31 - 192.168.7.208] ∘ Poll Load     :   4.6% of 4.00 ms slot
+[01:56:31 - 192.168.7.208] ∘ Headroom      : 3.818 ms ( 95.4%)
+[01:56:31 - 192.168.7.208] ∘ Scale Cap.    : 21.97x current workload
+[01:56:31 - 192.168.7.208] ∘ Uptime        : 3m13s
+[01:56:31 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[01:56:31 - 192.168.7.208] ∘ Last Reset    : Power-on
+[01:56:31 - 192.168.7.208] +----------------------------------------------------------------+
+[01:56:31 - 192.168.7.208] 💾  Memory Fragmentation:
+[01:56:31 - 192.168.7.208] ∘ Internal SRAM : free    104 KB, largest     43 KB, frag  57.9%
+[01:56:31 - 192.168.7.208] ∘ PSRAM Pool    : free    926 KB, largest    911 KB, frag   1.6%
+[01:56:31 - 192.168.7.208] +----------------------------------------------------------------+
+[01:56:31 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[01:56:31 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[01:56:31 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[01:56:31 - 192.168.7.208] +----------------------------------------------------------------+
+[01:56:31 - 192.168.7.208] 🔁  Ring Buffer Health:
+[01:56:31 - 192.168.7.208] ∘ Serial Debug     : avg  10.5 bytes, max 63 bytes, pending  8, max  8, overruns 0
+[01:56:31 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[01:56:31 - 192.168.7.208] ∘ UDP Receive DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[01:56:31 - 192.168.7.208] ∘ USB Send DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[01:56:31 - 192.168.7.208] +----------------------------------------------------------------+

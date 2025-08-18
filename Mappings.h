@@ -458,10 +458,10 @@ const char* getPanelName(uint8_t addr);  // Declaration
    #include "src/LABELS/LABEL_SET_RADAR_ALT_GAUGE/LEDMapping.h"
    #include "src/LABELS/LABEL_SET_RADAR_ALT_GAUGE/DisplayMapping.h"
 
-#elif defined(LABEL_SET_CUSTOM_FRONT_RIGHT)
+#elif defined(LABEL_SET_CUSTOM_FRONT_RIGHT) // Uses the TEK Backplane (Old Version)
 
    #define LABEL_SET "Custom Front Right Console"
-   #define HAS_HID_MODE_SELECTOR 0
+   #define HAS_HID_MODE_SELECTOR 1
    #define MODE_DEFAULT_IS_HID 0
 
    #include "src/LABELS/LABEL_SET_CUSTOM_FRONT_RIGHT/CT_Display.h"

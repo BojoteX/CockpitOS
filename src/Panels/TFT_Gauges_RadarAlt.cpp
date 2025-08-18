@@ -191,16 +191,6 @@ static inline void waitDMADone() {
     }
 }
 
-/*
-static inline void waitDMADone() {
-    if (dmaBusy) {
-        tft.waitDMA();   // ensure last DMA completed
-        tft.endWrite();  // release bus/CS after DMA is done
-        dmaBusy = false;
-    }
-}
-*/
-
 // Full-frame force flag (first frame, mode change, BIT start)
 static volatile bool needsFullFlush = true;
 

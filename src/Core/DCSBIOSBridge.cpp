@@ -1058,14 +1058,28 @@ static void cdcRxOvfHandler(void* arg,
 #endif
 
 #if (ARDUINO_USB_CDC_ON_BOOT == 1)
+// TinyUSB CDC events
 void setupCDCEvents() {
+#if defined(ENABLE_CDC_EVENTS) && (ENABLE_CDC_EVENTS > 0)
     Serial.onEvent(ARDUINO_USB_CDC_CONNECTED_EVENT, cdcConnectedHandler);
     Serial.onEvent(ARDUINO_USB_CDC_DISCONNECTED_EVENT, cdcDisconnectedHandler);
     // Serial.onEvent(ARDUINO_USB_CDC_LINE_STATE_EVENT, cdcLineStateHandler);
     // Serial.onEvent(ARDUINO_USB_CDC_LINE_CODING_EVENT, cdcLineCodingHandler);       
     Serial.onEvent(ARDUINO_USB_CDC_RX_EVENT, cdcRxHandler);
     Serial.onEvent(ARDUINO_USB_CDC_TX_EVENT, cdcTxHandler);
-    Serial.onEvent(ARDUINO_USB_CDC_RX_OVERFLOW_EVENT, cdcRxOvfHandler);    
+    Serial.onEvent(ARDUINO_USB_CDC_RX_OVERFLOW_EVENT, cdcRxOvfHandler);
+#endif
+}
+
+// Hardware CDC events (ESP32 core 3.x)
+void setupHWCDCEvents() {
+#if defined(ENABLE_HWCDC_EVENTS) && (ENABLE_HWCDC_EVENTS > 0)
+    Serial.onEvent(ARDUINO_HW_CDC_CONNECTED_EVENT, cdcConnectedHandler);
+    Serial.onEvent(ARDUINO_HW_CDC_DISCONNECTED_EVENT, cdcDisconnectedHandler);
+    Serial.onEvent(ARDUINO_HW_CDC_RX_EVENT, cdcRxHandler);
+    Serial.onEvent(ARDUINO_HW_CDC_TX_EVENT, cdcTxHandler);
+    Serial.onEvent(ARDUINO_HW_CDC_RX_OVERFLOW_EVENT, cdcRxOvfHandler);
+#endif
 }
 #endif
 
@@ -1237,56 +1251,6 @@ void DCSBIOS_keepAlive() {
     }
 }
 
-// sendDCSBIOSCommand: shared DCS command sender, with selector buffering & throttle.
-
-/*
-void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
-    
-    static char buf[10];
-    snprintf(buf, sizeof(buf), "%u", value);
-
-    if (DEBUG_ENABLED) {
-        debugPrintf("🛩️ [DCS] ATTEMPING SEND: %s = %u%s\n", label, value, force ? " (forced)" : "");
-    }
-
-    // Lookup history entry
-    auto* e = findCmdEntry(label);
-    if (!e) {
-        debugPrintf("⚠️ [DCS] REJECTED untracked: %s = %u\n", label, value);
-        return;
-    }
-    unsigned long now = millis();
-
-    if (DEBUG_ENABLED) {
-        // Log group, label, oride value immediately after finding entry
-        debugPrintf("[DEBUG] LABEL: %s | oride: %u | group: %u\n", label, value, e->group);
-    }
-
-    #if defined(SELECTOR_DWELL_MS) && (SELECTOR_DWELL_MS > 0)
-    // Selector-group buffering (unchanged)
-    if (!force && e->group > 0) {
-        e->pendingValue   = value;
-        e->lastChangeTime = now;
-        e->hasPending     = true;
-        // debugPrintf("🔁 [DCS] Buffer Selection for GroupID: %u - %s %u\n", e->group, label, e->pendingValue);
-        return;
-    }
-    #endif
-
-    // Apply unified throttle for non-zero
-    if (!applyThrottle(*e, label, value, force)) {
-        return;
-    }          
-
-    // Send Command
-    sendCommand(label,buf, false);
-
-    // 6) Update history
-    e->lastValue    = value;
-    e->lastSendTime = now;
-}
-*/
-
 void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
     static char buf[10];
     snprintf(buf, sizeof(buf), "%u", value);
@@ -1359,8 +1323,19 @@ void DCSBIOSBridge_setup() {
         Serial.setRxBufferSize(SERIAL_RX_BUFFER_SIZE);
         Serial.setTxTimeoutMs(SERIAL_TX_TIMEOUT);  // To avoid CDC getting stuck when SOCAT starts acting up
         Serial.setTimeout(SERIAL_TX_TIMEOUT);
-        // Serial.enableReboot(false); // Should be set to false for PRODUCTION, true for development               
+        // Serial.enableReboot(false); // Should be set to false for PRODUCTION, true for development  
+
+#if defined(ENABLE_CDC_EVENTS) && (ENABLE_CDC_EVENTS > 0)
         setupCDCEvents(); // Load CDC Events
+#elif defined(ENABLE_HWCDC_EVENTS) && (ENABLE_HWCDC_EVENTS > 0)
+		setupHWCDCEvents(); // Load Hardware CDC Events
+#endif
+
+		// Start Serial
+		Serial.begin(115200); // Start Serial at 115200 baud
+		debugPrintln("[CDC] Serial started at 115200 baud");
+        debugPrintf("USB Mode is: %u", ARDUINO_USB_MODE);
+
     #endif
 
     // Register our Display buffers automatically (the ones starting with IFEI_)

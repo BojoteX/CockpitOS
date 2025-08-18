@@ -48,6 +48,8 @@
 // Advanced config, these settings have been carefully tuned for performance and stability, 
 #define DCSBIOS_USE_LITE_VERSION                   1 // Set to 1 to use a LITE (local) version of the DCSBIOS Library. 0 Uses the Original unmodified Library (you'll need to install it)
 #define ALLOW_CONCURRENT_CDC_AND_HID               0 // Careful, this should ALWAYS be set to 0, concurrent CDC + HID is unstable
+#define ENABLE_CDC_EVENTS                          1 // Enable CDC (TinyUSB) Serial events (Need to disable for HWSerial)
+#define ENABLE_HWCDC_EVENTS                        0 // Enable HW CDC (Hardware / JTAG) Serial events
 #define GAMEPAD_REPORT_SIZE                       64 // Must match the HID descriptor, you should NEVER have to change this.
 #define SERVO_UPDATE_FREQ_MS                      20 // For Analog servo instruments. Update rate in ms (as per servo specs)
 #define SCAN_WIFI_NETWORKS                         0 // For debugging and see what networks the device sees (this outputs to Serial interface)

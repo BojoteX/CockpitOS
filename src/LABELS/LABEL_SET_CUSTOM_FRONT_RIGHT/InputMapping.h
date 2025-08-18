@@ -29,14 +29,14 @@ static const InputMapping InputMappings[] = {
     { "LIGHTS_TEST_SW_TEST"        , "PCA_0x00" ,  0 ,  0 ,  -1 , "LIGHTS_TEST_SW"        ,     1 , "selector"     ,  3 },
     { "LIGHTS_TEST_SW_OFF"         , "PCA_0x00" ,  0 ,  0 ,  -1 , "LIGHTS_TEST_SW"        ,     0 , "selector"     ,  3 },
     { "WARN_CAUTION_DIMMER"        , "PCA_0x00" ,  0 ,  0 ,  -1 , "WARN_CAUTION_DIMMER"   , 0xFFFF , "analog"       ,  0 },
-    { "RADALT_TEST_SW"             , "GPIO" ,  2 ,  0 ,  -1 , "RADALT_TEST_SW"        ,     1 , "momentary"    ,  0 },
+    { "RADALT_TEST_SW"             , "GPIO" ,  2 ,  0 ,  1 , "RADALT_TEST_SW"        ,     1 , "momentary"    ,  0 },
     { "WING_FOLD_PULL_POS0"        , "PCA_0x00" ,  0 ,  0 ,  -1 , "WING_FOLD_PULL"        ,     0 , "selector"     ,  6 },
     { "WING_FOLD_PULL_POS1"        , "PCA_0x00" ,  0 ,  0 ,  -1 , "WING_FOLD_PULL"        ,     1 , "selector"     ,  6 },
     { "WING_FOLD_ROTATE_FOLD"      , "PCA_0x00" ,  0 ,  0 ,  -1 , "WING_FOLD_ROTATE"      ,     2 , "selector"     ,  4 },
     { "WING_FOLD_ROTATE_HOLD"      , "PCA_0x00" ,  0 ,  0 ,  -1 , "WING_FOLD_ROTATE"      ,     1 , "selector"     ,  4 },
     { "WING_FOLD_ROTATE_UNFOLD"    , "PCA_0x00" ,  0 ,  0 ,  -1 , "WING_FOLD_ROTATE"      ,     0 , "selector"     ,  4 },
-    { "RADALT_HEIGHT_CUSTOM_POS0"  , "GPIO" ,  4 ,  0 ,  -1 , "RADALT_HEIGHT"         ,     0 , "variable_step",  0 },
-    { "RADALT_HEIGHT_CUSTOM_POS1"  , "GPIO" ,  3 ,  0 ,  -1 , "RADALT_HEIGHT"         ,     1 , "variable_step",  0 },
+    { "RADALT_HEIGHT_CUSTOM_POS0"  , "GPIO" ,  4 ,  0 ,  2 , "RADALT_HEIGHT"         ,     0 , "variable_step",  0 },
+    { "RADALT_HEIGHT_CUSTOM_POS1"  , "GPIO" ,  3 ,  0 ,  3 , "RADALT_HEIGHT"         ,     1 , "variable_step",  0 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);
 
