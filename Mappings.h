@@ -277,6 +277,7 @@ extern bool hasRightPanelController;
 extern bool hasLeftPanelController;
 extern bool hasFrontLeftPanel;
 extern bool hasCustomFrontRightPanel;
+extern bool hasTEST_ONLY;
 
 // Give your PCA custom panel a basic short name and address where it is located (use the I2C scanner in Tools) 
 enum class PanelID : uint8_t { 
@@ -469,6 +470,18 @@ const char* getPanelName(uint8_t addr);  // Declaration
    #include "src/LABELS/LABEL_SET_CUSTOM_FRONT_RIGHT/InputMapping.h"
    #include "src/LABELS/LABEL_SET_CUSTOM_FRONT_RIGHT/LEDMapping.h"
    #include "src/LABELS/LABEL_SET_CUSTOM_FRONT_RIGHT/DisplayMapping.h"
+
+#elif defined(LABEL_SET_TEST_ONLY)
+
+   #define LABEL_SET "TEST ONLY"
+   #define HAS_HID_MODE_SELECTOR 0
+   #define MODE_DEFAULT_IS_HID 0
+
+   #include "src/LABELS/LABEL_SET_TEST_ONLY/CT_Display.h"
+   #include "src/LABELS/LABEL_SET_TEST_ONLY/DCSBIOSBridgeData.h"
+   #include "src/LABELS/LABEL_SET_TEST_ONLY/InputMapping.h"
+   #include "src/LABELS/LABEL_SET_TEST_ONLY/LEDMapping.h"
+   #include "src/LABELS/LABEL_SET_TEST_ONLY/DisplayMapping.h"
 
 #elif defined(LABEL_SET_F16_TEST)
 

@@ -6,6 +6,9 @@
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h" // Used for specific isCoverOpen logic from DCSBIOSBridge
 
+// TM1637 device instances (must match externs)
+TM1637Device RA_Device;
+
 // Initialization routine for RIGHT annunciator buttons
 void RightAnnunciator_init() {
     // delay(50);  // Small delay to ensure when init is called DCS has settled

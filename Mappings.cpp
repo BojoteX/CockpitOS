@@ -8,10 +8,6 @@
 #include "src/WiFiDebug.h"
 #endif
 
-// TM1637 device instances (must match externs)
-TM1637Device RA_Device;
-TM1637Device LA_Device;
-
 // ---- Panel presence flags (all initialized to false, set in initMappings) ----
 bool hasBrain                 = false;
 bool hasECM                   = false;
@@ -33,6 +29,7 @@ bool hasRightPanelController  = false;
 bool hasLeftPanelController   = false;
 bool hasFrontLeftPanel        = false;
 bool hasCustomFrontRightPanel = false;
+bool hasTEST_ONLY             = false;
 // Add more runtime panel conditionals here when adding custom panels/other aircraft
 
 PanelID getPanelID(uint8_t address) {
@@ -96,7 +93,9 @@ const char* getPanelName(uint8_t addr) {
 #if defined(LABEL_SET_FRONT_LEFT_PANEL) || defined(LABEL_SET_ALL)
   #include "src/FrontLeftPanel.h"
 #endif
-
+#if defined(LABEL_SET_TEST_ONLY) || defined(LABEL_SET_ALL)
+  #include "src/TEST_ONLY.h"
+#endif
 // Don't forget to include headers for any custom panels added
 
 void initMappings() {
@@ -148,6 +147,9 @@ void initMappings() {
     #endif    
     #if defined(LABEL_SET_ALTIMETER) || defined(LABEL_SET_ALL)
       // If needed, set specific panels
+    #endif
+    #if defined(LABEL_SET_TEST_ONLY) || defined(LABEL_SET_ALL)
+      hasTEST_ONLY = true;
     #endif
     // Any conditional logic for custom panels should be nested above
 
@@ -315,6 +317,10 @@ void initializePanels(bool force) {
     if (hasCustomFrontRightPanel) FrontRightPanelButtons_init();
   #endif    
 
+  #if defined(LABEL_SET_TEST_ONLY) || defined(LABEL_SET_ALL)
+    if (hasTEST_ONLY) TEST_ONLY_init();
+  #endif    
+
   // Your custom panels init routine should go here
 
     if (!isModeSelectorDCS()) HIDManager_commitDeferredReport("All devices");
@@ -391,7 +397,11 @@ void panelLoop() {
   #if defined(LABEL_SET_ALR67) || defined(LABEL_SET_ALL)
     if (hasGauge) AnalogG_tick();
   #endif
-  // Your custom panels loop routine should go here
+
+  #if defined(LABEL_SET_TEST_ONLY) || defined(LABEL_SET_ALL)
+    if (hasTEST_ONLY) TEST_ONLY_loop();
+  #endif      
+  // Your custom panels loop/tick routine should go here
 
     #if DEBUG_USE_WIFI && WIFI_DEBUG_USE_RINGBUFFER
     wifiDebugDrainSendBuffer();

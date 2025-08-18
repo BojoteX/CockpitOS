@@ -5,7 +5,8 @@
 // Here you need to #define ONE and ONLY one of possible LABEL sets to use with your panel, 
 // ** ATTENTION ** REMEBER TO RUN generate_data.py (see LABELS directory) BEFORE compiling for each label set below 
 
-#define LABEL_SET_CUSTOM_FRONT_RIGHT
+#define LABEL_SET_TEST_ONLY
+// #define LABEL_SET_CUSTOM_FRONT_RIGHT
 // #define LABEL_SET_F16_TEST
 // #define LABEL_SET_BATTERY_GAUGE
 // #define LABEL_SET_HYD_PRESSURE_GAUGE
@@ -24,7 +25,7 @@
 // Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. Pure USB or WIFI. This methods COMPLETELY bypasses Serial. If both are set to 0, then standard CDC / Serial is used. Both CAN NOT be set to 1 at the same time
 #define USE_DCSBIOS_WIFI                          0   // Completely bypasses socat and uses WiFi to connect to DCS. 
 // DO NOT set both to 1. Only ONE can be active -or- both set to 0 to operate in legacy CDC mode (Serial+socat)
-#define USE_DCSBIOS_USB                           0   // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work.
+#define USE_DCSBIOS_USB                           1   // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work.
 
 // Wi-Fi network credentials (used for WiFi remote Debug Console and DCSBIOS WiFi mode if selected)
 #define WIFI_SSID                                 "MyHotspotNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI

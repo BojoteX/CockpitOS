@@ -11,6 +11,7 @@ current_label_set = os.path.basename(current_dir)
 print(f"Current LABEL SET: {current_label_set}")
 
 # -------- CONFIGURATION --------
+FIXED_STEP_INCDEC_THRESHOLD = 10 # Selectors with more positions than this get an INC and DEC pseudo label
 PROCESS_ALL     = False
 OUTPUT_HEADER   = "DCSBIOSBridgeData.h"
 INPUT_REFERENCE = "InputMapping.h"
@@ -24,6 +25,28 @@ KNOWN_DEVICES   = {
     "WS2812",
     "NONE",
 }
+
+# --- Helper: detect if a control needs INC/DEC aliases ---
+def needs_fixed_step_incdec(item, threshold):
+    """
+    Returns True if this control exposes BOTH:
+      - a set_state input with max_value > threshold
+      - a fixed_step input
+    """
+    has_set_state = False
+    has_fixed_step = False
+    max_val = None
+
+    for inp in item.get('inputs', []):
+        iface = inp.get('interface')
+        if iface == 'set_state' and 'max_value' in inp:
+            max_val = inp['max_value']
+            if max_val > threshold:
+                has_set_state = True
+        if iface == 'fixed_step':
+            has_fixed_step = True
+
+    return has_set_state and has_fixed_step
 
 def merge_metadata_jsons(data, metadata_dir="METADATA"):
     """Merge all JSONs from the given subdir into the loaded data (in place)."""
@@ -239,18 +262,14 @@ for panel, controls in data.items():
         lid         = ident.lower()
         desc_lower  = item.get('description','').lower()
 
+        # does this control expose fixed_step?
+        has_fixed_step = any(inp.get('interface') == 'fixed_step' for inp in item.get('inputs', []))
+
+
         # skip analog gauges (but allow knobs)
         # if ctype in ('limited_dial','analog_dial','analog_gauge'):
         if ctype == 'analog_gauge':
             continue
-
-
-
-
-
-
-
-
 
         # find max_value
         max_val = None
@@ -272,15 +291,6 @@ for panel, controls in data.items():
 
         if max_val is None or max_val < 0:
             continue
-
-
-
-
-
-
-
-
-
 
         if 'button' in desc_lower:
             selector_entries.append((ident, ident, 1, 'momentary', 0, "PRESS"))
@@ -330,10 +340,9 @@ for panel, controls in data.items():
         if ctype in ('limited_dial', 'analog_dial'):
             # Potentiometer path
             selector_entries.append((ident, orig_ident, max_val, 'analog', 0, "LEVEL"))
-            # Always expose encoder-friendly INC/DEC pair
-            selector_entries.append((f"{ident}_CUSTOM_POS0", orig_ident, 0, 'variable_step', 0, "POS0"))
-            selector_entries.append((f"{ident}_CUSTOM_POS1", orig_ident, 1, 'variable_step', 0, "POS1"))
-
+            # Always expose encoder-friendly -3200 / + 3200 pair
+            selector_entries.append((f"{ident}_DEC", orig_ident, 0, 'variable_step', 0, "DEC"))
+            selector_entries.append((f"{ident}_INC", orig_ident, 1, 'variable_step', 0, "INC"))
 
         else:
             # 5) append as discrete selector/momentary
@@ -344,6 +353,11 @@ for panel, controls in data.items():
                     selector_entries.append((f"{ident}_{clean}", orig_ident, val, ctype, currentGroup, clean))
                 else:
                     selector_entries.append((f"{ident}_{clean}", orig_ident, i, ctype, 0, clean))
+
+            # --- Extra: add INC/DEC aliases for large selectors with fixed_step ---
+            if needs_fixed_step_incdec(item, FIXED_STEP_INCDEC_THRESHOLD):
+                selector_entries.append((f"{ident}_DEC", orig_ident, 0, 'fixed_step', 0, "DEC"))
+                selector_entries.append((f"{ident}_INC", orig_ident, 1,  'fixed_step', 0, "INC"))
 
 # -------- PATCH: Assign missing group IDs for exclusive selectors --------
 from collections import defaultdict
@@ -861,7 +875,7 @@ for full, cmd, val, ct, grp in selector_entries_inputmap:
         ))
     else:
         # brand-new entry: use defaults
-        merged.append((full, "PCA_0x00", 0, 0, -1, cmd, val, ct, grp))
+        merged.append((full, "NONE", 0, 0, -1, cmd, val, ct, grp))
 
 # 3) write out merged list
 with open(INPUT_REFERENCE, "w", encoding="utf-8") as f2:
@@ -869,10 +883,10 @@ with open(INPUT_REFERENCE, "w", encoding="utf-8") as f2:
     f2.write("// THIS FILE IS AUTO-GENERATED; ONLY EDIT INDIVIDUAL RECORDS, DO NOT ADD OR DELETE THEM HERE\n")
     f2.write("#pragma once\n\n")
     f2.write("struct InputMapping {\n")
-    f2.write("    const char* label;        // Unique selector label\n")
-    f2.write("    const char* source;       // Hardware source identifier\n")
-    f2.write("    int8_t     port;         // Port index\n")
-    f2.write("    int8_t     bit;          // Bit position\n")
+    f2.write("    const char* label;        // Unique selector label, auto-generated.\n")
+    f2.write("    const char* source;      // Hardware source identifier. (e.g PCA_0x26, GPIO, NONE etc)\n")
+    f2.write("    int8_t     port;           // Port index (For PCA port 0 or 1, GPIO is PIN)\n")
+    f2.write("    int8_t     bit;            // Bit position for PCA, GPIO is 1 or 0 for HIGH or LOW\n")
     f2.write("    int8_t      hidId;        // HID usage ID\n")
     f2.write("    const char* oride_label;  // Override command label (dcsCommand)\n")
     f2.write("    uint16_t    oride_value;  // Override command value (value)\n")
