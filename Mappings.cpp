@@ -169,9 +169,18 @@ void initMappings() {
     // ---- Runtime detection ---- (This is used so that outputs to PCA panels only work when they are present)
     // We check if (!panelExists(addr)) for PCA writes 
     hasECM        = panelExists(0x22);
-    hasBrain      = panelExists(0x26);
     hasMasterARM  = panelExists(0x5B);
-    
+    hasBrain      = panelExists(0x26);
+
+/*
+    #if !defined(LABEL_SET_MAIN)
+    if(hasBrain) {
+      hasBrain = false;
+      debugPrintln("⚠️ Brain Controller PCA Expander detected (but its being disabled for this panel)");
+    }
+    #endif
+*/
+  
     // Show what PCA panels were discovered
     printDiscoveredPanels();
 }

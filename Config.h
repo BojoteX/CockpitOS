@@ -24,7 +24,7 @@
 // Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. Pure USB or WIFI. This methods COMPLETELY bypasses Serial. If both are set to 0, then standard CDC / Serial is used. Both CAN NOT be set to 1 at the same time
 #define USE_DCSBIOS_WIFI                          0   // Completely bypasses socat and uses WiFi to connect to DCS. 
 // DO NOT set both to 1. Only ONE can be active -or- both set to 0 to operate in legacy CDC mode (Serial+socat)
-#define USE_DCSBIOS_USB                           1   // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work.
+#define USE_DCSBIOS_USB                           0   // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work.
 
 // Wi-Fi network credentials (used for WiFi remote Debug Console and DCSBIOS WiFi mode if selected)
 #define WIFI_SSID                                 "MyHotspotNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
@@ -34,14 +34,14 @@
 #define TEST_LEDS                                 0  // Interactive menu (via serial console) to test LEDs individually
 #define IS_REPLAY                                 0  // Simulate a loopback DCS stream to check your panel is working and debug via Serial
 #define DEBUG_ENABLED                             0  // Use it ONLY when identifying issues or troubleshooting
-#define DEBUG_ENABLED_FOR_PCA_ONLY                0  // Use it ONLY when mapping Port/bit/mask in PCA9xxx devices
+#define DEBUG_ENABLED_FOR_PCA_ONLY                1  // Use it ONLY when mapping Port/bit/mask in PCA9xxx devices
 #define DEBUG_ENABLED_FOR_HC165_ONLY              0  // Use it ONLY when mapping bits in HC165 devices
-#define DEBUG_USE_WIFI                            0  // Uses WiFi to output VERBOSE and DEBUG messages
+#define DEBUG_USE_WIFI                            1  // Uses WiFi to output VERBOSE and DEBUG messages
 #define VERBOSE_MODE                              0  // Logs INFO messages to both Serial and UDP (very useful) 
 #define VERBOSE_MODE_SERIAL_ONLY                  0  // Verbose will only output to Serial. 
-#define VERBOSE_MODE_WIFI_ONLY                    0  // Verbose will only output to WiFi so Serial port is clean. Requires DEBUG_USE_WIFI
+#define VERBOSE_MODE_WIFI_ONLY                    1  // Verbose will only output to WiFi so Serial port is clean. Requires DEBUG_USE_WIFI
 #define VERBOSE_PERFORMANCE_ONLY                  0  // Requires DEBUG_PERFORMANCE as well, this will only output perf snapshots, make sure you pick WIFI or SERIAL above and DEBUG_ENABLED is 0
-#define DEBUG_PERFORMANCE                         0  // Shows a performance snapshot every x seconds (interval can be configured below)
+#define DEBUG_PERFORMANCE                         1  // Shows a performance snapshot every x seconds (interval can be configured below)
 #define DEBUG_PERFORMANCE_SHOW_TASKS              0  // Includes the current task list with the snapshot. Not really needed.
 #define PERFORMANCE_SNAPSHOT_INTERVAL_SECONDS     60 // Interval between snapshots (in seconds)
 
@@ -94,7 +94,7 @@
 #endif
 
 // DCS Commands USB Send Ring Buffer (outgoing packets) - *MANDATORY* this one is REQUIRED to be set to send via USB pipe for transport (due to 64 byte report size limitation)
-#define DCS_USB_RINGBUF_SIZE                     32  // Number of packets buffered (tune as needed)
+#define DCS_USB_RINGBUF_SIZE                     32 // Number of packets buffered (tune as needed)
 #define DCS_USB_PACKET_MAXLEN                    64  // Max USB packet size (safe for DCS-BIOS)
 
 // DCS UDP/USB Receive Ring Buffer (incoming packets) - *MANDATORY* when using USB mode, optional in WiFi UDP mode.

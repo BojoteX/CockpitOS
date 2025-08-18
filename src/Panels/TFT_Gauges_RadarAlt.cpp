@@ -1,6 +1,8 @@
-// TFT_Gauges_RadarAlt.cpp - CockpitOS Radar Altimeter (LovyanGFX, ST77916/61 @ 360×360) - Double-buffered PSRAM, DMA-safe
+// TFT_Gauges_RadarAlt.cpp - CockpitOS Radar Altimeter (LovyanGFX, ST77916/61 @ 360×360)
+// Dirty-rect compose + region DMA flush (PSRAM sprites, DMA-safe)
 
-#define RADARALT_DRAW_MIN_INTERVAL_MS 100
+#define MAX_MEMORY_TFT 8
+#define RADARALT_DRAW_MIN_INTERVAL_MS 13 // ~75 FPS max, 13ms per frame
 #define RUN_RADARALT_AS_TASK 1
 #define BACKLIGHT_LABEL "INST_PNL_DIMMER"
 #define COLOR_DEPTH_RADARALT 16
@@ -11,6 +13,8 @@
 #include "../DCSBIOSBridge.h"
 #include <LovyanGFX.hpp>
 #include <cstring>
+#include <cmath>
+#include <algorithm>
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include <esp_heap_caps.h>
@@ -18,36 +22,45 @@
 
 // Select core (For this gauge, we always use core 0 for all devices)
 #if defined(ARDUINO_LOLIN_S3_MINI)
-    #define RA_CPU_CORE 0
-#else 
-    #define RA_CPU_CORE 0
+#define RA_CPU_CORE 0
+#else
+#define RA_CPU_CORE 0
 #endif
 
 // --- Pins ---
 #if defined(ARDUINO_LOLIN_S3_MINI)
-    #define RADARALT_MOSI_PIN 11  // SDA (Yellow)
-    #define RADARALT_SCLK_PIN 12  // SCL (Orange)
-    #define RADARALT_CS_PIN   10  // Chip Select (Blue)
-    #define RADARALT_DC_PIN   13  // Data/Command (Green)
-    #define RADARALT_RST_PIN  -1  // Reset (White)
-    #define RADARALT_MISO_PIN -1  // Unused
+#define RADARALT_MOSI_PIN 11
+#define RADARALT_SCLK_PIN 12
+#define RADARALT_CS_PIN   10
+#define RADARALT_DC_PIN   13
+#define RADARALT_RST_PIN  -1
+#define RADARALT_MISO_PIN -1
 #else
-    #define RADARALT_MOSI_PIN 11  // SDA (Yellow)
-    #define RADARALT_SCLK_PIN 12  // SCL (Orange)
-    #define RADARALT_CS_PIN   10  // Chip Select (Blue)
-    #define RADARALT_DC_PIN   13  // Data/Command (Green)
-    #define RADARALT_RST_PIN  -1  // Reset (White)
-    #define RADARALT_MISO_PIN -1  // Unused
+#define RADARALT_MOSI_PIN 11
+#define RADARALT_SCLK_PIN 12
+#define RADARALT_CS_PIN   10
+#define RADARALT_DC_PIN   13
+#define RADARALT_RST_PIN  -1
+#define RADARALT_MISO_PIN -1
 #endif
 
 // Pin overrides for Custom Front Right Console
 #if defined(LABEL_SET_CUSTOM_FRONT_RIGHT)
-    #define RADARALT_DC_PIN   13  // Data/Command (Green)
-    #define RADARALT_CS_PIN   14  // Chip Select (Blue)
-    #define RADARALT_MOSI_PIN 16  // SDA (Yellow)
-    #define RADARALT_SCLK_PIN 17  // SCL (Orange)
-    #define RADARALT_RST_PIN  -1  // Reset (White)
-    #define RADARALT_MISO_PIN -1  // Unused
+#if defined(ARDUINO_LOLIN_S3_MINI)
+#define RADARALT_DC_PIN    9
+#define RADARALT_CS_PIN   14
+#define RADARALT_MOSI_PIN 16
+#define RADARALT_SCLK_PIN 17
+#define RADARALT_RST_PIN  -1
+#define RADARALT_MISO_PIN -1
+#else
+#define RADARALT_DC_PIN   13
+#define RADARALT_CS_PIN   14
+#define RADARALT_MOSI_PIN 16
+#define RADARALT_SCLK_PIN 17
+#define RADARALT_RST_PIN  -1
+#define RADARALT_MISO_PIN -1
+#endif
 #endif
 
 // --- Assets ---
@@ -72,14 +85,22 @@ static constexpr int16_t LOWALT_X = 95, LOWALT_Y = 158;
 static constexpr int16_t GREEN_X = 229, GREEN_Y = 158;
 static constexpr int16_t OFF_X = 152, OFF_Y = 254;
 static constexpr int16_t CENTER_X = 180, CENTER_Y = 180;
+static uint16_t* bgCache[2] = { nullptr, nullptr };  // PSRAM day/NVG
 
-// Radar Altimeter angles
+// Bounce stripes (internal RAM, DMA-capable)
+static constexpr int    STRIPE_H = MAX_MEMORY_TFT;
+static constexpr size_t STRIPE_BYTES = size_t(SCREEN_W) * STRIPE_H * sizeof(uint16_t);
+static uint16_t* dmaBounce[2] = { nullptr, nullptr };
+
+// Angles
 static constexpr int16_t RA_ANGLE_MIN = -17;
 static constexpr int16_t RA_ANGLE_MAX = 325;
-
-// Min Height Pointer angles
 static constexpr int16_t MHP_ANGLE_MIN = -10;
 static constexpr int16_t MHP_ANGLE_MAX = 325;
+
+// --- Sanity checks ---
+static_assert(SCREEN_W > 0 && SCREEN_H > 0, "bad dims");
+static_assert(STRIPE_H > 0 && STRIPE_H <= SCREEN_H, "bad STRIPE_H");
 
 // --- Panel binding ---
 class LGFX_RadarAlt : public lgfx::LGFX_Device {
@@ -128,7 +149,7 @@ public:
 // --- State ---
 static LGFX_RadarAlt tft;
 
-// Compose target (once; PSRAM)
+// Compose target (PSRAM sprite)
 static lgfx::LGFX_Sprite frameSpr(&tft);
 
 // Static sprites
@@ -150,41 +171,50 @@ static volatile int16_t lastDrawnMHP = INT16_MIN;
 static volatile bool    gaugeDirty = false;
 static volatile uint8_t currentLightingMode = 0;   // 0=Day, 2=NVG
 
-static uint8_t          lastNeedleMode = 0xFF;
-static uint8_t          lastPointerMode = 0xFF;
-static uint8_t          lastOffFlagMode = 0xFF;
-static unsigned long    lastDrawTime = 0;
-static TaskHandle_t     tftTaskHandle = nullptr;
+static uint8_t  lastNeedleMode = 0xFF;
+static uint8_t  lastPointerMode = 0xFF;
+static uint8_t  lastOffFlagMode = 0xFF;
 
-// --- DMA-safe double buffer ---
-static constexpr size_t FRAME_PIXELS = size_t(SCREEN_W) * size_t(SCREEN_H);
-static constexpr size_t FRAME_BYTES = FRAME_PIXELS * sizeof(uint16_t);
+static bool     lastLowAltOn = false;
+static bool     lastGreenOn = false;
+static bool     lastOffOn = false;
 
-static uint16_t* dmaFrame[2] = { nullptr, nullptr };
-static uint8_t   dmaIdx = 0;
-static bool      dmaBusy = false;
+static unsigned long lastDrawTime = 0;
+static TaskHandle_t  tftTaskHandle = nullptr;
 
-static inline void waitDMADone()
-{
+// --- DMA fence ---
+static bool dmaBusy = false;
+static inline void waitDMADone() {
     if (dmaBusy) {
-        tft.waitDMA();   // fence outstanding DMA
-        dmaBusy = false;
+        tft.waitDMA();   // ensure last DMA completed
+        dmaBusy = false; // bus will be released by the caller that started it
     }
 }
 
-// --- Sprite builder helpers ---
+/*
+static inline void waitDMADone() {
+    if (dmaBusy) {
+        tft.waitDMA();   // ensure last DMA completed
+        tft.endWrite();  // release bus/CS after DMA is done
+        dmaBusy = false;
+    }
+}
+*/
+
+// Full-frame force flag (first frame, mode change, BIT start)
+static volatile bool needsFullFlush = true;
+
+// --- Sprite helpers ---
 static void buildNeedle(lgfx::LGFX_Sprite& spr, const uint16_t* img) {
     spr.fillScreen(TRANSPARENT_KEY);
     spr.setSwapBytes(true);
     spr.pushImage(0, 0, 76, 173, img);
 }
-
 static void buildPointer(lgfx::LGFX_Sprite& spr, const uint16_t* img) {
     spr.fillScreen(TRANSPARENT_KEY);
     spr.setSwapBytes(true);
     spr.pushImage(0, 0, 23, 180, img);
 }
-
 static void buildLamp(lgfx::LGFX_Sprite& spr, const uint16_t* img, int w, int h) {
     spr.fillScreen(TRANSPARENT_KEY);
     spr.setSwapBytes(true);
@@ -214,75 +244,189 @@ static void onOffFlag(const char*, uint16_t v, uint16_t) {
 }
 static void onDimmerChange(const char*, uint16_t v, uint16_t) {
     uint8_t mode = (v > NVG_THRESHOLD) ? 2u : 0u;
-    if (mode != currentLightingMode) { currentLightingMode = mode; gaugeDirty = true; }
+    if (mode != currentLightingMode) {
+        currentLightingMode = mode;
+        gaugeDirty = true;
+        needsFullFlush = true;
+    }
 }
 
-// --- Flush helper (blocking or DMA) ---
-static inline void flushFrameToDisplay(uint16_t* buf, bool blocking)
+// ----------------- Dirty-rect utilities -----------------
+struct Rect {
+    int16_t x = 0, y = 0, w = 0, h = 0;
+};
+static inline bool rectEmpty(const Rect& r) { return r.w <= 0 || r.h <= 0; }
+static inline Rect rectClamp(const Rect& r) {
+    int16_t x = r.x, y = r.y, w = r.w, h = r.h;
+    if (x < 0) { w += x; x = 0; }
+    if (y < 0) { h += y; y = 0; }
+    if (x + w > SCREEN_W) w = SCREEN_W - x;
+    if (y + h > SCREEN_H) h = SCREEN_H - y;
+    if (w < 0) w = 0;
+    if (h < 0) h = 0;
+    return { x,y,w,h };
+}
+static inline Rect rectUnion(const Rect& a, const Rect& b) {
+    if (rectEmpty(a)) return b;
+    if (rectEmpty(b)) return a;
+    int16_t x1 = std::min(a.x, b.x);
+    int16_t y1 = std::min(a.y, b.y);
+    int16_t x2 = std::max<int16_t>(a.x + a.w, b.x + b.w);
+    int16_t y2 = std::max<int16_t>(a.y + a.h, b.y + b.h);
+    return rectClamp({ x1, y1, (int16_t)(x2 - x1), (int16_t)(y2 - y1) });
+}
+static inline Rect rectPad(const Rect& r, int16_t px) {
+    return rectClamp({ (int16_t)(r.x - px), (int16_t)(r.y - px), (int16_t)(r.w + 2 * px), (int16_t)(r.h + 2 * px) });
+}
+
+// AABB for rotated sprite (pivot inside sprite coordinates)
+static Rect rotatedAABB(int cx, int cy, int w, int h, int pivotX, int pivotY, float deg) {
+    const float rad = deg * (float)M_PI / 180.0f;
+    float s = sinf(rad), c = cosf(rad);
+    // corners relative to pivot
+    const float xs[4] = { -pivotX, (float)w - pivotX, (float)w - pivotX, -pivotX };
+    const float ys[4] = { -pivotY, -pivotY, (float)h - pivotY, (float)h - pivotY };
+    float minx = 1e9f, maxx = -1e9f, miny = 1e9f, maxy = -1e9f;
+    for (int i = 0; i < 4; ++i) {
+        float xr = xs[i] * c - ys[i] * s;
+        float yr = xs[i] * s + ys[i] * c;
+        float X = (float)cx + xr;
+        float Y = (float)cy + yr;
+        if (X < minx) minx = X; if (X > maxx) maxx = X;
+        if (Y < miny) miny = Y; if (Y > maxy) maxy = Y;
+    }
+    Rect r; r.x = (int16_t)floorf(minx); r.y = (int16_t)floorf(miny);
+    r.w = (int16_t)ceilf(maxx - minx); r.h = (int16_t)ceilf(maxy - miny);
+    return rectClamp(rectPad(r, 2)); // small pad for AA edges
+}
+
+// Copy a BG sub-rectangle from cache into frame sprite buffer
+static inline void blitBGRectToFrame(const uint16_t* bg, int x, int y, int w, int h) {
+    if (w <= 0 || h <= 0) return;
+    uint16_t* dst = (uint16_t*)frameSpr.getBuffer();
+    const int pitch = SCREEN_W;
+    for (int row = 0; row < h; ++row) {
+        std::memcpy(&dst[(y + row) * pitch + x],
+            &bg[(y + row) * pitch + x],
+            size_t(w) * sizeof(uint16_t));
+    }
+}
+
+// ----------------- Region DMA flush -----------------
+static inline void flushRectToDisplay(const uint16_t* src, const Rect& rr, bool blocking)
 {
+    Rect r = rectClamp(rr);
+    if (rectEmpty(r)) return;
+
+    waitDMADone();
+
+    const int pitch = SCREEN_W;
+    const int lines_per = STRIPE_H;
+    int y = r.y;
+
     tft.startWrite();
+
+    // Prime first chunk
+    int h0 = (lines_per <= r.h) ? lines_per : r.h;
+    // pack rows into bounce[0]
+    for (int row = 0; row < h0; ++row) {
+        std::memcpy(dmaBounce[0] + row * r.w, src + (y + row) * pitch + r.x, size_t(r.w) * sizeof(uint16_t));
+    }
+    tft.setAddrWindow(r.x, y, r.w, h0);
+    tft.pushPixelsDMA(dmaBounce[0], uint32_t(r.w) * h0);
+    if (!blocking) dmaBusy = true;
+
+    int bb = 1;
+    for (y += h0; y < r.y + r.h; y += lines_per, bb ^= 1) {
+        int h = (y + lines_per <= r.y + r.h) ? lines_per : (r.y + r.h - y);
+
+        // overlap pack with previous DMA
+        for (int row = 0; row < h; ++row) {
+            std::memcpy(dmaBounce[bb] + row * r.w, src + (y + row) * pitch + r.x, size_t(r.w) * sizeof(uint16_t));
+        }
+
+        tft.waitDMA();
+        tft.setAddrWindow(r.x, y, r.w, h);
+        tft.pushPixelsDMA(dmaBounce[bb], uint32_t(r.w) * h);
+
+        if (blocking) {
+            tft.waitDMA();
+        }
+    }
+
     if (blocking) {
-        // synchronous path for BIT sweeps or diagnostics
-        tft.pushImage(0, 0, SCREEN_W, SCREEN_H, buf);
+        tft.waitDMA();
         dmaBusy = false;
     }
-    else {
-        // fence any in-flight DMA, then kick a new one
-        waitDMADone();
-        tft.pushImageDMA(0, 0, SCREEN_W, SCREEN_H, buf);
-        dmaBusy = true;
-    }
+
     tft.endWrite();
 }
 
-// --- Double-buffered draw (no tearing) ---
+static inline void flushFrameToDisplay(const uint16_t* src, bool blocking) {
+    flushRectToDisplay(src, { 0,0,SCREEN_W,SCREEN_H }, blocking);
+}
+
+// ----------------- Draw -----------------
 static void RadarAlt_draw(bool force = false, bool blocking = false)
 {
     if (!force && !isMissionRunning()) return;
     const unsigned long now = millis();
 
-    int16_t ra = angleRA;
-    if (ra < RA_ANGLE_MIN) ra = RA_ANGLE_MIN;
-    else if (ra > RA_ANGLE_MAX) ra = RA_ANGLE_MAX;
+    int16_t ra = angleRA;  if (ra < RA_ANGLE_MIN) ra = RA_ANGLE_MIN; else if (ra > RA_ANGLE_MAX) ra = RA_ANGLE_MAX;
+    int16_t mhp = angleMHP; if (mhp < MHP_ANGLE_MIN) mhp = MHP_ANGLE_MIN; else if (mhp > MHP_ANGLE_MAX) mhp = MHP_ANGLE_MAX;
 
-    int16_t mhp = angleMHP;
-    if (mhp < MHP_ANGLE_MIN) mhp = MHP_ANGLE_MIN;
-    else if (mhp > MHP_ANGLE_MAX) mhp = MHP_ANGLE_MAX;
+    const bool stateChanged = gaugeDirty || (ra != lastDrawnRA) || (mhp != lastDrawnMHP)
+        || (lowAltOn != lastLowAltOn) || (greenOn != lastGreenOn) || (offFlag != lastOffOn)
+        || needsFullFlush;
 
-    const bool shouldDraw = force || gaugeDirty || (ra != lastDrawnRA) || (mhp != lastDrawnMHP);
-    if (!shouldDraw) return;
+    if (!stateChanged) return;
     if (!force && (now - lastDrawTime < RADARALT_DRAW_MIN_INTERVAL_MS)) return;
 
-    lastDrawTime = now;
-    lastDrawnRA = ra; lastDrawnMHP = mhp;
-    gaugeDirty = false;
+    const uint32_t t_frame0 = micros();
 
-    // Assets
-    const uint16_t* bg = (currentLightingMode == 0) ? radarAltBackground : radarAltBackgroundNVG;
-    const uint16_t* nImg = (currentLightingMode == 0) ? radarAltNeedle : radarAltNeedleNVG;
-    const uint16_t* ptrImg = (currentLightingMode == 0) ? radarAltMinHeightPointer : radarAltMinHeightPointerNVG;
-    const uint16_t* flagImg = (currentLightingMode == 0) ? radarAltOffFlag : radarAltOffFlagNVG;
+    lastDrawTime = now;
+    gaugeDirty = false;
 
 #if DEBUG_PERFORMANCE
     beginProfiling(PERF_TFT_RADARALT_DRAW);
 #endif
 
-    if (lastNeedleMode != currentLightingMode) {
-        buildNeedle(needle, nImg);
-        lastNeedleMode = currentLightingMode;
-    }
-    if (lastPointerMode != currentLightingMode) {
-        buildPointer(pointerSpr, ptrImg);
-        lastPointerMode = currentLightingMode;
-    }
-    if (lastOffFlagMode != currentLightingMode) {
-        buildLamp(offFlagSpr, flagImg, 51, 19);
-        lastOffFlagMode = currentLightingMode;
+    // Select assets
+    const uint16_t* nImg = (currentLightingMode == 0) ? radarAltNeedle : radarAltNeedleNVG;
+    const uint16_t* ptrImg = (currentLightingMode == 0) ? radarAltMinHeightPointer : radarAltMinHeightPointerNVG;
+    const uint16_t* flagImg = (currentLightingMode == 0) ? radarAltOffFlag : radarAltOffFlagNVG;
+    const uint16_t* bg = bgCache[(currentLightingMode == 0) ? 0u : 1u];
+
+    // Rebuild sprites if lighting mode changed
+    if (lastNeedleMode != currentLightingMode) { buildNeedle(needle, nImg);                lastNeedleMode = currentLightingMode; }
+    if (lastPointerMode != currentLightingMode) { buildPointer(pointerSpr, ptrImg);         lastPointerMode = currentLightingMode; }
+    if (lastOffFlagMode != currentLightingMode) { buildLamp(offFlagSpr, flagImg, 51, 19);  lastOffFlagMode = currentLightingMode; }
+
+    // Compute dirty rect
+    Rect dirty = needsFullFlush ? Rect{ 0,0,SCREEN_W,SCREEN_H } : Rect{};
+
+    // needle & pointer: union old/new AABBs
+    if (!needsFullFlush) {
+        Rect nOld = rotatedAABB(CENTER_X, CENTER_Y, 76, 173, 38, 134, (float)lastDrawnRA);
+        Rect nNew = rotatedAABB(CENTER_X, CENTER_Y, 76, 173, 38, 134, (float)ra);
+        Rect pOld = rotatedAABB(CENTER_X, CENTER_Y, 23, 180, 12, 180, (float)lastDrawnMHP);
+        Rect pNew = rotatedAABB(CENTER_X, CENTER_Y, 23, 180, 12, 180, (float)mhp);
+        dirty = rectUnion(dirty, rectUnion(nOld, nNew));
+        dirty = rectUnion(dirty, rectUnion(pOld, pNew));
     }
 
-    // Compose full frame into frameSpr
-    frameSpr.fillScreen(TFT_BLACK);
-    frameSpr.pushImage(0, 0, SCREEN_W, SCREEN_H, bg);   // bg assets are already in correct byte order for the sprite
+    // Lamps: always include small rects if ON or state changed (cheap and safe)
+    auto lampRect = [](int x, int y) { return rectClamp(Rect{ x, y, 34, 34 }); };
+    auto offRect = [](int x, int y) { return rectClamp(Rect{ x, y, 51, 19 }); };
+    if (needsFullFlush || greenOn || greenOn != lastGreenOn)   dirty = rectUnion(dirty, lampRect(GREEN_X, GREEN_Y));
+    if (needsFullFlush || lowAltOn || lowAltOn != lastLowAltOn)dirty = rectUnion(dirty, lampRect(LOWALT_X, LOWALT_Y));
+    if (needsFullFlush || offFlag || offFlag != lastOffOn)   dirty = rectUnion(dirty, offRect(OFF_X, OFF_Y));
+
+    // Restore BG only inside dirty rect
+    blitBGRectToFrame(bg, dirty.x, dirty.y, dirty.w, dirty.h);
+
+    // Clip composition to dirty rect so we don't paint outside flushed area
+    frameSpr.setClipRect(dirty.x, dirty.y, dirty.w, dirty.h);
 
     // Overlays
     if (greenOn)  greenLampSpr.pushRotateZoom(&frameSpr, GREEN_X, GREEN_Y, 0.0f, 1.0f, 1.0f, TRANSPARENT_KEY);
@@ -293,15 +437,25 @@ static void RadarAlt_draw(bool force = false, bool blocking = false)
     pointerSpr.pushRotateZoom(&frameSpr, CENTER_X, CENTER_Y, (float)mhp, 1.0f, 1.0f, TRANSPARENT_KEY);
     needle.pushRotateZoom(&frameSpr, CENTER_X, CENTER_Y, (float)ra, 1.0f, 1.0f, TRANSPARENT_KEY);
 
-    // Copy to back buffer, then flush
-    uint16_t* buf = dmaFrame[dmaIdx ^ 1];             // use the buffer not used by the previous DMA
-    std::memcpy(buf, frameSpr.getBuffer(), FRAME_BYTES);
-    flushFrameToDisplay(buf, blocking);
-    dmaIdx ^= 1;
+    frameSpr.clearClipRect();
+
+    // Flush region
+    const uint16_t* buf = (const uint16_t*)frameSpr.getBuffer();
+    flushRectToDisplay(buf, dirty, blocking);
 
 #if DEBUG_PERFORMANCE
     endProfiling(PERF_TFT_RADARALT_DRAW);
 #endif
+
+    // Update 'last' state
+    lastDrawnRA = ra;
+    lastDrawnMHP = mhp;
+    lastLowAltOn = lowAltOn;
+    lastGreenOn = greenOn;
+    lastOffOn = offFlag;
+    needsFullFlush = false;
+
+    (void)t_frame0; // (keep for optional ad-hoc profiling)
 }
 
 // --- Task ---
@@ -321,29 +475,39 @@ void RadarAlt_init()
         while (1) vTaskDelay(1000);
     }
 
-    // PSRAM DMA buffers
-#if defined(ARDUINO_ARCH_ESP32)
-    dmaFrame[0] = (uint16_t*)heap_caps_malloc(FRAME_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
-    dmaFrame[1] = (uint16_t*)heap_caps_malloc(FRAME_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
-#else
-    dmaFrame[0] = (uint16_t*)malloc(FRAME_BYTES);
-    dmaFrame[1] = (uint16_t*)malloc(FRAME_BYTES);
-#endif
-    if (!dmaFrame[0] || !dmaFrame[1]) {
-        debugPrintln("❌ PSRAM DMA framebuffer alloc failed!");
-        while (1) vTaskDelay(1000);
+    // Bounce buffers (internal RAM, DMA-capable)
+    dmaBounce[0] = (uint16_t*)heap_caps_aligned_alloc(32, STRIPE_BYTES, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
+    dmaBounce[1] = (uint16_t*)heap_caps_aligned_alloc(32, STRIPE_BYTES, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
+    if (!dmaBounce[0] || !dmaBounce[1]) {
+        debugPrintf("❌ dmaBounce alloc failed (%u bytes each)\n", (unsigned)STRIPE_BYTES);
+        while (1) vTaskDelay(pdMS_TO_TICKS(1000));
     }
+
+    // Background caches (PSRAM)
+    static constexpr size_t FRAME_PIXELS = size_t(SCREEN_W) * size_t(SCREEN_H);
+    static constexpr size_t FRAME_BYTES = FRAME_PIXELS * sizeof(uint16_t);
+    static_assert((FRAME_BYTES % 16u) == 0u, "FRAME_BYTES must be 16-byte aligned");
+
+    bgCache[0] = (uint16_t*)heap_caps_aligned_alloc(16, FRAME_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    bgCache[1] = (uint16_t*)heap_caps_aligned_alloc(16, FRAME_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!bgCache[0] || !bgCache[1]) {
+        debugPrintln("❌ bgCache alloc failed");
+        while (1) vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+    // populate once from flash
+    std::memcpy(bgCache[0], radarAltBackground, FRAME_BYTES);
+    std::memcpy(bgCache[1], radarAltBackgroundNVG, FRAME_BYTES);
 
     tft.init();
     tft.setColorDepth(COLOR_DEPTH_RADARALT);
     tft.setRotation(0);
-    tft.setSwapBytes(true);    // keep display-endian handling consistent with existing assets
+    tft.setSwapBytes(true);
     tft.fillScreen(TFT_BLACK);
 
     // Compose sprite (PSRAM)
     frameSpr.setColorDepth(COLOR_DEPTH_RADARALT);
     frameSpr.setPsram(true);
-    frameSpr.setSwapBytes(false); // sprite stores native order; background data is prepared accordingly
+    frameSpr.setSwapBytes(false);
     if (!frameSpr.createSprite(SCREEN_W, SCREEN_H)) {
         debugPrintln("❌ frameSpr alloc failed!");
         while (1) vTaskDelay(1000);
@@ -383,13 +547,19 @@ void RadarAlt_init()
     subscribeToLedChange("RADALT_OFF_FLAG", onOffFlag);
     subscribeToLedChange(BACKLIGHT_LABEL, onDimmerChange);
 
-    RadarAlt_bitTest();
+    // First frame: restore full BG and flush once so gauge is visible before sweeps/loop
+    needsFullFlush = true;
+    gaugeDirty = true;
+    RadarAlt_draw(true, true);
+
+    // Optional BIT (will also force full once at start)
+    RadarAlt_bitTest();  // <-- call on demand if you prefer
 
 #if RUN_RADARALT_AS_TASK
     xTaskCreatePinnedToCore(RadarAlt_task, "RadarAltTask", 4096, nullptr, 2, &tftTaskHandle, RA_CPU_CORE);
 #endif
 
-    debugPrintln("✅ Radar Altimeter (LovyanGFX, PSRAM double-buffered, DMA-safe) initialized");
+    debugPrintln("✅ Radar Altimeter (LovyanGFX, dirty-rect DMA) initialized");
 }
 
 void RadarAlt_loop()
@@ -399,23 +569,24 @@ void RadarAlt_loop()
 #endif
 }
 
-void RadarAlt_notifyMissionStart() { gaugeDirty = true; }
+void RadarAlt_notifyMissionStart() {
+    needsFullFlush = true;
+    gaugeDirty = true;
+}
 
-// Visual self-test; use blocking flush to avoid DMA overlap during rapid sweeps
+// Visual self-test; do a full-frame show at start
 void RadarAlt_bitTest()
 {
     int16_t savRA = angleRA, savMHP = angleMHP;
     bool savLow = lowAltOn, savGreen = greenOn, savOff = offFlag;
 
-    const int STEP = 50, DELAY = 2;
+    const int STEP = 10, DELAY = 2;
 
-    // Sweep up
     for (int i = 0; i <= 320; i += STEP) {
         angleRA = i; angleMHP = i; gaugeDirty = true;
         RadarAlt_draw(true, true);
         vTaskDelay(pdMS_TO_TICKS(DELAY));
     }
-    // Sweep down
     for (int i = 320; i >= 0; i -= STEP) {
         angleRA = i; angleMHP = i; gaugeDirty = true;
         RadarAlt_draw(true, true);
@@ -437,12 +608,15 @@ void RadarAlt_bitTest()
     // Restore
     angleRA = savRA; angleMHP = savMHP;
     lowAltOn = savLow; greenOn = savGreen; offFlag = savOff;
+    needsFullFlush = true;
     gaugeDirty = true; RadarAlt_draw(true, true);
 }
 
 void RadarAlt_deinit()
 {
-    waitDMADone();
+    if (tftTaskHandle) { vTaskDelete(tftTaskHandle); tftTaskHandle = nullptr; }
+
+    waitDMADone(); dmaBusy = false;
 
     needle.deleteSprite();
     pointerSpr.deleteSprite();
@@ -451,13 +625,10 @@ void RadarAlt_deinit()
     offFlagSpr.deleteSprite();
     frameSpr.deleteSprite();
 
-    if (tftTaskHandle) { vTaskDelete(tftTaskHandle); tftTaskHandle = nullptr; }
-
-#if defined(ARDUINO_ARCH_ESP32)
-    if (dmaFrame[0]) { heap_caps_free(dmaFrame[0]); dmaFrame[0] = nullptr; }
-    if (dmaFrame[1]) { heap_caps_free(dmaFrame[1]); dmaFrame[1] = nullptr; }
-#else
-    if (dmaFrame[0]) { free(dmaFrame[0]); dmaFrame[0] = nullptr; }
-    if (dmaFrame[1]) { free(dmaFrame[1]); dmaFrame[1] = nullptr; }
-#endif
+    for (int i = 0; i < 2; ++i) {
+        if (dmaBounce[i]) { heap_caps_free(dmaBounce[i]); dmaBounce[i] = nullptr; }
+    }
+    for (int i = 0; i < 2; ++i) {
+        if (bgCache[i]) { heap_caps_free(bgCache[i]); bgCache[i] = nullptr; }
+    }
 }

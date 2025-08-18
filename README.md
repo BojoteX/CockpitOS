@@ -9,10 +9,10 @@
 
 CockpitOS is a high-performance firmware platform for building **DCS-BIOS**-compatible cockpit panels, indicators, and displays on the **ESP32** family of microcontrollers.
 
-- 🗂 **Static memory allocation only** — no `malloc`, no heap usage, no fragmentation.  
+- 🗂 **Static memory allocation only** — no `malloc`, no heap usage (except for TFT gauges), no fragmentation.  
 - ⏱ **Deterministic execution** — all main loop operations are real-time safe.  
 - ⚡ **Low-latency design** — fast selector, LED, and gauge updates.  
-- 🛡 **Aerospace-inspired engineering** — fault-tolerant, predictable, maintainable.  
+- 🛡 **Aerospace-inspired engineering** — fault-tolerant, predictable, blazing fast & maintainable.  
 
 ---
 
@@ -25,20 +25,20 @@ CockpitOS is a high-performance firmware platform for building **DCS-BIOS**-comp
 - 📡 **WiFi UDP console** — remote debug for headless operation.  
 - 📊 **Profiling tools** — track loop timing, CPU headroom, and USB/CDC status.  
 - ⏩ **High-rate operation** — 250 Hz panel polling and 60 Hz display refresh.  
-- 🖥 **TFT gauge support** — powered **exclusively** by [LovyanGFX](https://github.com/lovyan03/LovyanGFX).  
+- 🖥 **TFT gauge support** — powered by [LovyanGFX](https://github.com/lovyan03/LovyanGFX).  
 
 ---
 
 ## 🛠 Requirements
 
 - **IDE:** Arduino IDE ≥ 2.3.6  
-- **ESP32 Arduino Core:** v3.3.0 (2.x also supported)  
+- **ESP32 Arduino Core:** v3.2.1 (2.x also supported)  
 - **ESP32 Boards Tested:** LOLIN S2 Mini, LOLIN S3 Mini, LOLIN C3 Mini (All boards by WEMOS)  
 - **Libraries:**  
   - [LovyanGFX](https://github.com/lovyan03/LovyanGFX) — **required** for TFT gauge implementations.  
   - DCS-BIOS library (optional; a "lite" parser is included).  
 
-❌ Not supported: STM32, Teensy, ESP8266, MicroPython, ESP-IDF, PlatformIO.
+❌ Not tested: STM32, Teensy, ESP8266, MicroPython, ESP-IDF, PlatformIO.
 
 ---
 
@@ -69,6 +69,7 @@ CockpitOS is a high-performance firmware platform for building **DCS-BIOS**-comp
 7. **(Optional) Use companion tools**  
    See `Debug Tools/` and `HID Manager/`.  
 
+There are README.md files on each directory explaining functions and in some cases tutorials are included.
 ---
 
 ## ⚠ Limitations

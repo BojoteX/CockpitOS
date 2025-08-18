@@ -1,0 +1,31 @@
+{
+    "Custom": {
+                                                                "RADALT_HEIGHT_CUSTOM": {
+                                                                                         "category": "Radar Altimeter",
+                                                                                     "control_type": "momentary",
+                                                                                      "description": "Set low altitude pointer",
+                                                                                       "identifier": "RADALT_HEIGHT",
+                                                                                       "inputs": [ {
+                                                                                                        "description": "turn the dial left or right",
+                                                                                                          "interface": "variable_step",
+                                                                                                          "max_value": 65535,
+                                                                                                     "suggested_step": 3200
+                                                                                                 }, {
+                                                                                                     "description": "set position",
+                                                                                                       "interface": "set_state",
+                                                                                                       "max_value": 1
+                                                                                                 } ],
+                                                                                          "outputs": [ {
+                                                                                                                               "address": 29974,
+                                                                                                                    "address_identifier": "FA_18C_hornet_RADALT_HEIGHT_A",
+                                                                                                         "address_mask_shift_identifier": "FA_18C_hornet_RADALT_HEIGHT",
+                                                                                                                           "description": "the rotation of the knob in the cockpit (not the value that is controlled by this knob!)",
+                                                                                                                                  "mask": 65535,
+                                                                                                                             "max_value": 65535,
+                                                                                                                              "shift_by": 0,
+                                                                                                                                "suffix": "_KNOB_POS",
+                                                                                                                                  "type": "integer"
+                                                                                                     } ]
+                                                                                 }
+                }
+}

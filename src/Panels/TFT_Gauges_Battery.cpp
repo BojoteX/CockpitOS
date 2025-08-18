@@ -1,5 +1,7 @@
-// CockpitOS — Battery Gauge (LovyanGFX, GC9A01) - Double-buffered PSRAM, DMA-safe
+// CockpitOS — Battery Gauge (LovyanGFX, GC9A01 @ 240×240)
+// Dirty-rect compose + region DMA flush (PSRAM sprites, DMA-safe)
 
+#define MAX_MEMORY_TFT 16
 #define GAUGE_DRAW_MIN_INTERVAL_MS 13
 #define RUN_GAUGE_AS_TASK 1
 #define BACKLIGHT_LABEL "CONSOLES_DIMMER"
@@ -11,39 +13,43 @@
 #include "../DCSBIOSBridge.h"
 #include <LovyanGFX.hpp>
 #include <cstring>
+#include <cmath>
+#include <algorithm>
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include <esp_heap_caps.h>
 #endif
 
-// Select core (For this gauge, we always use core 0 for all devices)
+// Core
 #if defined(ARDUINO_LOLIN_S3_MINI)
 #define BATT_CPU_CORE 0
-#else 
+#else
 #define BATT_CPU_CORE 0
 #endif
 
 // --- Pins ---
 #if defined(ARDUINO_LOLIN_S3_MINI)
-#define BATTERY_CS_PIN    38  
+#define BATTERY_CS_PIN     4
 #define BATTERY_MOSI_PIN   8
-#define BATTERY_SCLK_PIN   9
-#define BATTERY_DC_PIN    14
+#define BATTERY_SCLK_PIN  11
+#define BATTERY_DC_PIN    12
 #define BATTERY_RST_PIN   -1
 #define BATTERY_MISO_PIN  -1
 #else
-#define BATTERY_CS_PIN    38  
-#define BATTERY_MOSI_PIN   8
-#define BATTERY_SCLK_PIN   9
-#define BATTERY_DC_PIN    14 // 13 for Right Panel Controller
+#define BATTERY_CS_PIN     5
+#define BATTERY_MOSI_PIN  10
+#define BATTERY_SCLK_PIN  11
+#define BATTERY_DC_PIN     7 // 13 for Right Panel Controller
 #define BATTERY_RST_PIN   -1 // 12 for Right Panel Controller
 #define BATTERY_MISO_PIN  -1
 #endif
 
-// Pin overrides for Right Panel Controller
 #if defined(LABEL_SET_RIGHT_PANEL_CONTROLLER)
+#define BATTERY_MOSI_PIN   8
+#define BATTERY_SCLK_PIN   9
 #define BATTERY_DC_PIN    13
-#define BATTERY_RST_PIN   12 
+#define BATTERY_RST_PIN   12
+#define BATTERY_CS_PIN    36
 #endif
 
 // --- Assets (240x240 bg, 15x88 needle) ---
@@ -53,13 +59,26 @@
 #include "Assets/BatteryGauge/batNeedleNVG.h"
 
 // --- Misc ---
-static constexpr bool shared_bus = true;
-static constexpr bool use_lock = true;
+static constexpr bool     shared_bus = false;
+static constexpr bool     use_lock = false;
 static constexpr uint16_t TRANSPARENT_KEY = 0x2001;
 static constexpr uint16_t NVG_THRESHOLD = 6553;
-static constexpr int16_t SCREEN_W = 240, SCREEN_H = 240;
-static constexpr int16_t CENTER_X = 120, CENTER_Y = 120;
-static constexpr int16_t NEEDLE_PIVOT_X = 7, NEEDLE_PIVOT_Y = 84;
+
+static constexpr int16_t  SCREEN_W = 240, SCREEN_H = 240;
+static constexpr int16_t  CENTER_X = 120, CENTER_Y = 120;
+static constexpr int16_t  NEEDLE_W = 15, NEEDLE_H = 88;
+static constexpr int16_t  NEEDLE_PIVOT_X = 7, NEEDLE_PIVOT_Y = 84;
+
+// Angles
+static constexpr int16_t U_MIN = -150, U_MAX = -30;
+static constexpr int16_t E_MIN = 30, E_MAX = 150;
+
+// DMA bounce stripes (internal RAM)
+static constexpr int    STRIPE_H = MAX_MEMORY_TFT;
+static constexpr size_t STRIPE_BYTES = size_t(SCREEN_W) * STRIPE_H * sizeof(uint16_t);
+
+static_assert(SCREEN_W > 0 && SCREEN_H > 0, "bad dims");
+static_assert(STRIPE_H > 0 && STRIPE_H <= SCREEN_H, "bad STRIPE_H");
 
 // --- Panel binding ---
 class LGFX_Battery : public lgfx::LGFX_Device {
@@ -107,100 +126,224 @@ public:
 // --- State ---
 static LGFX_Battery tft;
 static lgfx::LGFX_Sprite frameSpr(&tft);
-static lgfx::LGFX_Sprite needleU(&tft), needleE(&tft);
+static lgfx::LGFX_Sprite needleU_spr(&tft), needleE_spr(&tft);
 
-static volatile int16_t angleU = -150, angleE = 150;
+// BG caches (PSRAM)
+static uint16_t* bgCache[2] = { nullptr, nullptr }; // 0=day,1=NVG
+
+// DMA bounce (internal RAM)
+static uint16_t* dmaBounce[2] = { nullptr, nullptr };
+
+// Live values
+static volatile int16_t angleU = U_MIN, angleE = E_MAX;
 static volatile int16_t lastDrawnAngleU = INT16_MIN, lastDrawnAngleE = INT16_MIN;
 static volatile bool    gaugeDirty = false;
 static volatile uint8_t currentLightingMode = 0; // 0=Day, 2=NVG
 static uint8_t          lastNeedleMode = 0xFF;
+static volatile bool    needsFullFlush = true;
+
 static unsigned long    lastDrawTime = 0;
 static TaskHandle_t     tftTaskHandle = nullptr;
 
-// --- DMA-safe double buffer ---
-static constexpr size_t FRAME_PIXELS = size_t(SCREEN_W) * size_t(SCREEN_H);
-static constexpr size_t FRAME_BYTES = FRAME_PIXELS * sizeof(uint16_t);
-
-static uint16_t* dmaFrame[2] = { nullptr, nullptr };
-static uint8_t   dmaIdx = 0;
-static bool      dmaBusy = false;
-
+// --- DMA fence ---
+static bool dmaBusy = false;
 static inline void waitDMADone() {
-    if (dmaBusy) {
-        tft.waitDMA();
-        dmaBusy = false;
+    if (dmaBusy) { tft.waitDMA(); dmaBusy = false; }
+}
+
+// --- Dirty-rect utils ---
+struct Rect { int16_t x = 0, y = 0, w = 0, h = 0; };
+static inline bool rectEmpty(const Rect& r) { return r.w <= 0 || r.h <= 0; }
+static inline Rect rectClamp(const Rect& r) {
+    int16_t x = r.x, y = r.y, w = r.w, h = r.h;
+    if (x < 0) { w += x; x = 0; } if (y < 0) { h += y; y = 0; }
+    if (x + w > SCREEN_W) w = SCREEN_W - x;
+    if (y + h > SCREEN_H) h = SCREEN_H - y;
+    if (w < 0) w = 0; if (h < 0) h = 0;
+    return { x,y,w,h };
+}
+static inline Rect rectUnion(const Rect& a, const Rect& b) {
+    if (rectEmpty(a)) return b;
+    if (rectEmpty(b)) return a;
+    int16_t x1 = std::min(a.x, b.x), y1 = std::min(a.y, b.y);
+    int16_t x2 = std::max<int16_t>(a.x + a.w, b.x + b.w);
+    int16_t y2 = std::max<int16_t>(a.y + a.h, b.y + b.h);
+    return rectClamp({ x1,y1,(int16_t)(x2 - x1),(int16_t)(y2 - y1) });
+}
+static inline Rect rectPad(const Rect& r, int16_t px) {
+    return rectClamp({ (int16_t)(r.x - px),(int16_t)(r.y - px),(int16_t)(r.w + 2 * px),(int16_t)(r.h + 2 * px) });
+}
+static Rect rotatedAABB(int cx, int cy, int w, int h, int px, int py, float deg) {
+    const float rad = deg * (float)M_PI / 180.0f;
+    float s = sinf(rad), c = cosf(rad);
+    const float xs[4] = { -px, (float)w - px, (float)w - px, -px };
+    const float ys[4] = { -py, -py, (float)h - py, (float)h - py };
+    float minx = 1e9f, maxx = -1e9f, miny = 1e9f, maxy = 1e9f * -1.0f;
+    for (int i = 0; i < 4; ++i) {
+        float xr = xs[i] * c - ys[i] * s;
+        float yr = xs[i] * s + ys[i] * c;
+        float X = (float)cx + xr;
+        float Y = (float)cy + yr;
+        if (X < minx) minx = X; if (X > maxx) maxx = X;
+        if (Y < miny) miny = Y; if (Y > maxy) maxy = Y;
+    }
+    Rect r; r.x = (int16_t)floorf(minx); r.y = (int16_t)floorf(miny);
+    r.w = (int16_t)ceilf(maxx - minx); r.h = (int16_t)ceilf(maxy - miny);
+    return rectClamp(rectPad(r, 2));
+}
+static inline void blitBGRectToFrame(const uint16_t* bg, int x, int y, int w, int h) {
+    if (w <= 0 || h <= 0) return;
+    uint16_t* dst = (uint16_t*)frameSpr.getBuffer();
+    const int pitch = SCREEN_W;
+    for (int row = 0; row < h; ++row) {
+        std::memcpy(&dst[(y + row) * pitch + x],
+            &bg[(y + row) * pitch + x],
+            size_t(w) * sizeof(uint16_t));
     }
 }
 
-// --- Needle sprite builder ---
+// ----------------- Region DMA flush -----------------
+static inline void flushRectToDisplay(const uint16_t* src, const Rect& rr, bool blocking)
+{
+    Rect r = rectClamp(rr);
+    if (rectEmpty(r)) return;
+
+    waitDMADone();
+
+    const int pitch = SCREEN_W;
+    const int lines_per = STRIPE_H;
+    int y = r.y;
+
+    tft.startWrite();
+
+    int h0 = (lines_per <= r.h) ? lines_per : r.h;
+    for (int row = 0; row < h0; ++row) {
+        std::memcpy(dmaBounce[0] + row * r.w,
+            src + (y + row) * pitch + r.x,
+            size_t(r.w) * sizeof(uint16_t));
+    }
+    tft.setAddrWindow(r.x, y, r.w, h0);
+    tft.pushPixelsDMA(dmaBounce[0], uint32_t(r.w) * h0);
+    if (!blocking) dmaBusy = true;
+
+    int bb = 1;
+    for (y += h0; y < r.y + r.h; y += lines_per, bb ^= 1) {
+        const int h = (y + lines_per <= r.y + r.h) ? lines_per : (r.y + r.h - y);
+
+        for (int row = 0; row < h; ++row) {
+            std::memcpy(dmaBounce[bb] + row * r.w,
+                src + (y + row) * pitch + r.x,
+                size_t(r.w) * sizeof(uint16_t));
+        }
+
+        tft.waitDMA();
+        tft.setAddrWindow(r.x, y, r.w, h);
+        tft.pushPixelsDMA(dmaBounce[bb], uint32_t(r.w) * h);
+
+        if (blocking) { tft.waitDMA(); }
+    }
+
+    if (blocking) { tft.waitDMA(); dmaBusy = false; }
+    tft.endWrite();
+}
+
+static inline void flushFrameToDisplay(const uint16_t* src, bool blocking) {
+    flushRectToDisplay(src, { 0,0,SCREEN_W,SCREEN_H }, blocking);
+}
+
+// --- Sprite builders ---
 static void buildNeedle(lgfx::LGFX_Sprite& spr, const uint16_t* img) {
     spr.fillScreen(TRANSPARENT_KEY);
     spr.setSwapBytes(true);
-    spr.pushImage(0, 0, 15, 88, img);
+    spr.pushImage(0, 0, NEEDLE_W, NEEDLE_H, img);
 }
 
-// --- DCS-BIOS callbacks ---
+// --- DCS-BIOS ---
 static void onBatVoltUChange(const char*, uint16_t v, uint16_t) {
-    int16_t a = map(v, 0, 65535, -150, -30);
+    int16_t a = map(v, 0, 65535, U_MIN, U_MAX);
     if (a != angleU) { angleU = a; gaugeDirty = true; }
 }
 static void onBatVoltEChange(const char*, uint16_t v, uint16_t) {
-    int16_t a = map(v, 0, 65535, 150, 30);
+    int16_t a = map(v, 0, 65535, E_MAX, E_MIN);
     if (a != angleE) { angleE = a; gaugeDirty = true; }
 }
 static void onDimmerChange(const char*, uint16_t v, uint16_t) {
     uint8_t mode = (v > NVG_THRESHOLD) ? 2u : 0u;
-    if (mode != currentLightingMode) { currentLightingMode = mode; gaugeDirty = true; }
+    if (mode != currentLightingMode) {
+        currentLightingMode = mode;
+        needsFullFlush = true; // full repaint on lighting change
+        gaugeDirty = true;
+    }
 }
 
-// --- Flush helper ---
-static inline void flushFrameToDisplay(uint16_t* buf, bool blocking) {
-    tft.startWrite();
-    if (blocking) {
-        tft.pushImage(0, 0, SCREEN_W, SCREEN_H, buf);
-        dmaBusy = false;
-    }
-    else {
-        waitDMADone();
-        tft.pushImageDMA(0, 0, SCREEN_W, SCREEN_H, buf);
-        dmaBusy = true;
-    }
-    tft.endWrite();
-}
-
-// --- Double-buffered draw ---
-static void BatteryGauge_draw(bool force = false, bool blocking = false) {
+// --- Draw ---
+static void BatteryGauge_draw(bool force = false, bool blocking = false)
+{
     if (!force && !isMissionRunning()) return;
     const unsigned long now = millis();
-    int16_t u = angleU; if (u < -150) u = -150; else if (u > -30) u = -30;
-    int16_t e = angleE; if (e < 30) e = 30; else if (e > 150) e = 150;
 
-    const bool shouldDraw = force || gaugeDirty || (u != lastDrawnAngleU) || (e != lastDrawnAngleE);
-    if (!shouldDraw) return;
+    int16_t u = angleU; if (u < U_MIN) u = U_MIN; else if (u > U_MAX) u = U_MAX;
+    int16_t e = angleE; if (e < E_MIN) e = E_MIN; else if (e > E_MAX) e = E_MAX;
+
+    const bool stateChanged = gaugeDirty
+        || (u != lastDrawnAngleU)
+        || (e != lastDrawnAngleE)
+        || needsFullFlush;
+    if (!stateChanged) return;
     if (!force && (now - lastDrawTime < GAUGE_DRAW_MIN_INTERVAL_MS)) return;
 
     lastDrawTime = now;
-    lastDrawnAngleU = u; lastDrawnAngleE = e;
     gaugeDirty = false;
 
-    const uint16_t* bg = (currentLightingMode == 0) ? batBackground : batBackgroundNVG;
+#if DEBUG_PERFORMANCE
+    beginProfiling(PERF_TFT_BATTERY_DRAW);
+#endif
+
+    // Assets
+    const uint16_t* bg = (currentLightingMode == 0) ? bgCache[0] : bgCache[1];
     const uint16_t* needleImg = (currentLightingMode == 0) ? batNeedle : batNeedleNVG;
 
     if (lastNeedleMode != currentLightingMode) {
-        buildNeedle(needleU, needleImg);
-        buildNeedle(needleE, needleImg);
+        buildNeedle(needleU_spr, needleImg);
+        buildNeedle(needleE_spr, needleImg);
         lastNeedleMode = currentLightingMode;
     }
 
-    frameSpr.fillScreen(TFT_BLACK);
-    frameSpr.pushImage(0, 0, SCREEN_W, SCREEN_H, bg);
-    needleU.pushRotateZoom(&frameSpr, CENTER_X, CENTER_Y, (float)u, 1.0f, 1.0f, TRANSPARENT_KEY);
-    needleE.pushRotateZoom(&frameSpr, CENTER_X, CENTER_Y, (float)e, 1.0f, 1.0f, TRANSPARENT_KEY);
+    // Dirty rect: union of old/new for both needles
+    Rect dirty = needsFullFlush ? Rect{ 0,0,SCREEN_W,SCREEN_H } : Rect{};
+    if (!needsFullFlush) {
+        if (lastDrawnAngleU == INT16_MIN || lastDrawnAngleE == INT16_MIN) {
+            dirty = { 0,0,SCREEN_W,SCREEN_H };
+        }
+        else {
+            Rect uOld = rotatedAABB(CENTER_X, CENTER_Y, NEEDLE_W, NEEDLE_H, NEEDLE_PIVOT_X, NEEDLE_PIVOT_Y, (float)lastDrawnAngleU);
+            Rect uNew = rotatedAABB(CENTER_X, CENTER_Y, NEEDLE_W, NEEDLE_H, NEEDLE_PIVOT_X, NEEDLE_PIVOT_Y, (float)u);
+            Rect eOld = rotatedAABB(CENTER_X, CENTER_Y, NEEDLE_W, NEEDLE_H, NEEDLE_PIVOT_X, NEEDLE_PIVOT_Y, (float)lastDrawnAngleE);
+            Rect eNew = rotatedAABB(CENTER_X, CENTER_Y, NEEDLE_W, NEEDLE_H, NEEDLE_PIVOT_X, NEEDLE_PIVOT_Y, (float)e);
+            dirty = rectUnion(rectUnion(uOld, uNew), rectUnion(eOld, eNew));
+        }
+    }
 
-    uint16_t* buf = dmaFrame[dmaIdx ^ 1];
-    std::memcpy(buf, frameSpr.getBuffer(), FRAME_BYTES);
-    flushFrameToDisplay(buf, blocking);
-    dmaIdx ^= 1;
+    // Restore BG only in dirty
+    blitBGRectToFrame(bg, dirty.x, dirty.y, dirty.w, dirty.h);
+
+    // Compose needles
+    frameSpr.setClipRect(dirty.x, dirty.y, dirty.w, dirty.h);
+    needleU_spr.pushRotateZoom(&frameSpr, CENTER_X, CENTER_Y, (float)u, 1.0f, 1.0f, TRANSPARENT_KEY);
+    needleE_spr.pushRotateZoom(&frameSpr, CENTER_X, CENTER_Y, (float)e, 1.0f, 1.0f, TRANSPARENT_KEY);
+    frameSpr.clearClipRect();
+
+    // Flush
+    const uint16_t* buf = (const uint16_t*)frameSpr.getBuffer();
+    flushRectToDisplay(buf, dirty, blocking);
+
+#if DEBUG_PERFORMANCE
+    endProfiling(PERF_TFT_BATTERY_DRAW);
+#endif
+
+    lastDrawnAngleU = u;
+    lastDrawnAngleE = e;
+    needsFullFlush = false;
 }
 
 // --- Task ---
@@ -212,18 +355,29 @@ static void BatteryGauge_task(void*) {
 }
 
 // --- API ---
-void BatteryGauge_init() {
-#if defined(ARDUINO_ARCH_ESP32)
-    dmaFrame[0] = (uint16_t*)heap_caps_malloc(FRAME_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
-    dmaFrame[1] = (uint16_t*)heap_caps_malloc(FRAME_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
-#else
-    dmaFrame[0] = (uint16_t*)malloc(FRAME_BYTES);
-    dmaFrame[1] = (uint16_t*)malloc(FRAME_BYTES);
-#endif
-    if (!dmaFrame[0] || !dmaFrame[1]) {
-        debugPrintln("❌ PSRAM DMA framebuffer alloc failed!");
-        while (1) vTaskDelay(1000);
+void BatteryGauge_init()
+{
+    // DMA bounce (internal RAM)
+    dmaBounce[0] = (uint16_t*)heap_caps_aligned_alloc(32, STRIPE_BYTES, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
+    dmaBounce[1] = (uint16_t*)heap_caps_aligned_alloc(32, STRIPE_BYTES, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
+    if (!dmaBounce[0] || !dmaBounce[1]) {
+        debugPrintf("❌ dmaBounce alloc failed (%u bytes each)\n", (unsigned)STRIPE_BYTES);
+        while (1) vTaskDelay(pdMS_TO_TICKS(1000));
     }
+
+    // BG caches (PSRAM)
+    static constexpr size_t FRAME_PIXELS = size_t(SCREEN_W) * size_t(SCREEN_H);
+    static constexpr size_t FRAME_BYTES = FRAME_PIXELS * sizeof(uint16_t);
+    static_assert((FRAME_BYTES % 16u) == 0u, "FRAME_BYTES must be 16-byte aligned");
+
+    bgCache[0] = (uint16_t*)heap_caps_aligned_alloc(16, FRAME_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    bgCache[1] = (uint16_t*)heap_caps_aligned_alloc(16, FRAME_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!bgCache[0] || !bgCache[1]) {
+        debugPrintln("❌ bgCache alloc failed");
+        while (1) vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+    std::memcpy(bgCache[0], batBackground, FRAME_BYTES);
+    std::memcpy(bgCache[1], batBackgroundNVG, FRAME_BYTES);
 
     tft.init();
     tft.setColorDepth(COLOR_DEPTH_BATT);
@@ -231,6 +385,7 @@ void BatteryGauge_init() {
     tft.setSwapBytes(true);
     tft.fillScreen(TFT_BLACK);
 
+    // Compose sprite (PSRAM)
     frameSpr.setColorDepth(COLOR_DEPTH_BATT);
     frameSpr.setPsram(true);
     frameSpr.setSwapBytes(false);
@@ -239,27 +394,34 @@ void BatteryGauge_init() {
         while (1) vTaskDelay(1000);
     }
 
-    needleU.setColorDepth(COLOR_DEPTH_BATT);
-    needleU.createSprite(15, 88);
-    needleU.setPivot(NEEDLE_PIVOT_X, NEEDLE_PIVOT_Y);
-    buildNeedle(needleU, batNeedle);
+    // Needles
+    needleU_spr.setColorDepth(COLOR_DEPTH_BATT);
+    needleU_spr.createSprite(NEEDLE_W, NEEDLE_H);
+    needleU_spr.setPivot(NEEDLE_PIVOT_X, NEEDLE_PIVOT_Y);
+    buildNeedle(needleU_spr, batNeedle);
 
-    needleE.setColorDepth(COLOR_DEPTH_BATT);
-    needleE.createSprite(15, 88);
-    needleE.setPivot(NEEDLE_PIVOT_X, NEEDLE_PIVOT_Y);
-    buildNeedle(needleE, batNeedle);
+    needleE_spr.setColorDepth(COLOR_DEPTH_BATT);
+    needleE_spr.createSprite(NEEDLE_W, NEEDLE_H);
+    needleE_spr.setPivot(NEEDLE_PIVOT_X, NEEDLE_PIVOT_Y);
+    buildNeedle(needleE_spr, batNeedle);
 
+    // DCS-BIOS
     subscribeToLedChange("VOLT_U", onBatVoltUChange);
     subscribeToLedChange("VOLT_E", onBatVoltEChange);
     subscribeToLedChange(BACKLIGHT_LABEL, onDimmerChange);
 
+    // First paint
+    needsFullFlush = true; gaugeDirty = true;
+    BatteryGauge_draw(true, true);
+
+    // Optional BIT
     BatteryGauge_bitTest();
 
 #if RUN_GAUGE_AS_TASK
     xTaskCreatePinnedToCore(BatteryGauge_task, "BatteryGaugeTask", 4096, nullptr, 2, &tftTaskHandle, BATT_CPU_CORE);
 #endif
 
-    debugPrintln("✅ Battery Gauge (LovyanGFX, PSRAM double-buffered, DMA-safe) initialized");
+    debugPrintln("✅ Battery Gauge (dirty-rect DMA) initialized");
 }
 
 void BatteryGauge_loop() {
@@ -268,39 +430,38 @@ void BatteryGauge_loop() {
 #endif
 }
 
-void BatteryGauge_notifyMissionStart() { gaugeDirty = true; }
+void BatteryGauge_notifyMissionStart() { needsFullFlush = true; gaugeDirty = true; }
 
-// Visual self-test; use blocking flush to avoid DMA overlap during rapid sweeps
+// Visual self-test; blocking flush
 void BatteryGauge_bitTest() {
     int16_t origU = angleU, origE = angleE;
-    const int STEP = 10, DELAY = 10;
+    const int STEP = 1, DELAY = 2;
     for (int i = 0; i <= 120; i += STEP) {
-        angleU = map(i, 0, 120, -150, -30);
-        angleE = map(i, 0, 120, 150, 30);
+        angleU = map(i, 0, 120, U_MIN, U_MAX);
+        angleE = map(i, 0, 120, E_MAX, E_MIN);
         gaugeDirty = true; BatteryGauge_draw(true, true);
         vTaskDelay(pdMS_TO_TICKS(DELAY));
     }
     for (int i = 120; i >= 0; i -= STEP) {
-        angleU = map(i, 0, 120, -150, -30);
-        angleE = map(i, 0, 120, 150, 30);
+        angleU = map(i, 0, 120, U_MIN, U_MAX);
+        angleE = map(i, 0, 120, E_MAX, E_MIN);
         gaugeDirty = true; BatteryGauge_draw(true, true);
         vTaskDelay(pdMS_TO_TICKS(DELAY));
     }
     angleU = origU; angleE = origE;
-    gaugeDirty = true; BatteryGauge_draw(true, true);
+    needsFullFlush = true; gaugeDirty = true; BatteryGauge_draw(true, true);
 }
 
 void BatteryGauge_deinit() {
     waitDMADone();
-    needleU.deleteSprite();
-    needleE.deleteSprite();
-    frameSpr.deleteSprite();
     if (tftTaskHandle) { vTaskDelete(tftTaskHandle); tftTaskHandle = nullptr; }
-#if defined(ARDUINO_ARCH_ESP32)
-    if (dmaFrame[0]) { heap_caps_free(dmaFrame[0]); dmaFrame[0] = nullptr; }
-    if (dmaFrame[1]) { heap_caps_free(dmaFrame[1]); dmaFrame[1] = nullptr; }
-#else
-    if (dmaFrame[0]) { free(dmaFrame[0]); dmaFrame[0] = nullptr; }
-    if (dmaFrame[1]) { free(dmaFrame[1]); dmaFrame[1] = nullptr; }
-#endif
+
+    needleU_spr.deleteSprite();
+    needleE_spr.deleteSprite();
+    frameSpr.deleteSprite();
+
+    for (int i = 0; i < 2; ++i) {
+        if (dmaBounce[i]) { heap_caps_free(dmaBounce[i]); dmaBounce[i] = nullptr; }
+        if (bgCache[i]) { heap_caps_free(bgCache[i]);   bgCache[i] = nullptr; }
+    }
 }

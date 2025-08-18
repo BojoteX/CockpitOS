@@ -6,6 +6,7 @@
 #
 # To update the list of available panels, just re-run this script.
 
+Custom
 HYD 1 and HYD Pressure Indicator
 Radar Altimeter
 Interior Lights Panel

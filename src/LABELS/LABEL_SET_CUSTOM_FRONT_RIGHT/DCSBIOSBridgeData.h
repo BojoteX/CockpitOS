@@ -190,6 +190,8 @@ static const SelectorEntry SelectorMap[] = {
     { "WING_FOLD_ROTATE_FOLD","WING_FOLD_ROTATE",2,"selector",4,"FOLD" },
     { "WING_FOLD_ROTATE_HOLD","WING_FOLD_ROTATE",1,"selector",4,"HOLD" },
     { "WING_FOLD_ROTATE_UNFOLD","WING_FOLD_ROTATE",0,"selector",4,"UNFOLD" },
+    { "RADALT_HEIGHT_CUSTOM_POS0","RADALT_HEIGHT_CUSTOM",0,"momentary",0,"POS0" },
+    { "RADALT_HEIGHT_CUSTOM_POS1","RADALT_HEIGHT_CUSTOM",1,"momentary",0,"POS1" },
 };
 static const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);
 
@@ -203,6 +205,7 @@ static CommandHistoryEntry commandHistory[] = {
     { "HOOK_LEVER", 0, 0, true, 5, 0,   0, false, {0}, {0}, 0 },
     { "INST_PNL_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
     { "LIGHTS_TEST_SW", 0, 0, true, 3, 0,   0, false, {0}, {0}, 0 },
+    { "RADALT_HEIGHT_CUSTOM", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
     { "RADALT_TEST_SW", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
     { "WARN_CAUTION_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
     { "WING_FOLD_PULL", 0, 0, true, 6, 0,   0, false, {0}, {0}, 0 },

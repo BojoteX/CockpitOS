@@ -1,5 +1,7 @@
-// TFT_Gauges_CabPress.cpp - CockpitOS Cabin Pressure Gauge (LovyanGFX, ST77916/61 @ 360×360) - Double-buffered PSRAM, DMA-safe
+// TFT_Gauges_CabPress.cpp — CockpitOS Cabin Pressure Gauge (LovyanGFX, ST77916/61 @ 360×360)
+// Dirty-rect compose + region DMA flush (PSRAM sprites, DMA-safe)
 
+#define MAX_MEMORY_TFT 16
 #define CABIN_PRESSURE_GAUGE_DRAW_MIN_INTERVAL_MS 13
 #define RUN_CABIN_PRESSURE_GAUGE_AS_TASK 1
 #define BACKLIGHT_LABEL "INST_PNL_DIMMER"
@@ -11,32 +13,35 @@
 #include "../DCSBIOSBridge.h"
 #include <LovyanGFX.hpp>
 #include <cstring>
+#include <cmath>
+#include <algorithm>
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include <esp_heap_caps.h>
 #endif
 
-// Select core (For this gauge, we always use core 0 for all devices)
+// Select core
 #if defined(ARDUINO_LOLIN_S3_MINI)
 #define CABPRESS_CPU_CORE 0
-#else 
+#else
 #define CABPRESS_CPU_CORE 0
 #endif
 
-// --- Pins ---
+// --- Pins --- (Update to work with backpanel)
 #if defined(ARDUINO_LOLIN_S3_MINI)
-#define CABIN_PRESSURE_MOSI_PIN 11  // SDA (Yellow)
-#define CABIN_PRESSURE_SCLK_PIN 12  // SCL (Orange)
-#define CABIN_PRESSURE_CS_PIN   10  // Chip Select (Blue)
-#define CABIN_PRESSURE_DC_PIN   13  // Data/Command (Green)
-#define CABIN_PRESSURE_RST_PIN  -1  // Reset (White)
-#define CABIN_PRESSURE_MISO_PIN -1  // Unused
+#define CABIN_PRESSURE_MOSI_PIN 16
+#define CABIN_PRESSURE_SCLK_PIN 17
+#define CABIN_PRESSURE_CS_PIN   14
+#define CABIN_PRESSURE_DC_PIN    9
+#define CABIN_PRESSURE_RST_PIN  -1
+#define CABIN_PRESSURE_MISO_PIN -1
 #else
-#define CABIN_PRESSURE_MOSI_PIN   8
-#define CABIN_PRESSURE_SCLK_PIN   9
-#define CABIN_PRESSURE_DC_PIN    14
-#define CABIN_PRESSURE_RST_PIN   -1
-#define CABIN_PRESSURE_MISO_PIN  -1
+#define CABIN_PRESSURE_MOSI_PIN 16
+#define CABIN_PRESSURE_SCLK_PIN 17
+#define CABIN_PRESSURE_CS_PIN   14
+#define CABIN_PRESSURE_DC_PIN   13
+#define CABIN_PRESSURE_RST_PIN  -1
+#define CABIN_PRESSURE_MISO_PIN -1
 #endif
 
 // --- Assets (360x360 bg, 23x238 needle) ---
@@ -46,13 +51,29 @@
 #include "Assets/CabinPressure/cabinPressNeedleNVG.h"
 
 // --- Misc ---
-static constexpr bool shared_bus = true;
-static constexpr bool use_lock = true;
+static constexpr bool     shared_bus = false;
+static constexpr bool     use_lock = false;
 static constexpr uint16_t TRANSPARENT_KEY = 0x2001;
 static constexpr uint16_t NVG_THRESHOLD = 6553;
-static constexpr int16_t SCREEN_W = 360, SCREEN_H = 360;
-static constexpr int16_t CENTER_X = 180, CENTER_Y = 180;
-static constexpr int16_t NEEDLE_PIVOT_X = 12, NEEDLE_PIVOT_Y = 165;
+
+static constexpr int16_t  SCREEN_W = 360, SCREEN_H = 360;
+static constexpr int16_t  CENTER_X = 180, CENTER_Y = 180;
+static constexpr int16_t  NEEDLE_W = 23, NEEDLE_H = 238;
+static constexpr int16_t  NEEDLE_PIVOT_X = 12, NEEDLE_PIVOT_Y = 165;
+
+// Angle range (units)
+static constexpr int16_t ANG_MIN = -181;
+static constexpr int16_t ANG_MAX = 125;
+
+// Bounce stripes (internal RAM, DMA-capable)
+static constexpr int    STRIPE_H = MAX_MEMORY_TFT;
+static constexpr size_t STRIPE_BYTES = size_t(SCREEN_W) * STRIPE_H * sizeof(uint16_t);
+
+static_assert(SCREEN_W > 0 && SCREEN_H > 0, "bad dims");
+static_assert(STRIPE_H > 0 && STRIPE_H <= SCREEN_H, "bad STRIPE_H");
+
+// add near other state vars
+static volatile bool needsFullFlush = true;
 
 // --- Panel binding ---
 class LGFX_CabPress final : public lgfx::LGFX_Device {
@@ -101,108 +122,218 @@ public:
 // --- State ---
 static LGFX_CabPress tft;
 
-// Compose target (once; PSRAM)
+// Compose target (PSRAM)
 static lgfx::LGFX_Sprite frameSpr(&tft);
 static lgfx::LGFX_Sprite needleSpr(&tft);
 
+// Background caches (PSRAM)
+static uint16_t* bgCache[2] = { nullptr, nullptr }; // [0]=day, [1]=NVG
+
+// DMA bounce buffers (internal RAM)
+static uint16_t* dmaBounce[2] = { nullptr, nullptr };
+
 // Live values
-static volatile int16_t angleU = -181;
+static volatile int16_t angleU = ANG_MIN;
 static volatile int16_t lastDrawnAngleU = INT16_MIN;
 static volatile bool    gaugeDirty = false;
 static volatile uint8_t currentLightingMode = 0; // 0=Day, 2=NVG
-
 static uint8_t          lastNeedleMode = 0xFF;
+
 static unsigned long    lastDrawTime = 0;
 static TaskHandle_t     tftTaskHandle = nullptr;
 
-// --- DMA-safe double buffer ---
-static constexpr size_t FRAME_PIXELS = size_t(SCREEN_W) * size_t(SCREEN_H);
-static constexpr size_t FRAME_BYTES = FRAME_PIXELS * sizeof(uint16_t);
-
-static uint16_t* dmaFrame[2] = { nullptr, nullptr };
-static uint8_t   dmaIdx = 0;
-static bool      dmaBusy = false;
-
+// DMA fence
+static bool dmaBusy = false;
 static inline void waitDMADone() {
-    if (dmaBusy) {
-        tft.waitDMA();
-        dmaBusy = false;
+    if (dmaBusy) { tft.waitDMA(); dmaBusy = false; }
+}
+
+// --- Dirty-rect utilities ---
+struct Rect { int16_t x = 0, y = 0, w = 0, h = 0; };
+static inline bool rectEmpty(const Rect& r) { return r.w <= 0 || r.h <= 0; }
+static inline Rect rectClamp(const Rect& r) {
+    int16_t x = r.x, y = r.y, w = r.w, h = r.h;
+    if (x < 0) { w += x; x = 0; } if (y < 0) { h += y; y = 0; }
+    if (x + w > SCREEN_W) w = SCREEN_W - x;
+    if (y + h > SCREEN_H) h = SCREEN_H - y;
+    if (w < 0) w = 0; if (h < 0) h = 0;
+    return { x,y,w,h };
+}
+static inline Rect rectUnion(const Rect& a, const Rect& b) {
+    if (rectEmpty(a)) return b;
+    if (rectEmpty(b)) return a;
+    int16_t x1 = std::min(a.x, b.x), y1 = std::min(a.y, b.y);
+    int16_t x2 = std::max<int16_t>(a.x + a.w, b.x + b.w);
+    int16_t y2 = std::max<int16_t>(a.y + a.h, b.y + b.h);
+    return rectClamp({ x1,y1,(int16_t)(x2 - x1),(int16_t)(y2 - y1) });
+}
+static inline Rect rectPad(const Rect& r, int16_t px) {
+    return rectClamp({ (int16_t)(r.x - px),(int16_t)(r.y - px),(int16_t)(r.w + 2 * px),(int16_t)(r.h + 2 * px) });
+}
+// AABB for rotated needle
+static Rect rotatedAABB(int cx, int cy, int w, int h, int px, int py, float deg) {
+    const float rad = deg * (float)M_PI / 180.0f;
+    float s = sinf(rad), c = cosf(rad);
+    const float xs[4] = { -px, (float)w - px, (float)w - px, -px };
+    const float ys[4] = { -py, -py, (float)h - py, (float)h - py };
+    float minx = 1e9f, maxx = -1e9f, miny = 1e9f, maxy = -1e9f;
+    for (int i = 0; i < 4; ++i) {
+        float xr = xs[i] * c - ys[i] * s;
+        float yr = xs[i] * s + ys[i] * c;
+        float X = (float)cx + xr;
+        float Y = (float)cy + yr;
+        if (X < minx) minx = X; if (X > maxx) maxx = X;
+        if (Y < miny) miny = Y; if (Y > maxy) maxy = Y;
     }
+    Rect r; r.x = (int16_t)floorf(minx); r.y = (int16_t)floorf(miny);
+    r.w = (int16_t)ceilf(maxx - minx); r.h = (int16_t)ceilf(maxy - miny);
+    return rectClamp(rectPad(r, 2));
+}
+// Copy BG subsection into frame
+static inline void blitBGRectToFrame(const uint16_t* bg, int x, int y, int w, int h) {
+    if (w <= 0 || h <= 0) return;
+    uint16_t* dst = (uint16_t*)frameSpr.getBuffer();
+    const int pitch = SCREEN_W;
+    for (int row = 0; row < h; ++row) {
+        std::memcpy(&dst[(y + row) * pitch + x],
+            &bg[(y + row) * pitch + x],
+            size_t(w) * sizeof(uint16_t));
+    }
+}
+
+// ----------------- Region DMA flush -----------------
+static inline void flushRectToDisplay(const uint16_t* src, const Rect& rr, bool blocking)
+{
+    Rect r = rectClamp(rr);
+    if (rectEmpty(r)) return;
+
+    waitDMADone();
+
+    const int pitch = SCREEN_W;
+    const int lines_per = STRIPE_H;
+    int y = r.y;
+
+    tft.startWrite();
+
+    // Prime first chunk
+    int h0 = (lines_per <= r.h) ? lines_per : r.h;
+    for (int row = 0; row < h0; ++row) {
+        std::memcpy(dmaBounce[0] + row * r.w,
+            src + (y + row) * pitch + r.x,
+            size_t(r.w) * sizeof(uint16_t));
+    }
+    tft.setAddrWindow(r.x, y, r.w, h0);
+    tft.pushPixelsDMA(dmaBounce[0], uint32_t(r.w) * h0);
+    if (!blocking) dmaBusy = true;
+
+    int bb = 1;
+    for (y += h0; y < r.y + r.h; y += lines_per, bb ^= 1) {
+        const int h = (y + lines_per <= r.y + r.h) ? lines_per : (r.y + r.h - y);
+
+        // overlap pack with previous DMA
+        for (int row = 0; row < h; ++row) {
+            std::memcpy(dmaBounce[bb] + row * r.w,
+                src + (y + row) * pitch + r.x,
+                size_t(r.w) * sizeof(uint16_t));
+        }
+
+        tft.waitDMA();
+        tft.setAddrWindow(r.x, y, r.w, h);
+        tft.pushPixelsDMA(dmaBounce[bb], uint32_t(r.w) * h);
+
+        if (blocking) { tft.waitDMA(); }
+    }
+
+    if (blocking) { tft.waitDMA(); dmaBusy = false; }
+    tft.endWrite();
+}
+
+static inline void flushFrameToDisplay(const uint16_t* src, bool blocking) {
+    flushRectToDisplay(src, { 0,0,SCREEN_W,SCREEN_H }, blocking);
 }
 
 // --- Sprite builder ---
 static void buildNeedle(lgfx::LGFX_Sprite& spr, const uint16_t* img) {
     spr.fillScreen(TRANSPARENT_KEY);
     spr.setSwapBytes(true);
-    spr.pushImage(0, 0, 23, 238, img);
+    spr.pushImage(0, 0, NEEDLE_W, NEEDLE_H, img);
 }
 
 // --- DCS-BIOS callbacks ---
 static void onPressureAltChange(const char*, uint16_t value, uint16_t) {
-    int16_t a = map(value, 0, 65535, -181, 125);
+    int16_t a = map(value, 0, 65535, ANG_MIN, ANG_MAX);
     if (a != angleU) { angleU = a; gaugeDirty = true; }
 }
+
 static void onDimmerChange(const char*, uint16_t v, uint16_t) {
     uint8_t mode = (v > NVG_THRESHOLD) ? 2u : 0u;
-    if (mode != currentLightingMode) { currentLightingMode = mode; gaugeDirty = true; }
+    if (mode != currentLightingMode) {
+        currentLightingMode = mode;
+        needsFullFlush = true;   // force full repaint like Radar Alt
+        gaugeDirty = true;
+    }
 }
 
-// --- Flush helper (blocking or DMA) ---
-static inline void flushFrameToDisplay(uint16_t* buf, bool blocking) {
-    tft.startWrite();
-    if (blocking) {
-        tft.pushImage(0, 0, SCREEN_W, SCREEN_H, buf);
-        dmaBusy = false;
-    }
-    else {
-        waitDMADone();
-        tft.pushImageDMA(0, 0, SCREEN_W, SCREEN_H, buf);
-        dmaBusy = true;
-    }
-    tft.endWrite();
-}
-
-// --- Double-buffered draw ---
-static void CabinPressureGauge_draw(bool force = false, bool blocking = false) {
+// --- Draw ---
+static void CabinPressureGauge_draw(bool force = false, bool blocking = false)
+{
     if (!force && !isMissionRunning()) return;
     const unsigned long now = millis();
-    int16_t u = angleU;
-    if (u < -181) u = -181; else if (u > 125) u = 125;
 
-    const bool shouldDraw = force || gaugeDirty || (u != lastDrawnAngleU);
-    if (!shouldDraw) return;
+    int16_t u = angleU; if (u < ANG_MIN) u = ANG_MIN; else if (u > ANG_MAX) u = ANG_MAX;
+
+    const bool stateChanged = gaugeDirty || (u != lastDrawnAngleU);
+    if (!stateChanged) return;
     if (!force && (now - lastDrawTime < CABIN_PRESSURE_GAUGE_DRAW_MIN_INTERVAL_MS)) return;
 
     lastDrawTime = now;
-    lastDrawnAngleU = u;
     gaugeDirty = false;
-
-    const uint16_t* bg = (currentLightingMode == 0) ? cabinPressBackground : cabinPressBackgroundNVG;
-    const uint16_t* needleImg = (currentLightingMode == 0) ? cabinPressNeedle : cabinPressNeedleNVG;
 
 #if DEBUG_PERFORMANCE
     beginProfiling(PERF_TFT_CABIN_PRESSURE_DRAW);
 #endif
 
+    // Select assets
+    const uint16_t* bg = bgCache[(currentLightingMode == 0) ? 0u : 1u];
+    const uint16_t* needleImg = (currentLightingMode == 0) ? cabinPressNeedle : cabinPressNeedleNVG;
+
+    // Rebuild needle sprite on mode change
     if (lastNeedleMode != currentLightingMode) {
         buildNeedle(needleSpr, needleImg);
         lastNeedleMode = currentLightingMode;
     }
 
-    // Compose full frame into frameSpr
-    frameSpr.fillScreen(TFT_BLACK);
-    frameSpr.pushImage(0, 0, SCREEN_W, SCREEN_H, bg);
-    needleSpr.pushRotateZoom(&frameSpr, CENTER_X, CENTER_Y, (float)u, 1.0f, 1.0f, TRANSPARENT_KEY);
+    // Dirty rectangle = union of old/new needle AABBs
+    Rect dirty = needsFullFlush ? Rect{ 0,0,SCREEN_W,SCREEN_H } : Rect{};
+    if (!needsFullFlush) {
+        if (lastDrawnAngleU == INT16_MIN) {
+            dirty = { 0,0,SCREEN_W,SCREEN_H };
+        }
+        else {
+            Rect nOld = rotatedAABB(CENTER_X, CENTER_Y, NEEDLE_W, NEEDLE_H, NEEDLE_PIVOT_X, NEEDLE_PIVOT_Y, (float)lastDrawnAngleU);
+            Rect nNew = rotatedAABB(CENTER_X, CENTER_Y, NEEDLE_W, NEEDLE_H, NEEDLE_PIVOT_X, NEEDLE_PIVOT_Y, (float)u);
+            dirty = rectUnion(nOld, nNew);
+        }
+    }
 
-    // Copy to back buffer, then flush
-    uint16_t* buf = dmaFrame[dmaIdx ^ 1];
-    std::memcpy(buf, frameSpr.getBuffer(), FRAME_BYTES);
-    flushFrameToDisplay(buf, blocking);
-    dmaIdx ^= 1;
+    // Restore BG only within dirty rect
+    blitBGRectToFrame(bg, dirty.x, dirty.y, dirty.w, dirty.h);
+
+    // Clip and compose
+    frameSpr.setClipRect(dirty.x, dirty.y, dirty.w, dirty.h);
+    needleSpr.pushRotateZoom(&frameSpr, CENTER_X, CENTER_Y, (float)u, 1.0f, 1.0f, TRANSPARENT_KEY);
+    frameSpr.clearClipRect();
+
+    // Flush region
+    const uint16_t* buf = (const uint16_t*)frameSpr.getBuffer();
+    flushRectToDisplay(buf, dirty, blocking);
 
 #if DEBUG_PERFORMANCE
     endProfiling(PERF_TFT_CABIN_PRESSURE_DRAW);
 #endif
+
+    needsFullFlush = false;
+    lastDrawnAngleU = u;
 }
 
 // --- Task ---
@@ -214,22 +345,35 @@ static void CabinPressureGauge_task(void*) {
 }
 
 // --- API ---
-void CabinPressureGauge_init() {
+void CabinPressureGauge_init()
+{
     if (!initPSRAM()) {
         debugPrintln("❌ No PSRAM detected! Cabin Pressure Gauge disabled.");
         while (1) vTaskDelay(1000);
     }
-#if defined(ARDUINO_ARCH_ESP32)
-    dmaFrame[0] = (uint16_t*)heap_caps_malloc(FRAME_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
-    dmaFrame[1] = (uint16_t*)heap_caps_malloc(FRAME_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
-#else
-    dmaFrame[0] = (uint16_t*)malloc(FRAME_BYTES);
-    dmaFrame[1] = (uint16_t*)malloc(FRAME_BYTES);
-#endif
-    if (!dmaFrame[0] || !dmaFrame[1]) {
-        debugPrintln("❌ PSRAM DMA framebuffer alloc failed!");
-        while (1) vTaskDelay(1000);
+
+    // DMA bounce buffers (internal RAM)
+    dmaBounce[0] = (uint16_t*)heap_caps_aligned_alloc(32, STRIPE_BYTES, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
+    dmaBounce[1] = (uint16_t*)heap_caps_aligned_alloc(32, STRIPE_BYTES, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
+    if (!dmaBounce[0] || !dmaBounce[1]) {
+        debugPrintf("❌ dmaBounce alloc failed (%u bytes each)\n", (unsigned)STRIPE_BYTES);
+        while (1) vTaskDelay(pdMS_TO_TICKS(1000));
     }
+
+    // Background caches (PSRAM)
+    static constexpr size_t FRAME_PIXELS = size_t(SCREEN_W) * size_t(SCREEN_H);
+    static constexpr size_t FRAME_BYTES = FRAME_PIXELS * sizeof(uint16_t);
+    static_assert((FRAME_BYTES % 16u) == 0u, "FRAME_BYTES must be 16-byte aligned");
+
+    bgCache[0] = (uint16_t*)heap_caps_aligned_alloc(16, FRAME_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    bgCache[1] = (uint16_t*)heap_caps_aligned_alloc(16, FRAME_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!bgCache[0] || !bgCache[1]) {
+        debugPrintln("❌ bgCache alloc failed");
+        while (1) vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+    // populate once from flash
+    std::memcpy(bgCache[0], cabinPressBackground, FRAME_BYTES);
+    std::memcpy(bgCache[1], cabinPressBackgroundNVG, FRAME_BYTES);
 
     tft.init();
     tft.setColorDepth(COLOR_DEPTH_CABIN_PRESS);
@@ -237,6 +381,7 @@ void CabinPressureGauge_init() {
     tft.setSwapBytes(true);
     tft.fillScreen(TFT_BLACK);
 
+    // Compose sprite (PSRAM)
     frameSpr.setColorDepth(COLOR_DEPTH_CABIN_PRESS);
     frameSpr.setPsram(true);
     frameSpr.setSwapBytes(false);
@@ -245,21 +390,29 @@ void CabinPressureGauge_init() {
         while (1) vTaskDelay(1000);
     }
 
+    // Needle sprite
     needleSpr.setColorDepth(COLOR_DEPTH_CABIN_PRESS);
-    needleSpr.createSprite(23, 238);
+    needleSpr.createSprite(NEEDLE_W, NEEDLE_H);
     needleSpr.setPivot(NEEDLE_PIVOT_X, NEEDLE_PIVOT_Y);
     buildNeedle(needleSpr, cabinPressNeedle);
 
+    // DCS-BIOS
     subscribeToLedChange("PRESSURE_ALT", onPressureAltChange);
     subscribeToLedChange(BACKLIGHT_LABEL, onDimmerChange);
 
+    // First paint (full)
+    lastDrawnAngleU = INT16_MIN;
+    gaugeDirty = true;
+    CabinPressureGauge_draw(true, true);
+
+    // Optional BIT
     CabinPressureGauge_bitTest();
 
 #if RUN_CABIN_PRESSURE_GAUGE_AS_TASK
     xTaskCreatePinnedToCore(CabinPressureGauge_task, "CabinPressureGaugeTask", 4096, nullptr, 2, &tftTaskHandle, CABPRESS_CPU_CORE);
 #endif
 
-    debugPrintln("✅ Cabin Pressure Gauge (LovyanGFX, PSRAM double-buffered, DMA-safe) initialized");
+    debugPrintln("✅ Cabin Pressure Gauge (dirty-rect DMA) initialized");
 }
 
 void CabinPressureGauge_loop() {
@@ -268,20 +421,20 @@ void CabinPressureGauge_loop() {
 #endif
 }
 
-void CabinPressureGauge_notifyMissionStart() { gaugeDirty = true; }
+void CabinPressureGauge_notifyMissionStart() { needsFullFlush = true; gaugeDirty = true; }
 
-// Visual self-test; use blocking flush to avoid DMA overlap during rapid sweeps
+// Visual self-test; blocking flush to avoid overlap during rapid sweep
 void CabinPressureGauge_bitTest() {
     int16_t originalU = angleU;
-    const int STEP = 25, DELAY = 2;
+    const int STEP = 10, DELAY = 2;
 
     for (int i = 0; i <= 306; i += STEP) {
-        angleU = map(i, 0, 306, -181, 125);
+        angleU = map(i, 0, 306, ANG_MIN, ANG_MAX);
         gaugeDirty = true; CabinPressureGauge_draw(true, true);
         vTaskDelay(pdMS_TO_TICKS(DELAY));
     }
     for (int i = 306; i >= 0; i -= STEP) {
-        angleU = map(i, 0, 306, -181, 125);
+        angleU = map(i, 0, 306, ANG_MIN, ANG_MAX);
         gaugeDirty = true; CabinPressureGauge_draw(true, true);
         vTaskDelay(pdMS_TO_TICKS(DELAY));
     }
@@ -291,14 +444,13 @@ void CabinPressureGauge_bitTest() {
 
 void CabinPressureGauge_deinit() {
     waitDMADone();
+    if (tftTaskHandle) { vTaskDelete(tftTaskHandle); tftTaskHandle = nullptr; }
+
     needleSpr.deleteSprite();
     frameSpr.deleteSprite();
-    if (tftTaskHandle) { vTaskDelete(tftTaskHandle); tftTaskHandle = nullptr; }
-#if defined(ARDUINO_ARCH_ESP32)
-    if (dmaFrame[0]) { heap_caps_free(dmaFrame[0]); dmaFrame[0] = nullptr; }
-    if (dmaFrame[1]) { heap_caps_free(dmaFrame[1]); dmaFrame[1] = nullptr; }
-#else
-    if (dmaFrame[0]) { free(dmaFrame[0]); dmaFrame[0] = nullptr; }
-    if (dmaFrame[1]) { free(dmaFrame[1]); dmaFrame[1] = nullptr; }
-#endif
+
+    for (int i = 0; i < 2; ++i) {
+        if (dmaBounce[i]) { heap_caps_free(dmaBounce[i]); dmaBounce[i] = nullptr; }
+        if (bgCache[i]) { heap_caps_free(bgCache[i]);   bgCache[i] = nullptr; }
+    }
 }

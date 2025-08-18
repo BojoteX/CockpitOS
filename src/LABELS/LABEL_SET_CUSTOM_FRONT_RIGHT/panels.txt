@@ -78,3 +78,4 @@ Metadata
 Position
 Speed
 Time
+Custom

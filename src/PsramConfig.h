@@ -1,3 +1,5 @@
+// PsramConfig.h - PSRAM Config (Already included in Globals.h)
+
 #pragma once
 
 // PSRAM detection & malloc/free redirection header

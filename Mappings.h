@@ -119,7 +119,12 @@
    #define RWR_DISPLAY_LT_PIN                         9
    #define RWR_BIT_LT_PIN                             5
    #define PRESSURE_ALT_GAUGE_PIN                    18
-   #define INST_BACKLIGHT_PIN_ALR67                  14     
+   #define INST_BACKLIGHT_PIN_ALR67                  14  
+
+   // Radar Altimeter GPIOs (S3)
+   #define RA_TEST_GPIO                               3
+   #define RA_DEC_HEIGHT_GPIO                         2
+   #define RA_INC_HEIGHT_GPIO                         5    
 
 #else // Below are PINs used with the LOLIN S2 Mini board. Create elif branch if adding different boards
 
@@ -238,6 +243,11 @@
    #define RWR_BIT_LT_PIN                             4
    #define PRESSURE_ALT_GAUGE_PIN                    18
    #define INST_BACKLIGHT_PIN_ALR67                  14   
+
+   // Radar Altimeter GPIOs (S2)
+   #define RA_TEST_GPIO                               2
+   #define RA_DEC_HEIGHT_GPIO                         3
+   #define RA_INC_HEIGHT_GPIO                         4
 
 #endif
 
@@ -390,14 +400,6 @@ const char* getPanelName(uint8_t addr);  // Declaration
 
 #elif defined(LABEL_SET_BATTERY_GAUGE)
 
-#if defined(ARDUINO_LOLIN_S3_MINI)
-   #define SDA_PIN 35
-   #define SCL_PIN 36
-#else
-   #define SDA_PIN 33
-   #define SCL_PIN 35
-#endif
-
    #define LABEL_SET "Battery Gauge"
    #define HAS_HID_MODE_SELECTOR 0
    #define MODE_DEFAULT_IS_HID 0
@@ -409,14 +411,6 @@ const char* getPanelName(uint8_t addr);  // Declaration
    #include "src/LABELS/LABEL_SET_BATTERY_GAUGE/DisplayMapping.h"
 
 #elif defined(LABEL_SET_BRAKE_PRESSURE_GAUGE)
-
-#if defined(ARDUINO_LOLIN_S3_MINI)
-   #define SDA_PIN 35
-   #define SCL_PIN 36
-#else
-   #define SDA_PIN 33
-   #define SCL_PIN 35
-#endif
 
    #define LABEL_SET "Brake Pressure Gauge"
    #define HAS_HID_MODE_SELECTOR 0
@@ -430,14 +424,6 @@ const char* getPanelName(uint8_t addr);  // Declaration
 
 #elif defined(LABEL_SET_HYD_PRESSURE_GAUGE)
 
-#if defined(ARDUINO_LOLIN_S3_MINI)
-   #define SDA_PIN 35
-   #define SCL_PIN 36
-#else
-   #define SDA_PIN 33
-   #define SCL_PIN 35
-#endif
-
    #define LABEL_SET "Hyd Pressure Gauge"
    #define HAS_HID_MODE_SELECTOR 0
    #define MODE_DEFAULT_IS_HID 0
@@ -449,14 +435,6 @@ const char* getPanelName(uint8_t addr);  // Declaration
    #include "src/LABELS/LABEL_SET_HYD_PRESSURE_GAUGE/DisplayMapping.h"
 
 #elif defined(LABEL_SET_CABIN_PRESSURE_GAUGE)
-
-#if defined(ARDUINO_LOLIN_S3_MINI)
-   #define SDA_PIN 35
-   #define SCL_PIN 36
-#else
-   #define SDA_PIN 33
-   #define SCL_PIN 35
-#endif
 
    #define LABEL_SET "Cabin Pressure Gauge"
    #define HAS_HID_MODE_SELECTOR 0
@@ -470,14 +448,6 @@ const char* getPanelName(uint8_t addr);  // Declaration
 
 #elif defined(LABEL_SET_RADAR_ALT_GAUGE)
 
-#if defined(ARDUINO_LOLIN_S3_MINI)
-   #define SDA_PIN 35
-   #define SCL_PIN 36
-#else
-   #define SDA_PIN 33
-   #define SCL_PIN 35
-#endif
-
    #define LABEL_SET "Radar Altimeter Gauge"
    #define HAS_HID_MODE_SELECTOR 0
    #define MODE_DEFAULT_IS_HID 0
@@ -489,14 +459,6 @@ const char* getPanelName(uint8_t addr);  // Declaration
    #include "src/LABELS/LABEL_SET_RADAR_ALT_GAUGE/DisplayMapping.h"
 
 #elif defined(LABEL_SET_CUSTOM_FRONT_RIGHT)
-
-#if defined(ARDUINO_LOLIN_S3_MINI)
-   #define SDA_PIN 35
-   #define SCL_PIN 36
-#else
-   #define SDA_PIN 33
-   #define SCL_PIN 35
-#endif
 
    #define LABEL_SET "Custom Front Right Console"
    #define HAS_HID_MODE_SELECTOR 0
