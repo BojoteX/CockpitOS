@@ -25,7 +25,7 @@
 // Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. Pure USB or WIFI. This methods COMPLETELY bypasses Serial. If both are set to 0, then standard CDC / Serial is used. Both CAN NOT be set to 1 at the same time
 #define USE_DCSBIOS_WIFI                          0   // Completely bypasses socat and uses WiFi to connect to DCS. 
 // DO NOT set both to 1. Only ONE can be active -or- both set to 0 to operate in legacy CDC mode (Serial+socat)
-#define USE_DCSBIOS_USB                           1   // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work.
+#define USE_DCSBIOS_USB                           0   // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work.
 
 // Wi-Fi network credentials (used for WiFi remote Debug Console and DCSBIOS WiFi mode if selected)
 #define WIFI_SSID                                 "MyHotspotNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
@@ -77,7 +77,7 @@
 #define HID_KEEP_ALIVE_MS                       (1000 / HID_REPORT_RATE_HZ) // send HID command every x ms (when using keep-alives)
 
 // Serial Debug Ring Buffer
-#define SERIAL_DEBUG_USE_RINGBUFFER               1 // Should be use a ring buffer for Serial Debug messages? not really necessary
+#define SERIAL_DEBUG_USE_RINGBUFFER               0 // Should be use a ring buffer for Serial Debug messages? not really necessary
 #if SERIAL_DEBUG_USE_RINGBUFFER                    
   #define SERIAL_RINGBUF_SIZE                    64 // How many slots in our buffer
   #define SERIAL_MSG_MAXLEN                      64 // Max size for each slot
@@ -87,7 +87,7 @@
 #endif
 
 // WiFi Debug Ring Buffer 
-#define WIFI_DEBUG_USE_RINGBUFFER                 1 // Should be use a ring buffer for WiFi Debug messages? helps when using WiFi DCS Mode. If WiFi is not used, this value is ignored anyway. Also, if using CDC + WiFi Debug, this is REQUIRED to avoid CDC stalls
+#define WIFI_DEBUG_USE_RINGBUFFER                 0 // Should be use a ring buffer for WiFi Debug messages? helps when using WiFi DCS Mode. If WiFi is not used, this value is ignored anyway. Also, if using CDC + WiFi Debug, this is REQUIRED to avoid CDC stalls
 #if WIFI_DEBUG_USE_RINGBUFFER
   #define WIFI_DBG_SEND_RINGBUF_SIZE             64 // How many slots in our buffer
   #define WIFI_DBG_MSG_MAXLEN                    64 // Max size for each slot
@@ -97,7 +97,7 @@
 #endif
 
 // DCS Commands USB Send Ring Buffer (outgoing packets) - *MANDATORY* this one is REQUIRED to be set to send via USB pipe for transport (due to 64 byte report size limitation)
-#define DCS_USB_RINGBUF_SIZE                     32 // Number of packets buffered (tune as needed)
+#define DCS_USB_RINGBUF_SIZE                     32  // Number of packets buffered (tune as needed)
 #define DCS_USB_PACKET_MAXLEN                    64  // Max USB packet size (safe for DCS-BIOS)
 
 // DCS UDP/USB Receive Ring Buffer (incoming packets) - *MANDATORY* when using USB mode, optional in WiFi UDP mode.

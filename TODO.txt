@@ -14,6 +14,4 @@ Make WS2812 generic and modify panel struct/union to add index characteristics (
 
 Test UART for Serial coms on S3's and C3's simultaneously with USB HIDs (using HID keepalives). To test stability. use DCSBIOS with the hardware CDC option
 
-Move auto-generator OUT of LABEL_SET directories
-
 Automate Mappings.h/cpp to make it via registrations from within a panel file
