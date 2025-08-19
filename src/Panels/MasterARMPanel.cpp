@@ -1,6 +1,8 @@
 // MasterARMPanel.cpp
 
 #include "../Globals.h"
+#if defined(LABEL_SET_MAIN) || defined(LABEL_SET_ALL)
+
 #include "../MasterARMPanel.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h" // Needed for #defines in Mappings.h 
@@ -79,3 +81,4 @@ void MasterARM_loop() {
 
   prevMasterPort0 = port0;
 }
+#endif // LABEL_SET_MAIN || LABEL_SET_ALL

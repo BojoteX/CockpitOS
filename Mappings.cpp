@@ -32,6 +32,10 @@ bool hasCustomFrontRightPanel = false;
 bool hasTEST_ONLY             = false;
 // Add more runtime panel conditionals here when adding custom panels/other aircraft
 
+// TM1637 device instances (must match externs)
+TM1637Device LA_Device; // Left Annunciator, should always be present at file scope
+TM1637Device RA_Device; // Right Annunciator, should always be present at file scope
+
 PanelID getPanelID(uint8_t address) {
   for (auto &p : kPanels)
     if (p.addr == address) return p.id;

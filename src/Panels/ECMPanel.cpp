@@ -10,6 +10,8 @@
 // ECMPanel.cpp
 
 #include "../Globals.h"
+#if defined(LABEL_SET_ALR67) || defined(LABEL_SET_CABIN_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
+
 #include "../ECMPanel.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h" // Needed for #defines in Mappings.h 
@@ -140,3 +142,4 @@ void ECM_loop() {
   prevECMPort0 = port0;
   prevECMPort1 = port1;
 }
+#endif // LABEL_SET_ALR67 || LABEL_SET_CABIN_PRESSURE_GAUGE || LABEL_SET_ALL

@@ -1,4 +1,6 @@
 #include "../Globals.h"
+#if defined(LABEL_SET_FRONT_LEFT_PANEL) || defined(LABEL_SET_ALL)
+
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
 
@@ -178,3 +180,4 @@ void FrontLeftPanelButtons_loop() {
     handleDeferredGenTieCoverClose();
     handleDeferredGenTiePos1();
 }
+#endif // #if defined(LABEL_SET_FRONT_LEFT_PANEL) || defined(LABEL_SET_ALL)

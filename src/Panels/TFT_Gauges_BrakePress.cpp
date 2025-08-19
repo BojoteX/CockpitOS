@@ -1,13 +1,9 @@
 // TFT_Gauges_BrakePress.cpp — CockpitOS Brake Pressure Gauge (LovyanGFX, GC9A01 @ 240×240)
 // Dirty-rect compose + region DMA flush (PSRAM sprites, DMA-safe)
 
-#define MAX_MEMORY_TFT 16
-#define BRAKE_PRESSURE_GAUGE_DRAW_MIN_INTERVAL_MS 13
-#define RUN_BRAKE_PRESSURE_GAUGE_AS_TASK 1
-#define BACKLIGHT_LABEL "INST_PNL_DIMMER"
-#define COLOR_DEPTH_BRAKE_PRESS 16
-
 #include "../Globals.h"
+#if defined(LABEL_SET_BRAKE_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
+
 #include "../TFT_Gauges_BrakePress.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
@@ -15,6 +11,12 @@
 #include <cstring>
 #include <cmath>
 #include <algorithm>
+
+#define MAX_MEMORY_TFT 16
+#define BRAKE_PRESSURE_GAUGE_DRAW_MIN_INTERVAL_MS 13
+#define RUN_BRAKE_PRESSURE_GAUGE_AS_TASK 1
+#define BACKLIGHT_LABEL "INST_PNL_DIMMER"
+#define COLOR_DEPTH_BRAKE_PRESS 16
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include <esp_heap_caps.h>
@@ -435,3 +437,4 @@ void BrakePressureGauge_deinit() {
         if (bgCache[i]) { heap_caps_free(bgCache[i]);   bgCache[i] = nullptr; }
     }
 }
+#endif // LABEL_SET_BRAKE_PRESSURE_GAUGE || LABEL_SET_ALL

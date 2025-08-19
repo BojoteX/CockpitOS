@@ -2,12 +2,11 @@
 // Implementation for LEFT annunciator button panel integration
 
 #include "../Globals.h"
+#if defined(LABEL_SET_MAIN) || defined(LABEL_SET_ALL) 
+
 #include "../LeftAnnunciator.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h" // Used for specific isCoverOpen logic from DCSBIOSBridge
-
-// TM1637 device instances (must match externs)
-TM1637Device LA_Device;
 
 // Initialization routine for LEFT annunciator buttons
 void LeftAnnunciator_init() {
@@ -66,3 +65,4 @@ void LeftAnnunciator_loop() {
         }
     }
 }
+#endif // LABEL_SET_MAIN || LABEL_SET_ALL

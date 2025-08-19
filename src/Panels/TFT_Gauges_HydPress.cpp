@@ -1,13 +1,9 @@
 // CockpitOS — Hydraulic Pressure Gauge (LovyanGFX, GC9A01 @ 240×240)
 // Dirty-rect compose + region DMA flush (PSRAM sprites, DMA-safe)
 
-#define MAX_MEMORY_TFT 8
-#define HYD_PRESSURE_GAUGE_DRAW_MIN_INTERVAL_MS 13 // 13ms = 76 FPS
-#define RUN_HYD_PRESSURE_GAUGE_AS_TASK 1
-#define BACKLIGHT_LABEL "CONSOLES_DIMMER"
-#define COLOR_DEPTH_HYD_PRESS 16
-
 #include "../Globals.h"
+#if defined(LABEL_SET_CUSTOM_FRONT_RIGHT) || defined(LABEL_SET_RADAR_ALT_GAUGE) || defined(LABEL_SET_HYD_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
+
 #include "../TFT_Gauges_HydPress.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
@@ -15,6 +11,12 @@
 #include <cstring>
 #include <cmath>
 #include <algorithm>
+
+#define MAX_MEMORY_TFT 8
+#define HYD_PRESSURE_GAUGE_DRAW_MIN_INTERVAL_MS 13 // 13ms = 76 FPS
+#define RUN_HYD_PRESSURE_GAUGE_AS_TASK 1
+#define BACKLIGHT_LABEL "CONSOLES_DIMMER"
+#define COLOR_DEPTH_HYD_PRESS 16
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include <esp_heap_caps.h>
@@ -484,3 +486,4 @@ void HydPressureGauge_deinit() {
         if (bgCache[i]) { heap_caps_free(bgCache[i]);   bgCache[i] = nullptr; }
     }
 }
+#endif // defined(LABEL_SET_CUSTOM_FRONT_RIGHT) || defined(LABEL_SET_RADAR_ALT_GAUGE) || defined(LABEL_SET_HYD_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)

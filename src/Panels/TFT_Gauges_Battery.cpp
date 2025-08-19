@@ -1,13 +1,9 @@
 // CockpitOS — Battery Gauge (LovyanGFX, GC9A01 @ 240×240)
 // Dirty-rect compose + region DMA flush (PSRAM sprites, DMA-safe)
 
-#define MAX_MEMORY_TFT 16
-#define GAUGE_DRAW_MIN_INTERVAL_MS 13
-#define RUN_GAUGE_AS_TASK 1
-#define BACKLIGHT_LABEL "CONSOLES_DIMMER"
-#define COLOR_DEPTH_BATT 16
-
 #include "../Globals.h"
+#if defined(LABEL_SET_RIGHT_PANEL_CONTROLLER) || defined(LABEL_SET_BATTERY_GAUGE) || defined(LABEL_SET_ALL)
+
 #include "../TFT_Gauges_Batt.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
@@ -15,6 +11,12 @@
 #include <cstring>
 #include <cmath>
 #include <algorithm>
+
+#define MAX_MEMORY_TFT 16
+#define GAUGE_DRAW_MIN_INTERVAL_MS 13
+#define RUN_GAUGE_AS_TASK 1
+#define BACKLIGHT_LABEL "CONSOLES_DIMMER"
+#define COLOR_DEPTH_BATT 16
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include <esp_heap_caps.h>
@@ -465,3 +467,4 @@ void BatteryGauge_deinit() {
         if (bgCache[i]) { heap_caps_free(bgCache[i]);   bgCache[i] = nullptr; }
     }
 }
+#endif // LABEL_SET_RIGHT_PANEL_CONTROLLER || LABEL_SET_BATTERY_GAUGE || LABEL_SET_ALL

@@ -1,4 +1,4 @@
-# 🛩 CockpitOS Firmware Project  
+# 🛩 [ESP32] CockpitOS Firmware Project  
 **For ESP32-S2, ESP32-S3, and ESP32-C3 Devices**  
 
 ![CockpitOS Logo](./CockpitOS_logo.png)

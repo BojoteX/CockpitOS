@@ -343,6 +343,13 @@ void syncCommandHistoryFromInputMapping() {
         e.isSelector = false;
         e.group = 0;
         e.lastValue = 0xFFFF;
+
+        // NEW: wipe any stale state from a prior mission
+        e.hasPending = false;
+        e.pendingValue = 0;
+        e.lastChangeTime = 0;
+        e.lastSendTime = 0;
+
         for (size_t j = 0; j < InputMappingSize; ++j) {
             const InputMapping& m = InputMappings[j];
             if (strcmp(e.label, m.oride_label) == 0 && strcmp(m.controlType, "selector") == 0) {
@@ -351,7 +358,7 @@ void syncCommandHistoryFromInputMapping() {
             }
         }
     }
-	debugPrint("[SYNC] Command history has been initialized from InputMappings (lastValue cleared).\n");
+    debugPrint("[SYNC] Command history has been initialized from InputMappings (state cleared).\n");
 }
 */
 
@@ -370,10 +377,29 @@ void syncCommandHistoryFromInputMapping() {
 
         for (size_t j = 0; j < InputMappingSize; ++j) {
             const InputMapping& m = InputMappings[j];
-            if (strcmp(e.label, m.oride_label) == 0 && strcmp(m.controlType, "selector") == 0) {
+
+            if (
+                strcmp(e.label, m.oride_label) == 0 &&
+                strcmp(m.controlType, "selector") == 0 &&
+                m.group > 0
+                ) {
                 e.isSelector = true;
                 if (m.group > e.group) e.group = m.group;
             }
+
+            /*  Restrictive Checks
+            if (
+                strcmp(e.label, m.oride_label) == 0 &&
+                strcmp(m.controlType, "selector") == 0 &&
+                m.group > 0 &&
+                m.source && strcmp(m.source, "NONE") != 0 &&
+                strcmp(m.source, "PCA_0x00") != 0
+                ) {
+                e.isSelector = true;
+                if (m.group > e.group) e.group = m.group;
+            }
+            */
+
         }
     }
     debugPrint("[SYNC] Command history has been initialized from InputMappings (state cleared).\n");
@@ -588,15 +614,31 @@ void onDisplayChange(const char* label, const char* value) {
 }
 
 // Stage 3: Initialize validation selectors from InputMappings
-/*
 void initializeSelectorValidation() {
     numValidatedSelectors = 0;
-    // Build a unique set of oride_label entries
     for (size_t i = 0; i < InputMappingSize; ++i) {
-        const char* dcs_label = InputMappings[i].oride_label;
-        if (!dcs_label || !*dcs_label) continue;
+        const InputMapping& m = InputMappings[i];
+        const char* dcs_label = m.oride_label;
 
-        // Prevent duplicates
+        if (!dcs_label || !*dcs_label) {
+            continue;
+        }
+
+        if (
+            strcmp(m.controlType, "selector") != 0 ||
+            m.group == 0
+            ) continue;
+
+		/*  RESTRICTIVE CHECKS
+        if (
+            strcmp(m.controlType, "selector") != 0 ||
+            m.group == 0 ||
+            (m.source && (strcmp(m.source, "NONE") == 0 || strcmp(m.source, "PCA_0x00") == 0))
+            ) continue;
+        */
+
+        // if (m.hidId <= 0) continue;
+
         bool alreadyRegistered = false;
         for (size_t j = 0; j < numValidatedSelectors; ++j) {
             if (strcmp(validatedSelectors[j].label, dcs_label) == 0) {
@@ -606,15 +648,15 @@ void initializeSelectorValidation() {
         }
         if (!alreadyRegistered && numValidatedSelectors < MAX_VALIDATED_SELECTORS) {
             validatedSelectors[numValidatedSelectors].label = dcs_label;
-            validatedSelectors[numValidatedSelectors].lastSimValue = 0xFFFF; // Invalid/unknown
+            validatedSelectors[numValidatedSelectors].lastSimValue = 0xFFFF;
             ++numValidatedSelectors;
-            // Subscribe (if not already)
+            debugPrintf("[SYNC] Tracking selector %s for changes\n", dcs_label);
             subscribeToSelectorChange(dcs_label, selectorValidationCallback);
         }
     }
 }
-*/
 
+/*
 void initializeSelectorValidation() {
     numValidatedSelectors = 0;
     for (size_t i = 0; i < InputMappingSize; ++i) {
@@ -642,6 +684,7 @@ void initializeSelectorValidation() {
         }
     }
 }
+*/
 
 void validateSelectorSync() {
     debugPrintf("\n[SELECTOR SYNC VALIDATION]\n");
@@ -1251,6 +1294,7 @@ void DCSBIOS_keepAlive() {
     }
 }
 
+/*
 void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
     static char buf[10];
     snprintf(buf, sizeof(buf), "%u", value);
@@ -1289,6 +1333,55 @@ void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
             }
         }
 
+        if (g < MAX_GROUPS) lastGroupSendUs[g] = micros(); // spacing hygiene
+    }
+
+    if (!applyThrottle(*e, label, value, force)) return;
+
+    sendCommand(label, buf, false); // still gated
+    e->lastValue = value;
+    e->lastSendTime = now;
+}
+*/
+
+void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
+    static char buf[10];
+    snprintf(buf, sizeof(buf), "%u", value);
+
+    CommandHistoryEntry* e = findCmdEntry(label);
+    if (!e) {
+        debugPrintf("⚠️ [DCS] REJECTED untracked: %s = %u\n", label, value);
+        return;
+    }
+
+    const unsigned long now = millis();
+
+#if defined(SELECTOR_DWELL_MS) && (SELECTOR_DWELL_MS > 0)
+    if (!force && e->group > 0) {
+        e->pendingValue = value;
+        e->lastChangeTime = now;
+        e->hasPending = true;
+        return;
+    }
+#endif
+
+    if (force && e->group > 0) {
+        const uint16_t g = e->group;
+        // 1) kill any buffered state in this group
+        for (size_t i = 0; i < commandHistorySize; ++i) {
+            if (commandHistory[i].group == g) commandHistory[i].hasPending = false;
+        }
+        // 2) clear losers now
+        for (size_t i = 0; i < commandHistorySize; ++i) {
+            CommandHistoryEntry& x = commandHistory[i];
+            if (x.group != g || &x == e) continue;
+            if (x.lastValue != 0) {
+                char zbuf[2] = { '0', '\0' };
+                sendCommand(x.label, zbuf, false);  // still gated
+                x.lastValue = 0;
+                x.lastSendTime = now;
+            }
+        }
         if (g < MAX_GROUPS) lastGroupSendUs[g] = micros(); // spacing hygiene
     }
 

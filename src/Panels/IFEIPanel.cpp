@@ -1,5 +1,12 @@
 // IFEIPanel.cpp
 
+#include "../Globals.h"
+#if defined(LABEL_SET_IFEI_NO_VIDEO) || defined(LABEL_SET_ALL)
+
+#include "../IFEIPanel.h"
+#include "../HIDManager.h"
+#include "../DCSBIOSBridge.h"
+
 #define RUN_IFEI_DISPLAY_AS_TASK 0
 #define IFEI_DISPLAY_REFRESH_RATE_HZ 120
 
@@ -9,11 +16,6 @@
 #define HMD_DOWN_BIT            2
 #define HUD_UP_BIT              3
 #define HUD_DOWN_BIT            4
-
-#include "../Globals.h"
-#include "../IFEIPanel.h"
-#include "../HIDManager.h"
-#include "../DCSBIOSBridge.h"
 
 // Map: [POS_UP, POS_MIDDLE, POS_DOWN]
 static const char* const MODE_SELECTOR_LABELS[3] = {
@@ -1330,3 +1332,4 @@ void IFEIDisplay::clear7SegFromShadow(const SegmentMap* map, int numDigits) {
         }
     }
 }
+#endif // #if defined(LABEL_SET_IFEI_NO_VIDEO) || defined(LABEL_SET_ALL)
