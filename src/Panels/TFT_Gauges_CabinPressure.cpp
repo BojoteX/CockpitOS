@@ -2,8 +2,6 @@
 // Dirty-rect compose + region DMA flush (PSRAM sprites, DMA-safe)
 
 #include "../Globals.h"
-#if defined(LABEL_SET_ALR67) || defined(LABEL_SET_CABIN_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
-
 #include "../TFT_Gauges_CabPress.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
@@ -456,5 +454,3 @@ void CabinPressureGauge_deinit() {
         if (bgCache[i]) { heap_caps_free(bgCache[i]);   bgCache[i] = nullptr; }
     }
 }
-
-#endif // defined(LABEL_SET_ALR67) || defined(LABEL_SET_CABIN_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)

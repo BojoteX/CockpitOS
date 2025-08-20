@@ -2,8 +2,6 @@
 // This implementation uses the InputMappings.h for automated button and selector mappings, axes are managed separately (see AnalogInputs).
 
 #include "../Globals.h"
-#if defined(LABEL_SET_RIGHT_PANEL_CONTROLLER) || defined(LABEL_SET_BATTERY_GAUGE) || defined(LABEL_SET_ALL)
-
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
 
@@ -204,4 +202,3 @@ void RightPanelButtons_loop() {
 
     pollGPIOSelectors();
 }
-#endif // LABEL_SET_RIGHT_PANEL_CONTROLLER || LABEL_SET_BATTERY_GAUGE || LABEL_SET_ALL

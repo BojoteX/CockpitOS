@@ -13,8 +13,6 @@
 // IRCoolPanel.cpp
 
 #include "../Globals.h"
-#if defined(LABEL_SET_MAIN) || defined(LABEL_SET_ALL) 
-
 #include "../IRCoolPanel.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h" // Used for specific isCoverOpen logic from DCSBIOSBridge
@@ -137,4 +135,3 @@ void IRCool_loop() {
   prevIRCPort0 = port0;
   prevIRCPort1 = port1;
 }
-#endif // LABEL_SET_MAIN || LABEL_SET_ALL

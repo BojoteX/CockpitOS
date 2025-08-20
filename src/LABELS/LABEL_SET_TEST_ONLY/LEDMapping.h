@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
-  DEVICE_NONE,
-  DEVICE_GPIO,
-  DEVICE_WS2812,
   DEVICE_GAUGE,
   DEVICE_TM1637,
-  DEVICE_PCA9555,
+  DEVICE_GPIO,
+  DEVICE_WS2812,
+  DEVICE_NONE,
   DEVICE_GN1640T,
+  DEVICE_PCA9555,
 };
 
 struct LEDMapping {
@@ -40,6 +40,8 @@ static const LEDMapping panelLEDs[] = {
   { "CABIN_TEMP"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "SUIT_TEMP"            , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "RUD_TRIM"             , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "HMD_OFF_BRT"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "SPIN_LT"              , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "LOW_ALT_WARN_LT"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "RADALT_ALT_PTR"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "RADALT_GREEN_LAMP"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
@@ -59,7 +61,7 @@ static const LEDHashEntry ledHashTable[53] = {
   {"COM_VOX", &panelLEDs[6]},
   {nullptr, nullptr},
   {"COM_TACAN", &panelLEDs[5]},
-  {"RADALT_GREEN_LAMP", &panelLEDs[13]},
+  {"RADALT_GREEN_LAMP", &panelLEDs[15]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -78,7 +80,7 @@ static const LEDHashEntry ledHashTable[53] = {
   {"RUD_TRIM", &panelLEDs[10]},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"RADALT_MIN_HEIGHT_PTR", &panelLEDs[14]},
+  {"RADALT_MIN_HEIGHT_PTR", &panelLEDs[16]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -88,10 +90,10 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {"CABIN_TEMP", &panelLEDs[8]},
   {nullptr, nullptr},
-  {"RADALT_ALT_PTR", &panelLEDs[12]},
-  {"RADALT_OFF_FLAG", &panelLEDs[15]},
+  {"RADALT_ALT_PTR", &panelLEDs[14]},
+  {"RADALT_OFF_FLAG", &panelLEDs[17]},
   {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"HMD_OFF_BRT", &panelLEDs[11]},
   {"COM_RWR", &panelLEDs[4]},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -102,9 +104,9 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {"COM_MIDS_A", &panelLEDs[2]},
   {"COM_MIDS_B", &panelLEDs[3]},
-  {"LOW_ALT_WARN_LT", &panelLEDs[11]},
+  {"LOW_ALT_WARN_LT", &panelLEDs[13]},
   {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"SPIN_LT", &panelLEDs[12]},
 };
 
 // Reuse shared recursive hash implementation

@@ -13,8 +13,6 @@
 //  This method requires no external components and supports multiple rotaries as long as they are polled separately.
 
 #include "../Globals.h"
-#if defined(LABEL_SET_ALR67) || defined(LABEL_SET_CABIN_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
-
 #include "../ALR67Panel.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h" // Needed for #defines in Mappings.h 
@@ -111,4 +109,3 @@ void ALR67_loop() {
 
   prevButtonBits = buttonBits;
 }
-#endif // LABEL_SET_ALR67 || LABEL_SET_CABIN_PRESSURE_GAUGE || LABEL_SET_ALL

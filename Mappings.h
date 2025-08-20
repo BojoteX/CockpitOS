@@ -1,6 +1,27 @@
 // Mappings.h
 
 #pragma once
+// --- Panel presence flags (all runtime, set in initMappings) ---
+extern bool hasBrain;
+extern bool hasECM;
+extern bool hasMasterARM;
+extern bool hasIFEI;
+extern bool hasALR67;
+extern bool hasCA;
+extern bool hasLA;
+extern bool hasRA;
+extern bool hasIR;
+extern bool hasLockShoot;
+extern bool hasTFTBattGauge;
+extern bool hasTFTCabPressGauge;
+extern bool hasTFTBrakePressGauge;
+extern bool hasTFTHydPressGauge;
+extern bool hasTFTRadarAltGauge;
+extern bool hasRightPanelController;
+extern bool hasLeftPanelController;
+extern bool hasFrontLeftPanel;
+extern bool hasCustomFrontRightPanel;
+extern bool hasTEST_ONLY;
 
 // Global GPIO centralized PIN assignments. This ones should be carefully MANAGED. Use your board ARDUINO_ name for custom PINs
 #if defined(ARDUINO_LOLIN_S3_MINI)
@@ -256,28 +277,6 @@ void initializePanels(bool force);
 void panelLoop();
 void initializeLEDs();
 void initializeDisplays();
-
-// --- Panel presence flags (all runtime, set in initMappings) ---
-extern bool hasBrain;
-extern bool hasECM;
-extern bool hasMasterARM;
-extern bool hasIFEI;
-extern bool hasALR67;
-extern bool hasCA;
-extern bool hasLA;
-extern bool hasRA;
-extern bool hasIR;
-extern bool hasLockShoot;
-extern bool hasTFTBattGauge;
-extern bool hasTFTCabPressGauge;
-extern bool hasTFTBrakePressGauge;
-extern bool hasTFTHydPressGauge;
-extern bool hasTFTRadarAltGauge;
-extern bool hasRightPanelController;
-extern bool hasLeftPanelController;
-extern bool hasFrontLeftPanel;
-extern bool hasCustomFrontRightPanel;
-extern bool hasTEST_ONLY;
 
 // Give your PCA custom panel a basic short name and address where it is located (use the I2C scanner in Tools) 
 enum class PanelID : uint8_t { 

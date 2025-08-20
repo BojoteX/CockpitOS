@@ -863,50 +863,6 @@ selector_entries_inputmap = [
     (full, cmd, val, ct, grp) for (full, cmd, val, ct, grp, lab) in selector_entries
 ]
 
-
-
-
-
-
-
-# --- GROUP PRESERVATION/ALLOCATION (no collisions) ---
-existing_max_group = 0
-existing_group_by_cmd = {}
-for e in existing_map.values():
-    g = int(e["group"])
-    if g > 0:
-        existing_max_group = max(existing_max_group, g)
-        # lock group id for this DCS command label
-        existing_group_by_cmd[e["oride_label"]] = g
-
-next_group_box = [existing_max_group + 1]   # mutable counter
-new_group_by_cmd = {}                       # for new commands this run
-
-def alloc_group(cmd: str, proposed_grp: int) -> int:
-    # keep analog / momentary ungrouped
-    if proposed_grp <= 0:
-        return 0
-    # if this command already has a group in the preserved file, reuse it
-    if cmd in existing_group_by_cmd:
-        return existing_group_by_cmd[cmd]
-    # if we already allocated a new id for this command in this run, reuse it
-    if cmd in new_group_by_cmd:
-        return new_group_by_cmd[cmd]
-    # brand‑new grouped command → allocate next unique id
-    g = next_group_box[0]
-    new_group_by_cmd[cmd] = g
-    next_group_box[0] += 1
-    return g
-
-
-
-
-
-
-
-
-
-
 # 2) merge into a new list, preserving any user edits by label
 merged = []
 for full, cmd, val, ct, grp in selector_entries_inputmap:
@@ -918,8 +874,8 @@ for full, cmd, val, ct, grp in selector_entries_inputmap:
             e["controlType"], e["group"]
         ))
     else:
-        final_grp = alloc_group(cmd, grp)  # <- ensure unique, stable group id
-        merged.append((full, "NONE", 0, 0, -1, cmd, val, ct, final_grp))
+        # brand-new entry: use defaults
+        merged.append((full, "NONE", 0, 0, -1, cmd, val, ct, grp))
 
 # 3) write out merged list
 with open(INPUT_REFERENCE, "w", encoding="utf-8") as f2:

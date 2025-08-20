@@ -2,8 +2,6 @@
 // Dirty-rect compose + region DMA flush (PSRAM sprites, DMA-safe)
 
 #include "../Globals.h"
-#if defined(LABEL_SET_CUSTOM_FRONT_RIGHT) || defined(LABEL_SET_RADAR_ALT_GAUGE) || defined(LABEL_SET_HYD_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
-
 #include "../TFT_Gauges_RadarAlt.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
@@ -624,4 +622,3 @@ void RadarAlt_deinit()
         if (bgCache[i]) { heap_caps_free(bgCache[i]); bgCache[i] = nullptr; }
     }
 }
-#endif // defined(LABEL_SET_CUSTOM_FRONT_RIGHT) || defined(LABEL_SET_RADAR_ALT_GAUGE) || defined(LABEL_SET_HYD_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)

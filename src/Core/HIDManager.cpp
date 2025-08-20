@@ -517,6 +517,9 @@ void HIDManager_setNamedButton(const char* name, bool deferSend, bool pressed) {
     return;
   }
 
+  // CoverGate handling (only for selectors in the main loop).
+  if (strcmp(m->controlType, "selector") == 0 && CoverGate_intercept(name, pressed) && deferSend == false) return;
+
   if (isModeSelectorDCS()) {
 
       // -- Bypass selector/dwell for variable/fixed step --

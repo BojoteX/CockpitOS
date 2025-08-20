@@ -2,8 +2,6 @@
 // Implementation for RIGHT annunciator button panel integration
 
 #include "../Globals.h"
-#if defined(LABEL_SET_MAIN) || defined(LABEL_SET_ALL) 
-
 #include "../RightAnnunciator.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h" // Used for specific isCoverOpen logic from DCSBIOSBridge
@@ -56,4 +54,3 @@ void RightAnnunciator_loop() {
         }
     }
 }
-#endif // LABEL_SET_MAIN || LABEL_SET_ALL

@@ -3,8 +3,6 @@
 // It supports GPIO encoders, HC165 shift register buttons, and a virtual cover for the gain switch.
 
 #include "../Globals.h"
-#if defined(LABEL_SET_LEFT_PANEL_CONTROLLER) || defined(LABEL_SET_ALL)
-
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
 
@@ -330,5 +328,3 @@ void LeftPanelButtons_loop() {
     leftPanelPollGPIOEncoders();
 
 }
-
-#endif // LABEL_SET_LEFT_PANEL_CONTROLLER || LABEL_SET_ALL

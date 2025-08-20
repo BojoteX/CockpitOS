@@ -1,24 +1,19 @@
-// TEST_ONLY.cpp - Template for Panel Implementation
+// ============================================================================
+//  TEST_ONLY.cpp — Tiny, readable template panel for CockpitOS
+//  - Auto-detects GPIO, HC165, PCA9555 from InputMappings.h
+//  - Uses ONLY: HIDManager_setNamedButton
+//  - Fill the 3 HC165 pin defines and the bit count for your panel
+//  - Optimized, flat-table polling (blazing fast for PCA9555)
+//  Last modified: 2025-08-19 / J. Altuve
+// ============================================================================
 
 // ---------- Includes ----------
 #include "../Globals.h"
+#if defined(LABEL_SET_TEST_ONLY) || defined(LABEL_SET_ALL)
+
 #include "../TEST_ONLY.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h" // for timing helpers like shouldPollMs()
-
-// ----------Panel Registration---------- 
-REGISTER_PANEL(TEST_ONLY,
-    TEST_ONLY_init,
-    TEST_ONLY_loop,
-    nullptr, 
-    nullptr,   // no display hooks
-    nullptr,   // no tick
-    100);      // priority
-
-// Examples:
-// REGISTER_PANEL(IFEI, IFEI_init, IFEI_loop, IFEIDisplay_init, IFEIDisplay_loop, nullptr, 100);
-// REGISTER_PANEL(LockShoot, LockShoot_init, LockShoot_loop, nullptr, nullptr, WS2812_tick, 100);
-// REGISTER_PANEL(AnalogGauge, nullptr, nullptr, nullptr, nullptr, AnalogG_tick, 100);
 
 // ============================================================================
 //  CONFIGURATION CONSTANTS
@@ -395,7 +390,6 @@ void TEST_ONLY_init() {
         buildGpioGroupDefs();
         buildAutoAnalogInputs();
         buildPcaList();
-        CoverGate_init();
 
         if (HC165_TEST_PANEL_BITS > 0) {
             HC165_init(HC165_TEST_PANEL_CONTROLLER_PL,
@@ -559,5 +553,6 @@ void TEST_ONLY_loop() {
     // 6. PCA9555 Polling (flat, O(1) for all mapped pins/groups)
     // ------------------------------------------------------------------------
     pollPCA9555_flat(false);
-    CoverGate_loop();
 }
+
+#endif // #if defined(LABEL_SET_TEST_ONLY) || defined(LABEL_SET_ALL)

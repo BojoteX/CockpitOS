@@ -10,3 +10,4 @@ Flight Control System Panel
 Communication Panel
 Radar Altimeter
 Environment Control System Panel
+Map Gain/Spin Recovery Panel

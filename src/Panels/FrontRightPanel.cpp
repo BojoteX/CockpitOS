@@ -1,6 +1,4 @@
 #include "../Globals.h"
-#if defined(LABEL_SET_CUSTOM_FRONT_RIGHT) || defined(LABEL_SET_RADAR_ALT_GAUGE) || defined(LABEL_SET_HYD_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
-
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
 
@@ -262,4 +260,3 @@ void FrontRightPanelButtons_loop() {
     pollFrontRightGPIOMomentaries(false);
     pollFrontRightGPIOEncoders();
 }
-#endif // #if defined(LABEL_SET_CUSTOM_FRONT_RIGHT) || defined(LABEL_SET_RADAR_ALT_GAUGE) || defined(LABEL_SET_HYD_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)

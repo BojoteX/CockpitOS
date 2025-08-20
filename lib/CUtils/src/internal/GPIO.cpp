@@ -27,6 +27,7 @@ void resetAllGauges() {
         }
     }
     if (hasGauge) debugPrintln("[GAUGE] Analog gauges will update automatically.");
+	PanelRegistry_setActive(PanelKind::AnalogGauge, hasGauge); // register if any gauges are present
 }
 
 void preconfigureGPIO() {

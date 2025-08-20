@@ -78,20 +78,6 @@ void PCA9555_scanConnectedPanels() {
     }
 }
 
-/*
-void PCA9555_scanConnectedPanels() {
-    discoveredDeviceCount = 0;
-    memset(panelNameByAddr, 0, sizeof(panelNameByAddr));
-    for (const auto& p : kPanels) {
-        if (discoveredDeviceCount >= MAX_DEVICES) break;
-        discoveredDevices[discoveredDeviceCount].address = p.addr;
-        discoveredDevices[discoveredDeviceCount].label = p.label;
-        ++discoveredDeviceCount;
-        panelNameByAddr[p.addr] = p.label;
-    }
-}
-*/
-
 void PCA9555_initCache() {
     for (uint8_t i = 0; i < discoveredDeviceCount; ++i) {
         uint8_t addr = discoveredDevices[i].address;

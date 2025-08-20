@@ -2,8 +2,6 @@
 // Dirty-rect compose + region DMA flush (PSRAM sprites, DMA-safe)
 
 #include "../Globals.h"
-#if defined(LABEL_SET_BRAKE_PRESSURE_GAUGE) || defined(LABEL_SET_ALL)
-
 #include "../TFT_Gauges_BrakePress.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
@@ -437,4 +435,3 @@ void BrakePressureGauge_deinit() {
         if (bgCache[i]) { heap_caps_free(bgCache[i]);   bgCache[i] = nullptr; }
     }
 }
-#endif // LABEL_SET_BRAKE_PRESSURE_GAUGE || LABEL_SET_ALL

@@ -25,7 +25,7 @@
 // Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. Pure USB or WIFI. This methods COMPLETELY bypasses Serial. If both are set to 0, then standard CDC / Serial is used. Both CAN NOT be set to 1 at the same time
 #define USE_DCSBIOS_WIFI                          0   // Completely bypasses socat and uses WiFi to connect to DCS. 
 // DO NOT set both to 1. Only ONE can be active -or- both set to 0 to operate in legacy CDC mode (Serial+socat)
-#define USE_DCSBIOS_USB                           0   // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work.
+#define USE_DCSBIOS_USB                           1   // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work.
 
 // Wi-Fi network credentials (used for WiFi remote Debug Console and DCSBIOS WiFi mode if selected)
 #define WIFI_SSID                                 "MyHotspotNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
@@ -35,7 +35,7 @@
 #define TEST_LEDS                                 0  // Interactive menu (via serial console) to test LEDs individually
 #define IS_REPLAY                                 0  // Simulate a loopback DCS stream to check your panel is working and debug via Serial
 #define DEBUG_ENABLED                             0  // Use it ONLY when identifying issues or troubleshooting
-#define DEBUG_ENABLED_FOR_PCA_ONLY                1  // Use it ONLY when mapping Port/bit/mask in PCA9xxx devices
+#define DEBUG_ENABLED_FOR_PCA_ONLY                0  // Use it ONLY when mapping Port/bit/mask in PCA9xxx devices
 #define DEBUG_ENABLED_FOR_HC165_ONLY              0  // Use it ONLY when mapping bits in HC165 devices
 #define DEBUG_USE_WIFI                            1  // Uses WiFi to output VERBOSE and DEBUG messages
 #define VERBOSE_MODE                              0  // Logs INFO messages to both Serial and UDP (very useful) 

@@ -105,7 +105,7 @@ void setup() {
     // Init PCA + Detect PCA Panels (Automatic PCA detection)    
     PCA9555_init();
     
-    // Init Mappings (Aircraft specific)
+    // Init Mappings (Aircraft specific) this should ALWAYS run first before all other inits
     initMappings();   
 
     // If you set DEBUG_ENABLED or DEBUG_ENABLED_FOR_PCA_ONLY you get PCA9555 logging

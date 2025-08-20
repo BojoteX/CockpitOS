@@ -1,8 +1,6 @@
 // IFEIPanel.cpp
 
 #include "../Globals.h"
-#if defined(LABEL_SET_IFEI_NO_VIDEO) || defined(LABEL_SET_ALL)
-
 #include "../IFEIPanel.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
@@ -1332,4 +1330,3 @@ void IFEIDisplay::clear7SegFromShadow(const SegmentMap* map, int numDigits) {
         }
     }
 }
-#endif // #if defined(LABEL_SET_IFEI_NO_VIDEO) || defined(LABEL_SET_ALL)
