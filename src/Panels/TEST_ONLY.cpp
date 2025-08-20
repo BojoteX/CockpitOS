@@ -1,10 +1,23 @@
 // TEST_ONLY.cpp - Template for Panel Implementation
 
+// ============================================================================
+//  CONFIGURATION CONSTANTS
+// ============================================================================
+#define DISABLE_PCA9555                0   // 1 = skip PCA logic, 0 = enable
+#define MAX_PCA9555_INPUTS             64  // Max PCA input mappings
+#define MAX_PCA_GROUPS                 32  // Max selector groups
+#define MAX_PCAS                       8   // Max PCA9555 chips (0x20–0x27)
+
+#define HC165_TEST_PANEL_BITS          0   // Number of bits in HC165 shift register (0 = disabled)
+#define HC165_TEST_PANEL_CONTROLLER_PL -1
+#define HC165_TEST_PANEL_CONTROLLER_CP -1
+#define HC165_TEST_PANEL_CONTROLLER_QH -1
+
 // ---------- Includes ----------
 #include "../Globals.h"
-#include "../TEST_ONLY.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h" // for timing helpers like shouldPollMs()
+#include "includes/TEST_ONLY.h"
 
 // ----------Panel Registration---------- 
 REGISTER_PANEL(TEST_ONLY,
@@ -21,45 +34,8 @@ REGISTER_PANEL(TEST_ONLY,
 // REGISTER_PANEL(AnalogGauge, nullptr, nullptr, nullptr, nullptr, AnalogG_tick, 100);
 
 // ============================================================================
-//  CONFIGURATION CONSTANTS
-// ============================================================================
-#define DISABLE_PCA9555                0   // 1 = skip PCA logic, 0 = enable
-#define MAX_PCA9555_INPUTS             64  // Max PCA input mappings
-#define MAX_PCA_GROUPS                 32  // Max selector groups
-#define MAX_PCAS                       8   // Max PCA9555 chips (0x20–0x27)
-#define HC165_TEST_PANEL_BITS          0   // Number of bits in HC165 shift register (0 = disabled)
-#define HC165_TEST_PANEL_CONTROLLER_PL -1
-#define HC165_TEST_PANEL_CONTROLLER_CP -1
-#define HC165_TEST_PANEL_CONTROLLER_QH -1
-#define MAX_GPIO_ENCODERS              8
-#define ENCODER_TICKS_PER_NOTCH        4
-#define MAX_SELECTOR_GROUPS            32
-
-// ============================================================================
 //  DATA STRUCTURES — MAPPINGS, INPUTS, STATE
 // ============================================================================
-
-// Analog Axis Inputs
-struct AutoAnalogInput { const char* label; uint8_t gpio; HIDAxis axis; };
-static AutoAnalogInput autoAnalogs[HID_AXIS_COUNT];
-static size_t numAutoAnalogs = 0;
-
-// GPIO Encoder State
-struct GPIOEncoderState {
-    const InputMapping* pos0; // CCW (oride_value==0)
-    const InputMapping* pos1; // CW  (oride_value==1)
-    uint8_t pinA, pinB, lastState;
-    int8_t accum;
-    int32_t position;
-};
-static GPIOEncoderState gpioEncoders[MAX_GPIO_ENCODERS];
-static uint8_t numGPIOEncoders = 0;
-static uint8_t encoderPinMask[48] = { 0 }; // GPIO numbers <48
-
-// GPIO Selector Groups
-struct GpioGroupDef { uint8_t numPins; uint8_t pins[4]; };
-static GpioGroupDef groupDef[MAX_SELECTOR_GROUPS];
-static uint16_t gpioSelectorCache[MAX_SELECTOR_GROUPS] = { 0xFFFF };
 
 // PCA9555 Pre-resolved Flat Table
 struct PCA9555Input {
@@ -83,189 +59,29 @@ static int16_t lastValSelector[MAX_SELECTOR_GROUPS][MAX_PCAS] = { { -1 } };
 // HC165 (Shift Register) State
 static uint64_t hc165Bits = ~0ULL, hc165PrevBits = ~0ULL;
 
-// Encoder Transition Table
-static const int8_t encoder_transition_table[16] = {
-    0,  -1,   1,   0,   1,   0,   0,  -1,
-   -1,   0,   0,   1,   0,   1,  -1,   0
-};
-
-// ============================================================================
-//  UTILITY FUNCTIONS (Minimal, pure helpers)
-// ============================================================================
-static inline bool startsWith(const char* s, const char* pfx) {
-    return s && pfx && strncmp(s, pfx, strlen(pfx)) == 0;
-}
-static uint8_t hexNib(char c) {
-    return (c >= '0' && c <= '9') ? c - '0' :
-        (c >= 'a' && c <= 'f') ? 10 + c - 'a' :
-        (c >= 'A' && c <= 'F') ? 10 + c - 'A' : 0;
-}
-static uint8_t parseHexByte(const char* s) { // expects "0xNN"
-    if (!s || strlen(s) < 3) return 0;
-    return (hexNib(s[2]) << 4) | hexNib(s[3]);
-}
+// Analog Axis Inputs
+struct AutoAnalogInput { const char* label; uint8_t gpio; HIDAxis axis; };
+static AutoAnalogInput autoAnalogs[HID_AXIS_COUNT];
+static size_t numAutoAnalogs = 0;
 
 // ========== END FILE-SCOPE SECTION ==========
 // (Implementation of buildGpioGroupDefs, pollGPIOSelectors, etc. continues below
 
-// Build the per-group pin list based on InputMappings.
-static void buildGpioGroupDefs() {
-    for (uint16_t g = 1; g < MAX_SELECTOR_GROUPS; ++g) {
-        groupDef[g].numPins = 0;
-        for (size_t i = 0; i < InputMappingSize; ++i) {
-            const InputMapping& m = InputMappings[i];
-            if (m.group != g || strcmp(m.source, "GPIO") != 0 || m.port < 0) continue;
-            // Unique pins only
-            bool found = false;
-            for (uint8_t k = 0; k < groupDef[g].numPins; ++k)
-                if (groupDef[g].pins[k] == m.port) found = true;
-            if (!found && groupDef[g].numPins < 4)
-                groupDef[g].pins[groupDef[g].numPins++] = m.port;
-        }
-    }
-}
+static void buildAutoAnalogInputs() {
+    numAutoAnalogs = 0;
 
-static void pollGPIOSelectors(bool forceSend = false) {
-    for (uint16_t g = 1; g < MAX_SELECTOR_GROUPS; ++g) {
-        // Step 0: Count how many selectors in this group, how many are one-hot
-        int total = 0, oneHot = 0;
-        for (size_t i = 0; i < InputMappingSize; ++i) {
-            const InputMapping& m = InputMappings[i];
-            if (!m.label || strcmp(m.source, "GPIO") != 0 || strcmp(m.controlType, "selector") != 0) continue;
-            if (m.group != g) continue;
-            total++;
-            if (m.bit == -1) oneHot++;
-        }
-        if (total == 0) continue;
+    // Assign axes from AXIS_CUSTOM4 downward (reverse order)
+    int axisIdx = HID_AXIS_COUNT - 1; // AXIS_CUSTOM4 is the last in enum
 
-        bool groupActive = false;
+    for (size_t i = 0; i < InputMappingSize && axisIdx >= 0; ++i) {
+        const auto& m = InputMappings[i];
+        if (!m.label || !m.source) continue;
+        if (strcmp(m.controlType, "analog") != 0) continue;
+        if (m.port < 0) continue; // Must have a valid analog pin
 
-        // CASE 1: all entries are one-hot style (every entry bit == -1)
-        if (oneHot == total) {
-            // "One-hot" (one pin per position): First LOW wins
-            for (size_t i = 0; i < InputMappingSize; ++i) {
-                const InputMapping& m = InputMappings[i];
-                if (!m.label || strcmp(m.source, "GPIO") != 0 || strcmp(m.controlType, "selector") != 0) continue;
-                if (m.group != g || m.port < 0 || m.bit != -1) continue;
-                bool pressed = (digitalRead(m.port) == LOW);
-                if (pressed) {
-                    if (forceSend || gpioSelectorCache[g] != m.oride_value) {
-                        gpioSelectorCache[g] = m.oride_value;
-                        HIDManager_setNamedButton(m.label, false, true);
-                    }
-                    groupActive = true;
-                    break; // Only one pin can be LOW
-                }
-            }
-            // Fallback
-            if (!groupActive) {
-                for (size_t i = 0; i < InputMappingSize; ++i) {
-                    const InputMapping& m = InputMappings[i];
-                    if (!m.label || strcmp(m.source, "GPIO") != 0 || strcmp(m.controlType, "selector") != 0) continue;
-                    if (m.group != g || m.port != -1 || m.bit != -1) continue;
-                    if (forceSend || gpioSelectorCache[g] != m.oride_value) {
-                        gpioSelectorCache[g] = m.oride_value;
-                        HIDManager_setNamedButton(m.label, false, true);
-                    }
-                    groupActive = true;
-                }
-            }
-        }
-        // CASE 2: regular selectors (bit encodes active level)
-        else {
-            // Regular: For each selector, fire on pin/bit logic
-            for (size_t i = 0; i < InputMappingSize; ++i) {
-                const InputMapping& m = InputMappings[i];
-                if (!m.label || strcmp(m.source, "GPIO") != 0 || strcmp(m.controlType, "selector") != 0) continue;
-                if (m.group != g || m.port < 0) continue;
-                if (m.bit == -1) continue; // skip one-hot, handled above
-                int pinState = digitalRead(m.port);
-                bool isActive = (m.bit == 0) ? (pinState == LOW) : (pinState == HIGH);
-                if (isActive) {
-                    if (forceSend || gpioSelectorCache[g] != m.oride_value) {
-                        gpioSelectorCache[g] = m.oride_value;
-                        HIDManager_setNamedButton(m.label, false, true);
-                    }
-                    groupActive = true;
-                    break;
-                }
-            }
-            // Fallback for regular
-            if (!groupActive) {
-                for (size_t i = 0; i < InputMappingSize; ++i) {
-                    const InputMapping& m = InputMappings[i];
-                    if (!m.label || strcmp(m.source, "GPIO") != 0 || strcmp(m.controlType, "selector") != 0) continue;
-                    if (m.group != g || m.port != -1) continue;
-                    if (forceSend || gpioSelectorCache[g] != m.oride_value) {
-                        gpioSelectorCache[g] = m.oride_value;
-                        HIDManager_setNamedButton(m.label, false, true);
-                    }
-                    groupActive = true;
-                }
-            }
-        }
-    }
-}
-
-static void buildGPIOEncoderStates() {
-    numGPIOEncoders = 0;
-    for (size_t i = 0; i < InputMappingSize; ++i) {
-        const InputMapping& mi = InputMappings[i];
-        if (!mi.label || strcmp(mi.source, "GPIO") != 0) continue;
-        if (!(strcmp(mi.controlType, "fixed_step") == 0 || strcmp(mi.controlType, "variable_step") == 0)) continue;
-        if (mi.oride_value != 0) continue; // only anchor on value==0
-
-        // Find matching pos1 (CW, value==1)
-        for (size_t j = 0; j < InputMappingSize; ++j) {
-            const InputMapping& mj = InputMappings[j];
-            if (&mi == &mj) continue;
-            if (!mj.label || strcmp(mj.source, "GPIO") != 0) continue;
-            if (strcmp(mi.oride_label, mj.oride_label) != 0) continue;
-            if (strcmp(mi.controlType, mj.controlType) != 0) continue;
-            if (mj.oride_value != 1) continue;
-
-            if (numGPIOEncoders < MAX_GPIO_ENCODERS) {
-                GPIOEncoderState& e = gpioEncoders[numGPIOEncoders++];
-                e.pos0 = &mi;
-                e.pos1 = &mj;
-                e.pinA = mi.port;
-                e.pinB = mj.port;
-                pinMode(e.pinA, INPUT_PULLUP);
-                pinMode(e.pinB, INPUT_PULLUP);
-                uint8_t a = digitalRead(e.pinA), b = digitalRead(e.pinB);
-                e.lastState = (a << 1) | b;
-                e.accum = 0;
-                e.position = 0;
-                encoderPinMask[e.pinA] = 1;
-                encoderPinMask[e.pinB] = 1;
-            }
-            break; // Only pair once per anchor
-        }
-    }
-}
-
-static void pollGPIOEncoders() {
-    for (uint8_t i = 0; i < numGPIOEncoders; ++i) {
-        GPIOEncoderState& e = gpioEncoders[i];
-        uint8_t a = digitalRead(e.pinA), b = digitalRead(e.pinB);
-        uint8_t currState = (a << 1) | b;
-        uint8_t idx = (e.lastState << 2) | currState;
-        int8_t movement = encoder_transition_table[idx];
-
-        if (movement != 0) {
-            e.accum += movement;
-            if (e.accum >= ENCODER_TICKS_PER_NOTCH) {
-                e.position++;
-                e.accum = 0;
-                HIDManager_setNamedButton(e.pos1->label, false, 1);
-            }
-            else if (e.accum <= -ENCODER_TICKS_PER_NOTCH) {
-                e.position--;
-                e.accum = 0;
-                HIDManager_setNamedButton(e.pos0->label, false, 0);
-            }
-        }
-        e.lastState = currState;
+        // Assign axis
+        autoAnalogs[numAutoAnalogs++] = AutoAnalogInput{ m.label, (uint8_t)m.port, (HIDAxis)axisIdx };
+        --axisIdx;
     }
 }
 
@@ -325,7 +141,7 @@ static void pollPCA9555_flat(bool forceSend = false) {
                 uint8_t pval = (pin.port == 0) ? port0 : port1;
                 bool pressed = ((pval & (1 << pin.bit)) == 0); // active LOW
                 if (pressed != lastStatePCA9555[i] || forceSend) {
-                    HIDManager_setNamedButton(pin.label, false, pressed);
+                    HIDManager_setNamedButton(pin.label, forceSend, pressed);
                     lastStatePCA9555[i] = pressed;
                 }
             }
@@ -350,31 +166,13 @@ static void pollPCA9555_flat(bool forceSend = false) {
             // Latch & fire once per group per chip
             if (winner && (forceSend || lastValSelector[group][chip] != winner->oride_value)) {
                 lastValSelector[group][chip] = winner->oride_value;
-                HIDManager_setNamedButton(winner->label, false, true);
+                HIDManager_setNamedButton(winner->label, forceSend, true);
             }
         }
 
         // (Optional: update pcas[] cached values for diagnostic/logging)
         pcas[chip].p0 = port0;
         pcas[chip].p1 = port1;
-    }
-}
-
-static void buildAutoAnalogInputs() {
-    numAutoAnalogs = 0;
-
-    // Assign axes from AXIS_CUSTOM4 downward (reverse order)
-    int axisIdx = HID_AXIS_COUNT - 1; // AXIS_CUSTOM4 is the last in enum
-
-    for (size_t i = 0; i < InputMappingSize && axisIdx >= 0; ++i) {
-        const auto& m = InputMappings[i];
-        if (!m.label || !m.source) continue;
-        if (strcmp(m.controlType, "analog") != 0) continue;
-        if (m.port < 0) continue; // Must have a valid analog pin
-
-        // Assign axis
-        autoAnalogs[numAutoAnalogs++] = AutoAnalogInput{ m.label, (uint8_t)m.port, (HIDAxis)axisIdx };
-        --axisIdx;
     }
 }
 
@@ -455,25 +253,6 @@ void TEST_ONLY_init() {
 
     // 4. Fire All GPIO Selector States to Reset
     pollGPIOSelectors(true);
-
-    // 5. Fire All PCA9555 Momentary/Selector States to HID
-    for (size_t i = 0; i < InputMappingSize; ++i) {
-        const auto& m = InputMappings[i];
-        if (!m.label || !m.source || !startsWith(m.source, "PCA_0x")) continue;
-        uint8_t a = parseHexByte(m.source + 4);
-        const PcaState* ps = nullptr;
-        for (size_t k = 0; k < numPcas; ++k)
-            if (pcas[k].addr == a) { ps = &pcas[k]; break; }
-        if (!ps) continue;
-        uint8_t byte = (m.port == 0) ? ps->p0 : ps->p1;
-        bool pressed = ((byte >> m.bit) & 1) == 0;
-        if (strcmp(m.controlType, "momentary") == 0) {
-            HIDManager_setNamedButton(m.label, true, pressed);
-        }
-        else if (m.group > 0 && pressed) {
-            HIDManager_setNamedButton(m.label, true, true);
-        }
-    }
 
     // --- [Done] ---
     debugPrintln("✅ TEST_ONLY panel initialized");

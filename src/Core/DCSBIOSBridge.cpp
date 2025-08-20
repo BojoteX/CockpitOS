@@ -429,12 +429,15 @@ void initPanels() {
 
 	// Reset all tracked command history entries
     syncCommandHistoryFromInputMapping();
+    debugPrintln("[SYNC PANELS] 🔁 Just ran syncCommandHistoryFromInputMapping()\n");
 
     // This ensures your cockpit and sim always sync on mission start
     initializePanels(1);
+    debugPrintln("[SYNC PANELS] 🔁 Just ran  initializePanels(1)\n");
 
     // Forces all pending selector changes out now (after panels are initialized)
 	flushBufferedDcsCommands();  
+    	debugPrintln("[SYNC PANELS] 🔁 Just ran flushBufferedDcsCommands()\n");
 
     forcePanelSyncThisMission = false;
 }
@@ -451,9 +454,13 @@ void initPanels() {
 
     HIDManager_resetAllAxes();
     syncCommandHistoryFromInputMapping();
+    // debugPrintln("[SYNC PANELS] ❌ Just ran syncCommandHistoryFromInputMapping()\n");
 
     initializePanels(1);        // emits forced selector/axis commands
+    // debugPrintln("[SYNC PANELS] ❌ Just ran  initializePanels(1)\n");
+
     flushBufferedDcsCommands(); // clears losers / commits winners immediately
+    // debugPrintln("[SYNC PANELS] ❌ Just ran flushBufferedDcsCommands()\n");
 
     forcePanelSyncThisMission = false;
     // panelsSyncedThisMission stays true

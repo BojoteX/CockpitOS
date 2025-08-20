@@ -8,15 +8,8 @@
 #include "src/WiFiDebug.h"
 #endif
 
-/*
-// Call legacy only if that panel is NOT registered via the new registry
-#define CALL_INIT_IF_NOT_REG(K, FN)  do { if (!PanelRegistry_has(PanelKind::K)) { FN; } } while(0)
-#define CALL_LOOP_IF_NOT_REG(K, FN)  do { if (!PanelRegistry_has(PanelKind::K)) { FN; } } while(0)
-#define CALL_DINIT_IF_NOT_REG(K, FN) do { if (!PanelRegistry_has(PanelKind::K)) { FN; } } while(0)
-#define CALL_DLOOP_IF_NOT_REG(K, FN) do { if (!PanelRegistry_has(PanelKind::K)) { FN; } } while(0)
-*/
-
 // -- Panel Modules --
+/*
 #include "src/LeftAnnunciator.h"
 #include "src/RightAnnunciator.h"
 #include "src/IRCoolPanel.h"
@@ -33,7 +26,9 @@
 #include "src/CustomFrontRightPanel.h"
 #include "src/RightPanelController.h"
 #include "src/LeftPanelController.h"
-#include "src/TEST_ONLY.h"
+*/
+
+#include "src/Panels/includes/TEST_ONLY.h"
 // Don't forget to include headers for any custom panels added
 
 // Panel presence flags (runtime, set in initMappings() via registry or panelExists())
@@ -97,29 +92,6 @@ void initMappings() {
     debugPrintln("Unknown device type");
 #endif
 
-/*
-    // Panel presence via registry (remember to register panels on its cpp file)
-    hasBrain                 = PanelRegistry_registered("hasBrain");
-    hasIFEI                  = PanelRegistry_registered("hasIFEI");
-    hasALR67                 = PanelRegistry_registered("hasALR67");
-    hasCA                    = PanelRegistry_registered("hasCA");
-    hasLA                    = PanelRegistry_registered("hasLA");
-    hasRA                    = PanelRegistry_registered("hasRA");
-    hasIR                    = PanelRegistry_registered("hasIR");
-    hasLockShoot             = PanelRegistry_registered("hasLockShoot");
-    hasGauge                 = PanelRegistry_registered("hasGauge");
-    hasTFTBattGauge          = PanelRegistry_registered("hasTFTBattGauge");
-    hasTFTCabPressGauge      = PanelRegistry_registered("hasTFTCabPressGauge");
-    hasTFTBrakePressGauge    = PanelRegistry_registered("hasTFTBrakePressGauge");
-    hasTFTHydPressGauge      = PanelRegistry_registered("hasTFTHydPressGauge");
-    hasTFTRadarAltGauge      = PanelRegistry_registered("hasTFTRadarAltGauge");
-    hasRightPanelController  = PanelRegistry_registered("hasRightPanelController");
-    hasLeftPanelController   = PanelRegistry_registered("hasLeftPanelController");
-    hasFrontLeftPanel        = PanelRegistry_registered("hasFrontLeftPanel");
-    hasCustomFrontRightPanel = PanelRegistry_registered("hasCustomFrontRightPanel");
-    hasTEST_ONLY             = PanelRegistry_registered("hasTEST_ONLY");
-*/
-
     // Presence via registry
     hasBrain                 = PanelRegistry_has(PanelKind::Brain);
     hasIFEI                  = PanelRegistry_has(PanelKind::IFEI);
@@ -168,15 +140,6 @@ void initMappings() {
 void initializeDisplays() {
 
   PanelRegistry_forEachDisplayInit();
-
-  /*
-  if (hasIFEI) IFEIDisplay_init();
-  if (hasTFTCabPressGauge) CabinPressureGauge_init();
-  if (hasTFTRadarAltGauge) RadarAlt_init();
-  if (hasTFTHydPressGauge) HydPressureGauge_init();
-  if (hasTFTBrakePressGauge) BrakePressureGauge_init();
-  if (hasTFTBattGauge) BatteryGauge_init();
-  */
 
   // Any custom displays should be initialized here
 }
@@ -244,21 +207,6 @@ void initializePanels(bool force) {
     debugPrintln("Syncronizing Panel state....");
 
     PanelRegistry_forEachInit();
-
-/*
-    if (hasIFEI) IFEI_init(); // Buttons only
-    if (hasALR67) ALR67_init();
-    if (hasECM) ECM_init();
-    if (hasRA) RightAnnunciator_init();
-    if (hasLA) LeftAnnunciator_init();
-    if (hasIR) IRCool_init();
-    if (hasMasterARM) MasterARM_init();
-    if (hasRightPanelController) RightPanelButtons_init();
-    if (hasLeftPanelController) LeftPanelButtons_init();
-    if (hasFrontLeftPanel) FrontLeftPanelButtons_init();
-    if (hasCustomFrontRightPanel) FrontRightPanelButtons_init();
-    if (hasTEST_ONLY) TEST_ONLY_init();
-*/
     // Your custom panels init routine should go here
 
     if (!isModeSelectorDCS()) HIDManager_commitDeferredReport("All devices");
@@ -269,40 +217,6 @@ void panelLoop() {
     PanelRegistry_forEachLoop();
     PanelRegistry_forEachDisplayLoop();
     PanelRegistry_forEachTick();
-
-/*
-    // Panels
-    if (hasALR67) ALR67_loop();
-    if (hasECM) ECM_loop();
-    if (hasLA) LeftAnnunciator_loop();
-    if (hasRA) RightAnnunciator_loop();
-    if (hasIR) IRCool_loop();
-    if (hasMasterARM) MasterARM_loop();
-    if (hasRightPanelController) RightPanelButtons_loop();
-    if (hasLeftPanelController) LeftPanelButtons_loop();  
-    if (hasFrontLeftPanel) FrontLeftPanelButtons_loop();
-    if (hasCustomFrontRightPanel) FrontRightPanelButtons_loop();
-    // if (hasTEST_ONLY) TEST_ONLY_loop();
-
-    // Displays
-    if (hasIFEI) {
-        IFEI_loop();
-        IFEIDisplay_loop();
-    }
-
-    // Gauges
-    if (hasTFTBattGauge) BatteryGauge_loop();
-    if (hasTFTCabPressGauge) CabinPressureGauge_loop();
-    if (hasTFTRadarAltGauge) RadarAlt_loop();
-    if (hasTFTHydPressGauge) HydPressureGauge_loop();
-    if (hasTFTBrakePressGauge) BrakePressureGauge_loop();
-    
-    // Ticks
-    if (hasCA) GN1640_tick();
-    if (hasLA || hasRA) tm1637_tick();
-    if (hasLockShoot) WS2812_tick();
-    if (hasGauge) AnalogG_tick();
-*/
 
     // Your custom panels loop/tick routines should go here
 

@@ -1,6 +1,35 @@
 // Mappings.h
 
 #pragma once
+
+enum class PanelKind : uint8_t {
+  Brain, 
+  ECM, 
+  MasterARM, 
+  IFEI, 
+  ALR67, 
+  CA, 
+  LA, 
+  RA, 
+  IR, 
+  LockShoot,
+  TFTBatt, 
+  TFTCabPress, 
+  TFTBrake, 
+  TFTHyd, 
+  TFTRadarAlt,
+  RightPanelCtl, 
+  LeftPanelCtl, 
+  FrontLeft, 
+  CustomFrontRight,
+  TEST_ONLY,
+  AnalogGauge,
+  COUNT
+};
+static_assert(static_cast<uint8_t>(PanelKind::COUNT) <= 32,
+			  "Switch mask to 64-bit if you add more kinds");
+
+
 // --- Panel presence flags (all runtime, set in initMappings) ---
 extern bool hasBrain;
 extern bool hasECM;
@@ -23,254 +52,121 @@ extern bool hasFrontLeftPanel;
 extern bool hasCustomFrontRightPanel;
 extern bool hasTEST_ONLY;
 
-// Global GPIO centralized PIN assignments. This ones should be carefully MANAGED. Use your board ARDUINO_ name for custom PINs
-#if defined(ARDUINO_LOLIN_S3_MINI)
+// Converts S2 PINs to S3 for compatibility with TEK backplane (Brain Controller) used by the S2
+#include "src/PinMap.h"
 
-   // General Pins
-   #define SDA_PIN                                    7 // SDA for S3
-   #define SCL_PIN                                   13 // SCL for S3
-   #define GLOBAL_CLK_PIN                            44 // Global CLK for S3
-   #define CA_DIO_PIN                                38 // Caution Advisory DIO Pin
-   #define LA_DIO_PIN                                43 // Left Annunciator DIO Pin
-   #define LA_CLK_PIN                                GLOBAL_CLK_PIN // Left Annunciator Clock Pin
-   #define RA_DIO_PIN                                33 // Right Annunciator DIO Pin
-   #define RA_CLK_PIN                                GLOBAL_CLK_PIN // right Annunciator Clock Pin
-   #define LOCKSHOOT_DIO_PIN                         36 // Lock-Shoot Indicator DIO Pin
-   #define WS2812B_PIN                               LOCKSHOOT_DIO_PIN // Lock-Shoot Indicator DIO Pin
+// General Pins (canonical S2 → mapped by PIN())
+#define SDA_PIN                               PIN(8)
+#define SCL_PIN                               PIN(9)
+#define GLOBAL_CLK_PIN                        PIN(37)
+#define CA_DIO_PIN                            PIN(36)
+#define LA_DIO_PIN                            PIN(39)
+#define LA_CLK_PIN                            GLOBAL_CLK_PIN
+#define RA_DIO_PIN                            PIN(40)
+#define RA_CLK_PIN                            GLOBAL_CLK_PIN
+#define LOCKSHOOT_DIO_PIN                     PIN(35)
+#define WS2812B_PIN                           LOCKSHOOT_DIO_PIN
 
-   // Misc Pins
-   #define MODE_SWITCH_PIN                           35 // Mode Selector Pin
-   #define HMD_KNOB_PIN                              18 // Axis for HMD Knob
-   #define SPIN_LED_PIN                              34 // GPIO for SPIN Led   
-   #define INST_BACKLIGHT_PIN                         6 // GPIO for Instrument Backlight    
+// Misc Pins
+#define MODE_SWITCH_PIN                       PIN(33)
+#define HMD_KNOB_PIN                          PIN(18)
+#define SPIN_LED_PIN                          PIN(34)
+#define INST_BACKLIGHT_PIN                    PIN(6)
 
-   // Right Panel Controller
-   #define HC165_RIGHT_PANEL_CONTROLLER_QH            35  // Serial data output (QH)
-   #define HC165_RIGHT_PANEL_CONTROLLER_CP            34  // Clock input
-   #define HC165_RIGHT_PANEL_CONTROLLER_PL            36  // Latch input (active-low)     
-   #define FLOOD_DIMMER_KNOB_PIN                      1     
-   #define INST_PNL_DIMMER_KNOB_PIN                   3     
-   #define CABIN_TEMP_KNOB_PIN                        2
-   #define SUIT_TEMP_KNOB_PIN                         5 
-   #define CONSOLES_DIMMER_KNOB_PIN                   4 
-   #define WARN_CAUTION_DIMMER_KNOB_PIN               6   
-   #define CHART_DIMMER_KNOB_PIN                      12 
-   #define LED_CONSOLE_BACKLIGHT_RIGHT_PANEL          14
+// Right Panel Controller
+#define HC165_RIGHT_PANEL_CONTROLLER_QH       PIN(33)  // QH
+#define HC165_RIGHT_PANEL_CONTROLLER_CP       PIN(34)  // CP
+#define HC165_RIGHT_PANEL_CONTROLLER_PL       PIN(35)  // PL
+#define FLOOD_DIMMER_KNOB_PIN                 PIN(1)
+#define INST_PNL_DIMMER_KNOB_PIN              PIN(2)
+#define CABIN_TEMP_KNOB_PIN                   PIN(3)
+#define SUIT_TEMP_KNOB_PIN                    PIN(4)
+#define CONSOLES_DIMMER_KNOB_PIN              PIN(5)
+#define WARN_CAUTION_DIMMER_KNOB_PIN          PIN(6)
+#define CHART_DIMMER_KNOB_PIN                 PIN(7)
+#define LED_CONSOLE_BACKLIGHT_RIGHT_PANEL     PIN(14)
 
-   // Left Panel Controller
-   #define HC165_LEFT_PANEL_CONTROLLER_QH            38  // Serial data output (QH)
-   #define HC165_LEFT_PANEL_CONTROLLER_CP            37  // Clock input
-   #define HC165_LEFT_PANEL_CONTROLLER_PL            43  // Latch input (active-low)   
-   #define LED_APU_READY                             17
-   #define LED_CONSOLE_BACKLIGHT                     10
+// Left Panel Controller
+#define HC165_LEFT_PANEL_CONTROLLER_QH        PIN(36)  // QH
+#define HC165_LEFT_PANEL_CONTROLLER_CP        PIN(38)  // CP
+#define HC165_LEFT_PANEL_CONTROLLER_PL        PIN(39)  // PL
+#define LED_APU_READY                         PIN(17)
+#define LED_CONSOLE_BACKLIGHT_LEFT_PANEL      PIN(12)
 
-   #define COM_AUX_KNOB_PIN                           1
-   #define COM_ICS_KNOB_PIN                           2
-   #define COM_MIDS_A_KNOB_PIN                        3
-   #define COM_MIDS_B_KNOB_PIN                        4
-   #define COM_RWR_KNOB_PIN                           5
-   #define COM_TACAN_KNOB_PIN                         6
-   #define COM_VOX_KNOB_PIN                           7
-   #define COM_WPN_KNOB_PIN                          14
-   #define OXYFLOW_KNOB_PIN                          16
+#define COM_ICS_KNOB_PIN                      PIN(1)
+#define COM_WPN_KNOB_PIN                      PIN(2)
+#define COM_MIDS_A_KNOB_PIN                   PIN(3)
+#define COM_AUX_KNOB_PIN                      PIN(4)
+#define COM_VOX_KNOB_PIN                      PIN(5)
+#define COM_RWR_KNOB_PIN                      PIN(6)
+#define COM_MIDS_B_KNOB_PIN                   PIN(7)
+#define OXYFLOW_KNOB_PIN                      PIN(14)
+#define COM_TACAN_KNOB_PIN                    PIN(16)
 
-   // Front Left Panel Controller
-   #define FORMATION_LTS_KNOB_PIN                     1
-   #define POSITION_LTS_KNOB_PIN                      3
-   #define LED_CONSOLE_BACKLIGHT_FRONT_LEFT_PANEL    10
-   
-   // ALR-67 Pins
-   #define ALR67_HC165_PL                            36
-   #define ALR67_HC165_CP                            34
-   #define ALR67_HC165_QH                            35
-   #define ALR67_STROBE_1                            16
-   #define ALR67_STROBE_2                            17
-   #define ALR67_STROBE_3                            21
-   #define ALR67_STROBE_4                            44
-   #define ALR67_DataPin                             37
-   #define RWR_AUDIO_PIN                              1
-   #define RWR_DMR_PIN                                3    
+// Front Left Panel Controller
+#define FORMATION_LTS_KNOB_PIN                PIN(1)
+#define POSITION_LTS_KNOB_PIN                 PIN(2)
+#define LED_CONSOLE_BACKLIGHT_FRONT_LEFT_PANEL PIN(12)
 
-   // Chip Select pin for battery gauge (TFT Battery CS pin)
-   #define BATTERY_CS_PIN                            10    
+// ALR-67 Pins
+#define ALR67_HC165_PL                        PIN(35)
+#define ALR67_HC165_CP                        PIN(34)
+#define ALR67_HC165_QH                        PIN(33)
+#define ALR67_STROBE_1                        PIN(16)
+#define ALR67_STROBE_2                        PIN(17)
+#define ALR67_STROBE_3                        PIN(21)
+#define ALR67_STROBE_4                        PIN(37)
+#define ALR67_DataPin                         PIN(38)
+#define RWR_AUDIO_PIN                         PIN(1)
+#define RWR_DMR_PIN                           PIN(2)
 
-   // Chip Select pin for Cabin Pressure gauge (TFT Cabin Pressure CS pin)
-   #define CABIN_PRESSURE_CS_PIN                     10  
+// TFT chip-selects
+#define BATTERY_CS_PIN                        PIN(38)
+#define CABIN_PRESSURE_CS_PIN                 PIN(38)
+#define BRAKE_PRESSURE_CS_PIN                 PIN(38)
+#define HYD_PRESSURE_CS_PIN                   PIN(38)
+#define RADARALT_CS_PIN                       PIN(38)
 
-   // Chip Select pin for Brake Pressure gauge (TFT Brake Pressure CS pin)
-   #define BRAKE_PRESSURE_CS_PIN                     10  
+// 74HC165 IFEI pins
+#define HC165_QH                              PIN(38)
+#define HC165_PL                              PIN(39)
+#define HC165_CP                              PIN(40)
 
-   // Chip Select pin for Hyd Pressure gauge (TFT Hyd Pressure CS pin)
-   #define HYD_PRESSURE_CS_PIN                       10  
+// Left LCD
+#define DATA0_PIN                             PIN(34)
+#define WR0_PIN                               PIN(35)
+#define CS0_PIN                               PIN(36)
 
-   // Chip Select pin for Radar Alt gauge (TFT Radar Alt CS pin)
-   #define RADARALT_CS_PIN                           10  
+// Right LCD
+#define DATA1_PIN                             PIN(18)
+#define WR1_PIN                               PIN(21)
+#define CS1_PIN                               PIN(33)
 
-   // --- 74HC165 IFEI pins ---
-   #define HC165_QH                                  37
-   #define HC165_PL                                  43
-   #define HC165_CP                                  33
+// Backlight PINs
+#define BL_GREEN_PIN                          PIN(1)
+#define BL_WHITE_PIN                          PIN(2)
+#define BL_NVG_PIN                            PIN(4)
 
-   // Left LCD
-   #define DATA0_PIN                                 34
-   #define WR0_PIN                                   36
-   #define CS0_PIN                                   38
+// BRT Axis
+#define IFEI_BRIGHTNESS_PIN                   PIN(3)
 
-   // Right LCD
-   #define DATA1_PIN                                 18
-   #define WR1_PIN                                   21
-   #define CS1_PIN                                   35
+// ALR-67 extra pins
+#define RWR_SPECIAL_LT_PIN                    PIN(10)
+#define RWR_SPECIAL_EN_LT_PIN                 PIN(7)
+#define RWR_OFFSET_LT_PIN                     PIN(6)
+#define RWR_LOWER_LT_PIN                      PIN(12)
+#define RWR_LIMIT_LT_PIN                      PIN(11)
+#define RWR_FAIL_LT_PIN                       PIN(3)
+#define RWR_ENABLE_LT_PIN                     PIN(5)
+#define RWR_DISPLAY_LT_PIN                    PIN(13)
+#define RWR_BIT_LT_PIN                        PIN(4)
+#define PRESSURE_ALT_GAUGE_PIN                PIN(18)
+#define INST_BACKLIGHT_PIN_ALR67              PIN(14)
 
-   // Backlight PINs
-   #define BL_GREEN_PIN                               1
-   #define BL_WHITE_PIN                               3
-   #define BL_NVG_PIN                                 5      
-
-   // BRT Axis
-   #define IFEI_BRIGHTNESS_PIN                        2   
-
-   // ALR-67 Pins (S3)
-   #define RWR_SPECIAL_LT_PIN                         8
-   #define RWR_SPECIAL_EN_LT_PIN                     12
-   #define RWR_OFFSET_LT_PIN                          6
-   #define RWR_LOWER_LT_PIN                          10
-   #define RWR_LIMIT_LT_PIN                          11
-   #define RWR_FAIL_LT_PIN                            2
-   #define RWR_ENABLE_LT_PIN                          4
-   #define RWR_DISPLAY_LT_PIN                         9
-   #define RWR_BIT_LT_PIN                             5
-   #define PRESSURE_ALT_GAUGE_PIN                    18
-   #define INST_BACKLIGHT_PIN_ALR67                  14  
-
-   // Radar Altimeter GPIOs (S3)
-   #define RA_TEST_GPIO                               3
-   #define RA_DEC_HEIGHT_GPIO                         2
-   #define RA_INC_HEIGHT_GPIO                         5    
-
-#else // Below are PINs used with the LOLIN S2 Mini board. Create elif branch if adding different boards
-
-   // General Pins
-   #define SDA_PIN                                    8 // This could be overriden from a panel file if needed
-   #define SCL_PIN                                    9 // This could be overriden from a panel file if needed
-   #define GLOBAL_CLK_PIN                            37 // Clock Pin
-   #define CA_DIO_PIN                                36 // Caution Advisory DIO Pin
-   #define LA_DIO_PIN                                39 // Left Annunciator DIO Pin
-   #define LA_CLK_PIN                                GLOBAL_CLK_PIN // Left Annunciator Clock Pin
-   #define RA_DIO_PIN                                40 // Right Annunciator DIO Pin
-   #define RA_CLK_PIN                                GLOBAL_CLK_PIN // right Annunciator Clock Pin
-   #define LOCKSHOOT_DIO_PIN                         35 // Lock-Shoot Indicator DIO Pin
-   #define WS2812B_PIN                               LOCKSHOOT_DIO_PIN // Lock-Shoot Indicator DIO Pin
-
-   // Misc Pins
-   #define MODE_SWITCH_PIN                           33 // Mode Selector Pin 
-   #define HMD_KNOB_PIN                              18 // Acis for HMD Knob
-   #define SPIN_LED_PIN                              34 // GPIO for SPIN Led     
-   #define INST_BACKLIGHT_PIN                         6 // GPIO for Instrument Backlight   
-
-   // Right Panel Controller (S2)
-   #define HC165_RIGHT_PANEL_CONTROLLER_QH            33  // Serial data output (QH)
-   #define HC165_RIGHT_PANEL_CONTROLLER_CP            34  // Clock input
-   #define HC165_RIGHT_PANEL_CONTROLLER_PL            35  // Latch input (active-low)   
-   #define FLOOD_DIMMER_KNOB_PIN                      1     
-   #define INST_PNL_DIMMER_KNOB_PIN                   2     
-   #define CABIN_TEMP_KNOB_PIN                        3
-   #define SUIT_TEMP_KNOB_PIN                         4 
-   #define CONSOLES_DIMMER_KNOB_PIN                   5 
-   #define WARN_CAUTION_DIMMER_KNOB_PIN               6   
-   #define CHART_DIMMER_KNOB_PIN                      7 
-   #define LED_CONSOLE_BACKLIGHT_RIGHT_PANEL         14
-   
-// Left Panel Controller (S2)
-   #define HC165_LEFT_PANEL_CONTROLLER_QH            36  // Serial data output (QH)
-   #define HC165_LEFT_PANEL_CONTROLLER_CP            38  // Clock input
-   #define HC165_LEFT_PANEL_CONTROLLER_PL            39  // Latch input (active-low)   
-   #define LED_APU_READY                             17
-   #define LED_CONSOLE_BACKLIGHT_LEFT_PANEL          12
-
-   #define COM_ICS_KNOB_PIN                           1
-   #define COM_WPN_KNOB_PIN                           2
-   #define COM_MIDS_A_KNOB_PIN                        3
-   #define COM_AUX_KNOB_PIN                           4   
-   #define COM_VOX_KNOB_PIN                           5
-   #define COM_RWR_KNOB_PIN                           6
-   #define COM_MIDS_B_KNOB_PIN                        7
-   #define OXYFLOW_KNOB_PIN                          14
-   #define COM_TACAN_KNOB_PIN                        16
-
-   // Front Left Panel Controller
-   #define FORMATION_LTS_KNOB_PIN                    1
-   #define POSITION_LTS_KNOB_PIN                     2
-   #define LED_CONSOLE_BACKLIGHT_FRONT_LEFT_PANEL   12
-
-   // ALR-67 Pins
-   #define ALR67_HC165_PL                            35
-   #define ALR67_HC165_CP                            34
-   #define ALR67_HC165_QH                            33
-   #define ALR67_STROBE_1                            16
-   #define ALR67_STROBE_2                            17
-   #define ALR67_STROBE_3                            21
-   #define ALR67_STROBE_4                            37
-   #define ALR67_DataPin                             38
-   #define RWR_AUDIO_PIN                              1
-   #define RWR_DMR_PIN                                2
-
-   // Chip Select pin for battery gauge (TFT CS pin)
-   #define BATTERY_CS_PIN                            38   
-
-   // Chip Select pin for Cabin Pressure gauge (TFT Cabin Pressure CS pin)
-   #define CABIN_PRESSURE_CS_PIN                     38  
-
-   // Chip Select pin for Brake Pressure gauge (TFT Brake Pressure CS pin)
-   #define BRAKE_PRESSURE_CS_PIN                     38  
-
-   // Chip Select pin for Hyd Pressure gauge (TFT Hyd Pressure CS pin)
-   #define HYD_PRESSURE_CS_PIN                       38  
-
-   // Chip Select pin for Hyd Pressure gauge (TFT Hyd Pressure CS pin)
-   #define RADARALT_CS_PIN                           38  
-
-   // --- 74HC165 IFEI pins ---
-   #define HC165_QH                                  38
-   #define HC165_PL                                  39
-   #define HC165_CP                                  40
-
-   // Left LCD
-   #define DATA0_PIN                                 34
-   #define WR0_PIN                                   35
-   #define CS0_PIN                                   36
-
-   // Right LCD
-   #define DATA1_PIN                                 18
-   #define WR1_PIN                                   21
-   #define CS1_PIN                                   33
-
-   // Backlight PINs
-   #define BL_GREEN_PIN                               1
-   #define BL_WHITE_PIN                               2
-   #define BL_NVG_PIN                                 4   
-
-   // BRT Axis
-   #define IFEI_BRIGHTNESS_PIN                        3
-
-   // ALR-67 Pins (S2)
-   #define RWR_SPECIAL_LT_PIN                        10
-   #define RWR_SPECIAL_EN_LT_PIN                      7
-   #define RWR_OFFSET_LT_PIN                          6
-   #define RWR_LOWER_LT_PIN                          12
-   #define RWR_LIMIT_LT_PIN                          11
-   #define RWR_FAIL_LT_PIN                            3
-   #define RWR_ENABLE_LT_PIN                          5
-   #define RWR_DISPLAY_LT_PIN                        13
-   #define RWR_BIT_LT_PIN                             4
-   #define PRESSURE_ALT_GAUGE_PIN                    18
-   #define INST_BACKLIGHT_PIN_ALR67                  14   
-
-   // Radar Altimeter GPIOs (S2)
-   #define RA_TEST_GPIO                               2
-   #define RA_DEC_HEIGHT_GPIO                         3
-   #define RA_INC_HEIGHT_GPIO                         4
-
-#endif
+// Radar Altimeter GPIOs
+#define RA_TEST_GPIO                          PIN(2)
+#define RA_DEC_HEIGHT_GPIO                    PIN(3)
+#define RA_INC_HEIGHT_GPIO                    PIN(4)
 
 void initMappings();
 void initializePanels(bool force);
@@ -287,7 +183,7 @@ enum class PanelID : uint8_t {
    UNKNOWN  = 0x00  // Placeholder
 };
 
-// —— Source panel table —— (dodnt forget to update the ENUM above, here you give it a friendly name) 
+// —— Source panel table —— (don't forget to update the ENUM above, here you give it a friendly name) 
 struct PanelDef { uint8_t addr; PanelID id; const char* label; };
 static constexpr PanelDef kPanels[] = {
   { 0x22, PanelID::ECM,    "ECM Panel"             },
@@ -300,201 +196,7 @@ PanelID     getPanelID(uint8_t address);
 const char* panelIDToString(PanelID id);
 const char* getPanelName(uint8_t addr);  // Declaration
 
-// --- Per-LABEL_SET logic and includes ---
-// Just like before: include the right generated mapping files for this build
-#if defined(LABEL_SET_ALR67)
-
-   #define LABEL_SET "RWR ALR-67"
-   #define HAS_HID_MODE_SELECTOR 0
-   #define MODE_DEFAULT_IS_HID 0
-
-   #include "src/LABELS/LABEL_SET_ALR67/CT_Display.h"
-   #include "src/LABELS/LABEL_SET_ALR67/DCSBIOSBridgeData.h"
-   #include "src/LABELS/LABEL_SET_ALR67/InputMapping.h"
-   #include "src/LABELS/LABEL_SET_ALR67/LEDMapping.h"
-   #include "src/LABELS/LABEL_SET_ALR67/DisplayMapping.h"
-
-#elif defined(LABEL_SET_ALTIMETER)
-
-   #define LABEL_SET "Analog Cockpit Altimeter"
-   #define HAS_HID_MODE_SELECTOR 0
-   #define MODE_DEFAULT_IS_HID 0
-
-   #include "src/LABELS/LABEL_SET_ALTIMETER/CT_Display.h"
-   #include "src/LABELS/LABEL_SET_ALTIMETER/DCSBIOSBridgeData.h"
-   #include "src/LABELS/LABEL_SET_ALTIMETER/InputMapping.h"
-   #include "src/LABELS/LABEL_SET_ALTIMETER/LEDMapping.h"
-   #include "src/LABELS/LABEL_SET_ALTIMETER/DisplayMapping.h"
-
-#elif defined(LABEL_SET_ALL)
-
-   #define LABEL_SET "ALL (Debug Only)"
-   #define HAS_HID_MODE_SELECTOR 0
-   #define MODE_DEFAULT_IS_HID 0
-
-   #include "src/LABELS/LABEL_SET_ALL/CT_Display.h"
-   #include "src/LABELS/LABEL_SET_ALL/DCSBIOSBridgeData.h"
-   #include "src/LABELS/LABEL_SET_ALL/InputMapping.h"
-   #include "src/LABELS/LABEL_SET_ALL/LEDMapping.h"
-   #include "src/LABELS/LABEL_SET_ALL/DisplayMapping.h"
-
-#elif defined(LABEL_SET_IFEI_NO_VIDEO)
-
-   #define LABEL_SET "IFEI (No Video)"
-   #define HAS_HID_MODE_SELECTOR 0
-   #define MODE_DEFAULT_IS_HID 0
-
-   #include "src/LABELS/LABEL_SET_IFEI_NO_VIDEO/CT_Display.h"
-   #include "src/LABELS/LABEL_SET_IFEI_NO_VIDEO/DCSBIOSBridgeData.h"
-   #include "src/LABELS/LABEL_SET_IFEI_NO_VIDEO/InputMapping.h"
-   #include "src/LABELS/LABEL_SET_IFEI_NO_VIDEO/LEDMapping.h"
-   #include "src/LABELS/LABEL_SET_IFEI_NO_VIDEO/DisplayMapping.h"
-
-#elif defined(LABEL_SET_MAIN)
-
-   #define LABEL_SET "Main Instruments"
-   #define HAS_HID_MODE_SELECTOR 1
-   #define MODE_DEFAULT_IS_HID 0
-
-   #include "src/LABELS/LABEL_SET_MAIN/CT_Display.h"
-   #include "src/LABELS/LABEL_SET_MAIN/DCSBIOSBridgeData.h"
-   #include "src/LABELS/LABEL_SET_MAIN/InputMapping.h"
-   #include "src/LABELS/LABEL_SET_MAIN/LEDMapping.h"
-   #include "src/LABELS/LABEL_SET_MAIN/DisplayMapping.h"
-
-#elif defined(LABEL_SET_RIGHT_PANEL_CONTROLLER)
-
-   #define LABEL_SET "Right Panel Controller"
-   #define HAS_HID_MODE_SELECTOR 0
-   #define MODE_DEFAULT_IS_HID 0
-
-   #include "src/LABELS/LABEL_SET_RIGHT_PANEL_CONTROLLER/CT_Display.h"
-   #include "src/LABELS/LABEL_SET_RIGHT_PANEL_CONTROLLER/DCSBIOSBridgeData.h"
-   #include "src/LABELS/LABEL_SET_RIGHT_PANEL_CONTROLLER/InputMapping.h"
-   #include "src/LABELS/LABEL_SET_RIGHT_PANEL_CONTROLLER/LEDMapping.h"
-   #include "src/LABELS/LABEL_SET_RIGHT_PANEL_CONTROLLER/DisplayMapping.h"
-
-#elif defined(LABEL_SET_LEFT_PANEL_CONTROLLER)
-
-   #define LABEL_SET "Left Panel Controller"
-   #define HAS_HID_MODE_SELECTOR 0
-   #define MODE_DEFAULT_IS_HID 0
-
-   #include "src/LABELS/LABEL_SET_LEFT_PANEL_CONTROLLER/CT_Display.h"
-   #include "src/LABELS/LABEL_SET_LEFT_PANEL_CONTROLLER/DCSBIOSBridgeData.h"
-   #include "src/LABELS/LABEL_SET_LEFT_PANEL_CONTROLLER/InputMapping.h"
-   #include "src/LABELS/LABEL_SET_LEFT_PANEL_CONTROLLER/LEDMapping.h"
-   #include "src/LABELS/LABEL_SET_LEFT_PANEL_CONTROLLER/DisplayMapping.h"
-
-#elif defined(LABEL_SET_FRONT_LEFT_PANEL)
-
-   #define LABEL_SET "Front Left Panel"
-   #define HAS_HID_MODE_SELECTOR 0
-   #define MODE_DEFAULT_IS_HID 0
-
-   #include "src/LABELS/LABEL_SET_FRONT_LEFT_PANEL/CT_Display.h"
-   #include "src/LABELS/LABEL_SET_FRONT_LEFT_PANEL/DCSBIOSBridgeData.h"
-   #include "src/LABELS/LABEL_SET_FRONT_LEFT_PANEL/InputMapping.h"
-   #include "src/LABELS/LABEL_SET_FRONT_LEFT_PANEL/LEDMapping.h"
-   #include "src/LABELS/LABEL_SET_FRONT_LEFT_PANEL/DisplayMapping.h"
-
-#elif defined(LABEL_SET_BATTERY_GAUGE)
-
-   #define LABEL_SET "Battery Gauge"
-   #define HAS_HID_MODE_SELECTOR 0
-   #define MODE_DEFAULT_IS_HID 0
-
-   #include "src/LABELS/LABEL_SET_BATTERY_GAUGE/CT_Display.h"
-   #include "src/LABELS/LABEL_SET_BATTERY_GAUGE/DCSBIOSBridgeData.h"
-   #include "src/LABELS/LABEL_SET_BATTERY_GAUGE/InputMapping.h"
-   #include "src/LABELS/LABEL_SET_BATTERY_GAUGE/LEDMapping.h"
-   #include "src/LABELS/LABEL_SET_BATTERY_GAUGE/DisplayMapping.h"
-
-#elif defined(LABEL_SET_BRAKE_PRESSURE_GAUGE)
-
-   #define LABEL_SET "Brake Pressure Gauge"
-   #define HAS_HID_MODE_SELECTOR 0
-   #define MODE_DEFAULT_IS_HID 0
-
-   #include "src/LABELS/LABEL_SET_BRAKE_PRESSURE_GAUGE/CT_Display.h"
-   #include "src/LABELS/LABEL_SET_BRAKE_PRESSURE_GAUGE/DCSBIOSBridgeData.h"
-   #include "src/LABELS/LABEL_SET_BRAKE_PRESSURE_GAUGE/InputMapping.h"
-   #include "src/LABELS/LABEL_SET_BRAKE_PRESSURE_GAUGE/LEDMapping.h"
-   #include "src/LABELS/LABEL_SET_BRAKE_PRESSURE_GAUGE/DisplayMapping.h"
-
-#elif defined(LABEL_SET_HYD_PRESSURE_GAUGE)
-
-   #define LABEL_SET "Hyd Pressure Gauge"
-   #define HAS_HID_MODE_SELECTOR 0
-   #define MODE_DEFAULT_IS_HID 0
-
-   #include "src/LABELS/LABEL_SET_HYD_PRESSURE_GAUGE/CT_Display.h"
-   #include "src/LABELS/LABEL_SET_HYD_PRESSURE_GAUGE/DCSBIOSBridgeData.h"
-   #include "src/LABELS/LABEL_SET_HYD_PRESSURE_GAUGE/InputMapping.h"
-   #include "src/LABELS/LABEL_SET_HYD_PRESSURE_GAUGE/LEDMapping.h"
-   #include "src/LABELS/LABEL_SET_HYD_PRESSURE_GAUGE/DisplayMapping.h"
-
-#elif defined(LABEL_SET_CABIN_PRESSURE_GAUGE)
-
-   #define LABEL_SET "Cabin Pressure Gauge"
-   #define HAS_HID_MODE_SELECTOR 0
-   #define MODE_DEFAULT_IS_HID 0
-
-   #include "src/LABELS/LABEL_SET_CABIN_PRESSURE_GAUGE/CT_Display.h"
-   #include "src/LABELS/LABEL_SET_CABIN_PRESSURE_GAUGE/DCSBIOSBridgeData.h"
-   #include "src/LABELS/LABEL_SET_CABIN_PRESSURE_GAUGE/InputMapping.h"
-   #include "src/LABELS/LABEL_SET_CABIN_PRESSURE_GAUGE/LEDMapping.h"
-   #include "src/LABELS/LABEL_SET_CABIN_PRESSURE_GAUGE/DisplayMapping.h"
-
-#elif defined(LABEL_SET_RADAR_ALT_GAUGE)
-
-   #define LABEL_SET "Radar Altimeter Gauge"
-   #define HAS_HID_MODE_SELECTOR 0
-   #define MODE_DEFAULT_IS_HID 0
-
-   #include "src/LABELS/LABEL_SET_RADAR_ALT_GAUGE/CT_Display.h"
-   #include "src/LABELS/LABEL_SET_RADAR_ALT_GAUGE/DCSBIOSBridgeData.h"
-   #include "src/LABELS/LABEL_SET_RADAR_ALT_GAUGE/InputMapping.h"
-   #include "src/LABELS/LABEL_SET_RADAR_ALT_GAUGE/LEDMapping.h"
-   #include "src/LABELS/LABEL_SET_RADAR_ALT_GAUGE/DisplayMapping.h"
-
-#elif defined(LABEL_SET_CUSTOM_FRONT_RIGHT) // Uses the TEK Backplane (Old Version)
-
-   #define LABEL_SET "Custom Front Right Console"
-   #define HAS_HID_MODE_SELECTOR 1
-   #define MODE_DEFAULT_IS_HID 0
-
-   #include "src/LABELS/LABEL_SET_CUSTOM_FRONT_RIGHT/CT_Display.h"
-   #include "src/LABELS/LABEL_SET_CUSTOM_FRONT_RIGHT/DCSBIOSBridgeData.h"
-   #include "src/LABELS/LABEL_SET_CUSTOM_FRONT_RIGHT/InputMapping.h"
-   #include "src/LABELS/LABEL_SET_CUSTOM_FRONT_RIGHT/LEDMapping.h"
-   #include "src/LABELS/LABEL_SET_CUSTOM_FRONT_RIGHT/DisplayMapping.h"
-
-#elif defined(LABEL_SET_TEST_ONLY)
-
-   #define LABEL_SET "TEST ONLY"
-   #define HAS_HID_MODE_SELECTOR 0
-   #define MODE_DEFAULT_IS_HID 0
-
-   #include "src/LABELS/LABEL_SET_TEST_ONLY/CT_Display.h"
-   #include "src/LABELS/LABEL_SET_TEST_ONLY/DCSBIOSBridgeData.h"
-   #include "src/LABELS/LABEL_SET_TEST_ONLY/InputMapping.h"
-   #include "src/LABELS/LABEL_SET_TEST_ONLY/LEDMapping.h"
-   #include "src/LABELS/LABEL_SET_TEST_ONLY/DisplayMapping.h"
-
-#elif defined(LABEL_SET_F16_TEST)
-
-   #define LABEL_SET "F-16 test"
-   #define HAS_HID_MODE_SELECTOR 0
-   #define MODE_DEFAULT_IS_HID 0
-
-   #include "src/LABELS/LABEL_SET_F16_TEST/CT_Display.h"
-   #include "src/LABELS/LABEL_SET_F16_TEST/DCSBIOSBridgeData.h"
-   #include "src/LABELS/LABEL_SET_F16_TEST/InputMapping.h"
-   #include "src/LABELS/LABEL_SET_F16_TEST/LEDMapping.h"
-   #include "src/LABELS/LABEL_SET_F16_TEST/DisplayMapping.h"
-
-#endif
+#include "src/LabelSetSelect.h"
 
 /*
        S2 to S3 GPIO conversion table

@@ -157,7 +157,13 @@ void setup() {
     }
     else {
         debugPrintf("Device \"%s\" is ready\n", USB_SERIAL);
-    }       
+    }    
+
+    // What Arduino ESP32 was this compiled with?
+    debugPrintf("ESP32 Arduino core v%d.%d.%d  |  IDF v%d.%d.%d\n", 
+      ESP_ARDUINO_VERSION_MAJOR, ESP_ARDUINO_VERSION_MINOR, ESP_ARDUINO_VERSION_PATCH, 
+      ESP_IDF_VERSION_MAJOR, ESP_IDF_VERSION_MINOR, ESP_IDF_VERSION_PATCH);
+
     #if USE_DCSBIOS_USB
     debugPrintln("ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.");
     #endif

@@ -140,3 +140,19 @@ void runReplayWithPrompt() {
   }
   #endif
 }
+
+// ============================================================================
+//  UTILITY FUNCTIONS (Minimal, pure helpers)
+// ============================================================================
+bool startsWith(const char* s, const char* pfx) {
+    return s && pfx && strncmp(s, pfx, strlen(pfx)) == 0;
+}
+uint8_t hexNib(char c) {
+    return (c >= '0' && c <= '9') ? c - '0' :
+        (c >= 'a' && c <= 'f') ? 10 + c - 'a' :
+        (c >= 'A' && c <= 'F') ? 10 + c - 'A' : 0;
+}
+uint8_t parseHexByte(const char* s) { // expects "0xNN"
+    if (!s || strlen(s) < 3) return 0;
+    return (hexNib(s[2]) << 4) | hexNib(s[3]);
+}

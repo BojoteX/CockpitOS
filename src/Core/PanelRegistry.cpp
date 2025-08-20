@@ -1,4 +1,6 @@
 // PanelRegistry.cpp — modern only with runtime active gate
+#include "../Globals.h"
+#include "../../Mappings.h"
 #include "../PanelRegistry.h"
 #include <string.h>
 

@@ -5,7 +5,9 @@
 // Here you need to #define ONE and ONLY one of possible LABEL sets to use with your panel, 
 // ** ATTENTION ** REMEBER TO RUN generate_data.py (see LABELS directory) BEFORE compiling for each label set below 
 
-#define LABEL_SET_TEST_ONLY
+// Pick exactly one
+#define LABEL_SET TEST_ONLY
+
 // #define LABEL_SET_CUSTOM_FRONT_RIGHT
 // #define LABEL_SET_F16_TEST
 // #define LABEL_SET_BATTERY_GAUGE
@@ -48,7 +50,7 @@
 
 // Advanced config, these settings have been carefully tuned for performance and stability, 
 #define DCSBIOS_USE_LITE_VERSION                   1 // Set to 1 to use a LITE (local) version of the DCSBIOS Library. 0 Uses the Original unmodified Library (you'll need to install it)
-#define ALLOW_CONCURRENT_CDC_AND_HID               0 // Careful, this should ALWAYS be set to 0, concurrent CDC + HID is unstable
+#define ALLOW_CONCURRENT_CDC_AND_HID               1 // Careful, this should ALWAYS be set to 0, concurrent CDC + HID is unstable
 #define ENABLE_CDC_EVENTS                          1 // Enable CDC (TinyUSB) Serial events (Need to disable for HWSerial)
 #define ENABLE_HWCDC_EVENTS                        0 // Enable HW CDC (Hardware / JTAG) Serial events
 #define GAMEPAD_REPORT_SIZE                       64 // Must match the HID descriptor, you should NEVER have to change this.
@@ -75,6 +77,7 @@
 #define HID_REPORT_MIN_INTERVAL_US              (1000000UL / HID_REPORT_RATE_HZ) // min spacing/separation between reports
 #define DCS_KEEP_ALIVE_MS                       (1000 / DCS_UPDATE_RATE_HZ) // send PING 0 (ASCII command) every x ms (when using keep-alives)
 #define HID_KEEP_ALIVE_MS                       (1000 / HID_REPORT_RATE_HZ) // send HID command every x ms (when using keep-alives)
+#define MAX_SELECTOR_GROUPS                      32  // Max supported selector groups
 
 // Serial Debug Ring Buffer
 #define SERIAL_DEBUG_USE_RINGBUFFER               0 // Should be use a ring buffer for Serial Debug messages? not really necessary
@@ -128,10 +131,16 @@
 #define SERIAL_DEBUG_OUTPUT_CHUNK_SIZE           64 // Final Serial.write will use this value to chunk writes
 #define DCS_UDP_MAX_REASSEMBLED                1472 // Or whatever max UDP/Frame size you want
 
+// Stringize helpers
+#define _STR(x) #x
+#define STR(x)  _STR(x)
+// String form for text macros
+#define LABEL_SET_STR STR(LABEL_SET)
+
 // Required for Descriptor handling. For custom commercial implementations using your own name (you are free to do so), just by mindful of PID, VID, Manufacturer and the actual USB_PRODUCT string. No need for attribution, you can use this software as per the included LICENSE
 #define USB_VID		                           0xCAFE
 #define USB_PID		                           0xCAF3
-#define USB_SERIAL                           LABEL_SET
+#define USB_SERIAL                           LABEL_SET_STR
 #define USB_PRODUCT                          "CockpitOS Panel"
 #define USB_MANUFACTURER                     "CockpitOS Firmware Project"
 #define USB_LANG_ID                          0x0409  // English (US)

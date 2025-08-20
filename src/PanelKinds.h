@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 
+/*
 enum class PanelKind : uint8_t {
   	Brain, 
 	ECM, 
@@ -25,6 +26,7 @@ enum class PanelKind : uint8_t {
 	AnalogGauge,
   	COUNT
 };
-
 static_assert(static_cast<uint8_t>(PanelKind::COUNT) <= 32,
-              "Switch mask to 64-bit if you add more kinds");
+			  "Switch mask to 64-bit if you add more kinds");
+*/
+

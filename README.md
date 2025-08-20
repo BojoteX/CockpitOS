@@ -32,7 +32,7 @@ CockpitOS is a high-performance firmware platform for building **DCS-BIOS**-comp
 ## 🛠 Requirements
 
 - **IDE:** Arduino IDE ≥ 2.3.6  
-- **ESP32 Arduino Core:** v3.2.1 (2.x also supported)  
+- **ESP32 Arduino Core:** v3.x (2.x also supported starting with 2.0.4)  
 - **ESP32 Boards Tested:** LOLIN S2 Mini, LOLIN S3 Mini, LOLIN C3 Mini (All boards by WEMOS)  
 - **Libraries:**  
   - [LovyanGFX](https://github.com/lovyan03/LovyanGFX) — **required** for TFT gauge implementations.  
@@ -55,7 +55,7 @@ CockpitOS is a high-performance firmware platform for building **DCS-BIOS**-comp
 ## 🚀 Quick Start
 
 1. **Select label set**  
-   Set `LABEL_SET_xxxx` in `Config.h`.  
+   Set `LABEL_SET` in `Config.h`.  
 2. **Edit panel list**  
    Update `selected_panels.txt` in your label set directory.  
 3. **Generate mappings**  
@@ -65,7 +65,7 @@ CockpitOS is a high-performance firmware platform for building **DCS-BIOS**-comp
 5. **Build & upload**  
    Upload firmware to your ESP32 target.  
 6. **(Optional) Configure transport**  
-   Set WiFi or USB mode in `Config.h`.  
+   Set WiFi or USB mode in `Config.h` or none to use Serial (legacy).  
 7. **(Optional) Use companion tools**  
    See `Debug Tools/` and `HID Manager/`.  
 

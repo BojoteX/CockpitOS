@@ -43,13 +43,6 @@ void        scanConnectedPanels();
 void        printDiscoveredPanels();
 bool        panelExists(uint8_t targetAddr);
 
-/*
-inline const char* getPanelName(uint8_t addr) {
-  const char* n = (addr < I2C_ADDR_SPACE) ? panelNameByAddr[addr] : nullptr;
-  return n ? n : panelIDToString(getPanelID(addr));
-}
-*/
-
 // —— GPIO (discrete LEDs) —— 
 
 // Main API: These are called by LEDControl.cpp and your panel logic
@@ -61,6 +54,14 @@ void GPIO_offAnalog(uint8_t pin, bool activeLow);
 void resetAllGauges();
 void GPIO_setAllLEDs(bool state);  
 void preconfigureGPIO();
+
+// -- GPIO (Inputs/Selectors/Analogs)
+extern uint8_t numGPIOEncoders;
+extern uint8_t encoderPinMask[48];
+void buildGPIOEncoderStates();
+void buildGpioGroupDefs();
+void pollGPIOSelectors(bool forceSend = false);
+void pollGPIOEncoders();
 
 // —— WS2812 —— (Lockshoot + AoA Indexer)
 
@@ -243,3 +244,10 @@ private:
     void writeBitStrict(bool bit);
     void writeCommandBits(uint16_t bits, uint8_t len);
 };
+
+// ============================================================================
+//  UTILITY FUNCTIONS (Minimal, pure helpers)
+// ============================================================================
+bool startsWith(const char* s, const char* pfx);
+uint8_t hexNib(char c);
+uint8_t parseHexByte(const char* s);
