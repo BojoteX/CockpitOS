@@ -127,7 +127,7 @@ void setup() {
     initializeLEDs();
 
     // Initializes you panel buttons (forced)
-    initializePanels(1); // Force panel init (they only sync in the main loop unless we pass 1/true)
+    // initializePanels(1); // Force panel init (they only sync in the main loop unless we pass 1/true)
     
     // When TEST_LEDS is active device enters a menu selection to test LEDs individually. You activate them via Serial Console
     #if TEST_LEDS

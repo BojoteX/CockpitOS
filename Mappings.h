@@ -2,6 +2,25 @@
 
 #pragma once
 
+// -- Panel Modules -- Not needed
+/*
+#include "src/LeftAnnunciator.h"
+#include "src/RightAnnunciator.h"
+#include "src/IRCoolPanel.h"
+#include "src/MasterARMPanel.h"
+#include "src/ALR67Panel.h"
+#include "src/ECMPanel.h"
+#include "src/IFEIPanel.h"
+#include "src/TFT_Gauges_BrakePress.h"
+#include "src/TFT_Gauges_CabPress.h"
+#include "src/TFT_Gauges_RadarAlt.h"
+#include "src/TFT_Gauges_HydPress.h"
+#include "src/FrontLeftPanel.h"
+#include "src/CustomFrontRightPanel.h"
+#include "src/RightPanelController.h"
+#include "src/LeftPanelController.h"
+*/
+
 enum class PanelKind : uint8_t {
   Brain, 
   ECM, 
@@ -51,9 +70,6 @@ extern bool hasLeftPanelController;
 extern bool hasFrontLeftPanel;
 extern bool hasCustomFrontRightPanel;
 extern bool hasTEST_ONLY;
-
-// Converts S2 PINs to S3 for compatibility with TEK backplane (Brain Controller) used by the S2
-#include "src/PinMap.h"
 
 // General Pins (canonical S2 → mapped by PIN())
 #define SDA_PIN                               PIN(8)

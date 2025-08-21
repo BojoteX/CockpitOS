@@ -8,12 +8,18 @@
 #define DEBUG_CONSOLE_IP_ADDRESS                  "255.255.255.255" // Also a place holder, this sends debug info to any computer on your network
 */
 
+// Converts S2 PINs to S3 for compatibility with TEK backplane (Brain Controller) used by the S2
+#include "PinMap.h"
+
 #include "PsramConfig.h"
 #include <Arduino.h>
 #include "../Config.h"
 
 // DO NOT CHANGE ANYTHING ABOVE THIS LINE....
 #include "../lib/CUtils/src/CUtils.h" 
+
+// Centralized input control management (PCA/GPIO/HC165)
+#include "InputControl.h"
 
 // So we can call our custom print functions from anywhere
 #include "debugPrint.h"

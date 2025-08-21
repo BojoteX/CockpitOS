@@ -50,18 +50,9 @@ void GPIO_setAllLEDs(bool state);
 void GPIO_setDigital(uint8_t pin, bool activeHigh, bool state);
 void GPIO_setAnalog(uint8_t pin, bool activeLow, uint8_t intensity);
 void GPIO_offAnalog(uint8_t pin, bool activeLow);
-
 void resetAllGauges();
 void GPIO_setAllLEDs(bool state);  
 void preconfigureGPIO();
-
-// -- GPIO (Inputs/Selectors/Analogs)
-extern uint8_t numGPIOEncoders;
-extern uint8_t encoderPinMask[48];
-void buildGPIOEncoderStates();
-void buildGpioGroupDefs();
-void pollGPIOSelectors(bool forceSend = false);
-void pollGPIOEncoders();
 
 // —— WS2812 —— (Lockshoot + AoA Indexer)
 

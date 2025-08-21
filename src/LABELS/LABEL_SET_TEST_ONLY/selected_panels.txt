@@ -7,7 +7,10 @@
 # To update the list of available panels, just re-run this script.
 
 Flight Control System Panel
+Fuel Panel
+Interior Lights Panel
 Communication Panel
-Radar Altimeter
-Environment Control System Panel
-Map Gain/Spin Recovery Panel
+Auxiliary Power Unit Panel
+Antenna Select Panel
+LOX Indicator
+TODO

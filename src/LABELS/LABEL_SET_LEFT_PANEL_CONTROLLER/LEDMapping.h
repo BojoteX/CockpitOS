@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
+  DEVICE_NONE,
   DEVICE_GAUGE,
   DEVICE_WS2812,
-  DEVICE_GN1640T,
-  DEVICE_TM1637,
-  DEVICE_GPIO,
-  DEVICE_NONE,
   DEVICE_PCA9555,
+  DEVICE_TM1637,
+  DEVICE_GN1640T,
+  DEVICE_GPIO,
 };
 
 struct LEDMapping {

@@ -8,29 +8,6 @@
 #include "src/WiFiDebug.h"
 #endif
 
-// -- Panel Modules --
-/*
-#include "src/LeftAnnunciator.h"
-#include "src/RightAnnunciator.h"
-#include "src/IRCoolPanel.h"
-#include "src/MasterARMPanel.h"
-#include "src/ALR67Panel.h"
-#include "src/ECMPanel.h"
-#include "src/IFEIPanel.h"
-#include "src/TFT_Gauges_BrakePress.h"
-#include "src/TFT_Gauges_CabPress.h"
-#include "src/TFT_Gauges_RadarAlt.h"
-#include "src/TFT_Gauges_HydPress.h"
-#include "src/TFT_Gauges_Batt.h"
-#include "src/FrontLeftPanel.h"
-#include "src/CustomFrontRightPanel.h"
-#include "src/RightPanelController.h"
-#include "src/LeftPanelController.h"
-*/
-
-#include "src/Panels/includes/TEST_ONLY.h"
-// Don't forget to include headers for any custom panels added
-
 // Panel presence flags (runtime, set in initMappings() via registry or panelExists())
 // Do NOT set manually or via preprocessor!
 bool hasBrain                 = false;

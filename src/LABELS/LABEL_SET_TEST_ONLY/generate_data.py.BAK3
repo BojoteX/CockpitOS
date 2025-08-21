@@ -261,7 +261,6 @@ for panel, controls in data.items():
 
         orig_ident  = item.get('identifier', ident)   
         ctype       = item.get('control_type','').lower().strip()
-        ctype       = 'selector' if ctype == 'action' else ctype
         api_variant = item.get('api_variant','').strip()
         lid         = ident.lower()
         desc_lower  = item.get('description','').lower()

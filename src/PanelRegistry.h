@@ -1,7 +1,6 @@
 // PanelRegistry.h — modern only
 #pragma once
 #include <stdint.h>
-// #include "PanelKinds.h"
 enum class PanelKind : uint8_t;  // from Mappings.h
 
 using PanelFn = void (*)();
