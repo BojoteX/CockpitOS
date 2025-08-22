@@ -49,3 +49,12 @@ void buildPcaList();
 void buildPCA9555ResolvedInputs();
 void pollPCA9555_flat(bool forceSend = false);
 
+// HC165 Logic
+#ifndef HC165_INVERT_MASK
+#define HC165_INVERT_MASK 0ULL
+#endif
+
+// HC165 (shift register) — table build, cache reset, and dispatcher
+void buildHC165ResolvedInputs();                    // build flat tables from InputMappings[]
+void resetHC165SelectorCache();                     // clear per-group latch
+void processHC165Resolved(uint64_t cur, uint64_t prev, bool forceSend);

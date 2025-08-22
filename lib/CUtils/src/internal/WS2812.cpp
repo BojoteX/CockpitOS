@@ -123,7 +123,7 @@ void WS2812_show() {
 }
 
 void WS2812_setLEDColor(uint8_t ledIndex, CRGB color) {
-    if (!hasLockShoot) return;
+    if (!PanelRegistry_has(PanelKind::LockShoot)) return;
     if (ledIndex >= NUM_LEDS) return;
     leds[ledIndex] = color;
     pixels[ledIndex * 3 + 0] = color.g;

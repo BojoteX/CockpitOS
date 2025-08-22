@@ -2,25 +2,6 @@
 
 #pragma once
 
-// -- Panel Modules -- Not needed
-/*
-#include "src/LeftAnnunciator.h"
-#include "src/RightAnnunciator.h"
-#include "src/IRCoolPanel.h"
-#include "src/MasterARMPanel.h"
-#include "src/ALR67Panel.h"
-#include "src/ECMPanel.h"
-#include "src/IFEIPanel.h"
-#include "src/TFT_Gauges_BrakePress.h"
-#include "src/TFT_Gauges_CabPress.h"
-#include "src/TFT_Gauges_RadarAlt.h"
-#include "src/TFT_Gauges_HydPress.h"
-#include "src/FrontLeftPanel.h"
-#include "src/CustomFrontRightPanel.h"
-#include "src/RightPanelController.h"
-#include "src/LeftPanelController.h"
-*/
-
 enum class PanelKind : uint8_t {
   Brain, 
   ECM, 
@@ -48,29 +29,6 @@ enum class PanelKind : uint8_t {
 static_assert(static_cast<uint8_t>(PanelKind::COUNT) <= 32,
 			  "Switch mask to 64-bit if you add more kinds");
 
-
-// --- Panel presence flags (all runtime, set in initMappings) ---
-extern bool hasBrain;
-extern bool hasECM;
-extern bool hasMasterARM;
-extern bool hasIFEI;
-extern bool hasALR67;
-extern bool hasCA;
-extern bool hasLA;
-extern bool hasRA;
-extern bool hasIR;
-extern bool hasLockShoot;
-extern bool hasTFTBattGauge;
-extern bool hasTFTCabPressGauge;
-extern bool hasTFTBrakePressGauge;
-extern bool hasTFTHydPressGauge;
-extern bool hasTFTRadarAltGauge;
-extern bool hasRightPanelController;
-extern bool hasLeftPanelController;
-extern bool hasFrontLeftPanel;
-extern bool hasCustomFrontRightPanel;
-extern bool hasTEST_ONLY;
-
 // General Pins (canonical S2 → mapped by PIN())
 #define SDA_PIN                               PIN(8)
 #define SCL_PIN                               PIN(9)
@@ -85,39 +43,51 @@ extern bool hasTEST_ONLY;
 
 // Misc Pins
 #define MODE_SWITCH_PIN                       PIN(33)
-#define HMD_KNOB_PIN                          PIN(18)
-#define SPIN_LED_PIN                          PIN(34)
 #define INST_BACKLIGHT_PIN                    PIN(6)
 
+// IR Cool Panel
+#define HMD_KNOB_PIN                          PIN(18)
+#define SPIN_LED_PIN                          PIN(34)
+
 // Right Panel Controller
-#define HC165_RIGHT_PANEL_CONTROLLER_QH       PIN(33)  // QH
-#define HC165_RIGHT_PANEL_CONTROLLER_CP       PIN(34)  // CP
-#define HC165_RIGHT_PANEL_CONTROLLER_PL       PIN(35)  // PL
-#define FLOOD_DIMMER_KNOB_PIN                 PIN(1)
-#define INST_PNL_DIMMER_KNOB_PIN              PIN(2)
-#define CABIN_TEMP_KNOB_PIN                   PIN(3)
-#define SUIT_TEMP_KNOB_PIN                    PIN(4)
-#define CONSOLES_DIMMER_KNOB_PIN              PIN(5)
-#define WARN_CAUTION_DIMMER_KNOB_PIN          PIN(6)
-#define CHART_DIMMER_KNOB_PIN                 PIN(7)
 #define LED_CONSOLE_BACKLIGHT_RIGHT_PANEL     PIN(14)
 
 // Left Panel Controller
-#define HC165_LEFT_PANEL_CONTROLLER_QH        PIN(36)  // QH
-#define HC165_LEFT_PANEL_CONTROLLER_CP        PIN(38)  // CP
-#define HC165_LEFT_PANEL_CONTROLLER_PL        PIN(39)  // PL
-#define LED_APU_READY                         PIN(17)
 #define LED_CONSOLE_BACKLIGHT_LEFT_PANEL      PIN(12)
+#define LED_APU_READY                         PIN(17)
 
-#define COM_ICS_KNOB_PIN                      PIN(1)
-#define COM_WPN_KNOB_PIN                      PIN(2)
-#define COM_MIDS_A_KNOB_PIN                   PIN(3)
-#define COM_AUX_KNOB_PIN                      PIN(4)
-#define COM_VOX_KNOB_PIN                      PIN(5)
-#define COM_RWR_KNOB_PIN                      PIN(6)
-#define COM_MIDS_B_KNOB_PIN                   PIN(7)
-#define OXYFLOW_KNOB_PIN                      PIN(14)
-#define COM_TACAN_KNOB_PIN                    PIN(16)
+// HC165 PIN per panel
+#if defined(HAS_LEFT_PANEL_CONTROLLER)
+  #define HC165_BITS                 40   // Number of bits in HC165 shift register (0 = disabled)
+  #define HC165_CONTROLLER_PL        PIN(39)  // PL
+  #define HC165_CONTROLLER_CP        PIN(38)  // CP  
+  #define HC165_CONTROLLER_QH        PIN(36)  // QH  
+#elif defined(HAS_RIGHT_PANEL_CONTROLLER)
+  #define HC165_BITS                 48   // Number of bits in HC165 shift register (0 = disabled)
+  #define HC165_CONTROLLER_PL        PIN(35)   // Latch/Load (PL)
+  #define HC165_CONTROLLER_CP        PIN(34)   // Shift Clock (CP)
+  #define HC165_CONTROLLER_QH        PIN(33)   // Serial Data Out (QH)
+#elif defined(HAS_IFEI_NO_VIDEO)
+  #define HC165_BITS                 16   // Number of bits in HC165 shift register (0 = disabled)
+  #define HC165_CONTROLLER_PL        PIN(39)
+  #define HC165_CONTROLLER_CP        PIN(40)
+  #define HC165_CONTROLLER_QH        PIN(38)
+#elif defined(HAS_ALR67)
+  #define HC165_BITS                 8   // Number of bits in HC165 shift register (0 = disabled) 
+  #define HC165_CONTROLLER_PL        PIN(35)
+  #define HC165_CONTROLLER_CP        PIN(34)
+  #define HC165_CONTROLLER_QH        PIN(33)
+#elif defined(HAS_TEST_ONLY)
+  #define HC165_BITS                 -1   // Number of bits in HC165 shift register (0 = disabled) 
+  #define HC165_CONTROLLER_PL        -1
+  #define HC165_CONTROLLER_CP        -1
+  #define HC165_CONTROLLER_QH        -1    
+#else
+  #define HC165_BITS                 0   // Number of bits in HC165 shift register (0 = disabled) 
+  #define HC165_CONTROLLER_PL       -1
+  #define HC165_CONTROLLER_CP       -1
+  #define HC165_CONTROLLER_QH       -1
+#endif
 
 // Front Left Panel Controller
 #define FORMATION_LTS_KNOB_PIN                PIN(1)
@@ -125,9 +95,6 @@ extern bool hasTEST_ONLY;
 #define LED_CONSOLE_BACKLIGHT_FRONT_LEFT_PANEL PIN(12)
 
 // ALR-67 Pins
-#define ALR67_HC165_PL                        PIN(35)
-#define ALR67_HC165_CP                        PIN(34)
-#define ALR67_HC165_QH                        PIN(33)
 #define ALR67_STROBE_1                        PIN(16)
 #define ALR67_STROBE_2                        PIN(17)
 #define ALR67_STROBE_3                        PIN(21)
@@ -135,18 +102,6 @@ extern bool hasTEST_ONLY;
 #define ALR67_DataPin                         PIN(38)
 #define RWR_AUDIO_PIN                         PIN(1)
 #define RWR_DMR_PIN                           PIN(2)
-
-// TFT chip-selects
-#define BATTERY_CS_PIN                        PIN(38)
-#define CABIN_PRESSURE_CS_PIN                 PIN(38)
-#define BRAKE_PRESSURE_CS_PIN                 PIN(38)
-#define HYD_PRESSURE_CS_PIN                   PIN(38)
-#define RADARALT_CS_PIN                       PIN(38)
-
-// 74HC165 IFEI pins
-#define HC165_QH                              PIN(38)
-#define HC165_PL                              PIN(39)
-#define HC165_CP                              PIN(40)
 
 // Left LCD
 #define DATA0_PIN                             PIN(34)
@@ -184,6 +139,13 @@ extern bool hasTEST_ONLY;
 #define RA_DEC_HEIGHT_GPIO                    PIN(3)
 #define RA_INC_HEIGHT_GPIO                    PIN(4)
 
+// TFT chip-selects
+#define BATTERY_CS_PIN                        PIN(38)
+#define CABIN_PRESSURE_CS_PIN                 PIN(38)
+#define BRAKE_PRESSURE_CS_PIN                 PIN(38)
+#define HYD_PRESSURE_CS_PIN                   PIN(38)
+#define RADARALT_CS_PIN                       PIN(38)
+
 void initMappings();
 void initializePanels(bool force);
 void panelLoop();
@@ -216,6 +178,9 @@ const char* getPanelName(uint8_t addr);  // Declaration
 
 /*
        S2 to S3 GPIO conversion table
+       the PIN() macro does this automatically
+       Simply use PIN(12) on an S2 it will 
+       automatically convert it to 10 on an S3
 -----------------------------------------------
 | S2 Mini GPIO | S3 Mini GPIO (same position) |
 | ------------ | ---------------------------- |

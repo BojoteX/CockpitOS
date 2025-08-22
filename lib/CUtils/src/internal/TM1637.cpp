@@ -196,8 +196,8 @@ const char* getTM1637Label(const TM1637Device* dev) {
 }
 
 void tm1637_displaySingleLED(TM1637Device &dev, uint8_t grid, uint8_t segment, bool state) {
-    if (&dev == &LA_Device && !hasLA) return;
-    if (&dev == &RA_Device && !hasRA) return;
+    if (&dev == &LA_Device && !PanelRegistry_has(PanelKind::LA)) return;
+    if (&dev == &RA_Device && !PanelRegistry_has(PanelKind::RA)) return;
 
     if (grid < 6 && segment < 8) {
         uint8_t before = dev.ledData[grid];

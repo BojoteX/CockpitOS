@@ -342,3 +342,106 @@ void pollPCA9555_flat(bool forceSend) {
         pcas[chip].p1 = port1;
     }
 }
+
+
+// --- private HC165 types ---
+struct HC165Sel {
+    int8_t       bit;          // -1 = fallback
+    uint16_t     group;
+    uint16_t     oride_value;
+    const char*  label;
+};
+struct HC165Mom {
+    uint8_t      bit;          // 0..63
+    const char*  label;
+};
+
+// --- private HC165 tables/state ---
+static HC165Sel  hc165Selectors[MAX_SELECTOR_GROUPS * 8];
+static size_t    hc165SelCount = 0;
+static int16_t   hc165FallbackByGroup[MAX_SELECTOR_GROUPS];   // index into hc165Selectors or -1
+static HC165Mom  hc165Momentaries[64];
+static size_t    hc165MomCount = 0;
+
+// Latched value per selector group (HC165 path)
+static uint16_t  hc165SelectorCache[MAX_SELECTOR_GROUPS];
+
+// --- helpers (private) ---
+static inline bool isSel(const InputMapping& m)  { return m.controlType && strcmp(m.controlType, "selector")  == 0; }
+static inline bool isMom(const InputMapping& m)  { return m.controlType && strcmp(m.controlType, "momentary") == 0; }
+static inline bool isHC165(const InputMapping& m){ return m.source      && strcmp(m.source,      "HC165")     == 0; }
+
+static inline bool hc165Pressed(uint64_t bits, uint8_t bit) {
+    const uint64_t b = bits ^ HC165_INVERT_MASK;          // optional per-bit inversion
+    return ((b >> bit) & 1ULL) == 0ULL;                   // active-low after correction
+}
+
+// --- API ---
+void resetHC165SelectorCache() {
+    for (int g = 0; g < MAX_SELECTOR_GROUPS; ++g) hc165SelectorCache[g] = 0xFFFF;
+}
+
+void buildHC165ResolvedInputs() {
+    hc165SelCount = 0;
+    hc165MomCount = 0;
+    for (int g = 0; g < MAX_SELECTOR_GROUPS; ++g) hc165FallbackByGroup[g] = -1;
+    resetHC165SelectorCache();
+
+    for (size_t i = 0; i < InputMappingSize; ++i) {
+        const auto& m = InputMappings[i];
+        if (!m.label || !isHC165(m)) continue;
+
+        if (isMom(m)) {
+            if (m.bit >= 0 && m.bit < 64 && hc165MomCount < 64) {
+                hc165Momentaries[hc165MomCount++] = HC165Mom{ (uint8_t)m.bit, m.label };
+            }
+            continue;
+        }
+
+        if (isSel(m) && m.group > 0 && m.group < MAX_SELECTOR_GROUPS && hc165SelCount < (MAX_SELECTOR_GROUPS * 8)) {
+            hc165Selectors[hc165SelCount] = HC165Sel{ (int8_t)m.bit, m.group, m.oride_value, m.label };
+            if (m.bit == -1 && hc165FallbackByGroup[m.group] == -1)
+                hc165FallbackByGroup[m.group] = (int16_t)hc165SelCount;
+            ++hc165SelCount;
+        }
+    }
+}
+
+void processHC165Resolved(uint64_t currentBits, uint64_t previousBits, bool forceSend) {
+    // 1) Momentaries / edges
+    for (size_t i = 0; i < hc165MomCount; ++i) {
+        const auto& m = hc165Momentaries[i];
+        const bool now  = hc165Pressed(currentBits,  m.bit);
+        const bool prev = hc165Pressed(previousBits, m.bit);
+        if (forceSend || now != prev) HIDManager_setNamedButton(m.label, forceSend, now);
+    }
+
+    // 2) Selectors: decide winner per group then emit once
+    const HC165Sel* winner[MAX_SELECTOR_GROUPS] = { nullptr };
+    bool groupHasReal[MAX_SELECTOR_GROUPS] = { false };
+
+    // Pass A: detect pressed real pins
+    for (size_t i = 0; i < hc165SelCount; ++i) {
+        const auto& e = hc165Selectors[i];
+        if (e.bit < 0) continue;
+        if (hc165Pressed(currentBits, (uint8_t)e.bit)) {
+            if (!winner[e.group]) winner[e.group] = &e;     // first in table order wins
+            groupHasReal[e.group] = true;
+        }
+    }
+
+    // Pass B: prefer winner else fallback
+    for (int g = 1; g < MAX_SELECTOR_GROUPS; ++g) {
+        const HC165Sel* pick = winner[g];
+        if (!pick && !groupHasReal[g]) {
+            const int16_t idx = hc165FallbackByGroup[g];
+            if (idx >= 0) pick = &hc165Selectors[idx];
+        }
+        if (!pick) continue;
+
+        if (forceSend || hc165SelectorCache[g] != pick->oride_value) {
+            hc165SelectorCache[g] = pick->oride_value;
+            HIDManager_setNamedButton(pick->label, forceSend, true);
+        }
+    }
+}

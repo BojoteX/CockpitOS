@@ -33,11 +33,24 @@
 #endif
 
 // --- Pins ---
+#if (defined(HAS_BATTERY_GAUGE) || defined(HAS_TEST_ONLY))
+#define BATTERY_MOSI_PIN   8
+#define BATTERY_SCLK_PIN   9
+#define BATTERY_DC_PIN    13
+#define BATTERY_RST_PIN   12
+#define BATTERY_CS_PIN    36
+#endif
+
+/*
+// --- Pins ---
+#if (defined(LABEL_SET_BATTERY_GAUGE) || defined(LABEL_SET_TEST_ONLY))
 #define BATTERY_MOSI_PIN   PIN(8)
 #define BATTERY_SCLK_PIN   PIN(9)
 #define BATTERY_DC_PIN    PIN(13)
 #define BATTERY_RST_PIN   PIN(12)
 #define BATTERY_CS_PIN    PIN(36)
+#endif
+*/
 
 // --- Assets (240x240 bg, 15x88 needle) ---
 #include "Assets/BatteryGauge/batBackground.h"

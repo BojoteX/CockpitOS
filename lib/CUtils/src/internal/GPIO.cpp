@@ -7,7 +7,7 @@ void resetAllGauges() {
     for (uint16_t i = 0; i < panelLEDsCount; ++i) {
         const auto& led = panelLEDs[i];
         if (led.deviceType == DEVICE_GAUGE) {
-            hasGauge = true;
+	    PanelRegistry_setActive(PanelKind::AnalogGauge, true);
             AnalogG_registerGauge(led.info.gaugeInfo.gpio, led.info.gaugeInfo.minPulse, led.info.gaugeInfo.maxPulse);
             debugPrintf("[GAUGE] Registered Gauge %s on PIN %u\n", led.label, led.info.gaugeInfo.gpio);
 
@@ -23,8 +23,7 @@ void resetAllGauges() {
 
         }
     }
-    if (hasGauge) debugPrintln("[GAUGE] Analog gauges will update automatically.");
-	PanelRegistry_setActive(PanelKind::AnalogGauge, hasGauge); // register if any gauges are present
+    if (PanelRegistry_has(PanelKind::AnalogGauge)) debugPrintln("[GAUGE] Analog gauges will update automatically.");
 }
 
 void preconfigureGPIO() {

@@ -1,28 +1,8 @@
 {
     "Custom": {
-                                                        "COM_ILS_CHANNEL_SW_CUSTOM": {
-                                                                                      "category": "Communication Panel",
-                                                                                  "control_type": "momentary",
-                                                                                   "description": "ILS Channel Selector Switch",
-                                                                                    "identifier": "COM_ILS_CHANNEL_SW",
-                                                                                        "inputs": [ {
-                                                                                                      "description": "switch to previous or next state",
-                                                                                                        "interface": "fixed_step"
-                                                                                                  }, {
-                                                                                                      "description": "set position",
-                                                                                                        "interface": "set_state",
-                                                                                                        "max_value": 19
-                                                                                                  } ],
-                                                                                       "outputs": [ {
-                                                                                                                            "address": 29886,
-                                                                                                      "address_mask_shift_identifier": "FA_18C_hornet_COM_ILS_CHANNEL_SW",
-                                                                                                                        "description": "selector position",
-                                                                                                                               "mask": 63488,
-                                                                                                                          "max_value": 19,
-                                                                                                                           "shift_by": 11,
-                                                                                                                             "suffix": "",
-                                                                                                                               "type": "integer"
-                                                                                                  } ]
-                                                                              }
+
+
+
+
                 }
 }

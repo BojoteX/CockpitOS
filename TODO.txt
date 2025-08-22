@@ -14,4 +14,8 @@ Make WS2812 generic and modify panel struct/union to add index characteristics (
 
 Test UART for Serial coms on S3's and C3's simultaneously with USB HIDs (using HID keepalives). To test stability. use DCSBIOS with the hardware CDC option
 
-Automate Mappings.h/cpp to make it via registrations from within a panel file
+Change "Cover" logic to also include momentary latches. DO NOT AUTOMATE, this needs to be manual
+
+Modify auto-generator to also recognize PIN(NUMBERS) or TEXT_ONLY
+
+CONSOLIDATE #defines

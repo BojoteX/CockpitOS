@@ -1,4 +1,7 @@
 // THIS FILE IS AUTO-GENERATED; ONLY EDIT INDIVIDUAL RECORDS, DO NOT ADD OR DELETE THEM HERE
+// You can use a PIN(X) macro where X is an S2 PIN to AUTO-CONVERT to its equivalent position in an S3 device.
+// So, PIN(4) will always be PIN 4 if you compile with an S2 but will get automatically converted to 5 if you compile the firmware on an S3.
+// This is to easily use S2 or S3 devices on same backplane/hardware physically connected to specific PINs
 #pragma once
 
 struct InputMapping {
@@ -135,7 +138,7 @@ static const InputMapping InputMappings[] = {
     { "LEFT_VIDEO_BIT"                  , "PCA_0x00" ,  0 ,  0 ,  -1 , "LEFT_VIDEO_BIT"        ,     1 , "momentary"    ,  0 },
     { "NUC_WPN_SW_ENABLE"               , "HC165" ,  0 , -1 ,  -1 , "NUC_WPN_SW"            ,     1 , "selector"     , 17 },
     { "NUC_WPN_SW_DISABLE_(NO_FUNCTION)", "HC165" ,  0 ,  3 ,  -1 , "NUC_WPN_SW"            ,     0 , "selector"     , 17 },
-    { "RIGHT_VIDEO_BIT"                 , "PCA_0x00" ,  0 ,  0 ,  -1 , "RIGHT_VIDEO_BIT"       ,     1 , "momentary"    ,  0 },
+    { "RIGHT_VIDEO_BIT"                 , "NONE" ,  0 ,  0 ,  -1 , "RIGHT_VIDEO_BIT"       ,     1 , "momentary"    ,  0 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);
 

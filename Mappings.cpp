@@ -8,31 +8,6 @@
 #include "src/WiFiDebug.h"
 #endif
 
-// Panel presence flags (runtime, set in initMappings() via registry or panelExists())
-// Do NOT set manually or via preprocessor!
-bool hasBrain                 = false;
-bool hasECM                   = false;
-bool hasMasterARM             = false;
-bool hasIFEI                  = false;
-bool hasALR67                 = false;
-bool hasCA                    = false;
-bool hasLA                    = false;
-bool hasRA                    = false;
-bool hasIR                    = false;
-bool hasLockShoot             = false;
-bool hasGauge                 = false;
-bool hasTFTBattGauge          = false;
-bool hasTFTCabPressGauge      = false;
-bool hasTFTBrakePressGauge    = false;
-bool hasTFTHydPressGauge      = false;
-bool hasTFTRadarAltGauge      = false;
-bool hasRightPanelController  = false;
-bool hasLeftPanelController   = false;
-bool hasFrontLeftPanel        = false;
-bool hasCustomFrontRightPanel = false;
-bool hasTEST_ONLY             = false;
-// Add more runtime panel conditionals here when adding custom panels/other aircraft
-
 // TM1637 device instances (must match externs)
 TM1637Device LA_Device; // Left Annunciator, should always be present at file scope
 TM1637Device RA_Device; // Right Annunciator, should always be present at file scope
@@ -69,87 +44,55 @@ void initMappings() {
     debugPrintln("Unknown device type");
 #endif
 
-    // Presence via registry
-    hasBrain                 = PanelRegistry_has(PanelKind::Brain);
-    hasIFEI                  = PanelRegistry_has(PanelKind::IFEI);
-    hasALR67                 = PanelRegistry_has(PanelKind::ALR67);
-    hasCA                    = PanelRegistry_has(PanelKind::CA);
-    hasLA                    = PanelRegistry_has(PanelKind::LA);
-    hasRA                    = PanelRegistry_has(PanelKind::RA);
-    hasIR                    = PanelRegistry_has(PanelKind::IR);
-    hasLockShoot             = PanelRegistry_has(PanelKind::LockShoot);
-    hasTFTBattGauge          = PanelRegistry_has(PanelKind::TFTBatt);
-    hasTFTCabPressGauge      = PanelRegistry_has(PanelKind::TFTCabPress);
-    hasTFTBrakePressGauge    = PanelRegistry_has(PanelKind::TFTBrake);
-    hasTFTHydPressGauge      = PanelRegistry_has(PanelKind::TFTHyd);
-    hasTFTRadarAltGauge      = PanelRegistry_has(PanelKind::TFTRadarAlt);
-    hasRightPanelController  = PanelRegistry_has(PanelKind::RightPanelCtl);
-    hasLeftPanelController   = PanelRegistry_has(PanelKind::LeftPanelCtl);
-    hasFrontLeftPanel        = PanelRegistry_has(PanelKind::FrontLeft);
-    hasCustomFrontRightPanel = PanelRegistry_has(PanelKind::CustomFrontRight);
-    hasTEST_ONLY             = PanelRegistry_has(PanelKind::TEST_ONLY);
-
     // Print registered panels
     int n = PanelRegistry_count();
-    debugPrintf("Registry count=%d\n", PanelRegistry_count());
     for (int i=0; i<PanelRegistry_count(); ++i)
       debugPrintf("Registered Panel: %s\n", PanelRegistry_labelAt(i));
 
     PCA9555_scanConnectedPanels();
 
-    // Auto-Detection is used for outputs so that we don't drive what is not present.
-    // ---- Runtime detection overrides ---- (This is used so that outputs to PCA panels only work when they are present)
-    // We check if (!panelExists(addr)) for PCA writes 
-    hasECM        = panelExists(0x22);
-    hasMasterARM  = panelExists(0x5B);
-    hasBrain      = panelExists(0x26);
-
-    // After PCA9555_scanConnectedPanels() and hasECM/hasMasterARM/hasBrain assignments
-    PanelRegistry_setActive(PanelKind::ECM,       hasECM);
-    PanelRegistry_setActive(PanelKind::MasterARM, hasMasterARM);
-    PanelRegistry_setActive(PanelKind::Brain,     hasBrain);
-    // We already PanelRegistry_setActive for AnalogGauge in GPIO.cpp 
+    PanelRegistry_setActive(PanelKind::ECM, panelExists(0x22));
+    PanelRegistry_setActive(PanelKind::MasterARM, panelExists(0x5B));
+    PanelRegistry_setActive(PanelKind::Brain, panelExists(0x26));
   
     // Show what PCA panels were discovered
     printDiscoveredPanels();
 }
 
+// Runs only once when device starts, never again
 void initializeDisplays() {
-
   PanelRegistry_forEachDisplayInit();
-
-  // Any custom displays should be initialized here
 }
 
 void initializeLEDs() {
-    if (hasMasterARM) PCA9555_autoInitFromLEDMap(0x5B);
-    if (hasECM) PCA9555_autoInitFromLEDMap(0x22);
-    if (hasBrain) PCA9555_autoInitFromLEDMap(0x26);
+    if (PanelRegistry_has(PanelKind::MasterARM)) PCA9555_autoInitFromLEDMap(0x5B);
+    if (PanelRegistry_has(PanelKind::ECM)) PCA9555_autoInitFromLEDMap(0x22);
+    if (PanelRegistry_has(PanelKind::Brain)) PCA9555_autoInitFromLEDMap(0x26);
 
-    if (hasLockShoot) {
+    if (PanelRegistry_has(PanelKind::LockShoot)) {
         debugPrintln("✅ Lock/Shoot detected, initializing...");
         WS2812_init();
     } else {
         debugPrintln("⚠️ Lock/Shoot NOT detected!");
     }
 
-    if (hasCA) {
+    if (PanelRegistry_has(PanelKind::CA)) {
         debugPrintln("✅ Caution Advisory detected, initializing...");
         GN1640_init(GLOBAL_CLK_PIN, CA_DIO_PIN);
     } else {
         debugPrintln("⚠️ Caution Advisory NOT detected!");
     }
 
-    if (hasLA && hasRA) {
+    if (PanelRegistry_has(PanelKind::LA) && PanelRegistry_has(PanelKind::RA)) {
         debugPrintln("✅ Left & Right Annunciators detected, initializing...");
         tm1637_init(LA_Device, GLOBAL_CLK_PIN, LA_DIO_PIN);
         tm1637_init(RA_Device, GLOBAL_CLK_PIN, RA_DIO_PIN);
     }
-    else if (hasLA) {
+    else if (PanelRegistry_has(PanelKind::LA)) {
         debugPrintln("✅ Left Annunciator detected, initializing...");
         tm1637_init(LA_Device, GLOBAL_CLK_PIN, LA_DIO_PIN);
     }
-    else if (hasRA) {
+    else if (PanelRegistry_has(PanelKind::RA)) {
         debugPrintln("✅ Right Annunciator detected, initializing...");
         tm1637_init(RA_Device, GLOBAL_CLK_PIN, RA_DIO_PIN);
     } else {
@@ -157,17 +100,17 @@ void initializeLEDs() {
     }
 
     // Annunciators flash
-    if (hasLA && hasRA) { tm1637_allOn(RA_Device); tm1637_allOn(LA_Device); delay(1000); tm1637_allOff(RA_Device); tm1637_allOff(LA_Device); }
-    else if (hasLA) { tm1637_allOn(LA_Device); delay(1000); tm1637_allOff(LA_Device); }
-    else if (hasRA) { tm1637_allOn(RA_Device); delay(1000); tm1637_allOff(RA_Device); }
+    if (PanelRegistry_has(PanelKind::LA) && PanelRegistry_has(PanelKind::RA)) { tm1637_allOn(RA_Device); tm1637_allOn(LA_Device); delay(1000); tm1637_allOff(RA_Device); tm1637_allOff(LA_Device); }
+    else if (PanelRegistry_has(PanelKind::LA)) { tm1637_allOn(LA_Device); delay(1000); tm1637_allOff(LA_Device); }
+    else if (PanelRegistry_has(PanelKind::RA)) { tm1637_allOn(RA_Device); delay(1000); tm1637_allOff(RA_Device); }
 
     // Flash sequence
-    if (hasCA) { GN1640_allOn(); delay(1000); GN1640_allOff(); }
-    if (hasLockShoot) { WS2812_allOn(Green); delay(1000); WS2812_allOff(); }
+    if (PanelRegistry_has(PanelKind::CA)) { GN1640_allOn(); delay(1000); GN1640_allOff(); }
+    if (PanelRegistry_has(PanelKind::LockShoot)) { WS2812_allOn(Green); delay(1000); WS2812_allOff(); }
 
     // PCA9555 devices
-    if (hasMasterARM) { PCA9555_allOn(0x5B); delay(1000); PCA9555_allOff(0x5B); }
-    if (hasECM) { PCA9555_allOn(0x22); delay(1000); PCA9555_allOff(0x22); }
+    if (PanelRegistry_has(PanelKind::MasterARM)) { PCA9555_allOn(0x5B); delay(1000); PCA9555_allOff(0x5B); }
+    if (PanelRegistry_has(PanelKind::ECM)) { PCA9555_allOn(0x22); delay(1000); PCA9555_allOff(0x22); }
 
     // GPIO LEDs
     preconfigureGPIO();
@@ -179,12 +122,12 @@ void initializeLEDs() {
     // Any custom outputs such as LEDs, Analog gauges or mechanical levers should go here.
 }
 
+// Runs on mission start (sim)
 void initializePanels(bool force) {
     if(!mainLoopStarted && !force) return;
     debugPrintln("Syncronizing Panel state....");
 
     PanelRegistry_forEachInit();
-    // Your custom panels init routine should go here
 
     if (!isModeSelectorDCS()) HIDManager_commitDeferredReport("All devices");
 }
@@ -194,8 +137,6 @@ void panelLoop() {
     PanelRegistry_forEachLoop();
     PanelRegistry_forEachDisplayLoop();
     PanelRegistry_forEachTick();
-
-    // Your custom panels loop/tick routines should go here
 
     #if DEBUG_USE_WIFI && WIFI_DEBUG_USE_RINGBUFFER
     wifiDebugDrainSendBuffer();

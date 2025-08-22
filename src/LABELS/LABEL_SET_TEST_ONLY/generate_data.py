@@ -833,10 +833,12 @@ for panel, controls in data.items():
 # 1) load existing entries, keyed by label
 existing_map = {}
 
+    # r'(?P<port>-?\d+)\s*,\s*'
+
 line_re = re.compile(
     r'\{\s*"(?P<label>[^"]+)"\s*,\s*'        # capture the label
     r'"(?P<source>[^"]+)"\s*,\s*'
-    r'(?P<port>-?\d+)\s*,\s*'
+    r'(?P<port>-?\d+|PIN\(\d+\))\s*,\s*'
     r'(?P<bit>-?\d+)\s*,\s*'
     r'(?P<hidId>-?\d+)\s*,\s*'
     r'"(?P<cmd>[^"]+)"\s*,\s*'
@@ -917,6 +919,10 @@ for full, cmd, val, ct, grp in selector_entries_inputmap:
 with open(INPUT_REFERENCE, "w", encoding="utf-8") as f2:
     input_labels = [e[0] for e in merged]
     f2.write("// THIS FILE IS AUTO-GENERATED; ONLY EDIT INDIVIDUAL RECORDS, DO NOT ADD OR DELETE THEM HERE\n")
+    f2.write("// You can use a PIN(X) macro where X is an S2 PIN to AUTO-CONVERT to its equivalent position in an S3 device.\n")
+    f2.write("// So, PIN(4) will always be PIN 4 if you compile with an S2 but will get automatically converted to 5 if you compile the firmware on an S3.\n")
+    f2.write("// This is to easily use S2 or S3 devices on same backplane/hardware physically connected to specific PINs\n")
+
     f2.write("#pragma once\n\n")
     f2.write("struct InputMapping {\n")
     f2.write("    const char* label;        // Unique selector label, auto-generated.\n")
