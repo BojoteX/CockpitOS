@@ -1,6 +1,8 @@
 // Auto-generated — DO NOT EDIT
 #pragma once
 
+#include "../../../lib/CUtils/src/CUtils.h"
+
 // Buffers and dirty flags for all display fields (global)
 
 extern DisplayBufferEntry CT_DisplayBuffers[];

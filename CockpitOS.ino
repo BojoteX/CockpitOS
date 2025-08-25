@@ -127,7 +127,7 @@ void setup() {
     initializeLEDs();
 
     // Initializes you panel buttons (forced)
-    // initializePanels(1); // Force panel init (they only sync in the main loop unless we pass 1/true)
+    initializePanels(1); // Force panel init (they only sync in the main loop unless we pass 1/true)
     
     // When TEST_LEDS is active device enters a menu selection to test LEDs individually. You activate them via Serial Console
     #if TEST_LEDS
@@ -172,6 +172,7 @@ void setup() {
 void loop() {
 
     if(!mainLoopStarted) {
+      debugPrintln("🔌 Main Loop started");
       // This is a dummy report, it will only run ONCE (when loop starts) to trigger a Feature request to our device when USE_DCSBIOS_USB is active to do an initial drain of our ring buffer to allow the USB handshake to happen
       HIDManager_dispatchReport(true);
     }
@@ -183,11 +184,9 @@ void loop() {
     #endif
 
     // Call our panels loop logic (Mappings.cpp is where this function lives)
-    panelLoop();  
-
-    // Loop functions for specific Buttons/DCSBIOS Library logic
-    DCSBIOSBridge_loop();
-    HIDManager_loop();  
+    panelLoop(); // Main Panels loop
+    DCSBIOSBridge_loop(); // DCSBios Logic loop
+    HIDManager_loop();  // HIDManager Logic loop
 
     // All profiling blocks REQUIRE we close them
     #if DEBUG_PERFORMANCE

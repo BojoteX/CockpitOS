@@ -1,6 +1,8 @@
 // DisplayMapping.h - Auto-generated
 #pragma once
 
+#include "../../../lib/CUtils/src/CUtils.h"
+
 
 // Enums for FieldType, DisplayDeviceType
 enum FieldType { FIELD_LABEL, FIELD_STRING, FIELD_NUMERIC, FIELD_MIXED, FIELD_BARGRAPH };

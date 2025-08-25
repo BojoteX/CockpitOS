@@ -2,24 +2,27 @@
 
 #pragma once
 
-// Here you need to #define ONE and ONLY one of possible LABEL sets to use with your panel, 
-// ** ATTENTION ** REMEBER TO RUN generate_data.py (see LABELS directory) BEFORE compiling for each label set below 
+// Here you need to #define ONE and ONLY one of possible LABEL SETS to use with your panel, 
+// ** ATTENTION ** REMEMBER TO RUN generate_data.py (see LABELS directory) BEFORE compiling for each label set below 
 
 // Pick exactly one
-#define LABEL_SET TEST_ONLY
+// #define LABEL_SET KY58
+// #define LABEL_SET TEST_ONLY
+// #define LABEL_SET RIGHT_PANEL_CONTROLLER                                                 
+// #define LABEL_SET LEFT_PANEL_CONTROLLER    
+// #define LABEL_SET FRONT_LEFT_PANEL   
+// #define LABEL_SET MAIN    
+#define LABEL_SET IFEI  
+// #define LABEL_SET ALR67                            
+// #define LABEL_SET CABIN_PRESSURE_GAUGE
 
+
+// DO NOT USE
 // #define LABEL_SET_CUSTOM_FRONT_RIGHT
-// #define LABEL_SET_F16_TEST
-// #define LABEL_SET_BATTERY_GAUGE
 // #define LABEL_SET_HYD_PRESSURE_GAUGE
 // #define LABEL_SET_RADAR_ALT_GAUGE
 // #define LABEL_SET_CABIN_PRESSURE_GAUGE
 // #define LABEL_SET_BRAKE_PRESSURE_GAUGE
-// #define LABEL_SET_IFEI_NO_VIDEO  
-// #define LABEL_SET_ALR67                            
-// #define LABEL_SET_MAIN     
-// #define LABEL_SET_RIGHT_PANEL_CONTROLLER                                                 
-// #define LABEL_SET_LEFT_PANEL_CONTROLLER     
 // #define LABEL_SET_FRONT_LEFT_PANEL                                            
 // #define LABEL_SET_ALTIMETER // (Analog Cabin Pressure)                           
 // #define LABEL_SET_ALL                           
@@ -39,16 +42,17 @@
 #define DEBUG_ENABLED                             0  // Use it ONLY when identifying issues or troubleshooting
 #define DEBUG_ENABLED_FOR_PCA_ONLY                0  // Use it ONLY when mapping Port/bit/mask in PCA9xxx devices
 #define DEBUG_ENABLED_FOR_HC165_ONLY              0  // Use it ONLY when mapping bits in HC165 devices
-#define DEBUG_USE_WIFI                            1  // Uses WiFi to output VERBOSE and DEBUG messages
+#define DEBUG_USE_WIFI                            0  // Uses WiFi to output VERBOSE and DEBUG messages
 #define VERBOSE_MODE                              0  // Logs INFO messages to both Serial and UDP (very useful) 
 #define VERBOSE_MODE_SERIAL_ONLY                  0  // Verbose will only output to Serial. 
-#define VERBOSE_MODE_WIFI_ONLY                    1  // Verbose will only output to WiFi so Serial port is clean. Requires DEBUG_USE_WIFI
+#define VERBOSE_MODE_WIFI_ONLY                    0  // Verbose will only output to WiFi so Serial port is clean. Requires DEBUG_USE_WIFI
 #define VERBOSE_PERFORMANCE_ONLY                  0  // Requires DEBUG_PERFORMANCE as well, this will only output perf snapshots, make sure you pick WIFI or SERIAL above and DEBUG_ENABLED is 0
-#define DEBUG_PERFORMANCE                         1  // Shows a performance snapshot every x seconds (interval can be configured below)
+#define DEBUG_PERFORMANCE                         0  // Shows a performance snapshot every x seconds (interval can be configured below)
 #define DEBUG_PERFORMANCE_SHOW_TASKS              0  // Includes the current task list with the snapshot. Not really needed.
 #define PERFORMANCE_SNAPSHOT_INTERVAL_SECONDS     60 // Interval between snapshots (in seconds)
 
 // Advanced config, these settings have been carefully tuned for performance and stability, 
+#define MODE_HYBRID_DCS_HID                        0 // Allow both DCS and HID mode simultaneously
 #define DCSBIOS_USE_LITE_VERSION                   1 // Set to 1 to use a LITE (local) version of the DCSBIOS Library. 0 Uses the Original unmodified Library (you'll need to install it)
 #define ALLOW_CONCURRENT_CDC_AND_HID               1 // Careful, this should ALWAYS be set to 0, concurrent CDC + HID is unstable
 #define ENABLE_CDC_EVENTS                          1 // Enable CDC (TinyUSB) Serial events (Need to disable for HWSerial)

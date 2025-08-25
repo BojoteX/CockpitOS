@@ -359,6 +359,13 @@ with open(DEV_MAPPING_CPP, "w", encoding="utf-8") as fcpp:
 with open(DEV_MAPPING_H, "w", encoding="utf-8") as fout:
     fout.write("// DisplayMapping.h - Auto-generated\n#pragma once\n\n")
     
+    # This line added NEW on 8/24/25
+    fout.write("#include \"../../../lib/CUtils/src/CUtils.h\"\n\n")
+
+    # fout.write("class HUDDisplay;\n")
+    # fout.write("class IFEIDisplay;\n")
+    # fout.write("class UFCDisplay;\n")
+
     # Emit feature defines for present segment maps
     for prefix in sorted(all_device_prefixes):
         segmap_filename = f"{prefix}_SegmentMap.h"

@@ -11,6 +11,7 @@ current_label_set = os.path.basename(current_dir)
 print(f"Current LABEL SET: {current_label_set}")
 
 # -------- CONFIGURATION --------
+FIXED_STEP_INCDEC_THRESHOLD = 10 # Selectors with more positions than this get an INC and DEC pseudo label
 PROCESS_ALL     = False
 OUTPUT_HEADER   = "DCSBIOSBridgeData.h"
 INPUT_REFERENCE = "InputMapping.h"
@@ -24,6 +25,31 @@ KNOWN_DEVICES   = {
     "WS2812",
     "NONE",
 }
+
+# --- Helper: detect if a control needs INC/DEC aliases ---
+
+def parse_int(val): return int(val, 0) # auto-detects hex ('0xFFFF') or decimal
+
+def needs_fixed_step_incdec(item, threshold):
+    """
+    Returns True if this control exposes BOTH:
+      - a set_state input with max_value > threshold
+      - a fixed_step input
+    """
+    has_set_state = False
+    has_fixed_step = False
+    max_val = None
+
+    for inp in item.get('inputs', []):
+        iface = inp.get('interface')
+        if iface == 'set_state' and 'max_value' in inp:
+            max_val = inp['max_value']
+            if max_val > threshold:
+                has_set_state = True
+        if iface == 'fixed_step':
+            has_fixed_step = True
+
+    return has_set_state and has_fixed_step
 
 def merge_metadata_jsons(data, metadata_dir="METADATA"):
     """Merge all JSONs from the given subdir into the loaded data (in place)."""
@@ -232,10 +258,17 @@ for panel, controls in data.items():
     if not PROCESS_ALL and panel not in target_objects:
         continue
     for ident, item in controls.items():
+
+        orig_ident  = item.get('identifier', ident)   
         ctype       = item.get('control_type','').lower().strip()
+        ctype       = 'selector' if ctype == 'action' else ctype
         api_variant = item.get('api_variant','').strip()
         lid         = ident.lower()
         desc_lower  = item.get('description','').lower()
+
+        # does this control expose fixed_step?
+        has_fixed_step = any(inp.get('interface') == 'fixed_step' for inp in item.get('inputs', []))
+
 
         # skip analog gauges (but allow knobs)
         # if ctype in ('limited_dial','analog_dial','analog_gauge'):
@@ -248,6 +281,18 @@ for panel, controls in data.items():
             if inp.get('interface') == 'set_state' and 'max_value' in inp:
                 max_val = inp['max_value']
                 break
+
+        # Fallback for analog knobs that only expose variable_step
+        if max_val is None and ctype in ('limited_dial', 'analog_dial'):
+            for inp in item.get('inputs', []):
+                if inp.get('interface') == 'variable_step':
+                    # max_val = inp.get('suggested_step', 1)
+                    max_val = 1 # We do this so only two records are created POS0 and POS1
+                    ctype = 'variable_step'
+                    break
+            if max_val is None:
+                max_val = 1
+
         if max_val is None or max_val < 0:
             continue
 
@@ -291,20 +336,32 @@ for panel, controls in data.items():
             labels = [f"POS{i}" for i in range(count)]
 
         # 5) append (with reversed value and group for slash‑split selectors)
-        if ctype in ('limited_dial', 'analog_dial'):
+
+        # if ctype in ('limited_dial', 'analog_dial'):
             # Analog input: use single label with type 'analog' and no group
-            selector_entries.append((ident, ident, max_val, 'analog', 0, "LEVEL"))
+            # selector_entries.append((ident, ident, max_val, 'analog', 0, "LEVEL"))
+
+        if ctype in ('limited_dial', 'analog_dial'):
+            # Potentiometer path
+            selector_entries.append((ident, orig_ident, max_val, 'analog', 0, "LEVEL"))
+            # Always expose encoder-friendly -3200 / + 3200 pair
+            selector_entries.append((f"{ident}_DEC", orig_ident, 0, 'variable_step', 0, "DEC"))
+            selector_entries.append((f"{ident}_INC", orig_ident, 1, 'variable_step', 0, "INC"))
+
         else:
             # 5) append as discrete selector/momentary
             for i, lab in enumerate(labels):
                 clean = lab.upper().replace(' ','_')
                 if useSlash:
-                    val = (count - 1) - i
-                    selector_entries.append((f"{ident}_{clean}", ident, val, ctype, currentGroup, clean))
+                    val = i  # ascending, same as POS0..POSN
+                    selector_entries.append((f"{ident}_{clean}", orig_ident, val, ctype, currentGroup, clean))
                 else:
-                    selector_entries.append((f"{ident}_{clean}", ident, i, ctype, 0, clean))
+                    selector_entries.append((f"{ident}_{clean}", orig_ident, i, ctype, 0, clean))
 
-
+            # --- Extra: add INC/DEC aliases for large selectors with fixed_step ---
+            if needs_fixed_step_incdec(item, FIXED_STEP_INCDEC_THRESHOLD):
+                selector_entries.append((f"{ident}_DEC", orig_ident, 0, 'fixed_step', 0, "DEC"))
+                selector_entries.append((f"{ident}_INC", orig_ident, 1,  'fixed_step', 0, "INC"))
 
 # -------- PATCH: Assign missing group IDs for exclusive selectors --------
 from collections import defaultdict
@@ -688,6 +745,13 @@ all_display_labels = [(d['label'], d['length']) for d in display_field_defs]
 with open("CT_Display.h", "w", encoding="utf-8") as fout:
     fout.write("// Auto-generated — DO NOT EDIT\n")
     fout.write("#pragma once\n\n")
+
+    # This line added NEW on 8/24/25
+    fout.write("#include \"../../../lib/CUtils/src/CUtils.h\"\n\n")
+
+    # fout.write("struct DisplayBufferEntry;\n")
+    # fout.write("struct DisplayBufferHashEntry;\n")
+
     fout.write("// Buffers and dirty flags for all display fields (global)\n")
     for label, length in all_display_labels:
         buf_var = label.lower()
@@ -775,10 +839,13 @@ for panel, controls in data.items():
 
 # 1) load existing entries, keyed by label
 existing_map = {}
+
+    # r'(?P<port>-?\d+)\s*,\s*'
+
 line_re = re.compile(
     r'\{\s*"(?P<label>[^"]+)"\s*,\s*'        # capture the label
     r'"(?P<source>[^"]+)"\s*,\s*'
-    r'(?P<port>-?\d+)\s*,\s*'
+    r'(?P<port>-?\d+|PIN\(\d+\)|[A-Za-z_][A-Za-z0-9_]*)\s*,\s*'
     r'(?P<bit>-?\d+)\s*,\s*'
     r'(?P<hidId>-?\d+)\s*,\s*'
     r'"(?P<cmd>[^"]+)"\s*,\s*'
@@ -786,6 +853,8 @@ line_re = re.compile(
     r'"(?P<type>[^"]+)"\s*,\s*'
     r'(?P<group>\d+)\s*\}\s*,'
 )
+
+
 if os.path.exists(INPUT_REFERENCE):
     with open(INPUT_REFERENCE, "r", encoding="utf-8") as fin:
         for line in fin:
@@ -796,7 +865,8 @@ if os.path.exists(INPUT_REFERENCE):
             existing_map[d["label"]] = {
                 "label":       d["label"],
                 "source":      d["source"],
-                "port":        int(d["port"]),
+                # "port":        int(d["port"]),
+                "port": d["port"],   # Store as string always
                 "bit":         int(d["bit"]),
                 "hidId":       int(d["hidId"]),
                 "oride_label": d["cmd"],
@@ -810,6 +880,35 @@ selector_entries_inputmap = [
     (full, cmd, val, ct, grp) for (full, cmd, val, ct, grp, lab) in selector_entries
 ]
 
+# --- GROUP PRESERVATION/ALLOCATION (no collisions) ---
+existing_max_group = 0
+existing_group_by_cmd = {}
+for e in existing_map.values():
+    g = int(e["group"])
+    if g > 0:
+        existing_max_group = max(existing_max_group, g)
+        # lock group id for this DCS command label
+        existing_group_by_cmd[e["oride_label"]] = g
+
+next_group_box = [existing_max_group + 1]   # mutable counter
+new_group_by_cmd = {}                       # for new commands this run
+
+def alloc_group(cmd: str, proposed_grp: int) -> int:
+    # keep analog / momentary ungrouped
+    if proposed_grp <= 0:
+        return 0
+    # if this command already has a group in the preserved file, reuse it
+    if cmd in existing_group_by_cmd:
+        return existing_group_by_cmd[cmd]
+    # if we already allocated a new id for this command in this run, reuse it
+    if cmd in new_group_by_cmd:
+        return new_group_by_cmd[cmd]
+    # brand‑new grouped command → allocate next unique id
+    g = next_group_box[0]
+    new_group_by_cmd[cmd] = g
+    next_group_box[0] += 1
+    return g
+
 # 2) merge into a new list, preserving any user edits by label
 merged = []
 for full, cmd, val, ct, grp in selector_entries_inputmap:
@@ -821,19 +920,23 @@ for full, cmd, val, ct, grp in selector_entries_inputmap:
             e["controlType"], e["group"]
         ))
     else:
-        # brand-new entry: use defaults
-        merged.append((full, "PCA_0x00", 0, 0, -1, cmd, val, ct, grp))
+        final_grp = alloc_group(cmd, grp)  # <- ensure unique, stable group id
+        merged.append((full, "NONE", 0, 0, -1, cmd, val, ct, final_grp))
 
 # 3) write out merged list
 with open(INPUT_REFERENCE, "w", encoding="utf-8") as f2:
     input_labels = [e[0] for e in merged]
     f2.write("// THIS FILE IS AUTO-GENERATED; ONLY EDIT INDIVIDUAL RECORDS, DO NOT ADD OR DELETE THEM HERE\n")
+    f2.write("// You can use a PIN(X) macro where X is an S2 PIN to AUTO-CONVERT to its equivalent position in an S3 device.\n")
+    f2.write("// So, PIN(4) will always be PIN 4 if you compile with an S2 but will get automatically converted to 5 if you compile the firmware on an S3.\n")
+    f2.write("// This is to easily use S2 or S3 devices on same backplane/hardware physically connected to specific PINs\n")
+
     f2.write("#pragma once\n\n")
     f2.write("struct InputMapping {\n")
-    f2.write("    const char* label;        // Unique selector label\n")
-    f2.write("    const char* source;       // Hardware source identifier\n")
-    f2.write("    int8_t     port;         // Port index\n")
-    f2.write("    int8_t     bit;          // Bit position\n")
+    f2.write("    const char* label;        // Unique selector label, auto-generated.\n")
+    f2.write("    const char* source;      // Hardware source identifier. (e.g PCA_0x26, HC165, GPIO, NONE etc)\n")
+    f2.write("    int8_t     port;           // Port index (For PCA use port 0 or 1, HC165 does not use port. For GPIO use PIN and use -1 when sharing GPIOs to differentiate HIGH/LOW)\n")
+    f2.write("    int8_t     bit;            // Bit position is used for PCA & HC165. GPIO also uses it but ONLY for one-hot selectors (GPIO assigned for each position) in such cases set as -1\n")
     f2.write("    int8_t      hidId;        // HID usage ID\n")
     f2.write("    const char* oride_label;  // Override command label (dcsCommand)\n")
     f2.write("    uint16_t    oride_value;  // Override command value (value)\n")
@@ -855,7 +958,8 @@ with open(INPUT_REFERENCE, "w", encoding="utf-8") as f2:
             cmdf = f'"{cmd}"'.ljust(max_cmd+2)
             ctf  = f'"{typ}"'.ljust(max_type+2)
             # Format override value safely
-            val_str = f"0xFFFF" if val > 32767 else f"{val:>5}"
+            # val_str = f"0xFFFF" if val > 32767 else f"{val:>5}"
+            val_str = f"{val:>5}"
             f2.write(f'    {{ {lblf}, "{src}" , {port:>2} , {bit:>2} , {hid:>3} , '
                  f'{cmdf}, {val_str} , {ctf}, {gp:>2} }},\n')
 
@@ -1157,3 +1261,25 @@ except Exception as e:
 
 print_and_disable_cpp_files()
 print(f"✅ Renamed .cpp files to cpp.DISABLE in the inactive LABEL SETS to avoid linker conflicts")
+
+# --- Emit LabelSetConfig.h if not already present ---
+labelsetconfig_filename = "LabelSetConfig.h"
+if not os.path.exists(labelsetconfig_filename):
+    _dir_name = os.path.basename(os.path.abspath(os.getcwd()))
+    _ls_name = _dir_name[len("LABEL_SET_"):] if _dir_name.startswith("LABEL_SET_") else _dir_name
+    _has_hid_mode_selector = 0
+    _mode_default_is_hid = 0
+    _label_set_fullname = f"CockpitOS Panel {_ls_name} (Please change this name)"
+    _lines = [
+        f'#define LABEL_SET_NAME        "{_ls_name}"',
+        f'#define HAS_HID_MODE_SELECTOR {_has_hid_mode_selector}',
+        f'#define MODE_DEFAULT_IS_HID   {_mode_default_is_hid}',
+        f'#define LABEL_SET_FULLNAME    "{_label_set_fullname}"',
+        f'#define HAS_{_ls_name}',
+        ''
+    ]
+    with open(labelsetconfig_filename, "w", encoding="utf-8") as _f:
+        _f.write('\n'.join(_lines))
+    print(f"[✓] Created {labelsetconfig_filename} for LABEL_SET_{_ls_name}")
+else:
+    print(f"[i] {labelsetconfig_filename} already exists, not overwritten.")

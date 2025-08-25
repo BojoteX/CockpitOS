@@ -2,14 +2,14 @@
 
 #include "HIDManager.h" // for HIDAxis enum, or forward declare if needed
 
-// -- GPIO (Inputs/Selectors/Analogs)
+// ===== GPIO (Inputs/Selectors/Analogs) =====
 extern uint8_t numGPIOEncoders;
 extern uint8_t encoderPinMask[48];
 void buildGPIOEncoderStates();
 void buildGpioGroupDefs();
-void pollGPIOSelectors(bool forceSend = false);
 void pollGPIOEncoders();
-void pollGPIOMomentaries();
+void pollGPIOSelectors(bool forceSend = false);
+void pollGPIOMomentaries(bool forceSend = false);
 
 #define MAX_AUTO_ANALOGS   HID_AXIS_COUNT
 struct AutoAnalogInput {
@@ -21,7 +21,8 @@ extern AutoAnalogInput autoAnalogs[MAX_AUTO_ANALOGS];
 extern size_t numAutoAnalogs;
 void buildAutoAnalogInputs();
 
-// —— PCA9555 (I²C expander) —— 
+
+// ===== PCA9555 (I²C expander) =====
 #define DISABLE_PCA9555                0   // 1 = skip PCA logic, 0 = enable
 #define MAX_PCA9555_INPUTS             64  // Max PCA input mappings
 #define MAX_PCA_GROUPS                 32  // Max selector groups
@@ -49,12 +50,27 @@ void buildPcaList();
 void buildPCA9555ResolvedInputs();
 void pollPCA9555_flat(bool forceSend = false);
 
-// HC165 Logic
-#ifndef HC165_INVERT_MASK
+
+// ===== HC165 Logic =====
 #define HC165_INVERT_MASK 0ULL
-#endif
 
 // HC165 (shift register) — table build, cache reset, and dispatcher
 void buildHC165ResolvedInputs();                    // build flat tables from InputMappings[]
 void resetHC165SelectorCache();                     // clear per-group latch
 void processHC165Resolved(uint64_t cur, uint64_t prev, bool forceSend);
+
+
+// ===== MATRIX rotary (strobe/data) — fully generic; discovers from InputMappings[] =====
+#define MAX_MATRIX_ROTARIES  8
+#define MAX_MATRIX_STROBES   8
+#define MAX_MATRIX_POS       16
+
+// Lazy-builds on first call from InputMappings[] (source="MATRIX"; port=GPIO; bit=pattern decimal).
+void Matrix_poll(bool forceSend);
+
+
+// ===== TM1637 momentary keys — fully generic; discovers from InputMappings[] =====
+#define MAX_TM1637_DEV    4
+#define MAX_TM1637_KEYS   64
+
+void TM1637_poll(bool forceSend);

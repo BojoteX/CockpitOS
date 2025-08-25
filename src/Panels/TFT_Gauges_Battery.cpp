@@ -11,11 +11,31 @@
 #include <algorithm>
 
 // Panel registration
-// #if (defined(LABEL_SET) && (LABEL_SET == BATTERY_GAUGE || LABEL_SET == TEST_ONLY))
-// REGISTER_PANEL(TFTBatt, nullptr, nullptr, BatteryGauge_init, BatteryGauge_loop, nullptr, 100);
-// #endif
+#if defined(HAS_RIGHT_PANEL_CONTROLLER)
+    // --- Pins Only for Right Panel Controller ---
+    #define BATTERY_MOSI_PIN   PIN(8)   // SDA (Yellow)
+    #define BATTERY_SCLK_PIN   PIN(9)   // SCL (Orange)
+    #define BATTERY_DC_PIN     PIN(13)  // Data/Command (Green)
+    #define BATTERY_CS_PIN     PIN(36)  // Chip Select (Blue)
+    #define BATTERY_RST_PIN    PIN(12)  // Used by the Right Panel Controller (UNKNOWN COLOR)   
+    REGISTER_PANEL(TFTBatt, nullptr, nullptr, BatteryGauge_init, BatteryGauge_loop, nullptr, 100);
+#elif defined(HAS_TEST_ONLY)
+    // --- Pins Only for Right Panel Controller ---
+    #define BATTERY_MOSI_PIN   PIN(10)  // SDA (Yellow)
+    #define BATTERY_SCLK_PIN   PIN(11)  // SCL (Orange)
+    #define BATTERY_DC_PIN     PIN(7)   // Data/Command (Green)
+    #define BATTERY_CS_PIN     PIN(5)   // Chip Select (Blue)
+    #define BATTERY_RST_PIN    -1       // Not connected
+    REGISTER_PANEL(TFTBatt, nullptr, nullptr, BatteryGauge_init, BatteryGauge_loop, nullptr, 100);
+#else
+    #define BATTERY_MOSI_PIN   -1  // SDA (Yellow)
+    #define BATTERY_SCLK_PIN   -1  // SCL (Orange)
+    #define BATTERY_DC_PIN     -1  // Data/Command (Green)
+    #define BATTERY_CS_PIN     -1  // Chip Select (Blue)
+    #define BATTERY_RST_PIN    -1  // Used by the Right Panel Controller (UNKNOWN COLOR)   
+#endif
 
-#define MAX_MEMORY_TFT 8
+#define MAX_MEMORY_TFT 4
 #define GAUGE_DRAW_MIN_INTERVAL_MS 13
 #define RUN_GAUGE_AS_TASK 1
 #define BACKLIGHT_LABEL "CONSOLES_DIMMER"
@@ -31,26 +51,6 @@
 #else
 #define BATT_CPU_CORE 0
 #endif
-
-// --- Pins ---
-#if (defined(HAS_BATTERY_GAUGE) || defined(HAS_TEST_ONLY))
-#define BATTERY_MOSI_PIN   8
-#define BATTERY_SCLK_PIN   9
-#define BATTERY_DC_PIN    13
-#define BATTERY_RST_PIN   12
-#define BATTERY_CS_PIN    36
-#endif
-
-/*
-// --- Pins ---
-#if (defined(LABEL_SET_BATTERY_GAUGE) || defined(LABEL_SET_TEST_ONLY))
-#define BATTERY_MOSI_PIN   PIN(8)
-#define BATTERY_SCLK_PIN   PIN(9)
-#define BATTERY_DC_PIN    PIN(13)
-#define BATTERY_RST_PIN   PIN(12)
-#define BATTERY_CS_PIN    PIN(36)
-#endif
-*/
 
 // --- Assets (240x240 bg, 15x88 needle) ---
 #include "Assets/BatteryGauge/batBackground.h"
@@ -88,7 +88,7 @@ public:
     LGFX_Battery() {
         {
             auto cfg = _bus.config();
-            cfg.spi_host = SPI2_HOST;
+            cfg.spi_host = SPI3_HOST;
             cfg.spi_mode = 0;
             cfg.freq_write = 80000000;
             cfg.freq_read = 0;

@@ -16,7 +16,7 @@ LH Advisory Panel
 Lock Shoot Lights
 Map Gain/Spin Recovery Panel
 Master Arm Panel
-Caution Light Panel
+# Caution Light Panel
 Interior Lights Panel
 Angle of Attack Indexer Lights
 Emergency Jettison Button

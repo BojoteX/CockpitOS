@@ -7,6 +7,7 @@
 void initPanels();
 void DCSBIOS_forceMissionStop();
 void forceResync();
+bool simReady();
 
 // --- Prototypes for Selector Validation/Sync ---
 void validateSelectorSync();

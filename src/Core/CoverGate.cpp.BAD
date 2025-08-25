@@ -1,0 +1,143 @@
+// CoverGate.cpp - CoverGate management for CockpitOS
+
+#include "../Globals.h"
+#include "../../Mappings.h"
+#include "../HIDManager.h"
+#include "../DCSBIOSBridge.h"   // getLastKnownState()
+
+enum Pending : uint8_t { P_NONE = 0, P_SEND_ON = 1, P_CLOSE_COVER = 2 };
+struct GateState { Pending p; uint32_t due_ms; };
+static GateState s_state[MAX_COVER_GATES];
+static bool s_reentry = false;
+
+#define DISABLE_COVERGATE
+
+void CoverGate_init() {
+    if (kCoverGateCount > MAX_COVER_GATES) {
+        debugPrintf("❌ kCoverGateCount=%u exceeds MAX_COVER_GATES=%u\n",
+            (unsigned)kCoverGateCount, (unsigned)MAX_COVER_GATES);
+    }
+    for (uint8_t i = 0; i < kCoverGateCount && i < MAX_COVER_GATES; ++i) {
+        s_state[i].p = P_NONE; s_state[i].due_ms = 0u;
+    }
+}
+
+// Returns true if event was handled (deferred/sequenced)
+bool CoverGate_intercept(const char* label, bool pressed) {
+
+#if defined(DISABLE_COVERGATE)
+    return false;
+#endif
+
+    if (!label || s_reentry) return false;
+
+    for (uint8_t i = 0; i < kCoverGateCount; ++i) {
+        const CoverGateDef& g = kCoverGates[i];
+
+        // --- SELECTOR TYPE (unchanged logic) ---
+        if (g.kind == CoverGateKind::Selector) {
+            if (g.action_label && strcmp(label, g.action_label) == 0 && pressed) {
+                s_reentry = true;
+                HIDManager_setNamedButton(g.cover_label, false, true);
+                s_reentry = false;
+                s_state[i].p = P_SEND_ON;
+                s_state[i].due_ms = millis() + g.delay_ms;
+                return true;
+            }
+            if (g.release_label && strcmp(label, g.release_label) == 0 && pressed) {
+                s_reentry = true;
+                HIDManager_setNamedButton(g.release_label, false, true);
+                s_reentry = false;
+                s_state[i].p = P_CLOSE_COVER;
+                s_state[i].due_ms = millis() + g.close_delay_ms;
+                return true;
+            }
+        }
+
+        // --- GUARDED LATCHED MOMENTARY BUTTON ---
+        else if (g.kind == CoverGateKind::ButtonMomentary) {
+            if (g.action_label && strcmp(label, g.action_label) == 0) {
+                if (pressed) {
+                    const uint16_t coverState = getLastKnownState(g.cover_label);   // >0 = open
+                    const uint16_t btnState = getLastKnownState(g.action_label);  // >0 = ON (latched)
+
+                    if (coverState == 0) {
+                        // Cover closed: open now, then (after delay) toggle ONLY if currently OFF
+                        s_reentry = true;
+                        HIDManager_setNamedButton(g.cover_label, false, true);  // open
+                        s_reentry = false;
+                        s_state[i].p = P_SEND_ON;
+                        s_state[i].due_ms = millis() + g.delay_ms;
+                    }
+                    else { // cover is open
+                        // Toggle unconditionally to the opposite state, then schedule close
+                        s_reentry = true;
+                        HIDManager_setToggleNamedButton(g.action_label, false);
+                        s_reentry = false;
+
+                        s_state[i].p = P_CLOSE_COVER;
+                        s_state[i].due_ms = millis() + g.close_delay_ms;
+                    }
+                    return true; // handled; block fallback
+                }
+                else {
+                    // RELEASE: do nothing, block fallback
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+// --- Main CoverGate loop: handles all pending actions ---
+void CoverGate_loop() {
+    const uint32_t now = millis();
+    for (uint8_t i = 0; i < kCoverGateCount; ++i) {
+
+#if defined(DISABLE_COVERGATE)
+        continue;
+#endif
+
+        if (s_state[i].p == P_NONE) continue;
+        if ((int32_t)(now - s_state[i].due_ms) < 0) continue;
+
+        const CoverGateDef& g = kCoverGates[i];
+
+        if (g.kind == CoverGateKind::Selector && s_state[i].p == P_SEND_ON) {
+            s_reentry = true;
+            HIDManager_setNamedButton(g.action_label, false, true);
+            s_reentry = false;
+            s_state[i].p = P_NONE;
+            continue;
+        }
+
+        if (g.kind == CoverGateKind::Selector && s_state[i].p == P_CLOSE_COVER) {
+            s_reentry = true;
+            HIDManager_setNamedButton(g.cover_label, false, false);
+            s_reentry = false;
+            s_state[i].p = P_NONE;
+            continue;
+        }
+
+        // --- GUARDED LATCHED MOMENTARY ---
+        if (g.kind == CoverGateKind::ButtonMomentary && s_state[i].p == P_SEND_ON) {
+            // Only toggle if currently OFF; if already ON, skip (prevents unwanted 0)
+            if (getLastKnownState(g.action_label) == 0) {
+                s_reentry = true;
+                HIDManager_setToggleNamedButton(g.action_label, false); // latch ON
+                s_reentry = false;
+            }
+            s_state[i].p = P_NONE;
+            continue;
+        }
+
+        if (g.kind == CoverGateKind::ButtonMomentary && s_state[i].p == P_CLOSE_COVER) {
+            s_reentry = true;
+            HIDManager_setNamedButton(g.cover_label, false, false); // close
+            s_reentry = false;
+            s_state[i].p = P_NONE;
+            continue;
+        }
+    }
+}

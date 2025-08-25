@@ -1,0 +1,131 @@
+// DisplayMapping.cpp
+
+#include "../Globals.h"
+#include "DisplayMapping.h"
+
+// The two values before FIELD_NUMERIC are the min-max range (e.g 0, 999). See below
+const DisplayFieldDefLabel fieldDefs[] = {
+    // ================== IFEI ==================
+
+    /*
+    { "IFEI_BINGO",         &bingoMap[0][0], 5, 7,   0, 20000, 		    FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_BINGO_TEXTURE", &bingoLabel,     0, 0,   0, 1, 		        FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_CLOCK_H",       timeHHMap,       2, 7,   0, 23, 		    FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_CLOCK_M",       timeMMMap,       2, 7,   0, 59, 		    FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_CLOCK_S",       timeSSMap,       2, 7,   0, 59, 		    FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_Z_TEXTURE",     &zuluLabel,      0, 0,   0, 1, 		        FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_FF_L",          &fuelFlowLeftMap[0][0], 3, 7, 0, 999, 	    FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_FF_R",          &fuelFlowRightMap[0][0],3, 7, 0, 999, 	    FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_FF_TEXTURE",    &fuelFlowLabel,  0, 0, 0, 1, 		        FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_TEMP_L",        &tempLeftMap[0][0], 3, 7, 0, 999, 		    FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_TEMP_R",        &tempRightMap[0][0],3, 7, 0, 999, 		    FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_TEMP_TEXTURE",  &tempLabel,         0, 0, 0, 1, 		    FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_OIL_PRESS_L",   &oilLeftMap[0][0],  3, 7, 0, 199, 		    FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_OIL_PRESS_R",   &oilRightMap[0][0], 3, 7, 0, 199, 		    FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_OIL_TEXTURE",   &oilLabel,          0, 0, 0, 1, 		    FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_RPM_L",         &leftRpmMap[0][0],  3, 7, 0, 199, 		    FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_RPM_R",         &rightRpmMap[0][0], 3, 7, 0, 199, 		    FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_RPM_TEXTURE",   &rpmLabel,          0, 0, 0, 1, 		    FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_NOZ_TEXTURE",   &nozLabel,          0, 0, 0, 1, 		    FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_FUEL_UP",       &fuelLeftMap[0][0], 6, 14, 0, 999999, 	    FIELD_MIXED, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_FUEL_DOWN",     &fuelRightMap[0][0],6, 14, 0, 999999, 	    FIELD_MIXED, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_L_TEXTURE",     &fuelLeftLabel,     0, 0, 0, 1, 		    FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_R_TEXTURE",     &fuelRightLabel,    0, 0, 0, 1, 		    FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_SP",            &spTempLeftMap[0][0], 3, 7, 0, 0, 		    FIELD_STRING, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_CODES",         &codesTempRightMap[0][0], 3, 7, 0, 0, 	    FIELD_STRING, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_T",             &tModeUP[0][0], 6, 14, 0, 999999, 	        FIELD_MIXED, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_TIME_SET_MODE", &timeSetModeDown[0][0],6, 14, 0, 999999, 	FIELD_MIXED, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_DD_1",          &timeColonLabel,       0, 0, 0, 1,          FIELD_LABEL,   0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_TIMER_H",       &timerHoursMap[0][0],  2, 7, 0, 23,         FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_TIMER_M",       &timerMinutesMap[0][0],2, 7, 0, 59,         FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_TIMER_S",       &timerSecondsMap[0][0],2, 7, 0, 59,         FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+
+    // Special Cases (Set in custom Panel, manually added)
+    { "IFEI_NOZZLE_L", 	    nozBarLeftMap, 0, 0, 0, 100, 		FIELD_NUMERIC, 11, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    { "IFEI_NOZZLE_R",      nozBarRightMap, 0, 0, 0, 100, 		FIELD_NUMERIC, 11, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher },
+    */
+
+    { "IFEI_BINGO",         &bingoMap[0][0], 5, 7,   0, 20000,  FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_BINGO },
+    { "IFEI_BINGO_TEXTURE", &bingoLabel,     0, 0,   0, 1,      FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_LABEL },
+    { "IFEI_CLOCK_H",       timeHHMap,       2, 7,   0, 23,     FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_7SEG },
+    { "IFEI_CLOCK_M",       timeMMMap,       2, 7,   0, 59,     FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_7SEG },
+    { "IFEI_CLOCK_S",       timeSSMap,       2, 7,   0, 59,     FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_7SEG },
+    { "IFEI_Z_TEXTURE",     &zuluLabel,      0, 0,   0, 1,      FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_LABEL },
+    { "IFEI_FF_L",          &fuelFlowLeftMap[0][0], 3, 7, 0, 999,  FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_7SEG },
+    { "IFEI_FF_R",          &fuelFlowRightMap[0][0],3, 7, 0, 999,  FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_7SEG },
+    { "IFEI_FF_TEXTURE",    &fuelFlowLabel,  0, 0, 0, 1,      FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_LABEL },
+    { "IFEI_TEMP_L",        &tempLeftMap[0][0], 3, 7, 0, 999,  FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_7SEG },
+    { "IFEI_TEMP_R",        &tempRightMap[0][0],3, 7, 0, 999,  FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_7SEG },
+    { "IFEI_TEMP_TEXTURE",  &tempLabel,      0, 0, 0, 1,      FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_LABEL },
+    { "IFEI_OIL_PRESS_L",   &oilLeftMap[0][0],  3, 7, 0, 199,  FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_RPM },
+    { "IFEI_OIL_PRESS_R",   &oilRightMap[0][0], 3, 7, 0, 199,  FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_RPM },
+    { "IFEI_OIL_TEXTURE",   &oilLabel,          0, 0, 0, 1,    FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_LABEL },
+    { "IFEI_RPM_L",         &leftRpmMap[0][0],  3, 7, 0, 199,  FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_RPM },
+    { "IFEI_RPM_R",         &rightRpmMap[0][0], 3, 7, 0, 199,  FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_RPM },
+    { "IFEI_RPM_TEXTURE",   &rpmLabel,          0, 0, 0, 1,    FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_LABEL },
+    { "IFEI_NOZ_TEXTURE",   &nozLabel,          0, 0, 0, 1,    FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_LABEL },
+    { "IFEI_FUEL_UP",       &fuelLeftMap[0][0], 6, 14, 0, 999999, FIELD_MIXED, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_FUEL },
+    { "IFEI_FUEL_DOWN",     &fuelRightMap[0][0],6, 14, 0, 999999, FIELD_MIXED, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_FUEL },
+    { "IFEI_L_TEXTURE",     &fuelLeftLabel,     0, 0, 0, 1,    FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_LABEL },
+    { "IFEI_R_TEXTURE",     &fuelRightLabel,    0, 0, 0, 1,    FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_LABEL },
+    { "IFEI_SP",            &spTempLeftMap[0][0], 3, 7, 0, 0,  FIELD_STRING, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_7SEG },
+    { "IFEI_CODES",         &codesTempRightMap[0][0], 3, 7, 0, 0, FIELD_STRING, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_7SEG },
+    { "IFEI_T",             &tModeUP[0][0], 6, 14, 0, 999999,  FIELD_MIXED, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_ALPHA_NUM_FUEL },
+    { "IFEI_TIME_SET_MODE", &timeSetModeDown[0][0],6, 14, 0, 999999, FIELD_MIXED, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_ALPHA_NUM_FUEL },
+    { "IFEI_DD_1",          &timeColonLabel,    0, 0, 0, 1,    FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_LABEL },
+    { "IFEI_TIMER_H",       &timerHoursMap[0][0],  2, 7, 0, 23, FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_7SEG },
+    { "IFEI_TIMER_M",       &timerMinutesMap[0][0],2, 7, 0, 59, FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_7SEG },
+    { "IFEI_TIMER_S",       &timerSecondsMap[0][0],2, 7, 0, 59, FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_7SEG },
+
+    // Special Cases (Set in custom Panel, manually added)
+    { "IFEI_NOZZLE_L",      nozBarLeftMap, 0, 0, 0, 100,   FIELD_NUMERIC, 11, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_BARGRAPH },
+    { "IFEI_NOZZLE_R",      nozBarRightMap, 0, 0, 0, 100,  FIELD_NUMERIC, 11, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, clearIFEIDispatcher, FIELD_RENDER_BARGRAPH },
+
+    // ================== UFC (SKELETON EXAMPLE) ==================
+    //
+    // How to add a new display field for any panel (e.g., UFC, IFEI, etc.)
+    // Each entry in the array describes exactly ONE logical display "field" (e.g., a 7-segment digit group, bargraph, or label).
+    //
+    // The fields in each initializer are as follows:
+    //
+    // 1. "UFC_1"           // [label] - The human-readable label for this field. This is used in your code to identify the field by name.
+    // 2. ufcMap0           // [segMap] - Pointer to the segment map array that defines which segments this field drives on the display hardware.
+    // 3. 1                 // [numDigits] - How many digits (or major elements) this field displays (e.g., a 3-digit number = 3).
+    // 4. 7                 // [segsPerDigit] - Number of physical segments per digit (e.g., 7 for a standard 7-segment).
+    // 5. 0                 // [minValue] - Minimum valid value for this field (for range checks; use 0 for non-numeric).
+    // 6. 9                 // [maxValue] - Maximum valid value for this field (for range checks).
+    // 7. FIELD_7SEG        // [type] - Field type. Options: FIELD_7SEG, FIELD_MIXED, FIELD_BARGRAPH, FIELD_LABEL, etc.
+    // 8. 0                 // [barCount] - Only used for bargraph fields (number of bars/segments). Otherwise, use 0.
+    // 9. &ufc              // [driver] - Pointer to the display driver object that manages this field's hardware.
+    // 10. DISPLAY_UFC      // [deviceType] - Enumerated value for the display panel type. (e.g., UFC, IFEI, etc.)
+    // 11. renderUFC7Seg    // [renderFunc] - Pointer to the function that actually draws/updates this field on the display (render function).
+    // 12. nullptr          // [clearFunc] - Pointer to the function that clears this field before rendering. Use nullptr if no clearing is needed.
+    //
+    // ------------------------
+    //
+    // Example entry (for a 1-digit UFC 7-segment field):
+    /*
+    {
+        "UFC_1",            // Label used in code (e.g., for updates: renderField("UFC_1", "7");)
+        ufcMap0,            // Segment map for this digit/group (define in your segment map file)
+        1,                  // Number of digits (e.g., 1)
+        7,                  // Number of segments per digit (e.g., 7 for 7-segment)
+        0,                  // Minimum valid value (numeric, or 0)
+        9,                  // Maximum valid value (numeric, or 9)
+        FIELD_7SEG,         // Field type (choose one: FIELD_7SEG, FIELD_BARGRAPH, FIELD_LABEL, etc.)
+        0,                  // Bar count (for bargraphs only; otherwise 0)
+        &ufc,               // Pointer to driver object for this display
+        DISPLAY_UFC,        // Device type (for lookup/routing)
+        renderUFC7Seg,      // Function to render this field (must be implemented in your code)
+        nullptr             // Function to clear this field (or use nullptr if not needed)
+    },
+    */
+    //
+    // To add more UFC fields, copy the line above and customize the label, segment map, number of digits, and function pointers as needed.
+    // For more complex fields (e.g., multi-digit, bargraphs, or labels), adjust the arguments accordingly.
+    //
+    // See the IFEI entries above for more examples of different field types and usage.
+    //
+};
+size_t numFieldDefs = sizeof(fieldDefs) / sizeof(fieldDefs[0]);
+FieldState fieldStates[sizeof(fieldDefs) / sizeof(fieldDefs[0])];

@@ -6,11 +6,14 @@
 #
 # To update the list of available panels, just re-run this script.
 
-Flight Control System Panel
-Fuel Panel
-Interior Lights Panel
-Communication Panel
-Auxiliary Power Unit Panel
-Antenna Select Panel
-LOX Indicator
-TODO
+# Comms frequency
+# Radio Frequencies
+# Electrical Power Panel
+# Fire Systems
+
+RH Advisory Panel
+LH Advisory Panel
+Right Engine Fire Warning Extinguisher Light
+Left Engine Fire Warning Extinguisher Light
+Master Caution Light
+APU Fire Warning Extinguisher Light

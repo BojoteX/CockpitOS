@@ -6,16 +6,12 @@ HID manager python script on a remote computer (Windows/Linux/Mac/Raspberry Pi) 
 over the network. A way to reproduce the issue is: Compile the MAIN_PANEL label set with Arduino Core 2.x and WiFi
 enabled, notice the Lockshoot indicator staying WHITE. It stops working. Just disable WiFi and it will work again. This is most likely a WiFI/RMT conflict issue/bug in Arduino Core 2.x
 
-HID Handler edge cases (replicate starting the computer or resuming from sleep with device already connected)
+- HID Handler edge cases (replicate starting the computer or resuming from sleep with device already connected)
 
-HID Manager Headless + C++ version
+- HID Manager Headless + C++ versios
 
-Make WS2812 generic and modify panel struct/union to add index characteristics (color) and device instance
+- Make WS2812 generic and modify panel struct/union to add index characteristics (color). Device instance should be deduced from the DIO pin.
 
-Test UART for Serial coms on S3's and C3's simultaneously with USB HIDs (using HID keepalives). To test stability. use DCSBIOS with the hardware CDC option
+- Test UART for Serial coms on S3's and C3's simultaneously with USB HIDs (using HID keepalives). To test stability. use DCSBIOS with the hardware CDC option
 
-Change "Cover" logic to also include momentary latches. DO NOT AUTOMATE, this needs to be manual
-
-Modify auto-generator to also recognize PIN(NUMBERS) or TEXT_ONLY
-
-CONSOLIDATE #defines
+IFEI - Dirty on mode 888 Change

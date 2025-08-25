@@ -3,12 +3,12 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
-  DEVICE_NONE,
+  DEVICE_TM1637,
   DEVICE_GAUGE,
+  DEVICE_GN1640T,
   DEVICE_WS2812,
   DEVICE_PCA9555,
-  DEVICE_TM1637,
-  DEVICE_GN1640T,
+  DEVICE_NONE,
   DEVICE_GPIO,
 };
 
@@ -29,7 +29,7 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
-  { "APU_READY_LT"       , DEVICE_GPIO    , {.gpioInfo = {LED_APU_READY}}, false, false }, // GPIO LED_APU_READY,
+  { "APU_READY_LT"       , DEVICE_GPIO    , {.gpioInfo = {PIN(17)}}, false, false }, // GPIO PIN(17),
   { "COM_AUX"            , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "COM_ICS"            , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "COM_MIDS_A"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
@@ -40,7 +40,7 @@ static const LEDMapping panelLEDs[] = {
   { "COM_WPN"            , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "RUD_TRIM"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CHART_DIMMER"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "CONSOLES_DIMMER"    , DEVICE_GPIO    , {.gpioInfo = {LED_CONSOLE_BACKLIGHT_LEFT_PANEL}}, true, false }, // GPIO LED_CONSOLE_BACKLIGHT_LEFT_PANEL,
+  { "CONSOLES_DIMMER"    , DEVICE_GPIO    , {.gpioInfo = {PIN(12)}}, true, false }, // GPIO PIN(12),
   { "FLOOD_DIMMER"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "INST_PNL_DIMMER"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "WARN_CAUTION_DIMMER", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,

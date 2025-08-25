@@ -25,6 +25,9 @@
 // For edge cases where we need to force a resync of the panel
 volatile bool forcePanelResyncNow = false;
 
+// Keep track of DCS-BIOS connection state
+static unsigned long lastNotReadyPrint = 0;
+
 #if (USE_DCSBIOS_WIFI || USE_DCSBIOS_USB)
 // Size of max packet for DCS Receive
 static uint8_t reassemblyBuf[DCS_UDP_MAX_REASSEMBLED];
@@ -162,6 +165,15 @@ static bool TEMP_DISABLE_LISTENER = false;
 // Frame counter for debugging purposes
 uint64_t frameCounter = 0;
 
+// Init DCS-BIOS previous values on startup
+static uint16_t g_prevValues[DcsOutputTableSize];
+static bool     g_prevInit = false;
+
+void DCSBIOS_bustPrevValues() {
+    for (size_t i = 0; i < DcsOutputTableSize; ++i) g_prevValues[i] = 0xFFFFu;
+    g_prevInit = true;
+}
+
 // DcsBiosSniffer Listener
 class DcsBiosSniffer : public DcsBios::ExportStreamListener {
 public:
@@ -177,6 +189,7 @@ public:
 
         // This is used for debugging and testing
         if(TEMP_DISABLE_LISTENER) return;
+        if (!g_prevInit) DCSBIOS_bustPrevValues();
 
         unsigned long now = millis();     
 
@@ -192,8 +205,6 @@ public:
             updateAnonymousStringField(aircraftNameField, addr, value);
         }
 
-        static uint16_t prevValues[DcsOutputTableSize] = {0};
-
         const AddressEntry* ae = findDcsOutputEntries(addr);
         if (!ae) return;
 
@@ -203,10 +214,9 @@ public:
             uint16_t val = (value & entry->mask) >> entry->shift;
             size_t index = entry - DcsOutputTable;
 
-            // Only debounce non-CT_DISPLAY
             if (entry->controlType != CT_DISPLAY) {
-                if (index >= DcsOutputTableSize || prevValues[index] == val) continue;
-                prevValues[index] = val;
+                if (index >= DcsOutputTableSize || g_prevValues[index] == val) continue;
+                g_prevValues[index] = val;            // admits first 0/1/etc.
             }
 
             switch (entry->controlType) {
@@ -304,8 +314,8 @@ public:
     unsigned long msSinceLastWrite() const { return millis() - _lastWriteMs; }
 
 protected:
-    virtual void onStreamUp()   { debugPrintln("[STREAM] UP"); }
-    virtual void onStreamDown() { debugPrintln("[STREAM] DOWN"); }
+    virtual void onStreamUp() { debugPrintln("[DCS-BIOS] ✅ STREAM UP"); }
+    virtual void onStreamDown() { debugPrintln("[DCS-BIOS] ❌ STREAM DOWN"); }
 
 private:
     char aircraftNameBuf[25] = {};
@@ -336,74 +346,40 @@ void dumpAllMetadata() {
     }
 }
 
-/*
 void syncCommandHistoryFromInputMapping() {
     for (size_t i = 0; i < commandHistorySize; ++i) {
         CommandHistoryEntry& e = commandHistory[i];
         e.isSelector = false;
         e.group = 0;
-        e.lastValue = 0xFFFF;
-
-        // NEW: wipe any stale state from a prior mission
+        // e.lastValue = 0xFFFF;   // unknown
         e.hasPending = false;
         e.pendingValue = 0;
         e.lastChangeTime = 0;
         e.lastSendTime = 0;
 
+        // Bind any INPUT used by the firmware to this DCS label, so we always track it.
         for (size_t j = 0; j < InputMappingSize; ++j) {
             const InputMapping& m = InputMappings[j];
-            if (strcmp(e.label, m.oride_label) == 0 && strcmp(m.controlType, "selector") == 0) {
-                e.isSelector = true;
-                if (m.group > e.group) e.group = m.group;
+            if (!m.oride_label || strcmp(e.label, m.oride_label) != 0) continue;
+
+            // Track selectors and buttons
+            const bool isSel = (strcmp(m.controlType, "selector") == 0);
+            const bool isBtn = (strcmp(m.controlType, "momentary") == 0);
+
+            if (isSel || isBtn) {
+                // Only selectors participate in dwell/group arbitration
+                if (isSel && m.group > 0) {
+                    e.isSelector = true;
+                    if (m.group > e.group) e.group = m.group;
+                }
+                // Nothing else to set; onSelectorChange() will keep e.lastValue fresh
+                break;
             }
         }
     }
-    debugPrint("[SYNC] Command history has been initialized from InputMappings (state cleared).\n");
+    debugPrint("[SYNC] Command history initialized for ALL inputs (selectors + buttons).\n");
 }
-*/
 
-void syncCommandHistoryFromInputMapping() {
-    for (size_t i = 0; i < commandHistorySize; ++i) {
-        CommandHistoryEntry& e = commandHistory[i];
-        e.isSelector = false;
-        e.group = 0;
-        e.lastValue = 0xFFFF;
-
-        // NEW: wipe any stale state from a prior mission
-        e.hasPending = false;
-        e.pendingValue = 0;
-        e.lastChangeTime = 0;
-        e.lastSendTime = 0;
-
-        for (size_t j = 0; j < InputMappingSize; ++j) {
-            const InputMapping& m = InputMappings[j];
-
-            if (
-                strcmp(e.label, m.oride_label) == 0 &&
-                strcmp(m.controlType, "selector") == 0 &&
-                m.group > 0
-                ) {
-                e.isSelector = true;
-                if (m.group > e.group) e.group = m.group;
-            }
-
-            /*  Restrictive Checks
-            if (
-                strcmp(e.label, m.oride_label) == 0 &&
-                strcmp(m.controlType, "selector") == 0 &&
-                m.group > 0 &&
-                m.source && strcmp(m.source, "NONE") != 0 &&
-                strcmp(m.source, "PCA_0x00") != 0
-                ) {
-                e.isSelector = true;
-                if (m.group > e.group) e.group = m.group;
-            }
-            */
-
-        }
-    }
-    debugPrint("[SYNC] Command history has been initialized from InputMappings (state cleared).\n");
-}
 
 // this will run only ONCE. Ideally, this should go after we receive data for this first time
 /*
@@ -447,7 +423,7 @@ void initPanels() {
     debugPrintf("[SYNC PANELS] 🔁 Mission Started %u ms ago\n", msSinceMissionStart());
 
     forcePanelSyncThisMission = true;
-    panelsSyncedThisMission = true;   // ← move back up so init traffic passes the gate
+    panelsSyncedThisMission = true;   // ← move back UP
 
     for (uint16_t g = 0; g < MAX_GROUPS; ++g) lastGroupSendUs[g] = 0;
     for (size_t i = 0; i < numValidatedSelectors; ++i) validatedSelectors[i].lastSimValue = 0xFFFF;
@@ -463,7 +439,7 @@ void initPanels() {
     // debugPrintln("[SYNC PANELS] ❌ Just ran flushBufferedDcsCommands()\n");
 
     forcePanelSyncThisMission = false;
-    // panelsSyncedThisMission stays true
+
 }
 
 void onAircraftName(const char* str) {
@@ -947,7 +923,9 @@ static void flushBufferedDcsCommands() {
 */
 
 static void flushBufferedDcsCommands() {
+
     unsigned long now = millis();
+
     uint32_t nowUs = micros();
     const bool forceInit = forcePanelSyncThisMission;
 
@@ -1007,6 +985,17 @@ static void flushBufferedDcsCommands() {
 
         winner->hasPending = false;
         lastGroupSendUs[g] = nowUs;
+    }
+
+	// Step 3: Send any non-grouped commands (buttons, axes)
+    for (size_t i = 0; i < commandHistorySize; ++i) {
+        CommandHistoryEntry& e = commandHistory[i];
+        if (!e.hasPending || e.group != 0) continue;
+        char buf[10]; snprintf(buf, sizeof(buf), "%u", e.pendingValue);
+        sendCommand(e.label, buf, false);
+        e.lastValue = e.pendingValue;
+        e.lastSendTime = now;
+        e.hasPending = false;
     }
 }
 
@@ -1191,11 +1180,19 @@ bool tryToSendDcsBiosMessage(const char* msg, const char* arg) {
 #endif
 }
 
+bool simReady() {
+
+    if (isMissionRunning() && isPanelsSyncedThisMission() && mySniffer.isStreamAlive())
+        return true;
+
+    return false;
+}
+
 void sendCommand(const char* msg, const char* arg, bool silent) {
 
 #if USE_DCSBIOS_WIFI
     // We completely bypass Serial+Socat and send our DCSBIOS command via UDP directly to the PC running DCS if mission is active
-    if(isMissionRunning() && isPanelsSyncedThisMission() && mySniffer.isStreamAlive()) {
+    if(simReady()) {
         if(tryToSendDcsBiosMessageUDP(msg, arg)) {
             if(!silent) debugPrintf("🛩️ [DCS-WIFI] %s %s\n", msg, arg);
         }
@@ -1207,7 +1204,7 @@ void sendCommand(const char* msg, const char* arg, bool silent) {
         if (!silent) debugPrintf("🛩️ [DCS-WIFI] DCS NOT READY! could not send %s %s\n", msg, arg);
 	}
 #elif USE_DCSBIOS_USB
-    if(isMissionRunning() && isPanelsSyncedThisMission() && mySniffer.isStreamAlive()) {
+    if(simReady()) {
    
         // This is the MAX size for our msg and arg. Lets try to fit INSIDE 63 Bytes to avoid chunking (faster)
         constexpr size_t maxMsgLen = 48;
@@ -1244,7 +1241,7 @@ void sendCommand(const char* msg, const char* arg, bool silent) {
         }
         */
 
-        if (isMissionRunning() && isPanelsSyncedThisMission() && mySniffer.isStreamAlive()) {
+        if (simReady()) {
 
             if (!cdcEnsureTxReady(CDC_TIMEOUT_RX_TX)) {
                 if (!silent) debugPrintln("❌ [DCS] Tx buffer full");
@@ -1267,7 +1264,7 @@ void sendCommand(const char* msg, const char* arg, bool silent) {
     }
     else {
         bool bypass = false;
-        if ((isMissionRunning() && isPanelsSyncedThisMission() && mySniffer.isStreamAlive()) || bypass) {
+        if ((simReady()) || bypass) {
 
             // Testing
             if (bypass) {
@@ -1352,6 +1349,11 @@ void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
 */
 
 void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
+
+	// Prevent any command if sim is not ready yet even if forced
+    if (!simReady) 
+        debugPrintf("⚠️ [DCS] NOT READY! ignoring command \"%s %u\" (force=%u)\n", label, value, force);
+
     static char buf[10];
     snprintf(buf, sizeof(buf), "%u", value);
 
@@ -1363,14 +1365,14 @@ void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
 
     const unsigned long now = millis();
 
-#if defined(SELECTOR_DWELL_MS) && (SELECTOR_DWELL_MS > 0)
+// #if defined(SELECTOR_DWELL_MS) && (SELECTOR_DWELL_MS > 0)
     if (!force && e->group > 0) {
         e->pendingValue = value;
         e->lastChangeTime = now;
         e->hasPending = true;
         return;
     }
-#endif
+// #endif
 
     if (force && e->group > 0) {
         const uint16_t g = e->group;
@@ -1456,6 +1458,19 @@ void DCSBIOSBridge_setup() {
 
 void DCSBIOSBridge_loop() { 
 
+	// Check if sim is ready
+    bool sr = simReady();
+    if (!sr) {
+        unsigned long now = millis();
+        if (lastNotReadyPrint == 0 || now - lastNotReadyPrint >= 60000) {
+            debugPrintln("[DCS] ❌ Sim not ready yet...");
+            lastNotReadyPrint = now;
+        }
+    }
+    else {
+        lastNotReadyPrint = millis();
+    }
+
     #if DEBUG_PERFORMANCE
     beginProfiling(PERF_DCSBIOS);
     #endif
@@ -1488,9 +1503,9 @@ void DCSBIOSBridge_loop() {
     if (isModeSelectorDCS()) DCSBIOS_keepAlive();  // Still called only when in DCS mode   
     #endif
 
-    #if defined(SELECTOR_DWELL_MS) && (SELECTOR_DWELL_MS > 0)
-    if (isModeSelectorDCS()) flushBufferedDcsCommands();
-    #endif    
+    // #if defined(SELECTOR_DWELL_MS) && (SELECTOR_DWELL_MS > 0)
+    if (isModeSelectorDCS() && simReady()) flushBufferedDcsCommands();
+    // #endif    
 
     if (aircraftNameReceivedAt != 0 && !panelsInitializedThisMission) {
         if (millis() - aircraftNameReceivedAt > MISSION_START_DEBOUNCE) {
@@ -1514,14 +1529,29 @@ void DCSBIOSBridge_loop() {
         aircraftNameReceivedAt = 0;
     }
     else {
-        // If Mission is running but stream is not alive it means DCS is either paused or connection to DCS is lost.
-        if (!mySniffer.isStreamAlive()) {
-            static unsigned long lastPauseMsg = 0;
-            unsigned long now = millis();
-            if (now - lastPauseMsg > 1000) {
-                debugPrintln("[MISSION PAUSED] Mission is running but DCSBIOS stream is NOT active (navigating menus or disconnected)");
-                lastPauseMsg = now;
-            }
+        static bool wasPaused = false;
+        static unsigned long streamStateChangedAt = 0;
+        static bool debouncedPaused = false;
+
+        const unsigned long DEBOUNCE_DOWN_MS = 2000; // Require 2s continuous "down" to declare PAUSED
+        const unsigned long DEBOUNCE_UP_MS = 50;   // Require 50ms continuous "up" to declare RESUMED
+
+        bool pausedRaw = !mySniffer.isStreamAlive();
+        unsigned long now = millis();
+
+        if (pausedRaw != wasPaused) {
+            streamStateChangedAt = now;
+            wasPaused = pausedRaw;
+        }
+
+        if (!debouncedPaused && pausedRaw && (now - streamStateChangedAt >= DEBOUNCE_DOWN_MS)) {
+            debugPrintln("[MISSION PAUSED] DCSBIOS stream is NOT active");
+            debouncedPaused = true;
+			lastNotReadyPrint = 0; // Reset this so we get a print for sim not ready
+        }
+        else if (debouncedPaused && !pausedRaw && (now - streamStateChangedAt >= DEBOUNCE_UP_MS)) {
+            debugPrintln("[MISSION RESUMED] DCSBIOS stream is UP again");
+            debouncedPaused = false;
         }
     }
 }

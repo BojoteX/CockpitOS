@@ -353,7 +353,7 @@ for panel, controls in data.items():
             for i, lab in enumerate(labels):
                 clean = lab.upper().replace(' ','_')
                 if useSlash:
-                    val = (count - 1) - i
+                    val = i  # ascending, same as POS0..POSN
                     selector_entries.append((f"{ident}_{clean}", orig_ident, val, ctype, currentGroup, clean))
                 else:
                     selector_entries.append((f"{ident}_{clean}", orig_ident, i, ctype, 0, clean))
@@ -745,6 +745,13 @@ all_display_labels = [(d['label'], d['length']) for d in display_field_defs]
 with open("CT_Display.h", "w", encoding="utf-8") as fout:
     fout.write("// Auto-generated — DO NOT EDIT\n")
     fout.write("#pragma once\n\n")
+
+    # This line added NEW on 8/24/25
+    fout.write("#include \"../../../lib/CUtils/src/CUtils.h\"\n\n")
+
+    # fout.write("struct DisplayBufferEntry;\n")
+    # fout.write("struct DisplayBufferHashEntry;\n")
+
     fout.write("// Buffers and dirty flags for all display fields (global)\n")
     for label, length in all_display_labels:
         buf_var = label.lower()
@@ -838,7 +845,7 @@ existing_map = {}
 line_re = re.compile(
     r'\{\s*"(?P<label>[^"]+)"\s*,\s*'        # capture the label
     r'"(?P<source>[^"]+)"\s*,\s*'
-    r'(?P<port>-?\d+|PIN\(\d+\))\s*,\s*'
+    r'(?P<port>-?\d+|PIN\(\d+\)|[A-Za-z_][A-Za-z0-9_]*)\s*,\s*'
     r'(?P<bit>-?\d+)\s*,\s*'
     r'(?P<hidId>-?\d+)\s*,\s*'
     r'"(?P<cmd>[^"]+)"\s*,\s*'
@@ -858,7 +865,8 @@ if os.path.exists(INPUT_REFERENCE):
             existing_map[d["label"]] = {
                 "label":       d["label"],
                 "source":      d["source"],
-                "port":        int(d["port"]),
+                # "port":        int(d["port"]),
+                "port": d["port"],   # Store as string always
                 "bit":         int(d["bit"]),
                 "hidId":       int(d["hidId"]),
                 "oride_label": d["cmd"],
@@ -1253,3 +1261,25 @@ except Exception as e:
 
 print_and_disable_cpp_files()
 print(f"✅ Renamed .cpp files to cpp.DISABLE in the inactive LABEL SETS to avoid linker conflicts")
+
+# --- Emit LabelSetConfig.h if not already present ---
+labelsetconfig_filename = "LabelSetConfig.h"
+if not os.path.exists(labelsetconfig_filename):
+    _dir_name = os.path.basename(os.path.abspath(os.getcwd()))
+    _ls_name = _dir_name[len("LABEL_SET_"):] if _dir_name.startswith("LABEL_SET_") else _dir_name
+    _has_hid_mode_selector = 0
+    _mode_default_is_hid = 0
+    _label_set_fullname = f"CockpitOS Panel {_ls_name} (Please change this name)"
+    _lines = [
+        f'#define LABEL_SET_NAME        "{_ls_name}"',
+        f'#define HAS_HID_MODE_SELECTOR {_has_hid_mode_selector}',
+        f'#define MODE_DEFAULT_IS_HID   {_mode_default_is_hid}',
+        f'#define LABEL_SET_FULLNAME    "{_label_set_fullname}"',
+        f'#define HAS_{_ls_name}',
+        ''
+    ]
+    with open(labelsetconfig_filename, "w", encoding="utf-8") as _f:
+        _f.write('\n'.join(_lines))
+    print(f"[✓] Created {labelsetconfig_filename} for LABEL_SET_{_ls_name}")
+else:
+    print(f"[i] {labelsetconfig_filename} already exists, not overwritten.")

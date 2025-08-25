@@ -14,9 +14,18 @@
 // PanelName, PanelInit, PanelLoop, DisplayInit, DisplayLoop, Tick, PollInterval
 REGISTER_PANEL(TEST_ONLY, TEST_ONLY_init, TEST_ONLY_loop, nullptr, nullptr, nullptr, 100);
 
+// Outputs only (no inputs) 
+#if defined(HAS_MAIN)
+    REGISTER_PANEL(LockShoot, nullptr, nullptr, nullptr, nullptr, WS2812_tick, 100);
+    REGISTER_PANEL(LA, nullptr, nullptr, nullptr, nullptr, tm1637_tick, 100);
+    REGISTER_PANEL(RA, nullptr, nullptr, nullptr, nullptr, tm1637_tick, 100);
+#elif defined(HAS_TEST_ONLY)
+    // REGISTER_PANEL(LA, nullptr, nullptr, nullptr, nullptr, tm1637_tick, 100);
+    // REGISTER_PANEL(RA, nullptr, nullptr, nullptr, nullptr, tm1637_tick, 100);
+#endif
+
 // Examples:
 // REGISTER_PANEL(IFEI, IFEI_init, IFEI_loop, IFEIDisplay_init, IFEIDisplay_loop, nullptr, 100);
-// REGISTER_PANEL(LockShoot, LockShoot_init, LockShoot_loop, nullptr, nullptr, WS2812_tick, 100);
 // REGISTER_PANEL(AnalogGauge, nullptr, nullptr, nullptr, nullptr, AnalogG_tick, 100);
 
 // ============================================================================
@@ -41,21 +50,50 @@ void TEST_ONLY_init() {
 
         if (HC165_BITS > 0) {
             HC165_init(HC165_CONTROLLER_PL, HC165_CONTROLLER_CP, HC165_CONTROLLER_QH, HC165_BITS);
+			debugPrintf("ℹ️ HC165: %u bits on PL=%d CP=%d QH=%d\n", HC165_BITS, HC165_CONTROLLER_PL, HC165_CONTROLLER_CP, HC165_CONTROLLER_QH);
         }
-
+        else {
+            debugPrintln("⚠️ HC165: Disabled (HC165_BITS=0)");
+		}
+    
+		// GPIO Inputs Init
         buildAutoAnalogInputs();
         buildGPIOEncoderStates();
         buildGpioGroupDefs();
+
+		// HC165 Inputs Init
+		buildHC165ResolvedInputs();
+
+        // PCA9555 Inputs Init      
         buildPCA9555ResolvedInputs();
         buildPcaList();
-        CoverGate_init();
-		buildHC165ResolvedInputs();
+
+		// Do not re-run
         ranOnce = true;
     }
 
+    CoverGate_init();
     // --- [Per-mission: State/HIDManager Sync & Firing] ---
 
-    // 2. Take Fresh PCA9555 Snapshot and Fire All PCA States
+    // 1. Sync Analog Axes to Known State
+    for (size_t i = 0; i < numAutoAnalogs; ++i) {
+        const auto& a = autoAnalogs[i];
+        HIDManager_moveAxis(a.label, a.gpio, a.axis, true);
+    }
+
+    // 2. Fire All GPIO Selector States to Reset
+    pollGPIOEncoders();
+    pollGPIOSelectors(true);
+    pollGPIOMomentaries(true);
+
+    // 3. Sync All HC165 (Shift Register) States to HID
+    if (HC165_BITS > 0) {
+        hc165Bits = HC165_read();
+        hc165PrevBits = hc165Bits;                  // prevent fake edges
+        processHC165Resolved(hc165Bits, hc165PrevBits, true);
+    }
+
+    // 4. Take Fresh PCA9555 Snapshot and Fire All PCA States
     for (size_t i = 0; i < numPcas; ++i) {
         uint8_t p0, p1;
         if (readPCA9555(pcas[i].addr, p0, p1)) {
@@ -65,21 +103,11 @@ void TEST_ONLY_init() {
     }
     pollPCA9555_flat(true);
 
-    // 1. Sync Analog Axes to Known State
-    for (size_t i = 0; i < numAutoAnalogs; ++i) {
-        const auto& a = autoAnalogs[i];
-        HIDManager_moveAxis(a.label, a.gpio, a.axis, true);
-    }
+	// 5. Matrix Polling (fire all)
+    Matrix_poll(true);
 
-    // 3. Sync All HC165 (Shift Register) States to HID
-    if (HC165_BITS > 0) {
-        hc165Bits = HC165_read();
-        hc165PrevBits = hc165Bits;                  // prevent fake edges
-        processHC165Resolved(hc165Bits, hc165PrevBits, true);
-    }
-
-    // 4. Fire All GPIO Selector States to Reset
-    pollGPIOSelectors(true);
+	// 6. TM1637 Inputs (fire all)
+    TM1637_poll(true);
 
     // --- [Done] ---
     debugPrintln("✅ TEST_ONLY panel initialized");
@@ -89,7 +117,7 @@ void TEST_ONLY_init() {
 //  LOOP: TEST_ONLY_loop() — Fast, Deterministic Main Loop
 // ============================================================================
 void TEST_ONLY_loop() {
-    // --- 1. Polling Interval: Return Early If Not Time ---
+    // 1. Polling Interval: Return Early If Not Time ---
     static unsigned long lastPoll = 0;
     if (!shouldPollMs(lastPoll)) return;
 
@@ -105,17 +133,11 @@ void TEST_ONLY_loop() {
     // 3. GPIO Encoders (Quadrature, high-speed polling)
     // ------------------------------------------------------------------------
     pollGPIOEncoders();
-
-    // ------------------------------------------------------------------------
-    // 4. GPIO Selectors and Momentaries (digitalRead, O(1) per pin)
-    // ------------------------------------------------------------------------
     pollGPIOSelectors(false);
-
-	// GPIO Momentaries (digitalRead, O(n) per pin)
-    pollGPIOMomentaries();
-
+    pollGPIOMomentaries(false);
+    
     // ------------------------------------------------------------------------
-    // 5. HC165 Shift Register (edge-triggered, only on change)
+    // 4. HC165 Shift Register (edge-triggered, only on change)
     // ------------------------------------------------------------------------
     if (HC165_BITS > 0) {
         const uint64_t newBits = HC165_read();
@@ -126,8 +148,20 @@ void TEST_ONLY_loop() {
     }
 
     // ------------------------------------------------------------------------
-    // 6. PCA9555 Polling (flat, O(1) for all mapped pins/groups)
+    // 5. PCA9555 Polling (flat, O(1) for all mapped pins/groups)
     // ------------------------------------------------------------------------
     pollPCA9555_flat(false);
+
+    // ------------------------------------------------------------------------
+    // 6. Matrix Polling 
+    // ------------------------------------------------------------------------
+    Matrix_poll(false);
+
+    // ------------------------------------------------------------------------
+    // 7. Matrix Polling 
+    // ------------------------------------------------------------------------
+    TM1637_poll(false);
+
+    // CoverGate Logic
     CoverGate_loop();
 }

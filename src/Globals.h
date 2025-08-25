@@ -9,11 +9,14 @@
 */
 
 // Converts S2 PINs to S3 for compatibility with TEK backplane (Brain Controller) used by the S2
-#include "PinMap.h"
 
 #include "PsramConfig.h"
 #include <Arduino.h>
 #include "../Config.h"
+
+// PIN Macro and PIN defines
+#include "PinMap.h"
+#include "../Pins.h"
 
 // DO NOT CHANGE ANYTHING ABOVE THIS LINE....
 #include "../lib/CUtils/src/CUtils.h" 

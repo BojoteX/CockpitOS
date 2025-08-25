@@ -1,0 +1,5 @@
+#define LABEL_SET_NAME        "FRONT_LEFT_PANEL"
+#define HAS_HID_MODE_SELECTOR 0
+#define MODE_DEFAULT_IS_HID   0
+#define LABEL_SET_FULLNAME    "CockpitOS Front Left Panel"
+#define HAS_FRONT_LEFT_PANEL
