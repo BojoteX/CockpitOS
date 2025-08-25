@@ -2,7 +2,14 @@
 
 #pragma once
 
-// ===== IN THIS TOP SECTION ONLY ADD PINS, NO CONDITIONALS (PRE-PREOCESSORS INVOLING LABEL SETS) SEE BEOLOW FOR CONDITIONALS =========
+// ==============================================================================================================
+// The PIN(X) macro is optional. Using PIN(8) or just 8 has the same effect! The PIN macro exists to support
+// any custom logic needed for a pin. In our case, PIN(X) automatically converts an S2 pin to its equivalent
+// S3 position. This ensures backward compatibility with backplane PCBs, allowing you to use S2 and S3 devices
+// interchangeably. (I do this with TEKCreation Brain Controllers)
+// ==============================================================================================================
+
+// ===== IN THIS TOP SECTION ONLY ADD PINS, NO CONDITIONALS (OR PRE-PROCESSORS INVOLING LABEL SETS) SEE BELOW FOR CONDITIONALS =========
 
 // General Pins (canonical S2 → mapped by PIN())
 #define SDA_PIN                               PIN(8)
@@ -34,20 +41,6 @@
 #define BL_WHITE_PIN                          PIN(2)
 #define BL_NVG_PIN                            PIN(4)
 
-// Radar Altimeter GPIOs
-#define RA_TEST_GPIO                          PIN(2)
-#define RA_DEC_HEIGHT_GPIO                    PIN(3)
-#define RA_INC_HEIGHT_GPIO                    PIN(4)
-
-// TFT chip-selects
-/*
-#define BATTERY_CS_PIN                        PIN(38)
-#define CABIN_PRESSURE_CS_PIN                 PIN(38)
-#define BRAKE_PRESSURE_CS_PIN                 PIN(38)
-#define HYD_PRESSURE_CS_PIN                   PIN(38)
-#define RADARALT_CS_PIN                       PIN(38)
-*/
-
 // ALR-67 Pins
 #define ALR67_STROBE_1                        PIN(16)
 #define ALR67_STROBE_2                        PIN(17)
@@ -57,13 +50,18 @@
 #define ALR67_DataPin                         PIN(38)
 #define ALR67_BACKLIGHT_PIN                   PIN(14)
 
+// Radar Altimeter GPIOs
+#define RA_TEST_GPIO                          PIN(2)
+#define RA_DEC_HEIGHT_GPIO                    PIN(3)
+#define RA_INC_HEIGHT_GPIO                    PIN(4)
+
 // ALR-67 extra pins (Analog Gauge)
 // #define PRESSURE_ALT_GAUGE_PIN                PIN(18)    
 
 // CRITICAL do not change this location, this triggers the loading of LABEL SETS
 #include "src/LabelSetSelect.h"
 
-// ===== IN THIS BOTTOM SECTION YOU CAN DO CONDITIONALS (PRE-PREOCESSORS INVOLING LABEL SETS) SEE BELOW =========
+// ===== IN THIS BOTTOM SECTION YOU CAN DO CONDITIONALS (PRE-PROCESSORS INVOLING LABEL SETS) SEE BELOW =========
 
 // HC165 PIN per panel
 #if defined(HAS_LEFT_PANEL_CONTROLLER)

@@ -1,6 +1,17 @@
-// Mappings.h
+// Mappings.h – Panel and Device Definitions for CockpitOS
 
 #pragma once
+
+// ==============================================================================================================
+// Use this file to define new panel kinds, assign custom panel types, and register PCA9555 devices by I2C address.
+// Most logic for button handling (cover gates, latched/momentary behavior) is automated and managed in Mappings.cpp.
+// You only need to edit this file when:
+//   - Adding a completely new custom panel (update PanelKind and PanelID)
+//   - Registering a new PCA9555 device address (update kPanels[] and PanelID)
+// See comments throughout for specific instructions.
+//
+// All other button/cover logic is handled automatically unless you require custom overrides.
+// ==============================================================================================================
 
 enum class PanelKind : uint8_t {
   Brain, 

@@ -8,6 +8,9 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 current_dir = os.path.abspath(os.path.dirname(__file__))
 current_label_set = os.path.basename(current_dir)
 
+# Always extract _ls_name (stripped LABEL_SET_ prefix or as-is)
+_ls_name = current_label_set[len("LABEL_SET_"):] if current_label_set.startswith("LABEL_SET_") else current_label_set
+
 print(f"Current LABEL SET: {current_label_set}")
 
 # -------- CONFIGURATION --------
@@ -1283,3 +1286,16 @@ if not os.path.exists(labelsetconfig_filename):
     print(f"[✓] Created {labelsetconfig_filename} for LABEL_SET_{_ls_name}")
 else:
     print(f"[i] {labelsetconfig_filename} already exists, not overwritten.")
+
+# Set the active set
+
+# --- Emit active.set.h one directory up ---
+active_set_path = os.path.join(os.path.dirname(current_dir), "active_set.h")
+with open(active_set_path, "w", encoding="utf-8") as f:
+    f.write("#pragma once\n\n")
+    f.write(f"#define LABEL_SET {_ls_name}\n")
+print(f"[✓] Created ../active_set.h with LABEL_SET {_ls_name}")
+
+# Press ENTER to exit
+input("\nPress <ENTER> to exit...")
+sys.exit(1)

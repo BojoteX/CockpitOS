@@ -20,8 +20,8 @@ This directory controls **which panels and controls are compiled into your Cockp
 
 ## How LABEL SETS Work
 
-- Each **LABEL_SET_XXXX** directory defines a configuration for a specific build. (e.g., `LABEL_SET_MAIN`, `LABEL_SET_ALR67`)
-- **Switch sets** by changing the `#define LABEL_SET_XXXX` in your `Config.h`.
+- Each **LABEL_SET_XXXX** directory defines a configuration for a specific build. (e.g., `HAS_MAIN`, `HAS_ALR67`)
+- **Switch sets** by simply running the auto-generator in the desired directory corresponding to the label set you want.
 
 - *Each label set includes:*
     - `selected_panels.txt` &nbsp;→ List of panels to include (edit this to customize your build)
@@ -39,31 +39,13 @@ This directory controls **which panels and controls are compiled into your Cockp
 2. **Edit `selected_panels.txt`:**  
    Uncomment or add panels from `panels.txt` to include only what you want for this build.
 
-3. **(Optional) Edit or add panel logic:**  
-   - Implement or update panel-specific .cpp/.h files (e.g., `IFEIPanel.cpp`, `MasterARMPanel.cpp`).  
-   - Most panel-agnostic logic and mappings are managed by the auto-generated files.
-   - **Add new entries to `Mappings.h/cpp`** as needed for new custom logic, using preprocessor logic to switch by label set.
-
-4. **Run the auto-generator:**  
+3. **Run the auto-generator:**  
    - In your label set directory, run:  
      ```
-     python3 generate_data.py
+     python generate_data.py
      ```
    - This will generate or update all mapping files for that label set.  
    - Never hand-edit these mapping files except for fields where the generator preserves manual edits (see comments).
-
-5. **Select the label set:**  
-   - In `Config.h`, set the correct `#define LABEL_SET_XXXX` to match your build.
-   - Your firmware will automatically include the right mappings and code.
-
----
-
-## Integration: Mappings.h/cpp
-
-- `Mappings.h` and `Mappings.cpp` act as the glue between your auto-generated label set and your project source.
-- All **panel-specific initialization, panel flags, and custom code** go here.
-- Always update these files if you add a new label set or need to wire in new panels or special logic.
-- Use preprocessor logic to switch between label sets (see examples in your code).
 
 ---
 
@@ -78,7 +60,7 @@ This directory controls **which panels and controls are compiled into your Cockp
 ## Best Practices
 
 - **Never** manually edit auto-generated files except in user-marked safe zones.
-- Always manage custom logic in `Mappings.h/cpp` or dedicated panel .cpp/h files.
+- Always manage custom logic in dedicated panel .cpp/h files.
 - Keep your `selected_panels.txt` tidy and in sync with what you actually want in your firmware.
 
 ---
@@ -86,10 +68,5 @@ This directory controls **which panels and controls are compiled into your Cockp
 ## Naming and Conventions
 
 - Label set directories must start with `LABEL_SET_`.
-- Panel names should match those in `panels.txt` exactly (case and spaces sensitive).
-- Custom label sets must be added to the `Mappings.h/cpp` conditional logic and defined in `Config.h`.
 
 ---
-
-For more detail, study `Mappings.h`, `Mappings.cpp`, and the header comments in your Python generator scripts.
-

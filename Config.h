@@ -1,31 +1,17 @@
 // Config.h - Configuration file for CockpitOS
 
-#pragma once
+#pragma once          
 
-// Here you need to #define ONE and ONLY one of possible LABEL SETS to use with your panel, 
-// ** ATTENTION ** REMEMBER TO RUN generate_data.py (see LABELS directory) BEFORE compiling for each label set below 
+// ==============================================================================================================
+// IMPORTANT: Before compiling, make sure to run the auto-generator script for the LABEL SET you intend to use.
+// Simply navigate to the CockpitOS/src/LABELS directory, enter the desired LABEL SET folder, and run the
+// "generate_data.py" script located there. After running the auto-generator, that set will become the default.
+// ==============================================================================================================
 
-// Pick exactly one
-// #define LABEL_SET KY58
-// #define LABEL_SET TEST_ONLY
-// #define LABEL_SET RIGHT_PANEL_CONTROLLER                                                 
-// #define LABEL_SET LEFT_PANEL_CONTROLLER    
-// #define LABEL_SET FRONT_LEFT_PANEL   
-// #define LABEL_SET MAIN    
-// #define LABEL_SET IFEI  
-#define LABEL_SET ALR67                            
-// #define LABEL_SET CABIN_PRESSURE_GAUGE
-
-
-// DO NOT USE
-// #define LABEL_SET_CUSTOM_FRONT_RIGHT
-// #define LABEL_SET_HYD_PRESSURE_GAUGE
-// #define LABEL_SET_RADAR_ALT_GAUGE
-// #define LABEL_SET_CABIN_PRESSURE_GAUGE
-// #define LABEL_SET_BRAKE_PRESSURE_GAUGE
-// #define LABEL_SET_FRONT_LEFT_PANEL                                            
-// #define LABEL_SET_ALTIMETER // (Analog Cabin Pressure)                           
-// #define LABEL_SET_ALL                           
+#include "src/LABELS/active_set.h"
+#if !defined(LABEL_SET)
+  #error "You need to run the auto-generator script in the LABELS directory"
+#endif
 
 // Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. Pure USB or WIFI. This methods COMPLETELY bypasses Serial. If both are set to 0, then standard CDC / Serial is used. Both CAN NOT be set to 1 at the same time
 #define USE_DCSBIOS_WIFI                          0   // Completely bypasses socat and uses WiFi to connect to DCS. 

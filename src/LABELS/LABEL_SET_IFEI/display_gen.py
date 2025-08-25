@@ -434,5 +434,3 @@ with open(DEV_MAPPING_H, "w", encoding="utf-8") as fout:
     fout.write("// Function pointers (renderFunc, clearFunc) are nullptr in all generated records unless otherwise preserved.\n")
 
 print(f"Generated {DEV_MAPPING_CPP} and {DEV_MAPPING_H} for devices: {', '.join(sorted(all_device_prefixes))}")
-
-input("\nPress <ENTER> to exit...")

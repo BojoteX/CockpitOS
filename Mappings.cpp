@@ -1,4 +1,12 @@
-// Mappings.cpp - Panel configuration and runtime presence logic
+// Mappings.cpp – Panel Configuration and Runtime Presence Logic
+
+// ==============================================================================================================
+// This file manages panel registration, dynamic presence detection, and initialization of all major cockpit panels.
+// - Add physical "cover gate" logic or custom guarded button/selector definitions here (see kCoverGates).
+// - All PCA9555 panel devices, annunciators, and custom LEDs/gauges should be configured/initialized here.
+// - Button and selector logic is mostly automated; only extend this file when adding new panels, covered controls,
+//   or custom panel hardware.
+// ==============================================================================================================
 
 #include "src/Globals.h"
 #include "Mappings.h"

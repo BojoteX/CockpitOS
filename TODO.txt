@@ -10,7 +10,7 @@ enabled, notice the Lockshoot indicator staying WHITE. It stops working. Just di
 
 - HID Manager Headless + C++ version
 
-- Keep testing panel sync to ensure 100% reliability
+- Keep testing panel sync to ensure 100% reliability with SAFE/ARM test
 
 - Front Left and Front Right panel implementations (Physical)
 
