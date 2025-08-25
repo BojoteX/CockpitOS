@@ -3,6 +3,7 @@
 #pragma once
 
 #include "../Mappings.h"
+#include "../Pins.h"
 
 void initPanels();
 void DCSBIOS_forceMissionStop();

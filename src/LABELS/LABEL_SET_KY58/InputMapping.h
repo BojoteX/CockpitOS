@@ -4,6 +4,9 @@
 // This is to easily use S2 or S3 devices on same backplane/hardware physically connected to specific PINs
 #pragma once
 
+// Load our PIN definitions here so you can use them
+#include "../../../Pins.h"
+
 struct InputMapping {
     const char* label;        // Unique selector label, auto-generated.
     const char* source;      // Hardware source identifier. (e.g PCA_0x26, HC165, GPIO, NONE etc)

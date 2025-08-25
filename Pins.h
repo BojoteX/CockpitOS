@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "src/LabelSetSelect.h"
+// ===== IN THIS TOP SECTION ONLY ADD PINS, NO CONDITIONALS (PRE-PREOCESSORS INVOLING LABEL SETS) SEE BEOLOW FOR CONDITIONALS =========
 
 // General Pins (canonical S2 → mapped by PIN())
 #define SDA_PIN                               PIN(8)
@@ -18,39 +18,6 @@
 
 // Misc Pins
 #define MODE_SWITCH_PIN                       PIN(33)
-
-// HC165 PIN per panel
-#if defined(HAS_LEFT_PANEL_CONTROLLER)
-  #define HC165_BITS                 40   // Number of bits in HC165 shift register (0 = disabled)
-  #define HC165_CONTROLLER_PL        PIN(39)  // Latch (PL)
-  #define HC165_CONTROLLER_CP        PIN(38)  // Clock (CP)  
-  #define HC165_CONTROLLER_QH        PIN(36)  // Data (QH)  
-#elif defined(HAS_RIGHT_PANEL_CONTROLLER)
-  #define HC165_BITS                 48   // Number of bits in HC165 shift register (0 = disabled)
-  #define HC165_CONTROLLER_PL        PIN(35)   // Latch (PL)
-  #define HC165_CONTROLLER_CP        PIN(34)   // Clock (CP)
-  #define HC165_CONTROLLER_QH        PIN(33)   // Data (QH)
-#elif defined(HAS_IFEI)
-  #define HC165_BITS                 16   // Number of bits in HC165 shift register (0 = disabled)
-  #define HC165_CONTROLLER_PL        PIN(39)   // Latch (PL)
-  #define HC165_CONTROLLER_CP        PIN(40)   // Clock (CP)
-  #define HC165_CONTROLLER_QH        PIN(38)   // Data (QH)
-#elif defined(HAS_ALR67)
-  #define HC165_BITS                 8   // Number of bits in HC165 shift register (0 = disabled) 
-  #define HC165_CONTROLLER_PL        PIN(35)   // Latch (PL)
-  #define HC165_CONTROLLER_CP        PIN(34)   // Clock (CP)
-  #define HC165_CONTROLLER_QH        PIN(33)   // Data (QH)
-#elif defined(HAS_KY58)
-  #define HC165_BITS                 16   // Number of bits in HC165 shift register (0 = disabled) 
-  #define HC165_CONTROLLER_PL        PIN(39)   // Latch (PL)
-  #define HC165_CONTROLLER_CP        PIN(38)   // Clock (CP)
-  #define HC165_CONTROLLER_QH        PIN(40)   // Data (QH)
-#else
-  #define HC165_BITS                 0   // Number of bits in HC165 shift register (0 = disabled) 
-  #define HC165_CONTROLLER_PL       -1
-  #define HC165_CONTROLLER_CP       -1
-  #define HC165_CONTROLLER_QH       -1  
-#endif
 
 // IFEI Left LCD
 #define DATA0_PIN                             PIN(34)
@@ -87,10 +54,49 @@
 #define ALR67_STROBE_3                        PIN(21)
 #define ALR67_STROBE_4                        PIN(37)
 #define ALR67_DataPin                         PIN(38)
+#define ALR67_DataPin                         PIN(38)
+#define ALR67_BACKLIGHT_PIN                   PIN(14)
 
 // ALR-67 extra pins (Analog Gauge)
 // #define PRESSURE_ALT_GAUGE_PIN                PIN(18)    
 
+// CRITICAL do not change this location, this triggers the loading of LABEL SETS
+#include "src/LabelSetSelect.h"
+
+// ===== IN THIS BOTTOM SECTION YOU CAN DO CONDITIONALS (PRE-PREOCESSORS INVOLING LABEL SETS) SEE BELOW =========
+
+// HC165 PIN per panel
+#if defined(HAS_LEFT_PANEL_CONTROLLER)
+  #define HC165_BITS                 40   // Number of bits in HC165 shift register (0 = disabled)
+  #define HC165_CONTROLLER_PL        PIN(39)  // Latch (PL)
+  #define HC165_CONTROLLER_CP        PIN(38)  // Clock (CP)  
+  #define HC165_CONTROLLER_QH        PIN(36)  // Data (QH)  
+#elif defined(HAS_RIGHT_PANEL_CONTROLLER)
+  #define HC165_BITS                 48   // Number of bits in HC165 shift register (0 = disabled)
+  #define HC165_CONTROLLER_PL        PIN(35)   // Latch (PL)
+  #define HC165_CONTROLLER_CP        PIN(34)   // Clock (CP)
+  #define HC165_CONTROLLER_QH        PIN(33)   // Data (QH)
+#elif defined(HAS_IFEI)
+  #define HC165_BITS                 16   // Number of bits in HC165 shift register (0 = disabled)
+  #define HC165_CONTROLLER_PL        PIN(39)   // Latch (PL)
+  #define HC165_CONTROLLER_CP        PIN(40)   // Clock (CP)
+  #define HC165_CONTROLLER_QH        PIN(38)   // Data (QH)
+#elif defined(HAS_ALR67)
+  #define HC165_BITS                 8   // Number of bits in HC165 shift register (0 = disabled) 
+  #define HC165_CONTROLLER_PL        PIN(35)   // Latch (PL)
+  #define HC165_CONTROLLER_CP        PIN(34)   // Clock (CP)
+  #define HC165_CONTROLLER_QH        PIN(33)   // Data (QH)
+#elif defined(HAS_KY58)
+  #define HC165_BITS                 16   // Number of bits in HC165 shift register (0 = disabled) 
+  #define HC165_CONTROLLER_PL        PIN(39)   // Latch (PL)
+  #define HC165_CONTROLLER_CP        PIN(38)   // Clock (CP)
+  #define HC165_CONTROLLER_QH        PIN(40)   // Data (QH)
+#else
+  #define HC165_BITS                 0   // Number of bits in HC165 shift register (0 = disabled) 
+  #define HC165_CONTROLLER_PL       -1
+  #define HC165_CONTROLLER_CP       -1
+  #define HC165_CONTROLLER_QH       -1  
+#endif
 
 /*
        S2 to S3 GPIO conversion table

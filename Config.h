@@ -12,8 +12,8 @@
 // #define LABEL_SET LEFT_PANEL_CONTROLLER    
 // #define LABEL_SET FRONT_LEFT_PANEL   
 // #define LABEL_SET MAIN    
-#define LABEL_SET IFEI  
-// #define LABEL_SET ALR67                            
+// #define LABEL_SET IFEI  
+#define LABEL_SET ALR67                            
 // #define LABEL_SET CABIN_PRESSURE_GAUGE
 
 

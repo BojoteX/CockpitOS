@@ -8,10 +8,23 @@ enabled, notice the Lockshoot indicator staying WHITE. It stops working. Just di
 
 - HID Handler edge cases (replicate starting the computer or resuming from sleep with device already connected)
 
-- HID Manager Headless + C++ versios
+- HID Manager Headless + C++ version
+
+- Keep testing panel sync to ensure 100% reliability
+
+- Front Left and Front Right panel implementations (Physical)
+
+- KY-58 Panel implementation (Physical)
 
 - Make WS2812 generic and modify panel struct/union to add index characteristics (color). Device instance should be deduced from the DIO pin.
 
 - Test UART for Serial coms on S3's and C3's simultaneously with USB HIDs (using HID keepalives). To test stability. use DCSBIOS with the hardware CDC option
 
-IFEI - Dirty on mode 888 Change
+IFEI - Dirty on mode 888 Change so we force an update
+
+IFEI - init on Momentaries with 0 messes up the IFEI as some buttons actions are "on release" meaning, ACTION = 0. Skip momentaries during init. and TEST with IFEI and ALR67. Should auto-detect latched buttons in ALR67.  test both scenarios
+
+Simplify config. Pins, Special Rules, Remove Mappings.h/cpp from root, should be Core now.
+
+Test compiling on 2.0.4 and using analog on IR Cool. Check range
+
