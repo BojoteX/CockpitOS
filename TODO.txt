@@ -22,9 +22,9 @@ enabled, notice the Lockshoot indicator staying WHITE. It stops working. Just di
 
 IFEI - Dirty on mode 888 Change so we force an update
 
-IFEI - init on Momentaries with 0 messes up the IFEI as some buttons actions are "on release" meaning, ACTION = 0. Skip momentaries during init. and TEST with IFEI and ALR67. Should auto-detect latched buttons in ALR67.  test both scenarios
-
 Simplify config. Pins, Special Rules, Remove Mappings.h/cpp from root, should be Core now.
 
 Test compiling on 2.0.4 and using analog on IR Cool. Check range
 
+
+DO NOT FORGET TO UPDATE Auto-Generator with the changes for all other labels.

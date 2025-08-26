@@ -7,8 +7,5 @@
 # To update the list of available panels, just re-run this script.
 
 Exterior Lights Panel
-Fire Test Panel
-Generator Tie Control Switch
 Ground Power Panel
 Interior Lights Panel
-# Internal Lights

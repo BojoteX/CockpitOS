@@ -340,6 +340,49 @@ inline void ensureBacklightPins() {
     }
 }
 
+// Backlight for IFEI: 0=Day, 1=Nite, 2=NVG, default=OFF
+void setBacklightMode(uint8_t mode, uint8_t brightness) {
+    static uint8_t lastMode = 0xFF;      // impossible startup value
+    static uint8_t lastBrightness = 0xFF;
+
+    if (mode == lastMode && brightness == lastBrightness)
+        return;
+
+    ensureBacklightPins();
+
+    // First, shut off all to avoid ghosting if switching between modes
+    if (lastMode != mode) {
+        analogWrite(BL_WHITE_PIN, 0);
+        analogWrite(BL_GREEN_PIN, 0);
+        analogWrite(BL_NVG_PIN, 0);
+    }
+
+    switch (mode) {
+    case 0: // Day (white)
+        analogWrite(BL_WHITE_PIN, brightness);
+        if (DEBUG) debugPrintf("🔆 IFEI White Backlight intensity set to %u\n", brightness);
+        break;
+    case 1: // Night (green)
+        analogWrite(BL_GREEN_PIN, brightness);
+        if (DEBUG) debugPrintf("🔆 IFEI Nite Backlight intensity set to %u\n", brightness);
+        break;
+    case 2: // NVG
+        analogWrite(BL_NVG_PIN, brightness);
+        if (DEBUG) debugPrintf("🔆 IFEI NVG Backlight intensity set to %u\n", brightness);
+        break;
+    default: // OFF
+        analogWrite(BL_WHITE_PIN, 0);
+        analogWrite(BL_GREEN_PIN, 0);
+        analogWrite(BL_NVG_PIN, 0);
+        if (DEBUG) debugPrintln("⚫ IFEI Backlight OFF");
+        break;
+    }
+
+    lastMode = mode;
+    lastBrightness = brightness;
+}
+
+/*
 // Backlight for IFEI: 0=Day, 1=Nite, 2=NVG
 void setBacklightMode(uint8_t mode, uint8_t brightness) {
     static uint8_t lastMode = 0xFF;      // impossible startup value
@@ -378,6 +421,7 @@ void setBacklightMode(uint8_t mode, uint8_t brightness) {
     lastMode = mode;
     lastBrightness = brightness;
 }
+*/
 
 void showLampTest() {
     // Lamp test: cycle through all backlight modes and turn on all segments for visual check

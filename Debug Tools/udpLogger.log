@@ -1,2 +1,2455 @@
 🔭 Listening for ESP32S2 Debug/Info messages on 192.168.7.178 port 4210...
 
+[22:10:06 - 192.168.7.253] ❌ USB Stopped
+[22:10:15 - 192.168.7.253] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.253
+[22:10:15 - 192.168.7.253] =================== [STARTING DEVICE] ===================
+[22:10:15 - 192.168.7.253] SRAM free:     67 KB, largest:     43 KB, frag:  34.8%
+[22:10:15 - 192.168.7.253] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[22:10:15 - 192.168.7.253] I²C Initialized using the ESP-IDF Library (Fast mode)
+[22:10:15 - 192.168.7.253] Using SDA 8 and SCL 9 for I2C
+[22:10:15 - 192.168.7.253] Device is LOLIN S2 Mini by WEMOS
+[22:10:15 - 192.168.7.253] Registered Panel: hasTFTBatt
+[22:10:15 - 192.168.7.253] Registered Panel: hasTEST_ONLY
+[22:10:15 - 192.168.7.253] Registered Panel: hasLA
+[22:10:15 - 192.168.7.253] Registered Panel: hasRA
+[22:10:16 - 192.168.7.253] 🔎 === Discovered I2C Devices ===
+[22:10:16 - 192.168.7.253] 📋 Address    | Device Description
+[22:10:16 - 192.168.7.253] ──────────────|─────────────────────────────
+[22:10:16 - 192.168.7.253] 📡 0x26       | Brain / IRCool Panel
+[22:10:16 - 192.168.7.253] ────────────────────────────────────────────
+[22:10:16 - 192.168.7.253] Initializing PCA_0x26 inputs and cached port states
+[22:10:16 - 192.168.7.253] Initializing Displays
+[22:10:18 - 192.168.7.253] ✅ Battery Gauge (dirty-rect DMA) initialized
+[22:10:18 - 192.168.7.253] Initializing LEDs
+[22:10:18 - 192.168.7.253] ⚠️ Lock/Shoot NOT detected!
+[22:10:18 - 192.168.7.253] ⚠️ Caution Advisory NOT detected!
+[22:10:18 - 192.168.7.253] ✅ Left & Right Annunciators detected, initializing...
+[22:10:19 - 192.168.7.253] 🔆 Turning ALL GPIO LEDs ON
+[22:10:20 - 192.168.7.253] ⚫ Turning ALL GPIO LEDs OFF
+[22:10:20 - 192.168.7.253] Syncronizing Panel state....
+[22:10:20 - 192.168.7.253] ⚠️ HC165: Disabled (HC165_BITS=0)
+[22:10:20 - 192.168.7.253] ⚠️ [HIDManager] APU_FIRE_BTN ignored. No button (momenary) presses allowed during init
+[22:10:20 - 192.168.7.253] ⚠️ [HIDManager] RIGHT_FIRE_BTN ignored. No button (momenary) presses allowed during init
+[22:10:20 - 192.168.7.253] ⚠️ [HIDManager] LEFT_FIRE_BTN ignored. No button (momenary) presses allowed during init
+[22:10:20 - 192.168.7.253] ⚠️ [HIDManager] MASTER_CAUTION_RESET_SW ignored. No button (momenary) presses allowed during init
+[22:10:20 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:10:20 - 192.168.7.253] Selected mode: DCS-BIOS
+[22:10:20 - 192.168.7.253] Device "CockpitOS Panel TEST_ONLY (Please change this name)" is ready
+[22:10:20 - 192.168.7.253] ESP32 Arduino core v3.2.1  |  IDF v5.4.2
+[22:10:20 - 192.168.7.253] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[22:10:20 - 192.168.7.253] 🔌 Main Loop started
+[22:10:20 - 192.168.7.253] [DCS] ❌ Sim not ready yet...
+[22:10:20 - 192.168.7.253] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
+[22:10:38 - 192.168.7.253] [DCS-BIOS] ✅ STREAM UP
+[22:10:38 - 192.168.7.253] [STATE UPDATE] 🔁 LEFT_FIRE_BTN = OFF
+[22:10:38 - 192.168.7.253] [STATE UPDATE] 🔁 LEFT_FIRE_BTN_COVER = CLOSED
+[22:10:38 - 192.168.7.253] [STATE UPDATE] 🔁 MASTER_CAUTION_RESET_SW = POS 0
+[22:10:38 - 192.168.7.253] [STATE UPDATE] 🔁 APU_FIRE_BTN = OFF
+[22:10:38 - 192.168.7.253] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = OFF
+[22:10:38 - 192.168.7.253] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = CLOSED
+[22:10:38 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:10:39 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:10:39 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:10:39 - 192.168.7.253] Syncronizing Panel state....
+[22:10:39 - 192.168.7.253] ⚠️ [HIDManager] APU_FIRE_BTN ignored. No button (momenary) presses allowed during init
+[22:10:39 - 192.168.7.253] ⚠️ [HIDManager] RIGHT_FIRE_BTN ignored. No button (momenary) presses allowed during init
+[22:10:39 - 192.168.7.253] ⚠️ [HIDManager] LEFT_FIRE_BTN ignored. No button (momenary) presses allowed during init
+[22:10:39 - 192.168.7.253] ⚠️ [HIDManager] MASTER_CAUTION_RESET_SW ignored. No button (momenary) presses allowed during init
+[22:10:39 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:10:39 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:11:20 - 192.168.7.253] 
+[22:11:20 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:11:20 - 192.168.7.253] 🔍  Profiling Averages:
+[22:11:20 - 192.168.7.253] ∘ [TFT BATTERY] Draw Function :   6.02 ms
+[22:11:20 - 192.168.7.253] ∘ Main Loop       :   0.02 ms
+[22:11:20 - 192.168.7.253] +----------------------------------------------------------------+
+[22:11:20 - 192.168.7.253] 🕑  System Status:
+[22:11:20 - 192.168.7.253] ∘ Poll Load     :   0.6% of 4.00 ms slot
+[22:11:20 - 192.168.7.253] ∘ Headroom      : 3.977 ms ( 99.4%)
+[22:11:20 - 192.168.7.253] ∘ Scale Cap.    : 171.02x current workload
+[22:11:20 - 192.168.7.253] ∘ Uptime        : 1m10s
+[22:11:20 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:11:20 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:11:20 - 192.168.7.253] +----------------------------------------------------------------+
+[22:11:20 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.6%
+[22:11:20 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:11:20 - 192.168.7.253] +----------------------------------------------------------------+
+[22:11:20 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:11:20 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:11:20 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:11:20 - 192.168.7.253] +----------------------------------------------------------------+
+[22:11:20 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:11:20 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:11:20 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:11:20 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  6, overruns 0
+[22:11:20 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:11:20 - 192.168.7.253] +----------------------------------------------------------------+
+[22:12:20 - 192.168.7.253] 
+[22:12:20 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:12:20 - 192.168.7.253] 🔍  Profiling Averages:
+[22:12:20 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:12:20 - 192.168.7.253] +----------------------------------------------------------------+
+[22:12:20 - 192.168.7.253] 🕑  System Status:
+[22:12:20 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:12:20 - 192.168.7.253] ∘ Headroom      : 3.964 ms ( 99.1%)
+[22:12:20 - 192.168.7.253] ∘ Scale Cap.    : 109.86x current workload
+[22:12:20 - 192.168.7.253] ∘ Uptime        : 2m10s
+[22:12:20 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:12:20 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:12:20 - 192.168.7.253] +----------------------------------------------------------------+
+[22:12:20 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:12:20 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.9%
+[22:12:20 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:12:20 - 192.168.7.253] +----------------------------------------------------------------+
+[22:12:20 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:12:20 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:12:20 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:12:20 - 192.168.7.253] +----------------------------------------------------------------+
+[22:12:20 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:12:20 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:12:20 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  3, max  6, overruns 0
+[22:12:20 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:12:20 - 192.168.7.253] +----------------------------------------------------------------+
+[22:12:31 - 192.168.7.253] [MISSION STOP]
+[22:12:35 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:12:35 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:12:35 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:12:35 - 192.168.7.253] Syncronizing Panel state....
+[22:12:35 - 192.168.7.253] ⚠️ [HIDManager] APU_FIRE_BTN ignored. No button (momenary) presses allowed during init
+[22:12:35 - 192.168.7.253] ⚠️ [HIDManager] RIGHT_FIRE_BTN ignored. No button (momenary) presses allowed during init
+[22:12:35 - 192.168.7.253] ⚠️ [HIDManager] LEFT_FIRE_BTN ignored. No button (momenary) presses allowed during init
+[22:12:35 - 192.168.7.253] ⚠️ [HIDManager] MASTER_CAUTION_RESET_SW ignored. No button (momenary) presses allowed during init
+[22:12:35 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:12:35 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:12:57 - 192.168.7.253] ❌ USB Stopped
+[22:14:06 - 192.168.7.253] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.253
+[22:14:06 - 192.168.7.253] =================== [STARTING DEVICE] ===================
+[22:14:06 - 192.168.7.253] SRAM free:     67 KB, largest:     43 KB, frag:  34.6%
+[22:14:06 - 192.168.7.253] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[22:14:06 - 192.168.7.253] I²C Initialized using the ESP-IDF Library (Fast mode)
+[22:14:06 - 192.168.7.253] Using SDA 8 and SCL 9 for I2C
+[22:14:06 - 192.168.7.253] Device is LOLIN S2 Mini by WEMOS
+[22:14:06 - 192.168.7.253] Registered Panel: hasTFTBatt
+[22:14:06 - 192.168.7.253] Registered Panel: hasTEST_ONLY
+[22:14:06 - 192.168.7.253] Registered Panel: hasLA
+[22:14:06 - 192.168.7.253] Registered Panel: hasRA
+[22:14:07 - 192.168.7.253] 🔎 === Discovered I2C Devices ===
+[22:14:07 - 192.168.7.253] 📋 Address    | Device Description
+[22:14:07 - 192.168.7.253] ──────────────|─────────────────────────────
+[22:14:07 - 192.168.7.253] 📡 0x26       | Brain / IRCool Panel
+[22:14:07 - 192.168.7.253] ────────────────────────────────────────────
+[22:14:07 - 192.168.7.253] Initializing PCA_0x26 inputs and cached port states
+[22:14:07 - 192.168.7.253] Initializing Displays
+[22:14:09 - 192.168.7.253] ✅ Battery Gauge (dirty-rect DMA) initialized
+[22:14:09 - 192.168.7.253] Initializing LEDs
+[22:14:09 - 192.168.7.253] ⚠️ Lock/Shoot NOT detected!
+[22:14:09 - 192.168.7.253] ⚠️ Caution Advisory NOT detected!
+[22:14:09 - 192.168.7.253] ✅ Left & Right Annunciators detected, initializing...
+[22:14:10 - 192.168.7.253] 🔆 Turning ALL GPIO LEDs ON
+[22:14:11 - 192.168.7.253] ⚫ Turning ALL GPIO LEDs OFF
+[22:14:11 - 192.168.7.253] Syncronizing Panel state....
+[22:14:11 - 192.168.7.253] ⚠️ HC165: Disabled (HC165_BITS=0)
+[22:14:11 - 192.168.7.253] ⚠️ [HIDManager] APU_FIRE_BTN ignored. Buttons (momentary) ignored during init routine.
+[22:14:11 - 192.168.7.253] ⚠️ [HIDManager] RIGHT_FIRE_BTN ignored. Buttons (momentary) ignored during init routine.
+[22:14:11 - 192.168.7.253] ⚠️ [HIDManager] LEFT_FIRE_BTN ignored. Buttons (momentary) ignored during init routine.
+[22:14:11 - 192.168.7.253] ⚠️ [HIDManager] MASTER_CAUTION_RESET_SW ignored. Buttons (momentary) ignored during init routine.
+[22:14:11 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:14:11 - 192.168.7.253] Selected mode: DCS-BIOS
+[22:14:11 - 192.168.7.253] Device "CockpitOS Panel TEST_ONLY (Please change this name)" is ready
+[22:14:11 - 192.168.7.253] ESP32 Arduino core v3.2.1  |  IDF v5.4.2
+[22:14:11 - 192.168.7.253] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[22:14:11 - 192.168.7.253] 🔌 Main Loop started
+[22:14:11 - 192.168.7.253] [DCS] ❌ Sim not ready yet...
+[22:14:11 - 192.168.7.253] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
+[22:14:11 - 192.168.7.253] [DCS-BIOS] ✅ STREAM UP
+[22:14:11 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:14:12 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:14:12 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:14:12 - 192.168.7.253] Syncronizing Panel state....
+[22:14:12 - 192.168.7.253] ⚠️ [HIDManager] APU_FIRE_BTN ignored. Buttons (momentary) ignored during init routine.
+[22:14:12 - 192.168.7.253] ⚠️ [HIDManager] RIGHT_FIRE_BTN ignored. Buttons (momentary) ignored during init routine.
+[22:14:12 - 192.168.7.253] ⚠️ [HIDManager] LEFT_FIRE_BTN ignored. Buttons (momentary) ignored during init routine.
+[22:14:12 - 192.168.7.253] ⚠️ [HIDManager] MASTER_CAUTION_RESET_SW ignored. Buttons (momentary) ignored during init routine.
+[22:14:12 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:14:12 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:14:13 - 192.168.7.253] [STATE UPDATE] 🔁 LEFT_FIRE_BTN = OFF
+[22:14:13 - 192.168.7.253] [STATE UPDATE] 🔁 LEFT_FIRE_BTN_COVER = CLOSED
+[22:14:13 - 192.168.7.253] [STATE UPDATE] 🔁 MASTER_CAUTION_RESET_SW = POS 0
+[22:14:13 - 192.168.7.253] [STATE UPDATE] 🔁 APU_FIRE_BTN = OFF
+[22:14:13 - 192.168.7.253] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = OFF
+[22:14:13 - 192.168.7.253] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = CLOSED
+[22:14:28 - 192.168.7.253] [MISSION STOP]
+[22:14:31 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:14:31 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:14:31 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:14:31 - 192.168.7.253] Syncronizing Panel state....
+[22:14:31 - 192.168.7.253] ⚠️ [HIDManager] APU_FIRE_BTN ignored. Buttons (momentary) ignored during init routine.
+[22:14:31 - 192.168.7.253] ⚠️ [HIDManager] RIGHT_FIRE_BTN ignored. Buttons (momentary) ignored during init routine.
+[22:14:31 - 192.168.7.253] ⚠️ [HIDManager] LEFT_FIRE_BTN ignored. Buttons (momentary) ignored during init routine.
+[22:14:31 - 192.168.7.253] ⚠️ [HIDManager] MASTER_CAUTION_RESET_SW ignored. Buttons (momentary) ignored during init routine.
+[22:14:31 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:14:31 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:15:11 - 192.168.7.253] 
+[22:15:11 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:15:11 - 192.168.7.253] 🔍  Profiling Averages:
+[22:15:11 - 192.168.7.253] ∘ [TFT BATTERY] Draw Function :   6.03 ms
+[22:15:11 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:15:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:15:11 - 192.168.7.253] 🕑  System Status:
+[22:15:11 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:15:11 - 192.168.7.253] ∘ Headroom      : 3.968 ms ( 99.2%)
+[22:15:11 - 192.168.7.253] ∘ Scale Cap.    : 125.76x current workload
+[22:15:11 - 192.168.7.253] ∘ Uptime        : 1m10s
+[22:15:11 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:15:11 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:15:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:15:11 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:15:11 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.6%
+[22:15:11 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:15:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:15:11 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:15:11 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:15:11 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:15:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:15:11 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:15:11 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:15:11 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:15:11 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  3, overruns 0
+[22:15:11 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:15:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:16:11 - 192.168.7.253] 
+[22:16:11 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:16:11 - 192.168.7.253] 🔍  Profiling Averages:
+[22:16:11 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:16:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:16:11 - 192.168.7.253] 🕑  System Status:
+[22:16:11 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:16:11 - 192.168.7.253] ∘ Headroom      : 3.964 ms ( 99.1%)
+[22:16:11 - 192.168.7.253] ∘ Scale Cap.    : 109.94x current workload
+[22:16:11 - 192.168.7.253] ∘ Uptime        : 2m10s
+[22:16:11 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:16:11 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:16:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:16:11 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:16:11 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.4%
+[22:16:11 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:16:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:16:11 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:16:11 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:16:11 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:16:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:16:11 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:16:11 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:16:11 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:16:11 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  3, max  3, overruns 0
+[22:16:11 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:16:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:16:24 - 192.168.7.253] [MISSION STOP]
+[22:16:27 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:16:28 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:16:28 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:16:28 - 192.168.7.253] Syncronizing Panel state....
+[22:16:28 - 192.168.7.253] ⚠️ [HIDManager] APU_FIRE_BTN ignored. Buttons (momentary) ignored during init routine.
+[22:16:28 - 192.168.7.253] ⚠️ [HIDManager] RIGHT_FIRE_BTN ignored. Buttons (momentary) ignored during init routine.
+[22:16:28 - 192.168.7.253] ⚠️ [HIDManager] LEFT_FIRE_BTN ignored. Buttons (momentary) ignored during init routine.
+[22:16:28 - 192.168.7.253] ⚠️ [HIDManager] MASTER_CAUTION_RESET_SW ignored. Buttons (momentary) ignored during init routine.
+[22:16:28 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:16:28 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:17:11 - 192.168.7.253] 
+[22:17:11 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:17:11 - 192.168.7.253] 🔍  Profiling Averages:
+[22:17:11 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:17:11 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:17:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:17:11 - 192.168.7.253] 🕑  System Status:
+[22:17:11 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:17:11 - 192.168.7.253] ∘ Headroom      : 3.968 ms ( 99.2%)
+[22:17:11 - 192.168.7.253] ∘ Scale Cap.    : 124.00x current workload
+[22:17:11 - 192.168.7.253] ∘ Uptime        : 3m10s
+[22:17:11 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:17:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:17:11 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:17:11 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.6%
+[22:17:11 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:17:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:17:11 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:17:11 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:17:11 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:17:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:17:11 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:17:11 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:17:11 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  3, overruns 0
+[22:17:11 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:17:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:18:11 - 192.168.7.253] 
+[22:18:11 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:18:11 - 192.168.7.253] 🔍  Profiling Averages:
+[22:18:11 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:18:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:18:11 - 192.168.7.253] 🕑  System Status:
+[22:18:11 - 192.168.7.253] ∘ Headroom      : 3.964 ms ( 99.1%)
+[22:18:11 - 192.168.7.253] ∘ Scale Cap.    : 109.97x current workload
+[22:18:11 - 192.168.7.253] ∘ Uptime        : 4m10s
+[22:18:11 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:18:11 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:18:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:18:11 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:18:11 - 192.168.7.253] ∘ Internal SRAM : free     50 KB, largest     27 KB, frag  44.1%
+[22:18:11 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:18:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:18:11 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:18:11 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:18:11 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:18:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:18:11 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:18:11 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:18:11 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:18:11 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  3, max  3, overruns 0
+[22:18:11 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:18:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:18:20 - 192.168.7.253] [MISSION STOP]
+[22:18:23 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:18:24 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:18:24 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:18:24 - 192.168.7.253] Syncronizing Panel state....
+[22:18:24 - 192.168.7.253] ⚠️ [HIDManager] APU_FIRE_BTN ignored. Buttons (momentary) ignored during init routine.
+[22:18:24 - 192.168.7.253] ⚠️ [HIDManager] RIGHT_FIRE_BTN ignored. Buttons (momentary) ignored during init routine.
+[22:18:24 - 192.168.7.253] ⚠️ [HIDManager] LEFT_FIRE_BTN ignored. Buttons (momentary) ignored during init routine.
+[22:18:24 - 192.168.7.253] ⚠️ [HIDManager] MASTER_CAUTION_RESET_SW ignored. Buttons (momentary) ignored during init routine.
+[22:18:24 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:18:24 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:19:11 - 192.168.7.253] 
+[22:19:11 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:19:11 - 192.168.7.253] 🔍  Profiling Averages:
+[22:19:11 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:19:11 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:19:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:19:11 - 192.168.7.253] 🕑  System Status:
+[22:19:11 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:19:11 - 192.168.7.253] ∘ Headroom      : 3.968 ms ( 99.2%)
+[22:19:11 - 192.168.7.253] ∘ Scale Cap.    : 123.79x current workload
+[22:19:11 - 192.168.7.253] ∘ Uptime        : 5m10s
+[22:19:11 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:19:11 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:19:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:19:11 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:19:11 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.9%
+[22:19:11 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:19:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:19:11 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:19:11 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:19:11 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:19:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:19:11 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:19:11 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:19:11 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[22:19:11 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:20:11 - 192.168.7.253] 
+[22:20:11 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:20:11 - 192.168.7.253] 🔍  Profiling Averages:
+[22:20:11 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:20:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:20:11 - 192.168.7.253] 🕑  System Status:
+[22:20:11 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:20:11 - 192.168.7.253] ∘ Headroom      : 3.963 ms ( 99.1%)
+[22:20:11 - 192.168.7.253] ∘ Scale Cap.    : 109.24x current workload
+[22:20:11 - 192.168.7.253] ∘ Uptime        : 6m10s
+[22:20:11 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:20:11 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:20:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:20:11 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:20:11 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     27 KB, frag  43.9%
+[22:20:11 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:20:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:20:11 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:20:11 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:20:11 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:20:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:20:11 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:20:11 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:20:11 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:20:11 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  3, overruns 0
+[22:20:11 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:20:11 - 192.168.7.253] +----------------------------------------------------------------+
+[22:20:16 - 192.168.7.253] [MISSION STOP]
+[22:20:20 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:20:20 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:20:20 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:20:20 - 192.168.7.253] Syncronizing Panel state....
+[22:20:20 - 192.168.7.253] ⚠️ [HIDManager] APU_FIRE_BTN ignored. Buttons (momentary) ignored during init routine.
+[22:20:20 - 192.168.7.253] ⚠️ [HIDManager] RIGHT_FIRE_BTN ignored. Buttons (momentary) ignored during init routine.
+[22:20:20 - 192.168.7.253] ⚠️ [HIDManager] LEFT_FIRE_BTN ignored. Buttons (momentary) ignored during init routine.
+[22:20:20 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:20:20 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:20:46 - 192.168.7.253] ❌ USB Stopped
+[22:21:57 - 192.168.7.253] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.253
+[22:21:57 - 192.168.7.253] =================== [STARTING DEVICE] ===================
+[22:21:57 - 192.168.7.253] SRAM free:     67 KB, largest:     43 KB, frag:  34.8%
+[22:21:57 - 192.168.7.253] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[22:21:57 - 192.168.7.253] I²C Initialized using the ESP-IDF Library (Fast mode)
+[22:21:57 - 192.168.7.253] Using SDA 8 and SCL 9 for I2C
+[22:21:57 - 192.168.7.253] Device is LOLIN S2 Mini by WEMOS
+[22:21:57 - 192.168.7.253] Registered Panel: hasTFTBatt
+[22:21:57 - 192.168.7.253] Registered Panel: hasTEST_ONLY
+[22:21:57 - 192.168.7.253] Registered Panel: hasRA
+[22:21:58 - 192.168.7.253] 🔎 === Discovered I2C Devices ===
+[22:21:58 - 192.168.7.253] 📋 Address    | Device Description
+[22:21:58 - 192.168.7.253] ──────────────|─────────────────────────────
+[22:21:58 - 192.168.7.253] 📡 0x26       | Brain / IRCool Panel
+[22:21:58 - 192.168.7.253] ────────────────────────────────────────────
+[22:21:58 - 192.168.7.253] Initializing PCA_0x26 inputs and cached port states
+[22:21:58 - 192.168.7.253] Initializing Displays
+[22:22:01 - 192.168.7.253] ✅ Battery Gauge (dirty-rect DMA) initialized
+[22:22:01 - 192.168.7.253] Initializing LEDs
+[22:22:01 - 192.168.7.253] ⚠️ Lock/Shoot NOT detected!
+[22:22:01 - 192.168.7.253] ⚠️ Caution Advisory NOT detected!
+[22:22:01 - 192.168.7.253] ✅ Left & Right Annunciators detected, initializing...
+[22:22:02 - 192.168.7.253] 🔆 Turning ALL GPIO LEDs ON
+[22:22:03 - 192.168.7.253] ⚫ Turning ALL GPIO LEDs OFF
+[22:22:03 - 192.168.7.253] Syncronizing Panel state....
+[22:22:03 - 192.168.7.253] ⚠️ HC165: Disabled (HC165_BITS=0)
+[22:22:03 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:22:03 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:22:03 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:22:03 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:22:03 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:22:03 - 192.168.7.253] Selected mode: DCS-BIOS
+[22:22:03 - 192.168.7.253] ESP32 Arduino core v3.2.1  |  IDF v5.4.2
+[22:22:03 - 192.168.7.253] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[22:22:03 - 192.168.7.253] 🔌 Main Loop started
+[22:22:03 - 192.168.7.253] [DCS] ❌ Sim not ready yet...
+[22:22:03 - 192.168.7.253] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
+[22:22:03 - 192.168.7.253] [DCS-BIOS] ✅ STREAM UP
+[22:22:03 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:22:03 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:22:03 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:22:03 - 192.168.7.253] Syncronizing Panel state....
+[22:22:03 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:22:03 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:22:03 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:22:03 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:22:03 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:22:05 - 192.168.7.253] [STATE UPDATE] 🔁 LEFT_FIRE_BTN = OFF
+[22:22:05 - 192.168.7.253] [STATE UPDATE] 🔁 LEFT_FIRE_BTN_COVER = CLOSED
+[22:22:05 - 192.168.7.253] [STATE UPDATE] 🔁 MASTER_CAUTION_RESET_SW = POS 0
+[22:22:05 - 192.168.7.253] [STATE UPDATE] 🔁 APU_FIRE_BTN = OFF
+[22:22:05 - 192.168.7.253] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = OFF
+[22:22:05 - 192.168.7.253] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = CLOSED
+[22:22:13 - 192.168.7.253] [MISSION STOP]
+[22:22:16 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:22:16 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:22:16 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:22:16 - 192.168.7.253] Syncronizing Panel state....
+[22:22:16 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:22:16 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:22:16 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:22:16 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:22:16 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:22:16 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:23:03 - 192.168.7.253] 
+[22:23:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:23:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:23:03 - 192.168.7.253] ∘ [TFT BATTERY] Draw Function :   6.02 ms
+[22:23:03 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:23:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:23:03 - 192.168.7.253] 🕑  System Status:
+[22:23:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:23:03 - 192.168.7.253] ∘ Headroom      : 3.968 ms ( 99.2%)
+[22:23:03 - 192.168.7.253] ∘ Scale Cap.    : 126.06x current workload
+[22:23:03 - 192.168.7.253] ∘ Uptime        : 1m10s
+[22:23:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:23:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:23:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:23:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:23:03 - 192.168.7.253] ∘ Internal SRAM : free     50 KB, largest     27 KB, frag  44.1%
+[22:23:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:23:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:23:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:23:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:23:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:23:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:23:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:23:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:23:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[22:23:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:23:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:24:03 - 192.168.7.253] 
+[22:24:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:24:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:24:03 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:24:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:24:03 - 192.168.7.253] 🕑  System Status:
+[22:24:03 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:24:03 - 192.168.7.253] ∘ Headroom      : 3.964 ms ( 99.1%)
+[22:24:03 - 192.168.7.253] ∘ Scale Cap.    : 110.00x current workload
+[22:24:03 - 192.168.7.253] ∘ Uptime        : 2m10s
+[22:24:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:24:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:24:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:24:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:24:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.9%
+[22:24:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:24:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:24:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:24:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:24:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:24:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:24:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:24:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:24:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:24:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  1, max  3, overruns 0
+[22:24:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:24:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:24:09 - 192.168.7.253] [MISSION STOP]
+[22:24:12 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:24:13 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:24:13 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:24:13 - 192.168.7.253] Syncronizing Panel state....
+[22:24:13 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:24:13 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:24:13 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:24:13 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:24:13 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:24:13 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:25:03 - 192.168.7.253] 
+[22:25:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:25:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:25:03 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:25:03 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:25:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:25:03 - 192.168.7.253] 🕑  System Status:
+[22:25:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:25:03 - 192.168.7.253] ∘ Headroom      : 3.968 ms ( 99.2%)
+[22:25:03 - 192.168.7.253] ∘ Scale Cap.    : 123.92x current workload
+[22:25:03 - 192.168.7.253] ∘ Uptime        : 3m10s
+[22:25:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:25:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:25:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:25:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:25:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.4%
+[22:25:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:25:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:25:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:25:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:25:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:25:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:25:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:25:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:25:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:25:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[22:25:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:25:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:26:03 - 192.168.7.253] 
+[22:26:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:26:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:26:03 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:26:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:26:03 - 192.168.7.253] 🕑  System Status:
+[22:26:03 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:26:03 - 192.168.7.253] ∘ Headroom      : 3.964 ms ( 99.1%)
+[22:26:03 - 192.168.7.253] ∘ Scale Cap.    : 109.99x current workload
+[22:26:03 - 192.168.7.253] ∘ Uptime        : 4m10s
+[22:26:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:26:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:26:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:26:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:26:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.9%
+[22:26:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:26:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:26:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:26:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:26:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:26:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:26:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:26:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:26:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:26:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  3, overruns 0
+[22:26:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:26:05 - 192.168.7.253] [MISSION STOP]
+[22:26:08 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:26:09 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:26:09 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:26:09 - 192.168.7.253] Syncronizing Panel state....
+[22:26:09 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:26:09 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:26:09 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:26:09 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:26:09 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:26:09 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:27:03 - 192.168.7.253] 
+[22:27:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:27:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:27:03 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:27:03 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:27:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:27:03 - 192.168.7.253] 🕑  System Status:
+[22:27:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:27:03 - 192.168.7.253] ∘ Headroom      : 3.968 ms ( 99.2%)
+[22:27:03 - 192.168.7.253] ∘ Scale Cap.    : 123.67x current workload
+[22:27:03 - 192.168.7.253] ∘ Uptime        : 5m10s
+[22:27:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:27:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:27:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:27:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:27:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     27 KB, frag  43.9%
+[22:27:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:27:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:27:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:27:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:27:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:27:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:27:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:27:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:27:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:27:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  1, max  3, overruns 0
+[22:27:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:27:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:28:01 - 192.168.7.253] [MISSION STOP]
+[22:28:03 - 192.168.7.253] 
+[22:28:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:28:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:28:03 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:28:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:28:03 - 192.168.7.253] 🕑  System Status:
+[22:28:03 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:28:03 - 192.168.7.253] ∘ Headroom      : 3.965 ms ( 99.1%)
+[22:28:03 - 192.168.7.253] ∘ Scale Cap.    : 113.10x current workload
+[22:28:03 - 192.168.7.253] ∘ Uptime        : 6m10s
+[22:28:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:28:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:28:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:28:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:28:03 - 192.168.7.253] ∘ Internal SRAM : free     50 KB, largest     27 KB, frag  44.1%
+[22:28:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:28:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:28:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:28:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:28:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:28:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:28:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:28:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:28:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:28:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[22:28:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:28:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:28:05 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:28:05 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:28:05 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:28:05 - 192.168.7.253] Syncronizing Panel state....
+[22:28:05 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:28:05 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:28:05 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:28:05 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:28:05 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:28:05 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:29:03 - 192.168.7.253] 
+[22:29:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:29:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:29:03 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:29:03 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:29:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:29:03 - 192.168.7.253] 🕑  System Status:
+[22:29:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:29:03 - 192.168.7.253] ∘ Headroom      : 3.967 ms ( 99.2%)
+[22:29:03 - 192.168.7.253] ∘ Scale Cap.    : 119.79x current workload
+[22:29:03 - 192.168.7.253] ∘ Uptime        : 7m10s
+[22:29:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:29:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:29:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:29:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:29:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.9%
+[22:29:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:29:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:29:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:29:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:29:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:29:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:29:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:29:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:29:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:29:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  3, overruns 0
+[22:29:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:29:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:29:58 - 192.168.7.253] [MISSION STOP]
+[22:30:01 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:30:01 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:30:01 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:30:01 - 192.168.7.253] Syncronizing Panel state....
+[22:30:01 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:30:01 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:30:01 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:30:01 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:30:01 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:30:01 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:30:03 - 192.168.7.253] 
+[22:30:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:30:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:30:03 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:30:03 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:30:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:30:03 - 192.168.7.253] 🕑  System Status:
+[22:30:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:30:03 - 192.168.7.253] ∘ Headroom      : 3.967 ms ( 99.2%)
+[22:30:03 - 192.168.7.253] ∘ Scale Cap.    : 122.51x current workload
+[22:30:03 - 192.168.7.253] ∘ Uptime        : 8m10s
+[22:30:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:30:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:30:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:30:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:30:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.9%
+[22:30:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:30:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:30:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:30:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:30:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:30:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:30:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:30:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:30:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:30:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[22:30:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:30:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:30:27 - 192.168.7.253] 🔌 USB Started
+[22:31:03 - 192.168.7.253] 
+[22:31:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:31:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:31:03 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:31:03 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:31:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:31:03 - 192.168.7.253] 🕑  System Status:
+[22:31:03 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:31:03 - 192.168.7.253] ∘ Headroom      : 3.964 ms ( 99.1%)
+[22:31:03 - 192.168.7.253] ∘ Scale Cap.    : 110.37x current workload
+[22:31:03 - 192.168.7.253] ∘ Uptime        : 9m10s
+[22:31:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:31:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:31:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:31:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:31:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     27 KB, frag  43.9%
+[22:31:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:31:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:31:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:31:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:31:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:31:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:31:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:31:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:31:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:31:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:31:54 - 192.168.7.253] [MISSION STOP]
+[22:31:57 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:31:58 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:31:58 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:31:58 - 192.168.7.253] Syncronizing Panel state....
+[22:31:58 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:31:58 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:31:58 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:31:58 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:31:58 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:31:58 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:32:03 - 192.168.7.253] 
+[22:32:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:32:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:32:03 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:32:03 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:32:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:32:03 - 192.168.7.253] 🕑  System Status:
+[22:32:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:32:03 - 192.168.7.253] ∘ Headroom      : 3.968 ms ( 99.2%)
+[22:32:03 - 192.168.7.253] ∘ Scale Cap.    : 123.10x current workload
+[22:32:03 - 192.168.7.253] ∘ Uptime        : 10m10s
+[22:32:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:32:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:32:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:32:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:32:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.9%
+[22:32:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:32:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:32:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:32:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:32:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:32:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:32:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:32:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:32:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:32:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  3, overruns 0
+[22:32:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:32:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:33:03 - 192.168.7.253] 
+[22:33:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:33:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:33:03 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:33:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:33:03 - 192.168.7.253] 🕑  System Status:
+[22:33:03 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:33:03 - 192.168.7.253] ∘ Headroom      : 3.964 ms ( 99.1%)
+[22:33:03 - 192.168.7.253] ∘ Scale Cap.    : 109.77x current workload
+[22:33:03 - 192.168.7.253] ∘ Uptime        : 11m10s
+[22:33:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:33:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:33:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:33:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:33:03 - 192.168.7.253] ∘ Internal SRAM : free     50 KB, largest     27 KB, frag  44.1%
+[22:33:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:33:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:33:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:33:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:33:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:33:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:33:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:33:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:33:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:33:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  3, overruns 0
+[22:33:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:33:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:33:50 - 192.168.7.253] [MISSION STOP]
+[22:33:53 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:33:54 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:33:54 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:33:54 - 192.168.7.253] Syncronizing Panel state....
+[22:33:54 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:33:54 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:33:54 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:33:54 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:33:54 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:33:54 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:34:03 - 192.168.7.253] 
+[22:34:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:34:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:34:03 - 192.168.7.253] ∘ [LED] TM1637    :   0.03 ms
+[22:34:03 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:34:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:34:03 - 192.168.7.253] 🕑  System Status:
+[22:34:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:34:03 - 192.168.7.253] ∘ Headroom      : 3.967 ms ( 99.2%)
+[22:34:03 - 192.168.7.253] ∘ Scale Cap.    : 122.96x current workload
+[22:34:03 - 192.168.7.253] ∘ Uptime        : 12m10s
+[22:34:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:34:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:34:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:34:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:34:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.9%
+[22:34:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:34:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:34:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:34:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:34:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:34:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:34:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:34:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:34:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:34:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  3, overruns 0
+[22:34:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:34:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:35:03 - 192.168.7.253] 
+[22:35:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:35:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:35:03 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:35:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:35:03 - 192.168.7.253] 🕑  System Status:
+[22:35:03 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:35:03 - 192.168.7.253] ∘ Headroom      : 3.964 ms ( 99.1%)
+[22:35:03 - 192.168.7.253] ∘ Scale Cap.    : 109.81x current workload
+[22:35:03 - 192.168.7.253] ∘ Uptime        : 13m10s
+[22:35:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:35:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:35:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:35:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:35:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.6%
+[22:35:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:35:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:35:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:35:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:35:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:35:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:35:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:35:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:35:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:35:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  3, overruns 0
+[22:35:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:35:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:35:46 - 192.168.7.253] [MISSION STOP]
+[22:35:50 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:35:50 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:35:50 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:35:50 - 192.168.7.253] Syncronizing Panel state....
+[22:35:50 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:35:50 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:35:50 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:35:50 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:35:50 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:35:50 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:36:03 - 192.168.7.253] 
+[22:36:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:36:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:36:03 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:36:03 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:36:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:36:03 - 192.168.7.253] 🕑  System Status:
+[22:36:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:36:03 - 192.168.7.253] ∘ Headroom      : 3.968 ms ( 99.2%)
+[22:36:03 - 192.168.7.253] ∘ Scale Cap.    : 123.14x current workload
+[22:36:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:36:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:36:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:36:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:36:03 - 192.168.7.253] ∘ Internal SRAM : free     50 KB, largest     27 KB, frag  44.1%
+[22:36:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:36:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:36:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:36:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:36:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:36:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:36:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:36:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:36:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:36:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  3, overruns 0
+[22:36:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:37:03 - 192.168.7.253] 
+[22:37:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:37:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:37:03 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:37:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:37:03 - 192.168.7.253] 🕑  System Status:
+[22:37:03 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:37:03 - 192.168.7.253] ∘ Headroom      : 3.964 ms ( 99.1%)
+[22:37:03 - 192.168.7.253] ∘ Scale Cap.    : 109.80x current workload
+[22:37:03 - 192.168.7.253] ∘ Uptime        : 15m10s
+[22:37:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:37:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:37:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:37:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:37:03 - 192.168.7.253] ∘ Internal SRAM : free     50 KB, largest     27 KB, frag  44.1%
+[22:37:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:37:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:37:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:37:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:37:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:37:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:37:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:37:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:37:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:37:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  3, overruns 0
+[22:37:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:37:43 - 192.168.7.253] [MISSION STOP]
+[22:37:46 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:37:46 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:37:46 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:37:46 - 192.168.7.253] Syncronizing Panel state....
+[22:37:46 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:37:46 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:37:46 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:37:46 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:37:46 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:37:46 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:38:03 - 192.168.7.253] 
+[22:38:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:38:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:38:03 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:38:03 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:38:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:38:03 - 192.168.7.253] 🕑  System Status:
+[22:38:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:38:03 - 192.168.7.253] ∘ Headroom      : 3.967 ms ( 99.2%)
+[22:38:03 - 192.168.7.253] ∘ Scale Cap.    : 123.04x current workload
+[22:38:03 - 192.168.7.253] ∘ Uptime        : 16m10s
+[22:38:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:38:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:38:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:38:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:38:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.9%
+[22:38:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:38:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:38:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:38:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:38:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:38:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:38:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:38:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:38:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:38:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  1, max  3, overruns 0
+[22:38:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:38:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:39:03 - 192.168.7.253] 
+[22:39:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:39:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:39:03 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:39:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:39:03 - 192.168.7.253] 🕑  System Status:
+[22:39:03 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:39:03 - 192.168.7.253] ∘ Headroom      : 3.964 ms ( 99.1%)
+[22:39:03 - 192.168.7.253] ∘ Scale Cap.    : 109.81x current workload
+[22:39:03 - 192.168.7.253] ∘ Uptime        : 17m10s
+[22:39:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:39:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:39:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:39:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:39:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     27 KB, frag  43.9%
+[22:39:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:39:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:39:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:39:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:39:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:39:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:39:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:39:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:39:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:39:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[22:39:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:39:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:39:39 - 192.168.7.253] [MISSION STOP]
+[22:39:42 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:39:43 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:39:43 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:39:43 - 192.168.7.253] Syncronizing Panel state....
+[22:39:43 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:39:43 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:39:43 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:39:43 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:39:43 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:39:43 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:40:03 - 192.168.7.253] 
+[22:40:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:40:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:40:03 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:40:03 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:40:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:40:03 - 192.168.7.253] 🕑  System Status:
+[22:40:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:40:03 - 192.168.7.253] ∘ Headroom      : 3.968 ms ( 99.2%)
+[22:40:03 - 192.168.7.253] ∘ Scale Cap.    : 123.32x current workload
+[22:40:03 - 192.168.7.253] ∘ Uptime        : 18m10s
+[22:40:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:40:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:40:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:40:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:40:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.9%
+[22:40:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:40:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:40:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:40:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:40:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:40:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:40:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:40:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:40:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:40:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[22:40:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:40:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:41:03 - 192.168.7.253] 
+[22:41:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:41:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:41:03 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:41:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:41:03 - 192.168.7.253] 🕑  System Status:
+[22:41:03 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:41:03 - 192.168.7.253] ∘ Uptime        : 19m10s
+[22:41:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:41:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:41:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:41:03 - 192.168.7.253] ∘ Internal SRAM : free     50 KB, largest     27 KB, frag  44.1%
+[22:41:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:41:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:41:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:41:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:41:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:41:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:41:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:41:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:41:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:41:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[22:41:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:41:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:41:35 - 192.168.7.253] [MISSION STOP]
+[22:41:38 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:41:39 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:41:39 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:41:39 - 192.168.7.253] Syncronizing Panel state....
+[22:41:39 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:41:39 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:41:39 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:41:39 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:42:03 - 192.168.7.253] 
+[22:42:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:42:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:42:03 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:42:03 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:42:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:42:03 - 192.168.7.253] 🕑  System Status:
+[22:42:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:42:03 - 192.168.7.253] ∘ Headroom      : 3.967 ms ( 99.2%)
+[22:42:03 - 192.168.7.253] ∘ Scale Cap.    : 123.07x current workload
+[22:42:03 - 192.168.7.253] ∘ Uptime        : 20m10s
+[22:42:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:42:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:42:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:42:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:42:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.6%
+[22:42:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:42:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:42:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:42:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:42:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:42:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:42:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:42:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:42:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:42:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[22:42:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:42:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:43:03 - 192.168.7.253] 
+[22:43:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:43:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:43:03 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:43:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:43:03 - 192.168.7.253] 🕑  System Status:
+[22:43:03 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:43:03 - 192.168.7.253] ∘ Headroom      : 3.964 ms ( 99.1%)
+[22:43:03 - 192.168.7.253] ∘ Scale Cap.    : 109.67x current workload
+[22:43:03 - 192.168.7.253] ∘ Uptime        : 21m10s
+[22:43:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:43:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:43:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:43:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:43:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.6%
+[22:43:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:43:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:43:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:43:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:43:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:43:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:43:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:43:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:43:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  3, overruns 0
+[22:43:31 - 192.168.7.253] [MISSION STOP]
+[22:43:35 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:43:35 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:43:35 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:43:35 - 192.168.7.253] Syncronizing Panel state....
+[22:43:35 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:43:35 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:43:35 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:43:35 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:44:03 - 192.168.7.253] 
+[22:44:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:44:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:44:03 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:44:03 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:44:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:44:03 - 192.168.7.253] 🕑  System Status:
+[22:44:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:44:03 - 192.168.7.253] ∘ Headroom      : 3.968 ms ( 99.2%)
+[22:44:03 - 192.168.7.253] ∘ Scale Cap.    : 123.19x current workload
+[22:44:03 - 192.168.7.253] ∘ Uptime        : 22m10s
+[22:44:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:44:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:44:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:44:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:44:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.6%
+[22:44:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:44:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:44:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:44:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:44:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:44:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:44:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:44:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:44:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:44:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  3, overruns 0
+[22:44:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:44:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:45:03 - 192.168.7.253] 
+[22:45:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:45:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:45:03 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:45:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:45:03 - 192.168.7.253] 🕑  System Status:
+[22:45:03 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:45:03 - 192.168.7.253] ∘ Headroom      : 3.964 ms ( 99.1%)
+[22:45:03 - 192.168.7.253] ∘ Scale Cap.    : 109.69x current workload
+[22:45:03 - 192.168.7.253] ∘ Uptime        : 23m10s
+[22:45:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:45:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:45:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:45:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:45:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.6%
+[22:45:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:45:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:45:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:45:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:45:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:45:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:45:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:45:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:45:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:45:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  3, max  3, overruns 0
+[22:45:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:45:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:45:28 - 192.168.7.253] [MISSION STOP]
+[22:45:31 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:45:31 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:45:31 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:45:31 - 192.168.7.253] Syncronizing Panel state....
+[22:45:31 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:45:31 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:45:31 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:45:31 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:45:31 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:45:31 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:46:02 - 192.168.7.253] 
+[22:46:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:46:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:46:03 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:46:03 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:46:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:46:03 - 192.168.7.253] 🕑  System Status:
+[22:46:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:46:03 - 192.168.7.253] ∘ Headroom      : 3.968 ms ( 99.2%)
+[22:46:03 - 192.168.7.253] ∘ Scale Cap.    : 123.25x current workload
+[22:46:03 - 192.168.7.253] ∘ Uptime        : 24m10s
+[22:46:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:46:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:46:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:46:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:46:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     27 KB, frag  43.9%
+[22:46:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:46:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:46:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:46:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:46:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:46:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:46:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:46:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:46:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:46:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  4, overruns 0
+[22:46:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:46:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:47:03 - 192.168.7.253] 
+[22:47:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:47:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:47:03 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:47:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:47:03 - 192.168.7.253] 🕑  System Status:
+[22:47:03 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:47:03 - 192.168.7.253] ∘ Headroom      : 3.964 ms ( 99.1%)
+[22:47:03 - 192.168.7.253] ∘ Scale Cap.    : 109.63x current workload
+[22:47:03 - 192.168.7.253] ∘ Uptime        : 25m10s
+[22:47:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:47:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:47:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:47:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:47:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.9%
+[22:47:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:47:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:47:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:47:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:47:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:47:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:47:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:47:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:47:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:47:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  4, overruns 0
+[22:47:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:47:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:47:24 - 192.168.7.253] [MISSION STOP]
+[22:47:27 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:47:28 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:47:28 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:47:28 - 192.168.7.253] Syncronizing Panel state....
+[22:47:28 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:47:28 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:47:28 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:47:28 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:47:28 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:47:28 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:48:02 - 192.168.7.253] 
+[22:48:03 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:48:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:48:03 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:48:03 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:48:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:48:03 - 192.168.7.253] 🕑  System Status:
+[22:48:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:48:03 - 192.168.7.253] ∘ Headroom      : 3.968 ms ( 99.2%)
+[22:48:03 - 192.168.7.253] ∘ Scale Cap.    : 123.14x current workload
+[22:48:03 - 192.168.7.253] ∘ Uptime        : 26m10s
+[22:48:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:48:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:48:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:48:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:48:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.9%
+[22:48:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:48:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:48:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:48:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:48:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:48:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:48:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:48:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:48:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:48:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  4, overruns 0
+[22:48:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:48:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:49:02 - 192.168.7.253] 
+[22:49:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:49:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:49:03 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:49:03 - 192.168.7.253] 🕑  System Status:
+[22:49:03 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:49:03 - 192.168.7.253] ∘ Headroom      : 3.963 ms ( 99.1%)
+[22:49:03 - 192.168.7.253] ∘ Scale Cap.    : 109.35x current workload
+[22:49:03 - 192.168.7.253] ∘ Uptime        : 27m10s
+[22:49:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:49:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:49:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:49:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:49:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.4%
+[22:49:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:49:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:49:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:49:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:49:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:49:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:49:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:49:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:49:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:49:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  3, max  4, overruns 0
+[22:49:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:49:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:49:20 - 192.168.7.253] [MISSION STOP]
+[22:49:23 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:49:24 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:49:24 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:49:24 - 192.168.7.253] Syncronizing Panel state....
+[22:49:24 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:49:24 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:49:24 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:49:24 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:49:24 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:49:24 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:50:02 - 192.168.7.253] 
+[22:50:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:50:02 - 192.168.7.253] 🔍  Profiling Averages:
+[22:50:03 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:50:03 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:50:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:50:03 - 192.168.7.253] 🕑  System Status:
+[22:50:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:50:03 - 192.168.7.253] ∘ Headroom      : 3.968 ms ( 99.2%)
+[22:50:03 - 192.168.7.253] ∘ Scale Cap.    : 123.19x current workload
+[22:50:03 - 192.168.7.253] ∘ Uptime        : 28m10s
+[22:50:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:50:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:50:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:50:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:50:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.6%
+[22:50:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:50:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:50:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:50:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:50:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:50:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:50:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:50:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:50:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  4, overruns 0
+[22:50:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:50:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:51:02 - 192.168.7.253] 
+[22:51:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:51:03 - 192.168.7.253] 🔍  Profiling Averages:
+[22:51:03 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:51:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:51:03 - 192.168.7.253] 🕑  System Status:
+[22:51:03 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:51:03 - 192.168.7.253] ∘ Headroom      : 3.963 ms ( 99.1%)
+[22:51:03 - 192.168.7.253] ∘ Scale Cap.    : 109.46x current workload
+[22:51:03 - 192.168.7.253] ∘ Uptime        : 29m10s
+[22:51:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:51:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:51:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:51:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:51:03 - 192.168.7.253] ∘ Internal SRAM : free     50 KB, largest     27 KB, frag  44.1%
+[22:51:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:51:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:51:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:51:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:51:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:51:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:51:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:51:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:51:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  4, overruns 0
+[22:51:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:51:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:51:16 - 192.168.7.253] [MISSION STOP]
+[22:51:20 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:51:20 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:51:20 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:51:20 - 192.168.7.253] Syncronizing Panel state....
+[22:51:20 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:51:20 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:51:20 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:51:20 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:51:20 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:51:20 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:52:02 - 192.168.7.253] 
+[22:52:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:52:02 - 192.168.7.253] 🔍  Profiling Averages:
+[22:52:02 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:52:03 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:52:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:52:03 - 192.168.7.253] 🕑  System Status:
+[22:52:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:52:03 - 192.168.7.253] ∘ Headroom      : 3.968 ms ( 99.2%)
+[22:52:03 - 192.168.7.253] ∘ Scale Cap.    : 123.46x current workload
+[22:52:03 - 192.168.7.253] ∘ Uptime        : 30m10s
+[22:52:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:52:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:52:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:52:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:52:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     27 KB, frag  43.9%
+[22:52:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:52:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:52:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:52:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:52:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:52:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:52:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:52:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:52:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  4, overruns 0
+[22:52:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:52:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:53:02 - 192.168.7.253] 
+[22:53:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:53:02 - 192.168.7.253] 🔍  Profiling Averages:
+[22:53:02 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:53:02 - 192.168.7.253] +----------------------------------------------------------------+
+[22:53:03 - 192.168.7.253] 🕑  System Status:
+[22:53:03 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:53:03 - 192.168.7.253] ∘ Headroom      : 3.963 ms ( 99.1%)
+[22:53:03 - 192.168.7.253] ∘ Scale Cap.    : 109.48x current workload
+[22:53:03 - 192.168.7.253] ∘ Uptime        : 31m10s
+[22:53:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:53:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:53:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:53:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:53:03 - 192.168.7.253] ∘ Internal SRAM : free     50 KB, largest     27 KB, frag  44.4%
+[22:53:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:53:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:53:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:53:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:53:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:53:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:53:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:53:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:53:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:53:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  4, overruns 0
+[22:53:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:53:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:53:13 - 192.168.7.253] [MISSION STOP]
+[22:53:16 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:53:16 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:53:16 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:53:16 - 192.168.7.253] Syncronizing Panel state....
+[22:53:16 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:53:16 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:53:16 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:53:16 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:53:16 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:53:16 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:54:02 - 192.168.7.253] 
+[22:54:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:54:02 - 192.168.7.253] 🔍  Profiling Averages:
+[22:54:02 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:54:02 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:54:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:54:03 - 192.168.7.253] 🕑  System Status:
+[22:54:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:54:03 - 192.168.7.253] ∘ Headroom      : 3.968 ms ( 99.2%)
+[22:54:03 - 192.168.7.253] ∘ Scale Cap.    : 123.43x current workload
+[22:54:03 - 192.168.7.253] ∘ Uptime        : 32m10s
+[22:54:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:54:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:54:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:54:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     27 KB, frag  43.9%
+[22:54:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:54:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:54:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:54:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:54:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:54:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:54:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:54:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:54:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:54:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  4, overruns 0
+[22:54:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:54:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:55:02 - 192.168.7.253] 
+[22:55:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:55:02 - 192.168.7.253] 🔍  Profiling Averages:
+[22:55:02 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:55:02 - 192.168.7.253] +----------------------------------------------------------------+
+[22:55:03 - 192.168.7.253] 🕑  System Status:
+[22:55:03 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:55:03 - 192.168.7.253] ∘ Headroom      : 3.963 ms ( 99.1%)
+[22:55:03 - 192.168.7.253] ∘ Scale Cap.    : 109.18x current workload
+[22:55:03 - 192.168.7.253] ∘ Uptime        : 33m10s
+[22:55:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:55:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:55:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:55:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:55:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.4%
+[22:55:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:55:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:55:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:55:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:55:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:55:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:55:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:55:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:55:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:55:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:55:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:55:09 - 192.168.7.253] [MISSION STOP]
+[22:55:12 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:55:13 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:55:13 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:55:13 - 192.168.7.253] Syncronizing Panel state....
+[22:55:13 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:55:13 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:55:13 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:55:13 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:55:13 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:55:13 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:56:02 - 192.168.7.253] 
+[22:56:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:56:02 - 192.168.7.253] 🔍  Profiling Averages:
+[22:56:02 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:56:02 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:56:02 - 192.168.7.253] +----------------------------------------------------------------+
+[22:56:03 - 192.168.7.253] 🕑  System Status:
+[22:56:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:56:03 - 192.168.7.253] ∘ Headroom      : 3.968 ms ( 99.2%)
+[22:56:03 - 192.168.7.253] ∘ Scale Cap.    : 123.35x current workload
+[22:56:03 - 192.168.7.253] ∘ Uptime        : 34m10s
+[22:56:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:56:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:56:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:56:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:56:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.6%
+[22:56:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:56:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:56:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:56:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:56:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:56:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:56:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:56:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:56:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:56:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  4, overruns 0
+[22:56:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:56:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:57:02 - 192.168.7.253] 
+[22:57:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:57:02 - 192.168.7.253] 🔍  Profiling Averages:
+[22:57:02 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:57:02 - 192.168.7.253] +----------------------------------------------------------------+
+[22:57:02 - 192.168.7.253] 🕑  System Status:
+[22:57:02 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:57:03 - 192.168.7.253] ∘ Headroom      : 3.963 ms ( 99.1%)
+[22:57:03 - 192.168.7.253] ∘ Scale Cap.    : 109.43x current workload
+[22:57:03 - 192.168.7.253] ∘ Uptime        : 35m10s
+[22:57:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:57:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:57:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:57:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     27 KB, frag  43.9%
+[22:57:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:57:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:57:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:57:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:57:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:57:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:57:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:57:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:57:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:57:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  4, overruns 0
+[22:57:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:57:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:57:05 - 192.168.7.253] [MISSION STOP]
+[22:57:08 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:57:09 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:57:09 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:57:09 - 192.168.7.253] Syncronizing Panel state....
+[22:57:09 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:57:09 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:57:09 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:57:09 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:57:09 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:57:09 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[22:58:02 - 192.168.7.253] 
+[22:58:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:58:02 - 192.168.7.253] 🔍  Profiling Averages:
+[22:58:02 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[22:58:02 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[22:58:02 - 192.168.7.253] +----------------------------------------------------------------+
+[22:58:02 - 192.168.7.253] 🕑  System Status:
+[22:58:02 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[22:58:03 - 192.168.7.253] ∘ Scale Cap.    : 123.52x current workload
+[22:58:03 - 192.168.7.253] ∘ Uptime        : 36m10s
+[22:58:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:58:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:58:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:58:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:58:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.9%
+[22:58:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:58:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:58:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:58:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:58:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:58:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:58:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:58:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:58:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:58:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  4, overruns 0
+[22:58:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:58:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:59:01 - 192.168.7.253] [MISSION STOP]
+[22:59:02 - 192.168.7.253] 
+[22:59:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[22:59:02 - 192.168.7.253] 🔍  Profiling Averages:
+[22:59:02 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[22:59:02 - 192.168.7.253] +----------------------------------------------------------------+
+[22:59:02 - 192.168.7.253] 🕑  System Status:
+[22:59:02 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[22:59:02 - 192.168.7.253] ∘ Headroom      : 3.965 ms ( 99.1%)
+[22:59:02 - 192.168.7.253] ∘ Scale Cap.    : 112.94x current workload
+[22:59:03 - 192.168.7.253] ∘ Uptime        : 37m10s
+[22:59:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[22:59:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[22:59:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:59:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[22:59:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     27 KB, frag  43.9%
+[22:59:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[22:59:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:59:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[22:59:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[22:59:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[22:59:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:59:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[22:59:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:59:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[22:59:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  4, overruns 0
+[22:59:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[22:59:03 - 192.168.7.253] +----------------------------------------------------------------+
+[22:59:05 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[22:59:05 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[22:59:05 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[22:59:05 - 192.168.7.253] Syncronizing Panel state....
+[22:59:05 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[22:59:05 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[22:59:05 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[22:59:05 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[22:59:05 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[22:59:05 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[23:00:02 - 192.168.7.253] 
+[23:00:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:00:02 - 192.168.7.253] 🔍  Profiling Averages:
+[23:00:02 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[23:00:02 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[23:00:02 - 192.168.7.253] +----------------------------------------------------------------+
+[23:00:02 - 192.168.7.253] 🕑  System Status:
+[23:00:02 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[23:00:02 - 192.168.7.253] ∘ Headroom      : 3.967 ms ( 99.2%)
+[23:00:02 - 192.168.7.253] ∘ Scale Cap.    : 119.61x current workload
+[23:00:03 - 192.168.7.253] ∘ Uptime        : 38m10s
+[23:00:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[23:00:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[23:00:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:00:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[23:00:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     27 KB, frag  43.9%
+[23:00:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[23:00:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:00:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[23:00:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[23:00:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[23:00:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:00:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[23:00:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:00:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:00:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  4, overruns 0
+[23:00:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[23:00:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:00:58 - 192.168.7.253] [MISSION STOP]
+[23:01:01 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[23:01:01 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[23:01:01 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[23:01:01 - 192.168.7.253] Syncronizing Panel state....
+[23:01:01 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[23:01:01 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[23:01:01 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[23:01:01 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[23:01:01 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[23:01:01 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[23:01:02 - 192.168.7.253] 
+[23:01:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:01:02 - 192.168.7.253] 🔍  Profiling Averages:
+[23:01:02 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[23:01:02 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[23:01:02 - 192.168.7.253] +----------------------------------------------------------------+
+[23:01:02 - 192.168.7.253] 🕑  System Status:
+[23:01:02 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[23:01:02 - 192.168.7.253] ∘ Headroom      : 3.967 ms ( 99.2%)
+[23:01:02 - 192.168.7.253] ∘ Scale Cap.    : 122.09x current workload
+[23:01:02 - 192.168.7.253] ∘ Uptime        : 39m10s
+[23:01:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[23:01:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[23:01:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:01:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[23:01:03 - 192.168.7.253] ∘ Internal SRAM : free     50 KB, largest     27 KB, frag  44.1%
+[23:01:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[23:01:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[23:01:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[23:01:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[23:01:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:01:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[23:01:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:01:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:01:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  4, overruns 0
+[23:01:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[23:01:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:02:02 - 192.168.7.253] 
+[23:02:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:02:02 - 192.168.7.253] 🔍  Profiling Averages:
+[23:02:02 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[23:02:02 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[23:02:02 - 192.168.7.253] +----------------------------------------------------------------+
+[23:02:02 - 192.168.7.253] 🕑  System Status:
+[23:02:02 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[23:02:02 - 192.168.7.253] ∘ Headroom      : 3.964 ms ( 99.1%)
+[23:02:03 - 192.168.7.253] ∘ Uptime        : 40m10s
+[23:02:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[23:02:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[23:02:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:02:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[23:02:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.6%
+[23:02:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[23:02:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:02:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[23:02:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[23:02:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[23:02:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:02:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[23:02:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:02:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:02:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  4, overruns 0
+[23:02:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[23:02:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:02:54 - 192.168.7.253] [MISSION STOP]
+[23:02:57 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[23:02:58 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[23:02:58 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[23:02:58 - 192.168.7.253] Syncronizing Panel state....
+[23:02:58 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[23:02:58 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[23:02:58 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[23:02:58 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[23:02:58 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[23:02:58 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[23:03:02 - 192.168.7.253] 
+[23:03:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:03:02 - 192.168.7.253] 🔍  Profiling Averages:
+[23:03:02 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[23:03:02 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[23:03:02 - 192.168.7.253] +----------------------------------------------------------------+
+[23:03:02 - 192.168.7.253] 🕑  System Status:
+[23:03:02 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[23:03:02 - 192.168.7.253] ∘ Headroom      : 3.967 ms ( 99.2%)
+[23:03:03 - 192.168.7.253] ∘ Scale Cap.    : 122.82x current workload
+[23:03:03 - 192.168.7.253] ∘ Uptime        : 41m10s
+[23:03:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[23:03:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[23:03:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:03:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[23:03:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.9%
+[23:03:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[23:03:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:03:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[23:03:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[23:03:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[23:03:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:03:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[23:03:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:03:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:03:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  4, overruns 0
+[23:03:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[23:03:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:04:02 - 192.168.7.253] 
+[23:04:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:04:02 - 192.168.7.253] 🔍  Profiling Averages:
+[23:04:02 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[23:04:02 - 192.168.7.253] +----------------------------------------------------------------+
+[23:04:02 - 192.168.7.253] 🕑  System Status:
+[23:04:02 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[23:04:02 - 192.168.7.253] ∘ Headroom      : 3.964 ms ( 99.1%)
+[23:04:02 - 192.168.7.253] ∘ Scale Cap.    : 109.64x current workload
+[23:04:02 - 192.168.7.253] ∘ Uptime        : 42m10s
+[23:04:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[23:04:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[23:04:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:04:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[23:04:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.9%
+[23:04:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[23:04:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:04:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[23:04:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[23:04:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[23:04:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:04:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[23:04:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:04:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:04:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  4, overruns 0
+[23:04:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[23:04:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:04:50 - 192.168.7.253] [MISSION STOP]
+[23:04:53 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[23:04:54 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[23:04:54 - 192.168.7.253] Syncronizing Panel state....
+[23:04:54 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[23:04:54 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[23:04:54 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[23:04:54 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[23:04:54 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[23:04:54 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[23:05:02 - 192.168.7.253] 
+[23:05:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:05:02 - 192.168.7.253] 🔍  Profiling Averages:
+[23:05:02 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[23:05:02 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[23:05:02 - 192.168.7.253] +----------------------------------------------------------------+
+[23:05:02 - 192.168.7.253] 🕑  System Status:
+[23:05:02 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[23:05:02 - 192.168.7.253] ∘ Headroom      : 3.967 ms ( 99.2%)
+[23:05:02 - 192.168.7.253] ∘ Scale Cap.    : 122.86x current workload
+[23:05:02 - 192.168.7.253] ∘ Uptime        : 43m10s
+[23:05:02 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[23:05:02 - 192.168.7.253] ∘ Last Reset    : Power-on
+[23:05:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:05:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[23:05:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.4%
+[23:05:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[23:05:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[23:05:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[23:05:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[23:05:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:05:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[23:05:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:05:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:05:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  4, overruns 0
+[23:05:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[23:05:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:06:02 - 192.168.7.253] 
+[23:06:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:06:02 - 192.168.7.253] 🔍  Profiling Averages:
+[23:06:02 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[23:06:02 - 192.168.7.253] +----------------------------------------------------------------+
+[23:06:02 - 192.168.7.253] 🕑  System Status:
+[23:06:02 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[23:06:02 - 192.168.7.253] ∘ Headroom      : 3.964 ms ( 99.1%)
+[23:06:02 - 192.168.7.253] ∘ Scale Cap.    : 109.76x current workload
+[23:06:03 - 192.168.7.253] ∘ Uptime        : 44m10s
+[23:06:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[23:06:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[23:06:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:06:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[23:06:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.1%
+[23:06:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[23:06:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:06:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[23:06:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[23:06:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[23:06:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:06:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[23:06:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:06:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:06:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  4, overruns 0
+[23:06:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[23:06:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:06:46 - 192.168.7.253] [MISSION STOP]
+[23:06:50 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[23:06:50 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[23:06:50 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[23:06:50 - 192.168.7.253] Syncronizing Panel state....
+[23:06:50 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[23:06:50 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[23:06:50 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[23:06:50 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[23:06:50 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[23:06:50 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[23:07:02 - 192.168.7.253] 
+[23:07:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:07:02 - 192.168.7.253] 🔍  Profiling Averages:
+[23:07:02 - 192.168.7.253] ∘ [LED] TM1637    :   0.01 ms
+[23:07:02 - 192.168.7.253] +----------------------------------------------------------------+
+[23:07:02 - 192.168.7.253] 🕑  System Status:
+[23:07:03 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[23:07:03 - 192.168.7.253] ∘ Headroom      : 3.967 ms ( 99.2%)
+[23:07:03 - 192.168.7.253] ∘ Scale Cap.    : 122.91x current workload
+[23:07:03 - 192.168.7.253] ∘ Uptime        : 45m10s
+[23:07:03 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[23:07:03 - 192.168.7.253] ∘ Last Reset    : Power-on
+[23:07:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:07:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[23:07:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.1%
+[23:07:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[23:07:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:07:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[23:07:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[23:07:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[23:07:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:07:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[23:07:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:07:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:07:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  4, overruns 0
+[23:07:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[23:07:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:08:02 - 192.168.7.253] 
+[23:08:02 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:08:02 - 192.168.7.253] 🔍  Profiling Averages:
+[23:08:02 - 192.168.7.253] ∘ Main Loop       :   0.04 ms
+[23:08:02 - 192.168.7.253] +----------------------------------------------------------------+
+[23:08:02 - 192.168.7.253] 🕑  System Status:
+[23:08:02 - 192.168.7.253] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[23:08:02 - 192.168.7.253] ∘ Headroom      : 3.964 ms ( 99.1%)
+[23:08:02 - 192.168.7.253] ∘ Scale Cap.    : 109.62x current workload
+[23:08:02 - 192.168.7.253] ∘ Uptime        : 46m10s
+[23:08:02 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[23:08:02 - 192.168.7.253] ∘ Last Reset    : Power-on
+[23:08:02 - 192.168.7.253] +----------------------------------------------------------------+
+[23:08:03 - 192.168.7.253] 💾  Memory Fragmentation:
+[23:08:03 - 192.168.7.253] ∘ Internal SRAM : free     49 KB, largest     26 KB, frag  45.6%
+[23:08:03 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[23:08:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:08:03 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[23:08:03 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[23:08:03 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[23:08:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:08:03 - 192.168.7.253] 🔁  Ring Buffer Health:
+[23:08:03 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:08:03 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:08:03 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  4, overruns 0
+[23:08:03 - 192.168.7.253] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[23:08:03 - 192.168.7.253] +----------------------------------------------------------------+
+[23:08:15 - 192.168.7.253] ❌ USB Stopped
+[23:10:35 - 192.168.7.253] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.253
+[23:10:35 - 192.168.7.253] =================== [STARTING DEVICE] ===================
+[23:10:35 - 192.168.7.253] SRAM free:     67 KB, largest:     43 KB, frag:  34.8%
+[23:10:35 - 192.168.7.253] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[23:10:35 - 192.168.7.253] I²C Initialized using the ESP-IDF Library (Fast mode)
+[23:10:35 - 192.168.7.253] Using SDA 8 and SCL 9 for I2C
+[23:10:35 - 192.168.7.253] Device is LOLIN S2 Mini by WEMOS
+[23:10:35 - 192.168.7.253] Registered Panel: hasTEST_ONLY
+[23:10:35 - 192.168.7.253] Registered Panel: hasLA
+[23:10:35 - 192.168.7.253] Registered Panel: hasRA
+[23:10:36 - 192.168.7.253] 🔎 === Discovered I2C Devices ===
+[23:10:36 - 192.168.7.253] 📋 Address    | Device Description
+[23:10:36 - 192.168.7.253] ──────────────|─────────────────────────────
+[23:10:36 - 192.168.7.253] 📡 0x26       | Brain / IRCool Panel
+[23:10:36 - 192.168.7.253] ────────────────────────────────────────────
+[23:10:36 - 192.168.7.253] Initializing PCA_0x26 inputs and cached port states
+[23:10:36 - 192.168.7.253] Initializing Displays
+[23:10:38 - 192.168.7.253] ✅ Battery Gauge (dirty-rect DMA) initialized
+[23:10:38 - 192.168.7.253] Initializing LEDs
+[23:10:38 - 192.168.7.253] ⚠️ Lock/Shoot NOT detected!
+[23:10:38 - 192.168.7.253] ⚠️ Caution Advisory NOT detected!
+[23:10:38 - 192.168.7.253] ✅ Left & Right Annunciators detected, initializing...
+[23:10:39 - 192.168.7.253] 🔆 Turning ALL GPIO LEDs ON
+[23:10:40 - 192.168.7.253] ⚫ Turning ALL GPIO LEDs OFF
+[23:10:40 - 192.168.7.253] Syncronizing Panel state....
+[23:10:40 - 192.168.7.253] ⚠️ HC165: Disabled (HC165_BITS=0)
+[23:10:40 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[23:10:40 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[23:10:40 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[23:10:40 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[23:10:40 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[23:10:40 - 192.168.7.253] Selected mode: DCS-BIOS
+[23:10:40 - 192.168.7.253] Device "CockpitOS Panel TEST_ONLY (Please change this name)" is ready
+[23:10:40 - 192.168.7.253] ESP32 Arduino core v3.2.1  |  IDF v5.4.2
+[23:10:40 - 192.168.7.253] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[23:10:40 - 192.168.7.253] 🔌 Main Loop started
+[23:10:40 - 192.168.7.253] [DCS] ❌ Sim not ready yet...
+[23:10:40 - 192.168.7.253] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
+[23:10:42 - 192.168.7.253] [DCS-BIOS] ✅ STREAM UP
+[23:10:42 - 192.168.7.253] [STATE UPDATE] 🔁 LEFT_FIRE_BTN = OFF
+[23:10:42 - 192.168.7.253] [STATE UPDATE] 🔁 LEFT_FIRE_BTN_COVER = CLOSED
+[23:10:42 - 192.168.7.253] [STATE UPDATE] 🔁 MASTER_CAUTION_RESET_SW = POS 0
+[23:10:42 - 192.168.7.253] [STATE UPDATE] 🔁 APU_FIRE_BTN = OFF
+[23:10:42 - 192.168.7.253] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = OFF
+[23:10:42 - 192.168.7.253] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = CLOSED
+[23:10:42 - 192.168.7.253] [MISSION START] FA-18C_hornet
+[23:10:43 - 192.168.7.253] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[23:10:43 - 192.168.7.253] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[23:10:43 - 192.168.7.253] Syncronizing Panel state....
+[23:10:43 - 192.168.7.253] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[23:10:43 - 192.168.7.253] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[23:10:43 - 192.168.7.253] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[23:10:43 - 192.168.7.253] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[23:10:43 - 192.168.7.253] ✅ TEST_ONLY panel initialized
+[23:10:43 - 192.168.7.253] [SYNC] Normal mission start panel sync
+[23:10:49 - 192.168.7.253] 🛩️ [DCS-USB] APU_FIRE_BTN 1
+[23:10:53 - 192.168.7.253] 🛩️ [DCS-USB] APU_FIRE_BTN 0
+[23:10:54 - 192.168.7.253] 🛩️ [DCS-USB] RIGHT_FIRE_BTN_COVER 1
+[23:10:54 - 192.168.7.253] 🛩️ [DCS-USB] RIGHT_FIRE_BTN 1
+[23:10:56 - 192.168.7.253] 🛩️ [DCS-USB] RIGHT_FIRE_BTN 0
+[23:10:56 - 192.168.7.253] 🛩️ [DCS-USB] RIGHT_FIRE_BTN_COVER 0
+[23:11:00 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:00 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:02 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:02 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:03 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:03 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:04 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:04 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:04 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:05 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:05 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:05 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:05 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:05 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:05 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:05 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:05 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:05 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:06 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:06 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:06 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:06 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:06 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:06 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:06 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:06 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:06 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:06 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:06 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:07 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:07 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:07 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:07 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:07 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:07 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:07 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:08 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:08 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:08 - 192.168.7.253] 🛩️ [DCS-USB] LEFT_FIRE_BTN_COVER 1
+[23:11:09 - 192.168.7.253] 🛩️ [DCS-USB] LEFT_FIRE_BTN 1
+[23:11:11 - 192.168.7.253] 🛩️ [DCS-USB] LEFT_FIRE_BTN 0
+[23:11:11 - 192.168.7.253] 🛩️ [DCS-USB] LEFT_FIRE_BTN_COVER 0
+[23:11:12 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:12 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:12 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:13 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:14 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 1
+[23:11:14 - 192.168.7.253] 🛩️ [DCS-USB] MASTER_CAUTION_RESET_SW 0
+[23:11:15 - 192.168.7.253] 🛩️ [DCS-USB] APU_FIRE_BTN 1
+[23:11:17 - 192.168.7.253] 🛩️ [DCS-USB] APU_FIRE_BTN 0
+[23:11:18 - 192.168.7.253] 🛩️ [DCS-USB] RIGHT_FIRE_BTN_COVER 1
+[23:11:19 - 192.168.7.253] 🛩️ [DCS-USB] RIGHT_FIRE_BTN 1
+[23:11:20 - 192.168.7.253] 🛩️ [DCS-USB] RIGHT_FIRE_BTN 0
+[23:11:20 - 192.168.7.253] 🛩️ [DCS-USB] RIGHT_FIRE_BTN_COVER 0
+[23:11:40 - 192.168.7.253] 
+[23:11:40 - 192.168.7.253] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:11:40 - 192.168.7.253] 🔍  Profiling Averages:
+[23:11:40 - 192.168.7.253] ∘ [TFT BATTERY] Draw Function :   5.98 ms
+[23:11:40 - 192.168.7.253] ∘ Main Loop       :   0.03 ms
+[23:11:40 - 192.168.7.253] +----------------------------------------------------------------+
+[23:11:40 - 192.168.7.253] 🕑  System Status:
+[23:11:40 - 192.168.7.253] ∘ Poll Load     :   0.8% of 4.00 ms slot
+[23:11:40 - 192.168.7.253] ∘ Headroom      : 3.967 ms ( 99.2%)
+[23:11:40 - 192.168.7.253] ∘ Scale Cap.    : 120.26x current workload
+[23:11:40 - 192.168.7.253] ∘ Uptime        : 1m10s
+[23:11:40 - 192.168.7.253] ∘ CPU Frequency : 240 MHz
+[23:11:40 - 192.168.7.253] ∘ Last Reset    : Power-on
+[23:11:40 - 192.168.7.253] +----------------------------------------------------------------+
+[23:11:40 - 192.168.7.253] 💾  Memory Fragmentation:
+[23:11:40 - 192.168.7.253] ∘ Internal SRAM : free     50 KB, largest     26 KB, frag  46.1%
+[23:11:40 - 192.168.7.253] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[23:11:40 - 192.168.7.253] +----------------------------------------------------------------+
+[23:11:40 - 192.168.7.253] 📡  USB-CDC Buffer Health:
+[23:11:40 - 192.168.7.253] ∘ TX Free Slots :      0 bytes
+[23:11:40 - 192.168.7.253] ∘ RX Pending    :      0 bytes
+[23:11:40 - 192.168.7.253] +----------------------------------------------------------------+
+[23:11:40 - 192.168.7.253] 🔁  Ring Buffer Health:
+[23:11:40 - 192.168.7.253] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:11:40 - 192.168.7.253] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:11:40 - 192.168.7.253] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  6, overruns 0
+[23:11:40 - 192.168.7.253] ∘ USB Send DCS  : avg  25.6 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[23:11:40 - 192.168.7.253] +----------------------------------------------------------------+
+[23:12:26 - 192.168.7.253] ❌ USB Stopped
+[23:20:52 - 192.168.7.136] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.136
+[23:20:52 - 192.168.7.136] =================== [STARTING DEVICE] ===================
+[23:20:52 - 192.168.7.136] SRAM free:     66 KB, largest:     43 KB, frag:  33.4%
+[23:20:52 - 192.168.7.136] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[23:20:52 - 192.168.7.136] I²C Initialized using the ESP-IDF Library (Fast mode)
+[23:20:52 - 192.168.7.136] Using SDA 8 and SCL 9 for I2C
+[23:20:52 - 192.168.7.136] Device is LOLIN S2 Mini by WEMOS
+[23:20:52 - 192.168.7.136] Registered Panel: hasTFTBatt
+[23:20:52 - 192.168.7.136] Registered Panel: hasTEST_ONLY
+[23:20:52 - 192.168.7.136] Registered Panel: hasLA
+[23:20:52 - 192.168.7.136] Registered Panel: hasRA
+[23:20:53 - 192.168.7.136] No I2C devices found.
+[23:20:53 - 192.168.7.136] Initializing Displays
+[23:20:55 - 192.168.7.136] ✅ Battery Gauge (dirty-rect DMA) initialized
+[23:20:55 - 192.168.7.136] Initializing LEDs
+[23:20:55 - 192.168.7.136] ⚠️ Lock/Shoot NOT detected!
+[23:20:55 - 192.168.7.136] ⚠️ Caution Advisory NOT detected!
+[23:20:55 - 192.168.7.136] ✅ Left & Right Annunciators detected, initializing...
+[23:20:56 - 192.168.7.136] 🔆 Turning ALL GPIO LEDs ON
+[23:20:57 - 192.168.7.136] ⚫ Turning ALL GPIO LEDs OFF
+[23:20:57 - 192.168.7.136] Syncronizing Panel state....
+[23:20:57 - 192.168.7.136] ⚠️ HC165: Disabled (HC165_BITS=0)
+[23:20:57 - 192.168.7.136] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[23:20:57 - 192.168.7.136] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[23:20:57 - 192.168.7.136] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[23:20:57 - 192.168.7.136] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[23:20:57 - 192.168.7.136] ✅ TEST_ONLY panel initialized
+[23:20:57 - 192.168.7.136] Selected mode: DCS-BIOS
+[23:20:57 - 192.168.7.136] Device "CockpitOS Panel TEST_ONLY (Please change this name)" is ready
+[23:20:57 - 192.168.7.136] ESP32 Arduino core v3.2.1  |  IDF v5.4.2
+[23:20:57 - 192.168.7.136] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[23:20:57 - 192.168.7.136] [DCS] ❌ Sim not ready yet...
+[23:20:57 - 192.168.7.136] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
+[23:20:57 - 192.168.7.136] [DCS-BIOS] ✅ STREAM UP
+[23:20:57 - 192.168.7.136] [MISSION START] FA-18C_hornet
+[23:20:58 - 192.168.7.136] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[23:20:58 - 192.168.7.136] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[23:20:58 - 192.168.7.136] Syncronizing Panel state....
+[23:20:58 - 192.168.7.136] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[23:20:58 - 192.168.7.136] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[23:20:58 - 192.168.7.136] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[23:20:58 - 192.168.7.136] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[23:20:58 - 192.168.7.136] ✅ TEST_ONLY panel initialized
+[23:20:58 - 192.168.7.136] [SYNC] Normal mission start panel sync
+[23:20:59 - 192.168.7.136] [STATE UPDATE] 🔁 LEFT_FIRE_BTN = OFF
+[23:20:59 - 192.168.7.136] [STATE UPDATE] 🔁 LEFT_FIRE_BTN_COVER = CLOSED
+[23:20:59 - 192.168.7.136] [STATE UPDATE] 🔁 MASTER_CAUTION_RESET_SW = POS 0
+[23:20:59 - 192.168.7.136] [STATE UPDATE] 🔁 APU_FIRE_BTN = OFF
+[23:20:59 - 192.168.7.136] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = OFF
+[23:20:59 - 192.168.7.136] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = CLOSED
+[23:20:59 - 192.168.7.136] [STATE UPDATE] 🔁 RWR_DISPLAY_BTN = OFF
+[23:20:59 - 192.168.7.136] [STATE UPDATE] 🔁 RWR_OFFSET_BTN = OFF
+[23:20:59 - 192.168.7.136] [STATE UPDATE] 🔁 RWR_POWER_BTN = ON
+[23:20:59 - 192.168.7.136] [STATE UPDATE] 🔁 RWR_SPECIAL_BTN = OFF
+[23:21:00 - 192.168.7.136] [STATE UPDATE] 🔁 RWR_BIT_BTN = OFF
+[23:21:00 - 192.168.7.136] [STATE UPDATE] 🔁 RWR_DIS_TYPE_SW = N
+[23:21:21 - 192.168.7.136] ❌ USB Stopped
+[23:23:07 - 192.168.7.136] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.136
+[23:23:07 - 192.168.7.136] =================== [STARTING DEVICE] ===================
+[23:23:07 - 192.168.7.136] SRAM free:     66 KB, largest:     43 KB, frag:  33.4%
+[23:23:07 - 192.168.7.136] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[23:23:07 - 192.168.7.136] I²C Initialized using the ESP-IDF Library (Fast mode)
+[23:23:07 - 192.168.7.136] Using SDA 8 and SCL 9 for I2C
+[23:23:07 - 192.168.7.136] Device is LOLIN S2 Mini by WEMOS
+[23:23:07 - 192.168.7.136] Registered Panel: hasTFTBatt
+[23:23:07 - 192.168.7.136] Registered Panel: hasTEST_ONLY
+[23:23:07 - 192.168.7.136] Registered Panel: hasLA
+[23:23:07 - 192.168.7.136] Registered Panel: hasRA
+[23:23:09 - 192.168.7.136] No I2C devices found.
+[23:23:09 - 192.168.7.136] Initializing Displays
+[23:23:11 - 192.168.7.136] ✅ Battery Gauge (dirty-rect DMA) initialized
+[23:23:11 - 192.168.7.136] Initializing LEDs
+[23:23:11 - 192.168.7.136] ⚠️ Lock/Shoot NOT detected!
+[23:23:11 - 192.168.7.136] ⚠️ Caution Advisory NOT detected!
+[23:23:11 - 192.168.7.136] ✅ Left & Right Annunciators detected, initializing...
+[23:23:12 - 192.168.7.136] 🔆 Turning ALL GPIO LEDs ON
+[23:23:13 - 192.168.7.136] ⚫ Turning ALL GPIO LEDs OFF
+[23:23:13 - 192.168.7.136] Syncronizing Panel state....
+[23:23:13 - 192.168.7.136] ⚠️ HC165: Disabled (HC165_BITS=0)
+[23:23:13 - 192.168.7.136] ⚠️ [HIDManager] Momentary button RWR_POWER_BTN ignored during init sync routine.
+[23:23:13 - 192.168.7.136] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[23:23:13 - 192.168.7.136] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[23:23:13 - 192.168.7.136] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[23:23:13 - 192.168.7.136] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[23:23:13 - 192.168.7.136] ✅ TEST_ONLY panel initialized
+[23:23:13 - 192.168.7.136] Selected mode: DCS-BIOS
+[23:23:13 - 192.168.7.136] Device "CockpitOS Panel TEST_ONLY (Please change this name)" is ready
+[23:23:13 - 192.168.7.136] ESP32 Arduino core v3.2.1  |  IDF v5.4.2
+[23:23:13 - 192.168.7.136] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[23:23:13 - 192.168.7.136] 🔌 Main Loop started
+[23:23:13 - 192.168.7.136] [DCS] ❌ Sim not ready yet...
+[23:23:13 - 192.168.7.136] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
+[23:23:13 - 192.168.7.136] [DCS-BIOS] ✅ STREAM UP
+[23:23:13 - 192.168.7.136] [STATE UPDATE] 🔁 RWR_BIT_BTN = OFF
+[23:23:13 - 192.168.7.136] [STATE UPDATE] 🔁 RWR_DIS_TYPE_SW = N
+[23:23:13 - 192.168.7.136] [MISSION START] FA-18C_hornet
+[23:23:13 - 192.168.7.136] [STATE UPDATE] 🔁 RWR_DISPLAY_BTN = OFF
+[23:23:13 - 192.168.7.136] [STATE UPDATE] 🔁 RWR_OFFSET_BTN = OFF
+[23:23:13 - 192.168.7.136] [STATE UPDATE] 🔁 RWR_POWER_BTN = ON
+[23:23:13 - 192.168.7.136] [STATE UPDATE] 🔁 RWR_SPECIAL_BTN = OFF
+[23:23:13 - 192.168.7.136] [STATE UPDATE] 🔁 LEFT_FIRE_BTN = OFF
+[23:23:13 - 192.168.7.136] [STATE UPDATE] 🔁 LEFT_FIRE_BTN_COVER = CLOSED
+[23:23:13 - 192.168.7.136] [STATE UPDATE] 🔁 MASTER_CAUTION_RESET_SW = POS 0
+[23:23:13 - 192.168.7.136] [STATE UPDATE] 🔁 APU_FIRE_BTN = OFF
+[23:23:13 - 192.168.7.136] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = OFF
+[23:23:13 - 192.168.7.136] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = CLOSED
+[23:23:14 - 192.168.7.136] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[23:23:14 - 192.168.7.136] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[23:23:14 - 192.168.7.136] Syncronizing Panel state....
+[23:23:14 - 192.168.7.136] ⚠️ [HIDManager] Momentary button RWR_POWER_BTN ignored during init sync routine.
+[23:23:14 - 192.168.7.136] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[23:23:14 - 192.168.7.136] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[23:23:14 - 192.168.7.136] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[23:23:14 - 192.168.7.136] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[23:23:14 - 192.168.7.136] ✅ TEST_ONLY panel initialized
+[23:23:14 - 192.168.7.136] [SYNC] Normal mission start panel sync
+[23:23:17 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:23:25 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 1
+[23:23:25 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:23:26 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 1
+[23:23:27 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:23:28 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 1
+[23:23:28 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:23:29 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 1
+[23:23:30 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:23:31 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 1
+[23:23:32 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:23:33 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 1
+[23:23:33 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:23:34 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 1
+[23:23:35 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:23:36 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 1
+[23:23:37 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:23:38 - 192.168.7.136] ❌ USB Stopped
+[23:25:02 - 192.168.7.136] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.136
+[23:25:02 - 192.168.7.136] =================== [STARTING DEVICE] ===================
+[23:25:02 - 192.168.7.136] SRAM free:     66 KB, largest:     43 KB, frag:  33.5%
+[23:25:02 - 192.168.7.136] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[23:25:02 - 192.168.7.136] I²C Initialized using the ESP-IDF Library (Fast mode)
+[23:25:02 - 192.168.7.136] Using SDA 8 and SCL 9 for I2C
+[23:25:02 - 192.168.7.136] Device is LOLIN S2 Mini by WEMOS
+[23:25:02 - 192.168.7.136] Registered Panel: hasTFTBatt
+[23:25:02 - 192.168.7.136] Registered Panel: hasTEST_ONLY
+[23:25:02 - 192.168.7.136] Registered Panel: hasLA
+[23:25:02 - 192.168.7.136] Registered Panel: hasRA
+[23:25:03 - 192.168.7.136] No I2C devices found.
+[23:25:03 - 192.168.7.136] Initializing Displays
+[23:25:05 - 192.168.7.136] ✅ Battery Gauge (dirty-rect DMA) initialized
+[23:25:05 - 192.168.7.136] Initializing LEDs
+[23:25:05 - 192.168.7.136] ⚠️ Lock/Shoot NOT detected!
+[23:25:05 - 192.168.7.136] ⚠️ Caution Advisory NOT detected!
+[23:25:05 - 192.168.7.136] ✅ Left & Right Annunciators detected, initializing...
+[23:25:06 - 192.168.7.136] 🔆 Turning ALL GPIO LEDs ON
+[23:25:07 - 192.168.7.136] ⚫ Turning ALL GPIO LEDs OFF
+[23:25:07 - 192.168.7.136] Syncronizing Panel state....
+[23:25:07 - 192.168.7.136] ⚠️ HC165: Disabled (HC165_BITS=0)
+[23:25:07 - 192.168.7.136] ⚠️ [HIDManager] Momentary button RWR_POWER_BTN ignored during init sync routine.
+[23:25:07 - 192.168.7.136] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[23:25:07 - 192.168.7.136] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[23:25:07 - 192.168.7.136] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[23:25:07 - 192.168.7.136] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[23:25:07 - 192.168.7.136] ✅ TEST_ONLY panel initialized
+[23:25:07 - 192.168.7.136] Selected mode: DCS-BIOS
+[23:25:07 - 192.168.7.136] Device "CockpitOS Panel TEST_ONLY (Please change this name)" is ready
+[23:25:07 - 192.168.7.136] ESP32 Arduino core v3.2.1  |  IDF v5.4.2
+[23:25:07 - 192.168.7.136] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[23:25:07 - 192.168.7.136] 🔌 Main Loop started
+[23:25:07 - 192.168.7.136] ❌ [HID] Not ready, cannot send HID report.
+[23:25:07 - 192.168.7.136] [DCS] ❌ Sim not ready yet...
+[23:25:07 - 192.168.7.136] 🔌 USB Started
+[23:25:09 - 192.168.7.136] [HID EVENT] SET_IDLE: Interface 0 → no periodic reports required
+[23:25:15 - 192.168.7.136] ❌ USB Stopped
+[23:25:23 - 192.168.7.136] 🔌 USB Started
+[23:25:23 - 192.168.7.136] [HID EVENT] SET_IDLE: Interface 0 → no periodic reports required
+[23:26:07 - 192.168.7.136] 
+[23:26:07 - 192.168.7.136] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:26:07 - 192.168.7.136] 🔍  Profiling Averages:
+[23:26:07 - 192.168.7.136] ∘ [TFT BATTERY] Draw Function :   6.11 ms
+[23:26:07 - 192.168.7.136] ∘ Main Loop       :   0.02 ms
+[23:26:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:26:07 - 192.168.7.136] 🕑  System Status:
+[23:26:07 - 192.168.7.136] ∘ Poll Load     :   0.4% of 4.00 ms slot
+[23:26:07 - 192.168.7.136] ∘ Headroom      : 3.985 ms ( 99.6%)
+[23:26:07 - 192.168.7.136] ∘ Scale Cap.    : 262.33x current workload
+[23:26:07 - 192.168.7.136] ∘ Uptime        : 1m10s
+[23:26:07 - 192.168.7.136] ∘ CPU Frequency : 240 MHz
+[23:26:07 - 192.168.7.136] ∘ Last Reset    : Power-on
+[23:26:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:26:07 - 192.168.7.136] 💾  Memory Fragmentation:
+[23:26:07 - 192.168.7.136] ∘ Internal SRAM : free     48 KB, largest     25 KB, frag  45.9%
+[23:26:07 - 192.168.7.136] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[23:26:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:26:07 - 192.168.7.136] 📡  USB-CDC Buffer Health:
+[23:26:07 - 192.168.7.136] ∘ TX Free Slots :      0 bytes
+[23:26:07 - 192.168.7.136] ∘ RX Pending    :      0 bytes
+[23:26:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:26:07 - 192.168.7.136] 🔁  Ring Buffer Health:
+[23:26:07 - 192.168.7.136] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:26:07 - 192.168.7.136] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:26:07 - 192.168.7.136] ∘ UDP Receive DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:26:07 - 192.168.7.136] ∘ USB Send DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:26:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:26:07 - 192.168.7.136] [DCS] ❌ Sim not ready yet...
+[23:27:07 - 192.168.7.136] 
+[23:27:07 - 192.168.7.136] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:27:07 - 192.168.7.136] 🔍  Profiling Averages:
+[23:27:07 - 192.168.7.136] ∘ Main Loop       :   0.02 ms
+[23:27:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:27:07 - 192.168.7.136] 🕑  System Status:
+[23:27:07 - 192.168.7.136] ∘ Poll Load     :   0.4% of 4.00 ms slot
+[23:27:07 - 192.168.7.136] ∘ Headroom      : 3.985 ms ( 99.6%)
+[23:27:07 - 192.168.7.136] ∘ Scale Cap.    : 264.27x current workload
+[23:27:07 - 192.168.7.136] ∘ Uptime        : 2m10s
+[23:27:07 - 192.168.7.136] ∘ CPU Frequency : 240 MHz
+[23:27:07 - 192.168.7.136] ∘ Last Reset    : Power-on
+[23:27:07 - 192.168.7.136] 💾  Memory Fragmentation:
+[23:27:07 - 192.168.7.136] ∘ Internal SRAM : free     48 KB, largest     25 KB, frag  46.9%
+[23:27:07 - 192.168.7.136] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[23:27:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:27:07 - 192.168.7.136] 📡  USB-CDC Buffer Health:
+[23:27:07 - 192.168.7.136] ∘ TX Free Slots :      0 bytes
+[23:27:07 - 192.168.7.136] ∘ RX Pending    :      0 bytes
+[23:27:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:27:07 - 192.168.7.136] 🔁  Ring Buffer Health:
+[23:27:07 - 192.168.7.136] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:27:07 - 192.168.7.136] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:27:07 - 192.168.7.136] ∘ UDP Receive DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:27:07 - 192.168.7.136] ∘ USB Send DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:27:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:27:07 - 192.168.7.136] [DCS] ❌ Sim not ready yet...
+[23:28:06 - 192.168.7.136] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
+[23:28:07 - 192.168.7.136] 
+[23:28:07 - 192.168.7.136] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:28:07 - 192.168.7.136] 🔍  Profiling Averages:
+[23:28:07 - 192.168.7.136] ∘ Main Loop       :   0.02 ms
+[23:28:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:28:07 - 192.168.7.136] 🕑  System Status:
+[23:28:07 - 192.168.7.136] ∘ Poll Load     :   0.4% of 4.00 ms slot
+[23:28:07 - 192.168.7.136] ∘ Headroom      : 3.985 ms ( 99.6%)
+[23:28:07 - 192.168.7.136] ∘ Scale Cap.    : 263.76x current workload
+[23:28:07 - 192.168.7.136] ∘ Uptime        : 3m10s
+[23:28:07 - 192.168.7.136] ∘ CPU Frequency : 240 MHz
+[23:28:07 - 192.168.7.136] ∘ Last Reset    : Power-on
+[23:28:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:28:07 - 192.168.7.136] 💾  Memory Fragmentation:
+[23:28:07 - 192.168.7.136] ∘ Internal SRAM : free     47 KB, largest     24 KB, frag  47.7%
+[23:28:07 - 192.168.7.136] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[23:28:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:28:07 - 192.168.7.136] 📡  USB-CDC Buffer Health:
+[23:28:07 - 192.168.7.136] ∘ TX Free Slots :      0 bytes
+[23:28:07 - 192.168.7.136] ∘ RX Pending    :      0 bytes
+[23:28:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:28:07 - 192.168.7.136] 🔁  Ring Buffer Health:
+[23:28:07 - 192.168.7.136] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:28:07 - 192.168.7.136] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:28:07 - 192.168.7.136] ∘ UDP Receive DCS  : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:28:07 - 192.168.7.136] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[23:28:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:28:07 - 192.168.7.136] [DCS] ❌ Sim not ready yet...
+[23:28:08 - 192.168.7.136] [DCS-BIOS] ✅ STREAM UP
+[23:28:08 - 192.168.7.136] [STATE UPDATE] 🔁 LEFT_FIRE_BTN = OFF
+[23:28:08 - 192.168.7.136] [STATE UPDATE] 🔁 LEFT_FIRE_BTN_COVER = CLOSED
+[23:28:08 - 192.168.7.136] [STATE UPDATE] 🔁 MASTER_CAUTION_RESET_SW = POS 0
+[23:28:08 - 192.168.7.136] [STATE UPDATE] 🔁 APU_FIRE_BTN = OFF
+[23:28:08 - 192.168.7.136] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN = OFF
+[23:28:08 - 192.168.7.136] [STATE UPDATE] 🔁 RIGHT_FIRE_BTN_COVER = CLOSED
+[23:28:08 - 192.168.7.136] [STATE UPDATE] 🔁 RWR_DISPLAY_BTN = OFF
+[23:28:08 - 192.168.7.136] [STATE UPDATE] 🔁 RWR_OFFSET_BTN = OFF
+[23:28:08 - 192.168.7.136] [STATE UPDATE] 🔁 RWR_POWER_BTN = ON
+[23:28:08 - 192.168.7.136] [STATE UPDATE] 🔁 RWR_SPECIAL_BTN = OFF
+[23:28:08 - 192.168.7.136] [STATE UPDATE] 🔁 RWR_BIT_BTN = OFF
+[23:28:08 - 192.168.7.136] [STATE UPDATE] 🔁 RWR_DIS_TYPE_SW = N
+[23:28:08 - 192.168.7.136] [MISSION START] FA-18C_hornet
+[23:28:09 - 192.168.7.136] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[23:28:09 - 192.168.7.136] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[23:28:09 - 192.168.7.136] Syncronizing Panel state....
+[23:28:09 - 192.168.7.136] ⚠️ [HIDManager] Momentary button RWR_POWER_BTN ignored during init sync routine.
+[23:28:09 - 192.168.7.136] ⚠️ [HIDManager] Momentary button APU_FIRE_BTN ignored during init sync routine.
+[23:28:09 - 192.168.7.136] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[23:28:09 - 192.168.7.136] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[23:28:09 - 192.168.7.136] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[23:28:09 - 192.168.7.136] ✅ TEST_ONLY panel initialized
+[23:28:09 - 192.168.7.136] [SYNC] Normal mission start panel sync
+[23:29:07 - 192.168.7.136] 
+[23:29:07 - 192.168.7.136] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:29:07 - 192.168.7.136] 🔍  Profiling Averages:
+[23:29:07 - 192.168.7.136] ∘ Main Loop       :   0.04 ms
+[23:29:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:29:07 - 192.168.7.136] 🕑  System Status:
+[23:29:07 - 192.168.7.136] ∘ Poll Load     :   1.0% of 4.00 ms slot
+[23:29:07 - 192.168.7.136] ∘ Headroom      : 3.961 ms ( 99.0%)
+[23:29:07 - 192.168.7.136] ∘ Scale Cap.    : 102.23x current workload
+[23:29:07 - 192.168.7.136] ∘ Uptime        : 4m10s
+[23:29:07 - 192.168.7.136] ∘ CPU Frequency : 240 MHz
+[23:29:07 - 192.168.7.136] ∘ Last Reset    : Power-on
+[23:29:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:29:07 - 192.168.7.136] 💾  Memory Fragmentation:
+[23:29:07 - 192.168.7.136] ∘ Internal SRAM : free     47 KB, largest     24 KB, frag  47.7%
+[23:29:07 - 192.168.7.136] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[23:29:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:29:07 - 192.168.7.136] ∘ TX Free Slots :      0 bytes
+[23:29:07 - 192.168.7.136] ∘ RX Pending    :      0 bytes
+[23:29:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:29:07 - 192.168.7.136] 🔁  Ring Buffer Health:
+[23:29:07 - 192.168.7.136] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:29:07 - 192.168.7.136] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:29:07 - 192.168.7.136] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  4, overruns 0
+[23:29:07 - 192.168.7.136] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[23:29:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:29:22 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:29:24 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 1
+[23:29:24 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:29:25 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 1
+[23:29:26 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:29:26 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 1
+[23:29:27 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:29:29 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 1
+[23:29:29 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:29:30 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 1
+[23:29:32 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:29:33 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 1
+[23:29:33 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:29:34 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 1
+[23:29:36 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:29:36 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 1
+[23:29:36 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:29:37 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 1
+[23:29:37 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 0
+[23:29:38 - 192.168.7.136] 🛩️ [DCS-USB] RWR_POWER_BTN 1
+[23:29:53 - 192.168.7.136] [MISSION STOP]
+[23:29:53 - 192.168.7.136] [MISSION START] FA-18C_hornet
+[23:29:54 - 192.168.7.136] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[23:29:54 - 192.168.7.136] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[23:29:54 - 192.168.7.136] Syncronizing Panel state....
+[23:29:54 - 192.168.7.136] ⚠️ [HIDManager] Momentary button RWR_POWER_BTN ignored during init sync routine.
+[23:29:54 - 192.168.7.136] ⚠️ [HIDManager] Momentary button RIGHT_FIRE_BTN ignored during init sync routine.
+[23:29:54 - 192.168.7.136] ⚠️ [HIDManager] Momentary button LEFT_FIRE_BTN ignored during init sync routine.
+[23:29:54 - 192.168.7.136] ⚠️ [HIDManager] Momentary button MASTER_CAUTION_RESET_SW ignored during init sync routine.
+[23:29:54 - 192.168.7.136] ✅ TEST_ONLY panel initialized
+[23:29:54 - 192.168.7.136] [SYNC] Normal mission start panel sync
+[23:30:01 - 192.168.7.136] [MISSION PAUSED] DCSBIOS stream is NOT active
+[23:30:01 - 192.168.7.136] [DCS] ❌ Sim not ready yet...
+[23:30:07 - 192.168.7.136] 
+[23:30:07 - 192.168.7.136] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[23:30:07 - 192.168.7.136] 🔍  Profiling Averages:
+[23:30:07 - 192.168.7.136] ∘ [LED] TM1637    :   0.01 ms
+[23:30:07 - 192.168.7.136] ∘ Main Loop       :   0.04 ms
+[23:30:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:30:07 - 192.168.7.136] 🕑  System Status:
+[23:30:07 - 192.168.7.136] ∘ Poll Load     :   0.9% of 4.00 ms slot
+[23:30:07 - 192.168.7.136] ∘ Headroom      : 3.962 ms ( 99.1%)
+[23:30:07 - 192.168.7.136] ∘ Scale Cap.    : 106.58x current workload
+[23:30:07 - 192.168.7.136] ∘ Uptime        : 5m10s
+[23:30:07 - 192.168.7.136] ∘ CPU Frequency : 240 MHz
+[23:30:07 - 192.168.7.136] ∘ Last Reset    : Power-on
+[23:30:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:30:07 - 192.168.7.136] 💾  Memory Fragmentation:
+[23:30:07 - 192.168.7.136] ∘ Internal SRAM : free     48 KB, largest     25 KB, frag  46.6%
+[23:30:07 - 192.168.7.136] ∘ PSRAM Pool    : free   1689 KB, largest   1663 KB, frag   1.5%
+[23:30:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:30:07 - 192.168.7.136] 📡  USB-CDC Buffer Health:
+[23:30:07 - 192.168.7.136] ∘ TX Free Slots :      0 bytes
+[23:30:07 - 192.168.7.136] ∘ RX Pending    :      0 bytes
+[23:30:07 - 192.168.7.136] +----------------------------------------------------------------+
+[23:30:07 - 192.168.7.136] 🔁  Ring Buffer Health:
+[23:30:07 - 192.168.7.136] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:30:07 - 192.168.7.136] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[23:30:07 - 192.168.7.136] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  4, overruns 0
+[23:30:07 - 192.168.7.136] ∘ USB Send DCS  : avg  19.2 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[23:30:07 - 192.168.7.136] +----------------------------------------------------------------+

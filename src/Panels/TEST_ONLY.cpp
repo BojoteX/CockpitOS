@@ -20,8 +20,8 @@ REGISTER_PANEL(TEST_ONLY, TEST_ONLY_init, TEST_ONLY_loop, nullptr, nullptr, null
     REGISTER_PANEL(LA, nullptr, nullptr, nullptr, nullptr, tm1637_tick, 100);
     REGISTER_PANEL(RA, nullptr, nullptr, nullptr, nullptr, tm1637_tick, 100);
 #elif defined(HAS_TEST_ONLY)
-    // REGISTER_PANEL(LA, nullptr, nullptr, nullptr, nullptr, tm1637_tick, 100);
-    // REGISTER_PANEL(RA, nullptr, nullptr, nullptr, nullptr, tm1637_tick, 100);
+    REGISTER_PANEL(LA, nullptr, nullptr, nullptr, nullptr, tm1637_tick, 100);
+    REGISTER_PANEL(RA, nullptr, nullptr, nullptr, nullptr, tm1637_tick, 100);
 #endif
 
 // Examples:

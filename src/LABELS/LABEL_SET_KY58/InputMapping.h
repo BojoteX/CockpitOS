@@ -4,9 +4,6 @@
 // This is to easily use S2 or S3 devices on same backplane/hardware physically connected to specific PINs
 #pragma once
 
-// Load our PIN definitions here so you can use them
-#include "../../../Pins.h"
-
 struct InputMapping {
     const char* label;        // Unique selector label, auto-generated.
     const char* source;      // Hardware source identifier. (e.g PCA_0x26, HC165, GPIO, NONE etc)
@@ -41,23 +38,23 @@ static const InputMapping InputMappings[] = {
     { "WARN_CAUTION_DIMMER"        , "NONE" ,  0 ,  0 ,  -1 , "WARN_CAUTION_DIMMER"   , 65535 , "analog"       ,  0 },
     { "WARN_CAUTION_DIMMER_DEC"    , "NONE" ,  0 ,  0 ,  -1 , "WARN_CAUTION_DIMMER"   ,     0 , "variable_step",  0 },
     { "WARN_CAUTION_DIMMER_INC"    , "NONE" ,  0 ,  0 ,  -1 , "WARN_CAUTION_DIMMER"   ,     1 , "variable_step",  0 },
-    { "KY58_FILL_SELECT_Z_1-5"     , "HC165" ,  0 ,  7 ,  1 , "KY58_FILL_SELECT"      ,     0 , "selector"     ,  1 },
-    { "KY58_FILL_SELECT_1"         , "HC165" ,  0 ,  0 ,  2 , "KY58_FILL_SELECT"      ,     1 , "selector"     ,  1 },
-    { "KY58_FILL_SELECT_2"         , "HC165" ,  0 ,  1 ,  3 , "KY58_FILL_SELECT"      ,     2 , "selector"     ,  1 },
-    { "KY58_FILL_SELECT_3"         , "HC165" ,  0 ,  2 ,  4 , "KY58_FILL_SELECT"      ,     3 , "selector"     ,  1 },
-    { "KY58_FILL_SELECT_4"         , "HC165" ,  0 ,  3 ,  5 , "KY58_FILL_SELECT"      ,     4 , "selector"     ,  1 },
-    { "KY58_FILL_SELECT_5"         , "HC165" ,  0 ,  4 ,  6 , "KY58_FILL_SELECT"      ,     5 , "selector"     ,  1 },
-    { "KY58_FILL_SELECT_6"         , "HC165" ,  0 ,  5 ,  7 , "KY58_FILL_SELECT"      ,     6 , "selector"     ,  1 },
-    { "KY58_FILL_SELECT_Z_ALL"     , "HC165" ,  0 ,  6 ,  8 , "KY58_FILL_SELECT"      ,     7 , "selector"     ,  1 },
+    { "KY58_FILL_SELECT_Z_1-5"     , "HC165" ,  0 ,  7 ,   1 , "KY58_FILL_SELECT"      ,     0 , "selector"     ,  1 },
+    { "KY58_FILL_SELECT_1"         , "HC165" ,  0 ,  0 ,   2 , "KY58_FILL_SELECT"      ,     1 , "selector"     ,  1 },
+    { "KY58_FILL_SELECT_2"         , "HC165" ,  0 ,  1 ,   3 , "KY58_FILL_SELECT"      ,     2 , "selector"     ,  1 },
+    { "KY58_FILL_SELECT_3"         , "HC165" ,  0 ,  2 ,   4 , "KY58_FILL_SELECT"      ,     3 , "selector"     ,  1 },
+    { "KY58_FILL_SELECT_4"         , "HC165" ,  0 ,  3 ,   5 , "KY58_FILL_SELECT"      ,     4 , "selector"     ,  1 },
+    { "KY58_FILL_SELECT_5"         , "HC165" ,  0 ,  4 ,   6 , "KY58_FILL_SELECT"      ,     5 , "selector"     ,  1 },
+    { "KY58_FILL_SELECT_6"         , "HC165" ,  0 ,  5 ,   7 , "KY58_FILL_SELECT"      ,     6 , "selector"     ,  1 },
+    { "KY58_FILL_SELECT_Z_ALL"     , "HC165" ,  0 ,  6 ,   8 , "KY58_FILL_SELECT"      ,     7 , "selector"     ,  1 },
     { "KY58_FILL_SEL_PULL_POS0"    , "NONE" ,  0 ,  0 ,  -1 , "KY58_FILL_SEL_PULL"    ,     0 , "selector"     ,  2 },
     { "KY58_FILL_SEL_PULL_POS1"    , "NONE" ,  0 ,  0 ,  -1 , "KY58_FILL_SEL_PULL"    ,     1 , "selector"     ,  2 },
-    { "KY58_MODE_SELECT_P"         , "HC165" ,  0 ,  8 ,  9 , "KY58_MODE_SELECT"      ,     0 , "selector"     ,  3 },
-    { "KY58_MODE_SELECT_C"         , "HC165" ,  0 ,  9 , 10 , "KY58_MODE_SELECT"      ,     1 , "selector"     ,  3 },
-    { "KY58_MODE_SELECT_LD"        , "HC165" ,  0 , 10 , 11 , "KY58_MODE_SELECT"      ,     2 , "selector"     ,  3 },
-    { "KY58_MODE_SELECT_RV"        , "HC165" ,  0 , 11 , 12 , "KY58_MODE_SELECT"      ,     3 , "selector"     ,  3 },
-    { "KY58_POWER_SELECT_OFF"      , "HC165" ,  0 , 12 , 13 , "KY58_POWER_SELECT"     ,     0 , "selector"     ,  4 },
-    { "KY58_POWER_SELECT_ON"       , "HC165" ,  0 , 13 , 14 , "KY58_POWER_SELECT"     ,     1 , "selector"     ,  4 },
-    { "KY58_POWER_SELECT_TD"       , "HC165" ,  0 , 14 , 15 , "KY58_POWER_SELECT"     ,     2 , "selector"     ,  4 },
+    { "KY58_MODE_SELECT_P"         , "HC165" ,  0 ,  8 ,   9 , "KY58_MODE_SELECT"      ,     0 , "selector"     ,  3 },
+    { "KY58_MODE_SELECT_C"         , "HC165" ,  0 ,  9 ,  10 , "KY58_MODE_SELECT"      ,     1 , "selector"     ,  3 },
+    { "KY58_MODE_SELECT_LD"        , "HC165" ,  0 , 10 ,  11 , "KY58_MODE_SELECT"      ,     2 , "selector"     ,  3 },
+    { "KY58_MODE_SELECT_RV"        , "HC165" ,  0 , 11 ,  12 , "KY58_MODE_SELECT"      ,     3 , "selector"     ,  3 },
+    { "KY58_POWER_SELECT_OFF"      , "HC165" ,  0 , 12 ,  13 , "KY58_POWER_SELECT"     ,     0 , "selector"     ,  4 },
+    { "KY58_POWER_SELECT_ON"       , "HC165" ,  0 , 13 ,  14 , "KY58_POWER_SELECT"     ,     1 , "selector"     ,  4 },
+    { "KY58_POWER_SELECT_TD"       , "HC165" ,  0 , 14 ,  15 , "KY58_POWER_SELECT"     ,     2 , "selector"     ,  4 },
     { "KY58_VOLUME"                , "GPIO" , PIN(11) ,  0 ,  -1 , "KY58_VOLUME"           , 65535 , "analog"       ,  0 },
     { "KY58_VOLUME_DEC"            , "NONE" ,  0 ,  0 ,  -1 , "KY58_VOLUME"           ,     0 , "variable_step",  0 },
     { "KY58_VOLUME_INC"            , "NONE" ,  0 ,  0 ,  -1 , "KY58_VOLUME"           ,     1 , "variable_step",  0 },

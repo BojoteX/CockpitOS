@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
-  DEVICE_PCA9555,
-  DEVICE_GN1640T,
-  DEVICE_TM1637,
-  DEVICE_GAUGE,
   DEVICE_GPIO,
-  DEVICE_NONE,
+  DEVICE_PCA9555,
   DEVICE_WS2812,
+  DEVICE_NONE,
+  DEVICE_GAUGE,
+  DEVICE_TM1637,
+  DEVICE_GN1640T,
 };
 
 struct LEDMapping {
@@ -34,7 +34,7 @@ static const LEDMapping panelLEDs[] = {
   { "CHART_DIMMER"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CONSOLES_DIMMER"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "FLOOD_DIMMER"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "INST_PNL_DIMMER"    , DEVICE_GPIO    , {.gpioInfo = {ALR67_BACKLIGHT_PIN}}, true, false }, // GPIO PIN(14),
+  { "INST_PNL_DIMMER"    , DEVICE_GPIO    , {.gpioInfo = {ALR67_BACKLIGHT_PIN}}, true, false }, // GPIO ALR67_BACKLIGHT_PIN,
   { "WARN_CAUTION_DIMMER", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "RWR_AUDIO_CTRL"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, true }, // No Info,
   { "RWR_BIT_LT"         , DEVICE_GPIO    , {.gpioInfo = {PIN(4)}}, false, true }, // GPIO PIN(4),

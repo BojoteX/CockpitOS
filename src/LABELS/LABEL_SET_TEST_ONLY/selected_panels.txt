@@ -11,6 +11,7 @@
 # Electrical Power Panel
 # Fire Systems
 
+RWR Control Indicator
 RH Advisory Panel
 LH Advisory Panel
 Right Engine Fire Warning Extinguisher Light

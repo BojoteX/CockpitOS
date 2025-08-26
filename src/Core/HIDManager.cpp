@@ -369,137 +369,6 @@ void HIDManager_dispatchReport(bool force) {
 #endif    
 }
 
-/* TEMP DISABLE 
-void HIDManager_moveAxis(const char* dcsIdentifier,
-    uint8_t      pin,
-    HIDAxis      axis,
-    bool         forceSend)
-{
-
-#if defined(MODE_HYBRID_DCS_HID) && (MODE_HYBRID_DCS_HID == 1)
-    // In Hybrid mode, we also send analogs
-#else
-    if(!isModeSelectorDCS())
-        return; // In pure DCS mode, we skip the rest
-#endif
-
-    constexpr int DEADZONE_LOW = 512;
-    constexpr int DEADZONE_HIGH = 8000;
-    constexpr int THRESHOLD = 128;
-    constexpr int SMOOTHING_FACTOR = 8;
-    constexpr int STABILIZATION_CYCLES = 10;
-    constexpr int HID_MAX = 8191;
-
-    // 1) Read & smooth
-    int raw = analogRead(pin);
-    if (stabCount[pin] == 0) {
-        lastFiltered[pin] = raw;
-    }
-    else {
-        lastFiltered[pin] = (lastFiltered[pin] * (SMOOTHING_FACTOR - 1) + raw) / SMOOTHING_FACTOR;
-    }
-    int filtered = lastFiltered[pin];
-    if (filtered < DEADZONE_LOW)  filtered = 0;
-    if (filtered > DEADZONE_HIGH) filtered = HID_MAX;
-
-    if (forceSend) {
-        stabCount[pin] = STABILIZATION_CYCLES;
-        stabilized[pin] = true;
-        lastOutput[pin] = filtered;
-        uint16_t dcsValue = map(filtered, 0, HID_MAX, 0, 65535);
-
-        if (isModeSelectorDCS()) {
-            auto* e = findCmdEntry(dcsIdentifier);
-            bool force = forcePanelSyncThisMission;
-            if (e && applyThrottle(*e, dcsIdentifier, dcsValue, force)) {
-                sendDCSBIOSCommand(dcsIdentifier, dcsValue, force);
-                e->lastValue = dcsValue;
-                e->lastSendTime = millis();
-            }
-        }
-        else {
-            if (axis < HID_AXIS_COUNT) {
-                report.axes[axis] = filtered;
-            }
-            auto* e = findCmdEntry(dcsIdentifier);
-            if (e && applyThrottle(*e, dcsIdentifier, dcsValue, false)) {
-                HIDManager_dispatchReport(false);
-                e->lastValue = dcsValue;
-                e->lastSendTime = millis();
-                debugPrintf("🛩️ [HID] Axis(%u) %s = %u [FORCE]\n", axis, dcsIdentifier, dcsValue);
-            }
-        }
-        return;
-    }
-
-
-    // 2) Stabilization
-    if (!stabilized[pin]) {
-        stabCount[pin]++;
-        if (stabCount[pin] >= STABILIZATION_CYCLES) {
-            stabilized[pin] = true;
-            lastOutput[pin] = filtered;
-            uint16_t dcsValue = map(filtered, 0, HID_MAX, 0, 65535);
-
-            if (isModeSelectorDCS()) {
-                auto* e = findCmdEntry(dcsIdentifier);
-                bool force = forcePanelSyncThisMission;
-                if (e && applyThrottle(*e, dcsIdentifier, dcsValue, force)) {
-                    sendDCSBIOSCommand(dcsIdentifier, dcsValue, force);
-                    e->lastValue = dcsValue;
-                    e->lastSendTime = millis();
-                }
-            }
-            else {
-                if (axis < HID_AXIS_COUNT) {
-                    report.axes[axis] = filtered;
-                }
-                auto* e = findCmdEntry(dcsIdentifier);
-                if (e && applyThrottle(*e, dcsIdentifier, dcsValue, false)) {
-                    HIDManager_dispatchReport(false);
-                    e->lastValue = dcsValue;
-                    e->lastSendTime = millis();
-                    debugPrintf("🛩️ [HID] Axis(%u) %s = %u [INITIAL]\n", axis, dcsIdentifier, dcsValue);
-                }
-            }
-            return;
-        }
-        return;
-    }
-
-    // 3) Threshold check
-    if (abs(filtered - lastOutput[pin]) <= THRESHOLD) {
-        return;
-    }
-    lastOutput[pin] = filtered;
-
-    // 4) Map and send
-    uint16_t dcsValue = map(filtered, 0, HID_MAX, 0, 65535);
-
-    if (isModeSelectorDCS()) {
-        auto* e = findCmdEntry(dcsIdentifier);
-        bool force = forcePanelSyncThisMission;
-        if (e && applyThrottle(*e, dcsIdentifier, dcsValue, force)) {
-            sendDCSBIOSCommand(dcsIdentifier, dcsValue, force);
-            e->lastValue = dcsValue;
-            e->lastSendTime = millis();
-        }
-    }
-    else {
-        if (axis < HID_AXIS_COUNT) {
-            report.axes[axis] = filtered;
-        }
-        auto* e = findCmdEntry(dcsIdentifier);
-        if (e && applyThrottle(*e, dcsIdentifier, dcsValue, false)) {
-            HIDManager_dispatchReport(false);
-            e->lastValue = dcsValue;
-            e->lastSendTime = millis();
-            debugPrintf("🛩️ [HID] Axis(%u) %s = %u\n", axis, dcsIdentifier, dcsValue);
-        }
-    }
-}
-*/
-
 void HIDManager_moveAxis(const char* dcsIdentifier,
     uint8_t      pin,
     HIDAxis      axis,
@@ -650,6 +519,12 @@ void HIDManager_setNamedButton(const char* name, bool deferSend, bool pressed) {
       return;
   }
 
+  // During init, ignore momentary button presses
+  if (deferSend && m->controlType && strcmp(m->controlType, "momentary") == 0) {
+      debugPrintf("⚠️ [HIDManager] Momentary button %s ignored during init sync routine.\n", name);
+      return;
+  }
+
   if (isModeSelectorDCS()) {
 
       if (CoverGate_intercept(name, pressed) && !deferSend) {
@@ -702,33 +577,6 @@ void HIDManager_setNamedButton(const char* name, bool deferSend, bool pressed) {
     HIDManager_sendReport(name, pressed ? m->oride_value : 0);
   }
 }
-
-/*
-// Handles a guarded latching toggle button:
-// - First press (with cover closed): opens cover and leaves it open, does NOT latch the button.
-// - Next press (with cover open): toggles/latches the button (toggleIfPressed logic).
-// - Cover remains open until explicitly closed.
-void HIDManager_handleGuardedToggleIfPressed(bool isPressed, const char* buttonLabel, const char* coverLabel, bool deferSend) {
-    CommandHistoryEntry* e = findCmdEntry(buttonLabel);
-    if (!e) return;
-
-    static std::array<bool, MAX_TRACKED_RECORDS> lastStates = {false};
-    int index = e - dcsbios_getCommandHistory();
-    if (index < 0 || index >= MAX_TRACKED_RECORDS) return;
-
-    bool wasPressed = lastStates[index];
-    lastStates[index] = isPressed;
-
-    if (isPressed && !wasPressed) {
-        if (!isCoverOpen(coverLabel)) {
-            HIDManager_setToggleNamedButton(coverLabel, deferSend); // Open and leave open
-            debugPrintf("✅ Cover [%s] opened for [%s]\n", coverLabel, buttonLabel);
-            return; // Do not latch button yet—require a new press
-        }
-        HIDManager_setToggleNamedButton(buttonLabel, deferSend); // Now toggle/latch the button
-    }
-}
-*/
 
 void HID_keepAlive() {
     static unsigned long lastHeartbeat = 0;

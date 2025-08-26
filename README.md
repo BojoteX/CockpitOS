@@ -1,5 +1,5 @@
 # 🛩 [ESP32] CockpitOS Firmware Project  
-**For ESP32-S2, ESP32-S3, and ESP32-C3 Devices**  
+**For ESP32-S2 & ESP32-S3 Devices**  
 
 ![CockpitOS Logo](./CockpitOS_logo.png)
 
@@ -33,7 +33,7 @@ CockpitOS is a high-performance firmware platform for building **DCS-BIOS**-comp
 
 - **IDE:** Arduino IDE ≥ 2.3.6  
 - **ESP32 Arduino Core:** v3.x (2.x also supported starting with 2.0.4)  
-- **ESP32 Boards Tested:** LOLIN S2 Mini, LOLIN S3 Mini, LOLIN C3 Mini (All boards by WEMOS)  
+- **ESP32 Boards Tested:** LOLIN S2 Mini, LOLIN S3 Mini (All boards by WEMOS)  
 - **Libraries:**  
   - [LovyanGFX](https://github.com/lovyan03/LovyanGFX) — **required** for TFT gauge implementations.  
   - DCS-BIOS library (optional; a "lite" parser is included).  
@@ -74,7 +74,7 @@ There are README.md files on each directory explaining functions and in some cas
 
 ## ⚠ Limitations
 
-- ✅ ESP32 family only (S2, S3, C3 tested).  
+- ✅ ESP32 family only (S2, S3 tested. Any native USB ESP32 should work, but have not tested).  
 - ❌ Do not enable USB CDC and HID simultaneously unless configured for it.  
 - 🔄 Always regenerate mapping files after editing panel lists.  
 - 🌐 For WiFi debug, ensure UDP broadcast/multicast is allowed on your network.  
