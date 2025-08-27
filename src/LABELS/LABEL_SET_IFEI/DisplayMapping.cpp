@@ -7,7 +7,7 @@ const DisplayFieldDefLabel fieldDefs[] = {
     { "IFEI_BINGO_TEXTURE",    &IFEI_BINGO_TEXTURE_LABEL,     0, 0,   0, 1,      FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_LABEL },
     { "IFEI_CLOCK_H",          &IFEI_CLOCK_H_MAP[0][0],      2, 7,   0, 23,     FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_7SEG },
     { "IFEI_CLOCK_M",          &IFEI_CLOCK_M_MAP[0][0],      2, 7,   0, 59,     FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_7SEG },
-    { "IFEI_CLOCK_S",          &IFEI_CLOCK_S_MAP[0][0],      2, 7,   0, 59,     FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_7SEG },
+    { "IFEI_CLOCK_S",          &IFEI_CLOCK_S_MAP[0][0],      2, 7,   0, 99,     FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_7SEG },
     { "IFEI_CODES",            &IFEI_CODES_MAP[0][0],        3, 7, 0, 0,  FIELD_STRING, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_7SEG_SHARED },
     { "IFEI_DD_1",             &IFEI_DD_1_LABEL,             0, 0, 0, 1,  FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_LABEL },
     { "IFEI_FF_L",             &IFEI_FF_L_MAP[0][0],  3, 7,   0, 999,    FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_7SEG },

@@ -5,8 +5,8 @@
 #include "../DCSBIOSBridge.h"
 #include "includes/IFEIPanel.h"
 
-#define RUN_IFEI_DISPLAY_AS_TASK 1
-#define IFEI_DISPLAY_REFRESH_RATE_HZ 120
+#define RUN_IFEI_DISPLAY_AS_TASK 0
+#define IFEI_DISPLAY_REFRESH_RATE_HZ 250
 
 #if defined(HAS_IFEI)
 REGISTER_PANEL(IFEI, IFEI_init, nullptr, IFEIDisplay_init, IFEIDisplay_loop, nullptr, 100);
@@ -327,9 +327,41 @@ IFEIDisplay ifei(chips);
 // To enforce refresh rate for the display
 static uint32_t lastCommitTimeMs = 0;
 
+// ---- Slot caches (static, fixed size; no heap) ----
+static volatile bool tempL_overlay = false, tempR_overlay = false;
+static volatile bool fuelUp_overlay = false, fuelDn_overlay = false;
+static volatile bool sp_active = false;
+static volatile bool fuel_mode_active = false;  // true if IFEI_T or IFEI_TIME_SET_MODE visible
+static volatile bool sp_defer_restore = false;  // hold fuel restore after SP exits
+// static volatile bool lastTWasBlank = true;  // tracks last IFEI_T payload
+static volatile bool lastTWasBlank = false;  // was TRUE before; set FALSE so SP-exit never restores DOWN on first handoff
+
+
+static char tempL_base[4] = { 0 };   // 3 digits + NUL
+static char tempR_base[4] = { 0 };
+static char fuelUp_base[15] = { 0 };   // 14 + NUL
+static char fuelDn_base[15] = { 0 };
+
+static inline bool isBlankN(const char* s, uint8_t n) {
+    // treat "" or all spaces as blank (but not "0")
+    if (!s || !s[0]) return true;
+    for (uint8_t i = 0; i < n && s[i]; ++i) if (s[i] != ' ') return false;
+    // if s shorter than n and had at least one non-NUL, then above returned false
+    // reaching here means all seen chars were spaces or NUL after first
+    for (uint8_t i = 0; i < n; ++i) { if (s[i] == 0) return true; if (s[i] != ' ') return false; }
+    return true;
+}
+
+static inline void copyN(char* dst, const char* src, uint8_t n) {
+    for (uint8_t i = 0; i < n; ++i) { char c = src[i]; dst[i] = c ? c : 0; if (!c) { for (++i; i < n; ++i) dst[i] = 0; break; } }
+    dst[n - 1] = dst[n - 1]; // keep as-is; arrays already zeroed
+}
+
+// ---- Backlight control ----
 static uint8_t currentIFEIMode = 0;
 static uint8_t currentIFEIIntensity = 255; // default to max for power-up
 
+// Ensure backlight pins are initialized only once
 inline void ensureBacklightPins() {
     static bool pinsInitialized = false;
     if (!pinsInitialized) {
@@ -382,47 +414,6 @@ void setBacklightMode(uint8_t mode, uint8_t brightness) {
     lastBrightness = brightness;
 }
 
-/*
-// Backlight for IFEI: 0=Day, 1=Nite, 2=NVG
-void setBacklightMode(uint8_t mode, uint8_t brightness) {
-    static uint8_t lastMode = 0xFF;      // impossible startup value
-    static uint8_t lastBrightness = 0xFF;
-
-    if (mode == lastMode && brightness == lastBrightness)
-        return;
-
-    ensureBacklightPins();
-
-    // First, shut off all to avoid ghosting if switching between modes
-    if (lastMode != mode) {
-        analogWrite(BL_WHITE_PIN, 0);
-        analogWrite(BL_GREEN_PIN, 0);
-        analogWrite(BL_NVG_PIN, 0);
-    }
-
-    switch (mode) {
-    case 0:
-        analogWrite(BL_WHITE_PIN, brightness);
-        if (DEBUG) debugPrintf("🔆 IFEI White Backlight intensity set to %u\n", brightness);
-        break;
-    case 1:
-        analogWrite(BL_NVG_PIN, brightness);
-        if (DEBUG) debugPrintf("🔆 IFEI Nite Backlight intensity set to %u\n", brightness);
-        break;
-    case 2:
-        analogWrite(BL_NVG_PIN, brightness);
-        if (DEBUG) debugPrintf("🔆 IFEI NVG Backlight intensity set to %u\n", brightness);
-        break;
-    default:
-        // All off
-        if (DEBUG) debugPrintln("⚫ IFEI Backlight OFF");
-        break;
-    }
-    lastMode = mode;
-    lastBrightness = brightness;
-}
-*/
-
 void showLampTest() {
     // Lamp test: cycle through all backlight modes and turn on all segments for visual check
 
@@ -467,14 +458,6 @@ inline void itoa_percent(char* out, int val) {
     if (val >= 10)  { out[0] = '0' + val / 10; out[1] = '0' + val % 10; out[2] = 0; return; }
     out[0] = '0' + val; out[1] = 0;
 }
-
-// ---- Exclusive mode trackers (SP, CODES) ----
-static volatile bool isSPon = false;
-static volatile bool isCODESon = false;
-
-// ---- Exclusive mode trackers (for FUEL/ALPHA_NUM_FUEL shared exclusivity) ----
-static volatile bool isTimeSetModeOn = false;
-static volatile bool isTestModeOn    = false;
 
 #ifdef HAS_IFEI_SEGMENT_MAP
 // Since there is no LABEL for Nozzles we create them
@@ -606,128 +589,304 @@ void IFEIDisplay_loop() {
 void renderIFEIDispatcher(void* drv, const SegmentMap* segMap, const char* value, const DisplayFieldDefLabel& def) {
     IFEIDisplay* display = reinterpret_cast<IFEIDisplay*>(drv);
 
-	if (!isMissionRunning()) return; // Do not render if mission is not running
+    if (!isMissionRunning()) return; // Do not render if mission is not running
 
-    if(DEBUG) {
+    if (DEBUG) {
         // For debugging only
         char buf[14];
         display->readRegionFromShadow(segMap, def.numDigits, def.segsPerDigit, display->getRamShadow(), buf, sizeof(buf));
         debugPrintf("🔁 Shadow buffer contents for %s is %s and value in renderer is %s\n", def.label, buf, value);
     }
 
+    if (fuel_mode_active &&
+        (strcmp(def.label, "IFEI_TEMP_L") == 0 || strcmp(def.label, "IFEI_TEMP_R") == 0)) {
+        // Ignore TEMP updates while in IFEI_T mode
+        return;
+    }
+
     switch (def.renderType) {
-        case FIELD_RENDER_7SEG:
-            display->addAsciiString7SegToShadow(value, segMap, def.numDigits);
-            break;
+    case FIELD_RENDER_7SEG:
+        display->addAsciiString7SegToShadow(value, segMap, def.numDigits);
+        break;
 
-        // Special case handling for shared IFEI_SP, IFEI_CODES, IFEI_TEMP_L & IFEI_TEMP_R
-        case FIELD_RENDER_7SEG_SHARED: {
-            if (strcmp(def.label, "IFEI_SP") == 0) {
-                bool prev = isSPon;
-                isSPon = !isFieldBlank(value);
+    case FIELD_RENDER_7SEG_SHARED: {
+        const bool isTempL = (strcmp(def.label, "IFEI_TEMP_L") == 0);
+        const bool isTempR = (strcmp(def.label, "IFEI_TEMP_R") == 0);
+        const bool isSP = (strcmp(def.label, "IFEI_SP") == 0);
+        const bool isCODES = (strcmp(def.label, "IFEI_CODES") == 0);
+        const bool was_sp = sp_active;
+
+        if (isSP) {
+            const bool blank = isBlankN(value, def.numDigits);
+            if (!blank) { display->addAsciiString7SegToShadow(value, segMap, def.numDigits); tempL_overlay = true; }
+            else if (tempL_overlay) { display->addAsciiString7SegToShadow(tempL_base, segMap, def.numDigits); tempL_overlay = false; }
+            // do not fall through
+            sp_active = (tempL_overlay || tempR_overlay);
+#ifdef HAS_IFEI_SEGMENT_MAP
+            if (!was_sp && sp_active) { // entering SP/CODES: blank fuel immediately
+                display->clearFuelFromShadow(&IFEI_FUEL_UP_MAP[0]);
+                display->clearFuelFromShadow(&IFEI_FUEL_DOWN_MAP[0]);
             }
-            if (strcmp(def.label, "IFEI_CODES") == 0) {
-                bool prev = isCODESon;
-                isCODESon = !isFieldBlank(value);
+            /*
+            else if (was_sp && !sp_active) { // leaving: restore cached fuel immediately
+                display->addAlphaNumFuelStringToShadow(fuelUp_base, &IFEI_FUEL_UP_MAP[0]);
+                display->addAlphaNumFuelStringToShadow(fuelDn_base, &IFEI_FUEL_DOWN_MAP[0]);
+            }
+            */
+            else if (was_sp && !sp_active) { // leaving: restore cached fuel immediately
+                display->addAlphaNumFuelStringToShadow(fuelUp_base, &IFEI_FUEL_UP_MAP[0]);
+                if (lastTWasBlank) { // <-- only draw DOWN if last T seen was blank
+                    display->addAlphaNumFuelStringToShadow(fuelDn_base, &IFEI_FUEL_DOWN_MAP[0]);
+                }
             }
 
-            bool isTempField = (strcmp(def.label, "IFEI_TEMP_L") == 0 || strcmp(def.label, "IFEI_TEMP_R") == 0);
-
-            if ((isSPon || isCODESon) && isTempField) {
-                char buf[8] = {0};
-                return;
-            }
-
-            // Proceed with update
-            display->addAsciiString7SegToShadow(value, segMap, def.numDigits);
+#endif
             break;
         }
 
-        case FIELD_RENDER_LABEL: {
-            display->addLabelToShadow(*reinterpret_cast<const SegmentMap*>(segMap), value);
+        if (isCODES) {
+            const bool blank = isBlankN(value, def.numDigits);
+            if (!blank) { display->addAsciiString7SegToShadow(value, segMap, def.numDigits); tempR_overlay = true; }
+            else if (tempR_overlay) { display->addAsciiString7SegToShadow(tempR_base, segMap, def.numDigits); tempR_overlay = false; }
+
+            sp_active = (tempL_overlay || tempR_overlay);
+#ifdef HAS_IFEI_SEGMENT_MAP
+            if (!was_sp && sp_active) {
+                display->clearFuelFromShadow(&IFEI_FUEL_UP_MAP[0]);
+                display->clearFuelFromShadow(&IFEI_FUEL_DOWN_MAP[0]);
+            }
+            /*
+            else if (was_sp && !sp_active) {
+                display->addAlphaNumFuelStringToShadow(fuelUp_base, &IFEI_FUEL_UP_MAP[0]);
+                display->addAlphaNumFuelStringToShadow(fuelDn_base, &IFEI_FUEL_DOWN_MAP[0]);
+            }
+            */
+            else if (was_sp && !sp_active) { // leaving: restore cached fuel immediately
+                display->addAlphaNumFuelStringToShadow(fuelUp_base, &IFEI_FUEL_UP_MAP[0]);
+                if (lastTWasBlank) { // <-- only draw DOWN if last T seen was blank
+                    display->addAlphaNumFuelStringToShadow(fuelDn_base, &IFEI_FUEL_DOWN_MAP[0]);
+                }
+            }
+
+#endif
             break;
         }
 
-        case FIELD_RENDER_BINGO:
-            display->addBingoStringToShadow(value, (const SegmentMap(*)[7])segMap);
+        if (isTempL) {
+            if (!isBlankN(value, def.numDigits)) copyN(tempL_base, value, def.numDigits + 1);
+            if (!tempL_overlay && !fuel_mode_active)
+                display->addAsciiString7SegToShadow(isBlankN(value, def.numDigits) ? tempL_base : value, segMap, def.numDigits);
             break;
+        }
+        if (isTempR) {
+            if (!isBlankN(value, def.numDigits)) copyN(tempR_base, value, def.numDigits + 1);
+            if (!tempR_overlay && !fuel_mode_active)
+                display->addAsciiString7SegToShadow(isBlankN(value, def.numDigits) ? tempR_base : value, segMap, def.numDigits);
+            break;
+        }
 
-        case FIELD_RENDER_BARGRAPH:
-        #ifdef HAS_IFEI_SEGMENT_MAP
-            if (strcmp(def.label, "IFEI_LPOINTER_TEXTURE") == 0) {
-                if (value && value[0] == '1' && value[1] == 0) {
-                    display->addPointerBarToShadow(lastPercentL, &IFEI_NOZZLE_L_MAP[0][0], 11); // Fixed: pass flat pointer
-                    showLeftNozPointer = true;
-                }
-                else {
-                    showLeftNozPointer = false;
-                    display->clearBarFromShadow(&IFEI_NOZZLE_L_MAP[0][0], 11);
-                }
-            }
-            else if (strcmp(def.label, "IFEI_RPOINTER_TEXTURE") == 0) {
-                if (value && value[0] == '1' && value[1] == 0) {
-                    display->addPointerBarToShadow(lastPercentR, &IFEI_NOZZLE_R_MAP[0][0], 11); // Fixed: pass flat pointer
-                    showRightNozPointer = true;
-                }
-                else {
-                    showRightNozPointer = false;
-                    display->clearBarFromShadow(&IFEI_NOZZLE_R_MAP[0][0], 11);
-                }
+        break;
+    }
+
+    case FIELD_RENDER_LABEL: {
+        display->addLabelToShadow(*reinterpret_cast<const SegmentMap*>(segMap), value);
+        break;
+    }
+
+    case FIELD_RENDER_BINGO:
+        display->addBingoStringToShadow(value, (const SegmentMap(*)[7])segMap);
+        break;
+
+    case FIELD_RENDER_BARGRAPH:
+#ifdef HAS_IFEI_SEGMENT_MAP
+        if (strcmp(def.label, "IFEI_LPOINTER_TEXTURE") == 0) {
+            if (value && value[0] == '1' && value[1] == 0) {
+                display->addPointerBarToShadow(lastPercentL, &IFEI_NOZZLE_L_MAP[0][0], 11); // Fixed: pass flat pointer
+                showLeftNozPointer = true;
             }
             else {
-                int percent = strToIntFast(value);
-                if (percent < 0) percent = 0;
-                if (percent > 100) percent = 100;
-
-                // Custom logic for the nozzles
-                if (showRightNozPointer && strcmp(def.label, "IFEI_NOZZLE_R") == 0)
-                    display->addPointerBarToShadow(percent, segMap, 11); // segMap is already a flat pointer
-
-                if (showLeftNozPointer && strcmp(def.label, "IFEI_NOZZLE_L") == 0)
-                    display->addPointerBarToShadow(percent, segMap, 11);
+                showLeftNozPointer = false;
+                display->clearBarFromShadow(&IFEI_NOZZLE_L_MAP[0][0], 11);
             }
-        #endif // HAS_IFEI_SEGMENT_MAP
-            break;
-
-        case FIELD_RENDER_RPM:
-            display->addRpmStringToShadow(value, (const SegmentMap(*)[7])segMap);
-            break;
-
-        case FIELD_RENDER_ALPHA_NUM_FUEL:
-        case FIELD_RENDER_FUEL: {
-            // 1. Update exclusive mode trackers for special fields
-            if (strcmp(def.label, "IFEI_T") == 0) {
-                bool prev = isTestModeOn;
-                isTestModeOn = !isFieldBlank(value);
+        }
+        else if (strcmp(def.label, "IFEI_RPOINTER_TEXTURE") == 0) {
+            if (value && value[0] == '1' && value[1] == 0) {
+                display->addPointerBarToShadow(lastPercentR, &IFEI_NOZZLE_R_MAP[0][0], 11); // Fixed: pass flat pointer
+                showRightNozPointer = true;
             }
-            if (strcmp(def.label, "IFEI_TIME_SET_MODE") == 0) {
-                bool prev = isTimeSetModeOn;
-                isTimeSetModeOn = !isFieldBlank(value);
+            else {
+                showRightNozPointer = false;
+                display->clearBarFromShadow(&IFEI_NOZZLE_R_MAP[0][0], 11);
             }
+        }
+        else {
+            int percent = strToIntFast(value);
+            if (percent < 0) percent = 0;
+            if (percent > 100) percent = 100;
 
-            // 2. Detect if this is a FUEL_UP or FUEL_DOWN field
-            bool isFuelField =
-                (strcmp(def.label, "IFEI_FUEL_UP") == 0) ||
-                (strcmp(def.label, "IFEI_FUEL_DOWN") == 0);
+            // Custom logic for the nozzles
+            if (showRightNozPointer && strcmp(def.label, "IFEI_NOZZLE_R") == 0)
+                display->addPointerBarToShadow(percent, segMap, 11); // segMap is already a flat pointer
 
-            // 3. Exclusive mode logic (skip FUEL updates if in either special mode)
-            if ((isTestModeOn || isTimeSetModeOn) && isFuelField) {
-                // (Optional: debug)
-                // char buf[16];
-                // display->readRegionFromShadow(segMap, def.numDigits, def.segsPerDigit, display->getRamShadow(), buf, sizeof(buf));
-                // debugPrintf("[EXCL] Skipping %s in exclusive mode\n", def.label);
-                return;
-            }
+            if (showLeftNozPointer && strcmp(def.label, "IFEI_NOZZLE_L") == 0)
+                display->addPointerBarToShadow(percent, segMap, 11);
+        }
+#endif // HAS_IFEI_SEGMENT_MAP
+        break;
 
-            // 4. Proceed with update
-            display->addAlphaNumFuelStringToShadow(value, (const SegmentMap(*)[14])segMap);
+    case FIELD_RENDER_RPM:
+        display->addRpmStringToShadow(value, (const SegmentMap(*)[7])segMap);
+        break;
+
+    case FIELD_RENDER_ALPHA_NUM_FUEL:
+    case FIELD_RENDER_FUEL: {
+        const bool isFuelUp = (strcmp(def.label, "IFEI_FUEL_UP") == 0);
+        const bool isFuelDn = (strcmp(def.label, "IFEI_FUEL_DOWN") == 0);
+        const bool isT = (strcmp(def.label, "IFEI_T") == 0);
+        const bool isTimeSet = (strcmp(def.label, "IFEI_TIME_SET_MODE") == 0);
+        const uint8_t N = 14;
+
+        // 0) SP still suppresses all fuel draw
+        if (sp_active) {
+            if (isFuelUp && !isBlankN(value, N)) copyN(fuelUp_base, value, N + 1);
+            if (isFuelDn && !isBlankN(value, N)) copyN(fuelDn_base, value, N + 1);
+
+            debugPrintf("[if sp_active] %s %s\n", def.label, value);
             break;
         }
 
-        case FIELD_RENDER_CUSTOM:
-            debugPrintf("❌ Label %s does not have a matching case\n", def.label);
-            // Custom or error handler
+        // --- IFEI_T (UP overlay) ---
+        if (isT) {
+            const bool was_t = fuel_mode_active;          // mode controlled only by IFEI_T
+            const bool blank = isBlankN(value, N);
+
+            // record last T state for downstream gating
+            lastTWasBlank = blank;
+
+            if (!blank) {                                 // T present → show overlay on FUEL_UP
+                display->addAlphaNumFuelStringToShadow(value, (const SegmentMap(*)[14])segMap);
+                fuelUp_overlay = true;
+            }
+            else if (fuelUp_overlay) {                  // T ended → restore base on UP
+                display->addAlphaNumFuelStringToShadow(fuelUp_base, (const SegmentMap(*)[14])segMap);
+                fuelUp_overlay = false;
+            }
+
+            fuel_mode_active = fuelUp_overlay;            // ONLY T controls the mode
+
+            if (!was_t && fuel_mode_active) {
+                // Clear via clearFunc
+                if (const auto tl = findFieldDefByLabel("IFEI_TEMP_L")) if (tl->clearFunc) tl->clearFunc(tl->driver, tl->segMap, *tl);
+                if (const auto tr = findFieldDefByLabel("IFEI_TEMP_R")) if (tr->clearFunc) tr->clearFunc(tr->driver, tr->segMap, *tr);
+
+                // Extra: write explicit spaces so the region is marked dirty and blanks render immediately
+                if (const auto tl = findFieldDefByLabel("IFEI_TEMP_L")) {
+                    char sp[8]; uint8_t n = tl->numDigits; if (n >= sizeof(sp)) n = sizeof(sp) - 1;
+                    for (uint8_t i = 0; i < n; i++) sp[i] = ' '; sp[n] = 0;
+                    display->addAsciiString7SegToShadow(sp, tl->segMap, tl->numDigits);
+                }
+                if (const auto tr = findFieldDefByLabel("IFEI_TEMP_R")) {
+                    char sp[8]; uint8_t n = tr->numDigits; if (n >= sizeof(sp)) n = sizeof(sp) - 1;
+                    for (uint8_t i = 0; i < n; i++) sp[i] = ' '; sp[n] = 0;
+                    display->addAsciiString7SegToShadow(sp, tr->segMap, tr->numDigits);
+                }
+
+                // NEW: blank DOWN immediately so it cannot flash before TIME_SET starts
+                if (const auto fd = findFieldDefByLabel("IFEI_FUEL_DOWN"))
+                    if (fd->clearFunc) fd->clearFunc(fd->driver, fd->segMap, *fd);
+                display->commit(1);
+
+            }
+
+            else if (was_t && !fuel_mode_active) {      // EXIT T-mode → restore TEMPs and both fuels
+                if (const auto tl = findFieldDefByLabel("IFEI_TEMP_L")) if (tl->renderFunc) tl->renderFunc(tl->driver, tl->segMap, tempL_base, *tl);
+                if (const auto tr = findFieldDefByLabel("IFEI_TEMP_R")) if (tr->renderFunc) tr->renderFunc(tr->driver, tr->segMap, tempR_base, *tr);
+                if (const auto fu = findFieldDefByLabel("IFEI_FUEL_UP"))   if (fu->renderFunc) fu->renderFunc(fu->driver, fu->segMap, fuelUp_base, *fu);
+                if (const auto fd = findFieldDefByLabel("IFEI_FUEL_DOWN")) if (fd->renderFunc) fd->renderFunc(fd->driver, fd->segMap, fuelDn_base, *fd);
+            }
             break;
+        }
+
+        if (isTimeSet) {
+            const bool blank = isBlankN(value, N);
+            if (fuel_mode_active) {                       // In T-mode → TIME_SET just paints/clears DOWN
+                if (!blank) {
+                    display->addAlphaNumFuelStringToShadow(value, (const SegmentMap(*)[14])segMap);
+                }
+                else {
+                    display->clearFuelFromShadow(reinterpret_cast<const SegmentMap(*)[14]>(segMap));
+                }
+                // Do NOT change fuel_mode_active here; T is the source of truth
+            }
+            /*
+            else {
+                // Not in T-mode → behave normally
+                if (!blank) display->addAlphaNumFuelStringToShadow(value, (const SegmentMap(*)[14])segMap);
+                else         display->addAlphaNumFuelStringToShadow(fuelDn_base, (const SegmentMap(*)[14])segMap);
+            }
+            */
+
+            else {
+                // Not in T-mode → behave normally
+                if (!blank) {
+                    display->addAlphaNumFuelStringToShadow(value, (const SegmentMap(*)[14])segMap);
+                }
+                else {
+                    if (lastTWasBlank) {
+                        display->addAlphaNumFuelStringToShadow(fuelDn_base, (const SegmentMap(*)[14])segMap);
+                    } // else skip to prevent FUEL_DOWN flash
+                }
+            }
+
+
+            break;
+        }
+
+
+        // 2) NEW: while fuel overlay is active, suppress base fuel draw for BOTH sides
+        if (fuel_mode_active) {
+
+            debugPrintf("[if (fuel_mode_active)] %s %s\n", def.label, value);
+
+            if (isFuelUp && !isBlankN(value, N)) copyN(fuelUp_base, value, N + 1);
+            if (isFuelDn && !isBlankN(value, N)) copyN(fuelDn_base, value, N + 1);
+            break;
+        }
+
+        // 3) Base fuel path: allow true blanks when no overlay/SP
+        if (isFuelUp) {
+            debugPrintf("[if (fuel up)] %s %s\n", def.label, value);
+            if (!isBlankN(value, N)) {
+                copyN(fuelUp_base, value, N + 1);
+                display->addAlphaNumFuelStringToShadow(value, (const SegmentMap(*)[14])segMap);
+            }
+            else {
+                display->clearFuelFromShadow(reinterpret_cast<const SegmentMap(*)[14]>(segMap));
+            }
+            break;
+        }
+        if (isFuelDn) {
+            debugPrintf("[if (fuel down)] %s %s\n", def.label, value);
+            if (!isBlankN(value, N)) {
+                copyN(fuelDn_base, value, N + 1);
+                display->addAlphaNumFuelStringToShadow(value, (const SegmentMap(*)[14])segMap);
+            }
+            else {
+                display->clearFuelFromShadow(reinterpret_cast<const SegmentMap(*)[14]>(segMap));
+            }
+            break;
+        }
+
+        // Fallback
+        display->addAlphaNumFuelStringToShadow(value, (const SegmentMap(*)[14])segMap);
+        break;
+    }
+
+
+    case FIELD_RENDER_CUSTOM:
+        debugPrintf("❌ Label %s does not have a matching case\n", def.label);
+        // Custom or error handler
+        break;
     }
 }
 
