@@ -131,7 +131,7 @@
 #define USB_VID		                           0xCAFE
 #define USB_PID		                           0xCAF3
 #define USB_SERIAL                           LABEL_SET_STR
-#define USB_PRODUCT                          "CockpitOS Panel"
+#define USB_PRODUCT                          USB_SERIAL
 #define USB_MANUFACTURER                     "CockpitOS Firmware Project"
 #define USB_LANG_ID                          0x0409  // English (US)
 
