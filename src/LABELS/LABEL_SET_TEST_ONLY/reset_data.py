@@ -17,8 +17,8 @@ AUTOGEN_FILES = [
     "CT_Display.cpp",
     "CT_Display.cpp.DISABLED",
     "CT_Display.h",
-    "panels.txt",
-    "selected_panels.txt",
+    # "panels.txt",
+    # "selected_panels.txt",
     "LabelSetConfig.h",
 
     # Add more files here if needed

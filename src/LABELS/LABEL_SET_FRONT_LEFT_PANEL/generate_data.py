@@ -29,6 +29,37 @@ KNOWN_DEVICES   = {
     "NONE",
 }
 
+# Types that should behave like selectors in INPUTS
+NORMALIZE_TO_SELECTOR = {
+    'action',
+    'toggle_switch',
+    'emergency_parking_brake',
+    'radio',
+    'mission_computer_switch',
+    '3Pos_2Command_Switch_OpenClose',
+    'electrically_held_switch',
+}
+
+# All Control-types dealt with in OUTPUTs (assuming they have an output)
+control_type_map = {
+    'led': 'CT_LED',
+    'limited_dial': 'CT_ANALOG',
+    'analog_dial': 'CT_ANALOG',
+    'analog_gauge': 'CT_GAUGE',
+    'selector': 'CT_SELECTOR',
+    'fixed_step_dial': 'CT_SELECTOR',
+    'toggle_switch': 'CT_SELECTOR',
+    'action': 'CT_SELECTOR',
+    'emergency_parking_brake': 'CT_SELECTOR',
+    'radio': 'CT_SELECTOR',
+    'mission_computer_switch': 'CT_SELECTOR',
+    'display': 'CT_DISPLAY',
+    'metadata': 'CT_METADATA',
+    '3Pos_2Command_Switch_OpenClose': 'CT_SELECTOR',
+    'electrically_held_switch': 'CT_SELECTOR',
+    'variable_step_dial': 'CT_ANALOG',
+}
+
 # --- Helper: detect if a control needs INC/DEC aliases ---
 
 def parse_int(val): return int(val, 0) # auto-detects hex ('0xFFFF') or decimal
@@ -201,17 +232,6 @@ def djb2_hash(s, mod):
     # data = json.load(f)
 
 # -------- BUILD OUTPUT_ENTRIES (filtered) -------- THE LOGIC HERE IS SACRED, YOU DO NOT TOUCH NOT EVEN A COMMENT
-control_type_map = {
-    'led': 'CT_LED',
-    'limited_dial': 'CT_ANALOG',
-    'analog_gauge': 'CT_GAUGE',
-    'selector': 'CT_SELECTOR',
-    'toggle_switch': 'CT_SELECTOR',
-    'action': 'CT_SELECTOR',
-    'emergency_parking_brake': 'CT_SELECTOR',
-    'display': 'CT_DISPLAY',
-    'metadata': 'CT_METADATA'
-}
 
 output_entries = []
 for panel, controls in data.items():
@@ -264,7 +284,12 @@ for panel, controls in data.items():
 
         orig_ident  = item.get('identifier', ident)   
         ctype       = item.get('control_type','').lower().strip()
-        ctype       = 'selector' if ctype == 'action' else ctype
+
+        # Added a list at the top of the generator for easy modification
+        # ctype       = 'selector' if ctype == 'action' else ctype
+        if ctype in NORMALIZE_TO_SELECTOR:
+            ctype = 'selector'
+
         api_variant = item.get('api_variant','').strip()
         lid         = ident.lower()
         desc_lower  = item.get('description','').lower()
