@@ -1,4 +1,4 @@
-// TEST_ONLY.cpp - Template for Panel Implementation
+// Generic.cpp - All panel inputs (GPIO, HC165, PCA9555, Analog & TM1637)
 
 // ============================================================================
 //  CONFIGURATION CONSTANTS
@@ -8,25 +8,10 @@
 #include "../Globals.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h" // for timing helpers like shouldPollMs()
-#include "includes/TEST_ONLY.h"
+#include "includes/Generic.h"
 
-// ----------Panel Registration---------- 
-// PanelName, PanelInit, PanelLoop, DisplayInit, DisplayLoop, Tick, PollInterval
-REGISTER_PANEL(TEST_ONLY, TEST_ONLY_init, TEST_ONLY_loop, nullptr, nullptr, nullptr, 100);
-
-// Outputs only (no inputs) 
-#if defined(HAS_MAIN)
-    REGISTER_PANEL(LockShoot, nullptr, nullptr, nullptr, nullptr, WS2812_tick, 100);
-    REGISTER_PANEL(LA, nullptr, nullptr, nullptr, nullptr, tm1637_tick, 100);
-    REGISTER_PANEL(RA, nullptr, nullptr, nullptr, nullptr, tm1637_tick, 100);
-#elif defined(HAS_TEST_ONLY)
-    REGISTER_PANEL(LA, nullptr, nullptr, nullptr, nullptr, tm1637_tick, 100);
-    REGISTER_PANEL(RA, nullptr, nullptr, nullptr, nullptr, tm1637_tick, 100);
-#endif
-
-// Examples:
-// REGISTER_PANEL(IFEI, IFEI_init, IFEI_loop, IFEIDisplay_init, IFEIDisplay_loop, nullptr, 100);
-// REGISTER_PANEL(AnalogGauge, nullptr, nullptr, nullptr, nullptr, AnalogG_tick, 100);
+// Main Inputs Panel (Generic for GPIO, HC165, PCA9555, Analog & TM1637)
+REGISTER_PANEL(Generic, Generic_init, Generic_loop, nullptr, nullptr, nullptr, 100); // Main Inputs
 
 // ============================================================================
 //  DATA STRUCTURES — MAPPINGS, INPUTS, STATE
@@ -36,9 +21,9 @@ REGISTER_PANEL(TEST_ONLY, TEST_ONLY_init, TEST_ONLY_loop, nullptr, nullptr, null
 static uint64_t hc165Bits = ~0ULL, hc165PrevBits = ~0ULL;
 
 // ============================================================================
-//  INIT: TEST_ONLY_init() — Fast, Deterministic init for Cockpit Panel
+//  INIT: Generic_init() — Fast, Deterministic init for Cockpit Panel
 // ============================================================================
-void TEST_ONLY_init() {
+void Generic_init() {
     static bool ranOnce = false;
     if (!ranOnce) {
         // --- [Run-once: Hardware and Flat Table Setup] ---
@@ -110,13 +95,13 @@ void TEST_ONLY_init() {
     TM1637_poll(true);
 
     // --- [Done] ---
-    debugPrintln("✅ TEST_ONLY panel initialized");
+    debugPrintln("✅ Generic panel initialized");
 }
 
 // ============================================================================
-//  LOOP: TEST_ONLY_loop() — Fast, Deterministic Main Loop
+//  LOOP: Generic_loop() — Fast, Deterministic Main Loop
 // ============================================================================
-void TEST_ONLY_loop() {
+void Generic_loop() {
     // 1. Polling Interval: Return Early If Not Time ---
     static unsigned long lastPoll = 0;
     if (!shouldPollMs(lastPoll)) return;

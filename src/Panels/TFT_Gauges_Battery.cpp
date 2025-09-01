@@ -10,6 +10,10 @@
 #include <cmath>
 #include <algorithm>
 
+#if defined(HAS_RIGHT_PANEL_CONTROLLER)
+    REGISTER_PANEL(TFTBatt, nullptr, nullptr, BatteryGauge_init, BatteryGauge_loop, nullptr, 100);
+#endif
+
 // Panel registration
 #if defined(HAS_RIGHT_PANEL_CONTROLLER)
     // --- Pins Only for Right Panel Controller ---
@@ -18,15 +22,6 @@
     #define BATTERY_DC_PIN     PIN(13)  // Data/Command (Green)
     #define BATTERY_CS_PIN     PIN(36)  // Chip Select (Blue)
     #define BATTERY_RST_PIN    PIN(12)  // Used by the Right Panel Controller (UNKNOWN COLOR)   
-    REGISTER_PANEL(TFTBatt, nullptr, nullptr, BatteryGauge_init, BatteryGauge_loop, nullptr, 100);
-#elif defined(HAS_TEST_ONLY)
-    // --- Pins Only for Right Panel Controller ---
-    #define BATTERY_MOSI_PIN   PIN(10)  // SDA (Yellow)
-    #define BATTERY_SCLK_PIN   PIN(11)  // SCL (Orange)
-    #define BATTERY_DC_PIN     PIN(7)   // Data/Command (Green)
-    #define BATTERY_CS_PIN     PIN(5)   // Chip Select (Blue)
-    #define BATTERY_RST_PIN    -1       // Not connected
-    REGISTER_PANEL(TFTBatt, nullptr, nullptr, BatteryGauge_init, BatteryGauge_loop, nullptr, 100);
 #else
     #define BATTERY_MOSI_PIN   -1  // SDA (Yellow)
     #define BATTERY_SCLK_PIN   -1  // SCL (Orange)

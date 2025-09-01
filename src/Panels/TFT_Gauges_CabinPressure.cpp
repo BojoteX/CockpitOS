@@ -10,7 +10,6 @@
 #include <cmath>
 #include <algorithm>
 
-// Panel registration
 #if defined(HAS_ALR67) || defined(HAS_CABIN_PRESSURE_GAUGE) 
     REGISTER_PANEL(TFTCabPress, nullptr, nullptr, CabinPressureGauge_init, CabinPressureGauge_loop, nullptr, 100);
 #endif

@@ -12,19 +12,10 @@ enabled, notice the Lockshoot indicator staying WHITE. It stops working. Just di
 
 - Keep testing panel sync to ensure 100% reliability with SAFE/ARM test
 
-- Front Left and Front Right panel implementations (Physical)
-
-- KY-58 Panel implementation (Physical)
+- Front Right panel implementations (Physical)
 
 - Make WS2812 generic and modify panel struct/union to add index characteristics (color). Device instance should be deduced from the DIO pin.
 
 - Test UART for Serial coms on S3's and C3's simultaneously with USB HIDs (using HID keepalives). To test stability. use DCSBIOS with the hardware CDC option
 
-IFEI - Dirty on mode 888 Change so we force an update
-
-Simplify config. Pins, Special Rules, Remove Mappings.h/cpp from root, should be Core now.
-
 Test compiling on 2.0.4 and using analog on IR Cool. Check range
-
-
-DO NOT FORGET TO UPDATE Auto-Generator with the changes for all other labels.

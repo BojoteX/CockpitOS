@@ -5,12 +5,12 @@
 #include "../DCSBIOSBridge.h"
 #include "includes/IFEIPanel.h"
 
+#if defined(HAS_IFEI)
+    REGISTER_PANEL(IFEI, IFEI_init, nullptr, IFEIDisplay_init, IFEIDisplay_loop, nullptr, 100);
+#endif
+
 #define RUN_IFEI_DISPLAY_AS_TASK 0
 #define IFEI_DISPLAY_REFRESH_RATE_HZ 250
-
-#if defined(HAS_IFEI)
-REGISTER_PANEL(IFEI, IFEI_init, nullptr, IFEIDisplay_init, IFEIDisplay_loop, nullptr, 100);
-#endif
 
 // [a, b, c, d, e, f, g] -- top, top-right, bottom-right, bottom, bottom-left, top-left, middle
 // INDEX:  0    1     2     3      4      5      6

@@ -174,6 +174,23 @@ void DCSBIOS_bustPrevValues() {
     g_prevInit = true;
 }
 
+static void DCSBIOS_bustDisplayBuffers() {
+    for (size_t i = 0; i < numRegisteredBuffers; ++i) {
+        RegisteredDisplayBuffer& b = registeredBuffers[i];
+        if (!b.buffer || !b.last) continue;
+
+        const size_t n = b.length;
+
+        memset(b.buffer, ' ', n);
+        b.buffer[n] = '\0';
+
+        memset(b.last, 0xAA, n);   // force first commit
+        b.last[n] = '\0';
+
+        if (b.dirtyFlag) *b.dirtyFlag = true;  // optional: harmless
+    }
+}
+
 // DcsBiosSniffer Listener
 class DcsBiosSniffer : public DcsBios::ExportStreamListener {
 public:
@@ -420,6 +437,10 @@ void onAircraftName(const char* str) {
             debugPrintf("[MISSION START] %.*s\n", 24, str);
             lastMissionStart = millis();
             aircraftNameReceivedAt = millis();
+
+            // Treat next incoming output words as fresh for this mission
+            DCSBIOS_bustPrevValues();
+            DCSBIOS_bustDisplayBuffers(); // CT_DISPLAY fields
         }
     }
     else if (isBlank) {

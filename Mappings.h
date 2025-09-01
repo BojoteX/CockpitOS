@@ -33,7 +33,7 @@ enum class PanelKind : uint8_t {
   LeftPanelCtl, 
   FrontLeft, 
   CustomFrontRight,
-  TEST_ONLY,
+  Generic,
   AnalogGauge,
   KY58,
   COUNT
@@ -63,8 +63,9 @@ PanelID     getPanelID(uint8_t address);
 const char* panelIDToString(PanelID id);
 const char* getPanelName(uint8_t addr);  // Declaration
 
-#define MAX_LATCHED_BUTTONS 4  // or however many you'll need
-#define MAX_COVER_GATES 8   // Or whatever is your true max, bump as needed!
+#define MAX_COVER_GATES 16   // Or whatever is your true max, bump as needed!
+#define MAX_LATCHED_BUTTONS 16  // or however many you'll need
+
 enum class CoverGateKind : uint8_t {
     Selector,
     ButtonMomentary,

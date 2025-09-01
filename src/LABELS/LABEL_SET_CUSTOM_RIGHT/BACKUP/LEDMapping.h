@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
-  DEVICE_GPIO,
-  DEVICE_WS2812,
   DEVICE_GAUGE,
+  DEVICE_WS2812,
+  DEVICE_GN1640T,
+  DEVICE_GPIO,
+  DEVICE_TM1637,
   DEVICE_NONE,
   DEVICE_PCA9555,
-  DEVICE_TM1637,
-  DEVICE_GN1640T,
 };
 
 struct LEDMapping {
@@ -29,12 +29,13 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
+  { "FORMATION_DIMMER"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "POSITION_DIMMER"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CHART_DIMMER"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CONSOLES_DIMMER"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "FLOOD_DIMMER"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "INST_PNL_DIMMER"    , DEVICE_GPIO    , {.gpioInfo = {6}}, true, false }, // GPIO 6,
-  { "WARN_CAUTION_DIMMER", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "HYD_IND_BRAKE"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
+  { "INST_PNL_DIMMER"    , DEVICE_GPIO    , {.gpioInfo = {LED_CONSOLE_BACKLIGHT_FRONT_LEFT_PANEL}}, true, false }, // GPIO LED_CONSOLE_BACKLIGHT_FRONT_LEFT_PANEL,
+  { "WARN_CAUTION_DIMMER", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);
@@ -45,32 +46,26 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"FLOOD_DIMMER", &panelLEDs[2]},
+  {"FLOOD_DIMMER", &panelLEDs[4]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"WARN_CAUTION_DIMMER", &panelLEDs[4]},
-  {"HYD_IND_BRAKE", &panelLEDs[5]},
+  {"WARN_CAUTION_DIMMER", &panelLEDs[6]},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"CONSOLES_DIMMER", &panelLEDs[1]},
-  {"INST_PNL_DIMMER", &panelLEDs[3]},
+  {"POSITION_DIMMER", &panelLEDs[1]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"CONSOLES_DIMMER", &panelLEDs[3]},
+  {"INST_PNL_DIMMER", &panelLEDs[5]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -84,11 +79,17 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"CHART_DIMMER", &panelLEDs[0]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"CHART_DIMMER", &panelLEDs[2]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"FORMATION_DIMMER", &panelLEDs[0]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},

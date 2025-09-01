@@ -1,6 +1,6 @@
 #pragma once
 #ifndef LABEL_SET
-#  error "Define LABEL_SET in Config.h (e.g., TEST_ONLY)"
+#  error "Define LABEL_SET in Config.h (e.g., IFEI)"
 #endif
 
 // helpers
@@ -45,55 +45,3 @@
 #  undef USB_PRODUCT
 #endif
 #define USB_PRODUCT LABEL_SET_FULLNAME
-
-/*
-#pragma once
-#ifndef LABEL_SET
-#  error "Define LABEL_SET in Config.h (e.g., TEST_ONLY)"
-#endif
-
-// stringize + paste (with expansion)
-#define STR_(x) #x
-#define STR(x)  STR_(x)
-#define CAT_(a,b) a##b
-#define CAT(a,b) CAT_(a,b)
-
-// Directory name: default "LABEL_SET_<LABEL_SET>"
-#ifndef LABEL_DIR
-#  define LABEL_DIR CAT(LABEL_SET_, LABEL_SET)   // e.g., LABEL_SET_TEST_ONLY
-#endif
-
-// Traits filename; keep constant across sets (override if needed)
-#ifndef LABEL_TRAITS_FILE
-#  define LABEL_TRAITS_FILE LabelSet.def
-#endif
-
-// Build "src/LABELS/<LABEL_DIR>/<file>"
-#define LBLFILE2(dir, file) STR(src/LABELS/dir/file)
-#define LBLFILE(file)       LBLFILE2(LABEL_DIR, file)
-
-// Per-set traits + generated mappings
-#include LBLFILE(LABEL_TRAITS_FILE)
-#include LBLFILE(CT_Display.h)
-#include LBLFILE(DCSBIOSBridgeData.h)
-#include LBLFILE(InputMapping.h)
-#include LBLFILE(LEDMapping.h)
-#include LBLFILE(DisplayMapping.h)
-
-// ---- Friendly name + USB strings ----
-// In your LabelSet.def you may define either or both:
-//   #define LABEL_SET_NAME     "TEST ONLY"
-//   #define LABEL_SET_FULLNAME "CockpitOS Firmware: Test Only"
-
-#ifndef LABEL_SET_NAME
-#  define LABEL_SET_NAME STR(LABEL_SET)     // fallback to token
-#endif
-#ifndef LABEL_SET_FULLNAME
-#  define LABEL_SET_FULLNAME LABEL_SET_NAME // fallback to short name
-#endif
-
-#ifdef USB_SERIAL
-#  undef USB_SERIAL
-#endif
-#define USB_SERIAL  LABEL_SET_FULLNAME
-*/
