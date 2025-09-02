@@ -1,27 +1,15 @@
-# --- main.py --- 
-import sys, re, os, configparser
+# --- main.py --- (dependencies and lock logic at the top)
+import sys, re, os
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SETTINGS_PATH = os.path.join(SCRIPT_DIR, "settings.ini")
-
-def ini_console_enabled(path=SETTINGS_PATH):
-    try:
-        cfg = configparser.ConfigParser()
-        if os.path.isfile(path):
-            cfg.read(path)
-            v = cfg.get('MAIN', 'console', fallback='0').strip().lower()
-            return v in ('1','true','yes','on','y')
-    except Exception:
-        pass
-    return False
-
-HEADLESS   = ('--console' in sys.argv) or ('--headless' in sys.argv) or ini_console_enabled()
+HEADLESS   = ('--console' in sys.argv) or ('--headless' in sys.argv)
 IS_WINDOWS = (os.name == 'nt') or sys.platform.startswith('win')
 
 REQUIRED_MODULES = {
     "hid":      "hidapi",
     "filelock": "filelock",
+    # GUI needs tkinter; headless does not
     **({} if HEADLESS else {"tkinter": None}),
+    # Headless on Windows needs curses via windows-curses; on non-Windows just check curses
     **({"curses": ("windows-curses" if IS_WINDOWS else None)} if HEADLESS else {}),
 }
 
@@ -326,13 +314,6 @@ class NetworkManager:
                     batch = list(self.q)
                     self.q.clear()
 
-                # soft backlog warning (diagnostic)
-                if len(batch) > 100:
-                    try:
-                        self.uiq.put(('log', self.entry.name, f"TX backlog={len(batch)}"))
-                    except Exception:
-                        pass
-
                 # drain batch in FIFO order
                 for reports in batch:
                     for rep in reports:
@@ -599,21 +580,18 @@ class CockpitGUI:
             time.sleep(1)
             with global_stats_lock:
                 avg_frame = (stats["bytes_rolling"] / stats["frames_rolling"]) if stats["frames_rolling"] else 0
-                duration  = time.time() - stats["start_time"]
-                hz        = stats["frame_count_window"] / duration if duration > 0 else 0
-                kbps      = (stats["bytes"] / 1024) / duration if duration > 0 else 0
+                duration = time.time() - stats["start_time"]
+                hz = stats["frame_count_window"] / duration if duration > 0 else 0
+                kbps = (stats["bytes"] / 1024) / duration if duration > 0 else 0
                 stat_dict = {
                     'frames': stats["frame_count_total"],
-                    'hz':     f"{hz:.1f}",
-                    'bw':     f"{kbps:.1f}",
+                    'hz': f"{hz:.1f}",
+                    'bw': f"{kbps:.1f}",
                     'avgudp': f"{avg_frame:.1f}",
                 }
                 self.uiq.put(('globalstats', stat_dict))
-                # reset 1s window counters
                 stats["frame_count_window"] = 0
                 stats["bytes"] = 0
-                stats["bytes_rolling"] = 0
-                stats["frames_rolling"] = 0
                 stats["start_time"] = time.time()
 
     def update_ui(self):
@@ -831,6 +809,9 @@ if HEADLESS:
         threading.Thread(target=_device_monitor, daemon=True).start()
         net.start()
 
+
+
+
         # console stats updater (mirrors GUI behavior)
         def _stats_updater():
             while True:
@@ -846,14 +827,15 @@ if HEADLESS:
                         'bw':     f"{kbps:.1f}",
                         'avgudp': f"{avg_frame:.1f}",
                     }))
-                    # reset 1s window counters
                     stats["frame_count_window"] = 0
                     stats["bytes"] = 0
-                    stats["bytes_rolling"] = 0
-                    stats["frames_rolling"] = 0
                     stats["start_time"] = time.time()
 
         threading.Thread(target=_stats_updater, daemon=True).start()
+
+
+
+
         try:
             ui.run()
         finally:
@@ -865,7 +847,7 @@ else:
 
 # --- main.py (continued) ---
 def main():
-    if ('--console' in sys.argv) or ('--headless' in sys.argv) or ini_console_enabled():
+    if ('--console' in sys.argv) or ('--headless' in sys.argv):
         start_console_mode()
         lock.release()
         return
