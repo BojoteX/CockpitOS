@@ -115,8 +115,7 @@ def is_valid_ipv4(ip):
             isinstance(ip_obj, ipaddress.IPv4Address)
             and not ip_obj.is_multicast
             and not ip_obj.is_unspecified
-            # allow loopback so console header updates for local DCS
-            # and not ip_obj.is_loopback
+            and not ip_obj.is_loopback  # Remove if you want to allow 127.x.x.x for local test only!
         )
     except Exception:
         return False
@@ -287,13 +286,13 @@ class NetworkManager:
             super().__init__(daemon=True)
             self.entry = entry
             self.uiq = uiq
-            self.q = deque()                 # unbounded FIFO (process everything)
+            self.q = deque(maxlen=2)       # keep newest 1–2 frames; prevents backlog
             self.cv = threading.Condition()
             self._running = True
 
         def enqueue(self, reports_tuple):
             with self.cv:
-                self.q.append(reports_tuple)  # FIFO
+                self.q.append(reports_tuple)
                 self.cv.notify()
 
         def stop(self):
@@ -304,27 +303,21 @@ class NetworkManager:
         def run(self):
             dev = self.entry.dev
             while self._running and not self.entry.disconnected:
-                # wait for work
                 with self.cv:
                     while self._running and not self.q:
                         self.cv.wait(timeout=0.05)
                     if not self._running or self.entry.disconnected:
                         break
-                    # move all pending work into a local batch (minimize lock time)
-                    batch = list(self.q)
-                    self.q.clear()
-
-                # drain batch in FIFO order
-                for reports in batch:
-                    for rep in reports:
-                        try:
-                            dev.write(rep)  # only this thread touches the handle
-                        except Exception:
-                            self.entry.disconnected = True
-                            self.uiq.put(('status', self.entry.name, "DISCONNECTED"))
-                            return
-
-                # tiny yield to avoid 100% CPU if traffic is sparse
+                    reports = self.q.popleft()
+                # send newest frame fully, then yield
+                for rep in reports:
+                    try:
+                        dev.write(rep)     # only this thread touches this handle
+                    except Exception:
+                        self.entry.disconnected = True
+                        self.uiq.put(('status', self.entry.name, "DISCONNECTED"))
+                        return
+                # short cooperative yield to avoid CPU spin
                 time.sleep(0.0005)
 
     def __init__(self, uiq, reply_addr_ref, get_devices_callback):
@@ -677,7 +670,6 @@ if HEADLESS:
             self._running = threading.Event()
             self._log = []
             self._stats = {"frames":"0","hz":"0.0","bw":"0.0","avgudp":"0.0","src":"(waiting...)"}
-            self._stats["src"] = reply_addr[0] or "(waiting...)"
             self._rows = []
 
         def post(self, evt): self.uiq.put(evt)
@@ -808,34 +800,6 @@ if HEADLESS:
         net = NetworkManager(ui.uiq, reply_addr, lambda: holder_devices())
         threading.Thread(target=_device_monitor, daemon=True).start()
         net.start()
-
-
-
-
-        # console stats updater (mirrors GUI behavior)
-        def _stats_updater():
-            while True:
-                time.sleep(1)
-                with global_stats_lock:
-                    avg_frame = (stats["bytes_rolling"] / stats["frames_rolling"]) if stats["frames_rolling"] else 0
-                    duration  = time.time() - stats["start_time"]
-                    hz        = stats["frame_count_window"] / duration if duration > 0 else 0
-                    kbps      = (stats["bytes"] / 1024) / duration if duration > 0 else 0
-                    ui.post(('globalstats', {
-                        'frames': stats["frame_count_total"],
-                        'hz':     f"{hz:.1f}",
-                        'bw':     f"{kbps:.1f}",
-                        'avgudp': f"{avg_frame:.1f}",
-                    }))
-                    stats["frame_count_window"] = 0
-                    stats["bytes"] = 0
-                    stats["start_time"] = time.time()
-
-        threading.Thread(target=_stats_updater, daemon=True).start()
-
-
-
-
         try:
             ui.run()
         finally:

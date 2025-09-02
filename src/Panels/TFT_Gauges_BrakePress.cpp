@@ -269,10 +269,16 @@ static void BrakePressureGauge_draw(bool force = false, bool blocking = false)
 
     const bool stateChanged = gaugeDirty || (u != lastDrawnAngleU) || needsFullFlush;
     if (!stateChanged) return;
-    if (!force && (now - lastDrawTime < BRAKE_PRESSURE_GAUGE_DRAW_MIN_INTERVAL_MS)) return;
+
+    // Change 9/2/25
+    // if (!force && (now - lastDrawTime < BRAKE_PRESSURE_GAUGE_DRAW_MIN_INTERVAL_MS)) return;
+    if (!force && !needsFullFlush && (now - lastDrawTime < BRAKE_PRESSURE_GAUGE_DRAW_MIN_INTERVAL_MS)) return;
 
     lastDrawTime = now;
     gaugeDirty = false;
+
+    // Added 9/2/25
+    if (needsFullFlush) waitDMADone();
 
 #if DEBUG_PERFORMANCE
     beginProfiling(PERF_TFT_BRAKE_PRESSURE_DRAW);
@@ -310,7 +316,10 @@ static void BrakePressureGauge_draw(bool force = false, bool blocking = false)
 
     // Flush
     const uint16_t* buf = (const uint16_t*)frameSpr.getBuffer();
-    flushRectToDisplay(buf, dirty, blocking);
+
+    // Change 9/2/25
+    // flushRectToDisplay(buf, dirty, blocking);
+    flushRectToDisplay(buf, dirty, needsFullFlush || blocking);
 
 #if DEBUG_PERFORMANCE
     endProfiling(PERF_TFT_BRAKE_PRESSURE_DRAW);

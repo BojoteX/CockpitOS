@@ -81,7 +81,7 @@ static constexpr bool                   shared_bus    = false;              // f
 static constexpr bool                   use_lock      = false;              // false = no mutex/lock (recommended)
 static constexpr spi_host_device_t      spi_host      = SPI2_HOST;          // SPI2_HOST or SPI3_HOST
 static constexpr uint8_t                dma_channel   = SPI_DMA_CH_AUTO;    // SPI_DMA_CH_AUTO, 1, or 2
-static constexpr uint32_t               freq_write    = 60000000;           // Write clock (Hz), try lower if unstable
+static constexpr uint32_t               freq_write    = 80000000;           // Write clock (Hz), try lower if unstable
 
 // --- Panel binding ---
 class LGFX_CabPress final : public lgfx::LGFX_Device {
@@ -292,10 +292,16 @@ static void CabinPressureGauge_draw(bool force = false, bool blocking = false)
 
     const bool stateChanged = gaugeDirty || (u != lastDrawnAngleU);
     if (!stateChanged) return;
-    if (!force && (now - lastDrawTime < CABIN_PRESSURE_GAUGE_DRAW_MIN_INTERVAL_MS)) return;
+
+    // Change 9/2/25
+    // if (!force && (now - lastDrawTime < CABIN_PRESSURE_GAUGE_DRAW_MIN_INTERVAL_MS)) return;
+    if (!force && !needsFullFlush && (now - lastDrawTime < CABIN_PRESSURE_GAUGE_DRAW_MIN_INTERVAL_MS)) return;
 
     lastDrawTime = now;
     gaugeDirty = false;
+
+    // Added 9/2/25
+    if (needsFullFlush) waitDMADone();
 
 #if DEBUG_PERFORMANCE
     beginProfiling(PERF_TFT_CABIN_PRESSURE_DRAW);
@@ -334,7 +340,10 @@ static void CabinPressureGauge_draw(bool force = false, bool blocking = false)
 
     // Flush region
     const uint16_t* buf = (const uint16_t*)frameSpr.getBuffer();
-    flushRectToDisplay(buf, dirty, blocking);
+
+    // Change 9/2/25
+    // flushRectToDisplay(buf, dirty, blocking);
+    flushRectToDisplay(buf, dirty, needsFullFlush || blocking);
 
 #if DEBUG_PERFORMANCE
     endProfiling(PERF_TFT_CABIN_PRESSURE_DRAW);

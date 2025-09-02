@@ -14,8 +14,8 @@
     REGISTER_PANEL(TFTRadarAlt, nullptr, nullptr, RadarAlt_init, RadarAlt_loop, nullptr, 100);
 #endif
 
-#define MAX_MEMORY_TFT 8
-#define RADARALT_DRAW_MIN_INTERVAL_MS 13 // ~75 FPS max, 13ms per frame
+#define MAX_MEMORY_TFT 32
+#define RADARALT_DRAW_MIN_INTERVAL_MS 13
 #define RUN_RADARALT_AS_TASK 1
 #define BACKLIGHT_LABEL "INST_PNL_DIMMER"
 #define COLOR_DEPTH_RADARALT 16
@@ -349,12 +349,18 @@ static void RadarAlt_draw(bool force = false, bool blocking = false)
         || needsFullFlush;
 
     if (!stateChanged) return;
-    if (!force && (now - lastDrawTime < RADARALT_DRAW_MIN_INTERVAL_MS)) return;
+
+    // Change 9/2/25
+    // if (!force && (now - lastDrawTime < RADARALT_DRAW_MIN_INTERVAL_MS)) return;
+    if (!force && !needsFullFlush && (now - lastDrawTime < RADARALT_DRAW_MIN_INTERVAL_MS)) return;
 
     const uint32_t t_frame0 = micros();
 
     lastDrawTime = now;
     gaugeDirty = false;
+
+    // Added 9/2/25
+    if (needsFullFlush) waitDMADone();
 
 #if DEBUG_PERFORMANCE
     beginProfiling(PERF_TFT_RADARALT_DRAW);
@@ -410,7 +416,11 @@ static void RadarAlt_draw(bool force = false, bool blocking = false)
 
     // Flush region
     const uint16_t* buf = (const uint16_t*)frameSpr.getBuffer();
-    flushRectToDisplay(buf, dirty, blocking);
+
+    // Change 9/2/25
+    // flushRectToDisplay(buf, dirty, blocking);
+    flushRectToDisplay(buf, dirty, needsFullFlush || blocking);
+
 
 #if DEBUG_PERFORMANCE
     endProfiling(PERF_TFT_RADARALT_DRAW);

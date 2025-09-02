@@ -40,9 +40,9 @@ static const InputMapping InputMappings[] = {
     { "WARN_CAUTION_DIMMER"        , "NONE" ,  0 ,  0 ,  -1 , "WARN_CAUTION_DIMMER"   , 65535 , "analog"       ,  0 },
     { "WARN_CAUTION_DIMMER_DEC"    , "NONE" ,  0 ,  0 ,  -1 , "WARN_CAUTION_DIMMER"   ,     0 , "variable_step",  0 },
     { "WARN_CAUTION_DIMMER_INC"    , "NONE" ,  0 ,  0 ,  -1 , "WARN_CAUTION_DIMMER"   ,     1 , "variable_step",  0 },
-    { "RADALT_HEIGHT_POS0"         , "GPIO" ,  PIN(38) ,  0 ,  -1 , "RADALT_HEIGHT"         ,     0 , "variable_step",  0 },
-    { "RADALT_HEIGHT_POS1"         , "GPIO" ,  PIN(1) ,  0 ,  -1 , "RADALT_HEIGHT"         ,     1 , "variable_step",  0 },
-    { "RADALT_TEST_SW"             , "GPIO" ,  PIN(16) ,  0 ,  -1 , "RADALT_TEST_SW"        ,     1 , "momentary"    ,  0 },
+    { "RADALT_HEIGHT_POS0"         , "GPIO" , PIN(38) ,  0 ,  -1 , "RADALT_HEIGHT"         ,     0 , "variable_step",  0 },
+    { "RADALT_HEIGHT_POS1"         , "GPIO" , PIN(1) ,  0 ,  -1 , "RADALT_HEIGHT"         ,     1 , "variable_step",  0 },
+    { "RADALT_TEST_SW"             , "GPIO" , PIN(16) ,  0 ,  -1 , "RADALT_TEST_SW"        ,     1 , "momentary"    ,  0 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);
 

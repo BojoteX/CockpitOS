@@ -57,7 +57,7 @@
 #define POLLING_RATE_HZ                          250 // Panel/buttons update rate in Hz (125, 250, 500 Hz) during main loop. Leave at 250
 #define DISPLAY_REFRESH_RATE_HZ                   60 // General refresh rate used for displays.  
 #define DCS_KEEP_ALIVE_ENABLED                     0 // Should we enable DCSBIOS Keepalives? should ONLY used for testing
-#define HID_KEEP_ALIVE_ENABLED                     1 // Should we enable HID Keepalives? should ONLY used for testing
+#define HID_KEEP_ALIVE_ENABLED                     0 // Should we enable HID Keepalives? should ONLY used for testing
 #define MAX_TRACKED_RECORDS                      512 // default safety cap, DO NOT change
 #define MAX_GROUPS                               128 // default safety cap, DO NOT change
 #define VALUE_THROTTLE_MS                         50 // How long (ms) to skip sending the same value again (debouncing)

@@ -1,48 +1,64 @@
 # --- main.py --- (dependencies and lock logic at the top)
-import sys, re, os
-
-HEADLESS   = ('--console' in sys.argv) or ('--headless' in sys.argv)
-IS_WINDOWS = (os.name == 'nt') or sys.platform.startswith('win')
+import sys, re
 
 REQUIRED_MODULES = {
-    "hid":      "hidapi",
+    "hid":    "hidapi",
     "filelock": "filelock",
-    # GUI needs tkinter; headless does not
-    **({} if HEADLESS else {"tkinter": None}),
-    # Headless on Windows needs curses via windows-curses; on non-Windows just check curses
-    **({"curses": ("windows-curses" if IS_WINDOWS else None)} if HEADLESS else {}),
+    "tkinter": None,  # handled specially
 }
 
 missing = []
+
 for mod, pip_name in REQUIRED_MODULES.items():
-    try:
-        __import__(mod)
-    except ImportError:
-        missing.append(pip_name if pip_name else mod)
+    if mod == "tkinter":
+        try:
+            import tkinter
+        except ImportError:
+            missing.append("tkinter")
+    else:
+        try:
+            __import__(mod)
+        except ImportError:
+            missing.append(pip_name if pip_name else mod)
 
 if missing:
-    # Build a clean pip install line (skip stdlib names like 'tkinter'/'curses' when pip_name is None)
-    to_pip = [m for m in missing if m not in ("tkinter", "curses")]
+    pip_cmd = "pip install " + " ".join(m for m in missing if m != "tkinter")
     msg =  "Some required modules are missing:\n\n"
-    for m in missing:
-        msg += f"- {m}\n"
-    if to_pip:
-        msg += f"\nTo install the missing Python modules, run:\n\n    pip install {' '.join(to_pip)}\n"
+    for mod in missing:
+        if mod == "tkinter":
+            msg += "- tkinter (usually installable via system package manager)\n"
+        else:
+            msg += f"- {mod}\n"
+    if pip_cmd.strip() != "pip install":
+        msg += f"\nTo install the missing Python modules, run:\n\n    {pip_cmd}\n"
     msg += "\nAfter installing, restart this program."
-    if HEADLESS:
-        print(msg)
-    else:
+    try:
         import tkinter as tk
-        from tkinter import scrolledtext as ST
-        root = tk.Tk(); root.title("Missing Required Modules"); root.geometry("560x320"); root.resizable(False, False)
-        lbl = tk.Label(root, text="Missing required modules for CockpitController HID Handler:",
-                       font=("Arial", 12, "bold"), pady=10); lbl.pack()
-        text = ST.ScrolledText(root, width=68, height=10, font=("Consolas", 10))
-        text.pack(padx=12, pady=(0,10)); text.insert("1.0", msg); text.config(state='normal'); text.focus()
-        tk.Button(root, text="Close", command=root.destroy, width=18).pack(pady=10)
-        root.protocol("WM_DELETE_WINDOW", root.destroy); root.mainloop()
+        from tkinter import scrolledtext
+
+        root = tk.Tk()
+        root.title("Missing Required Modules")
+        root.geometry("560x320")
+        root.resizable(False, False)
+        lbl = tk.Label(root, text="Missing required modules for CockpitController HID Handler:", font=("Arial", 12, "bold"), pady=10)
+        lbl.pack()
+        text = scrolledtext.ScrolledText(root, width=68, height=10, font=("Consolas", 10))
+        text.pack(padx=12, pady=(0,10))
+        text.insert("1.0", msg)
+        text.config(state='normal')
+        text.focus()
+        def close():
+            root.destroy()
+            sys.exit(1)
+        btn = tk.Button(root, text="Close", command=close, width=18)
+        btn.pack(pady=10)
+        root.protocol("WM_DELETE_WINDOW", close)
+        root.mainloop()
+    except Exception:
+        print(msg)
     sys.exit(1)
 
+import os
 from filelock import FileLock, Timeout
 
 LOCKFILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cockpitos_dashboard.lock")
@@ -54,10 +70,7 @@ except Timeout:
     print("ERROR: Another instance of CockpitController HID Handler is already running.")
     sys.exit(1)
 
-# Import tkinter only if GUI mode
-if not HEADLESS:
-    import tkinter as tk
-
+import tkinter as tk
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 # --- config.py ---
@@ -115,8 +128,7 @@ def is_valid_ipv4(ip):
             isinstance(ip_obj, ipaddress.IPv4Address)
             and not ip_obj.is_multicast
             and not ip_obj.is_unspecified
-            # allow loopback so console header updates for local DCS
-            # and not ip_obj.is_loopback
+            and not ip_obj.is_loopback  # Remove if you want to allow 127.x.x.x for local test only!
         )
     except Exception:
         return False
@@ -204,35 +216,26 @@ class DeviceEntry:
         else:
             self.status = "RECV"
 
-def _close_stale_handle(entry, uiq, where, exc):
-    try: entry.dev.close()
-    except Exception: pass
-    entry.disconnected = True  # only this entry/thread
-    uiq.put(('status', entry.name, f"STALE HANDLE ({where}) — closing old thread"))
-    uiq.put(('log', entry.name, f"[stale] {where} exception: {exc}"))
-
-# replace device_reader(...) with this version
 def device_reader(entry, uiq, udp_send):
     dev = entry.dev
     try:
         while not entry.handshaked and not entry.disconnected:
             entry.handshaked = try_fifo_handshake(dev, uiq=uiq, device_name=entry.name)
             if not entry.handshaked:
-                _close_stale_handle(entry, uiq, "HANDSHAKE", "no reply")
+                entry.disconnected = True
+                uiq.put(('status', entry.name, "DISCONNECTED"))
                 return
             uiq.put(('status', entry.name, "READY"))
             uiq.put(('log', entry.name, "Handshake complete, ready to process input."))
             entry.status = "READY"
-
         if reply_addr[0] is None and not entry.disconnected:
             uiq.put(('log', entry.name, "Waiting for DCS mission start..."))
         while reply_addr[0] is None and not entry.disconnected:
             time.sleep(0.2)
-        if entry.disconnected: return
-
+        if entry.disconnected:
+            return
         uiq.put(('log', entry.name, f"DCS detected on {reply_addr[0]} — Starting normal operation."))
-
-        # Clear backlog (bounded attempts)
+        # Clear backlog with attempt limit
         cleared = False
         max_attempts = 100
         attempt = 0
@@ -240,42 +243,43 @@ def device_reader(entry, uiq, udp_send):
             try:
                 resp = dev.get_feature_report(FEATURE_REPORT_ID, DEFAULT_REPORT_SIZE + 1)
                 d = bytes(resp[1:]) if len(resp) > DEFAULT_REPORT_SIZE else bytes(resp)
-                if not any(d): cleared = True
-            except Exception as e:
-                _close_stale_handle(entry, uiq, "FEATURE-DRAIN", e)
+                if not any(d):
+                    cleared = True
+            except Exception:
+                entry.disconnected = True
+                uiq.put(('status', entry.name, "DISCONNECTED"))
                 return
             attempt += 1
         if not cleared:
-            _close_stale_handle(entry, uiq, "FEATURE-DRAIN", "timeout")
+            entry.disconnected = True
+            uiq.put(('status', entry.name, "DISCONNECTED (backlog timeout)"))
             return
-
-        # Main loop
         while not entry.disconnected and entry.handshaked:
             try:
-                data = dev.read(DEFAULT_REPORT_SIZE, timeout_ms=-1)  # blocking
-                if not data: continue
-            except Exception as e:
-                _close_stale_handle(entry, uiq, "READ", e)
+                data = dev.read(DEFAULT_REPORT_SIZE, timeout_ms=-1)  # Blocking read
+                if data:
+                    while not entry.disconnected:
+                        try:
+                            resp = dev.get_feature_report(FEATURE_REPORT_ID, DEFAULT_REPORT_SIZE + 1)
+                            d = bytes(resp[1:]) if len(resp) > DEFAULT_REPORT_SIZE else bytes(resp)
+                            msg = d.rstrip(b'\x00').decode(errors="replace").strip()
+                            if not msg or msg == HANDSHAKE_REQ.decode():
+                                break
+                            uiq.put(('log', entry.name, f"IN: {msg}"))
+                            udp_send(msg + "\n")
+                        except Exception:
+                            entry.disconnected = True
+                            uiq.put(('status', entry.name, "DISCONNECTED"))
+                            return
+            except Exception:
+                entry.disconnected = True
+                uiq.put(('status', entry.name, "DISCONNECTED"))
                 return
-
-            # bounded feature-drain after trigger
-            drain = 0
-            while not entry.disconnected and drain < 8:
-                try:
-                    resp = dev.get_feature_report(FEATURE_REPORT_ID, DEFAULT_REPORT_SIZE + 1)
-                    d = bytes(resp[1:]) if len(resp) > DEFAULT_REPORT_SIZE else bytes(resp)
-                    msg = d.rstrip(b'\x00').decode(errors="replace").strip()
-                    if not msg or msg == HANDSHAKE_REQ.decode(): break
-                    uiq.put(('log', entry.name, f"IN: {msg}"))
-                    udp_send(msg + "\n")
-                    drain += 1
-                except Exception as e:
-                    _close_stale_handle(entry, uiq, "FEATURE", e)
-                    return
-
     finally:
-        try: dev.close()
-        except Exception: pass
+        try:
+            dev.close()
+        except Exception:
+            pass
 
 # --- network.py (drop-in replacement for NetworkManager) ---
 import socket, struct, threading, time
@@ -287,13 +291,13 @@ class NetworkManager:
             super().__init__(daemon=True)
             self.entry = entry
             self.uiq = uiq
-            self.q = deque()                 # unbounded FIFO (process everything)
+            self.q = deque(maxlen=2)       # keep newest 1–2 frames; prevents backlog
             self.cv = threading.Condition()
             self._running = True
 
         def enqueue(self, reports_tuple):
             with self.cv:
-                self.q.append(reports_tuple)  # FIFO
+                self.q.append(reports_tuple)
                 self.cv.notify()
 
         def stop(self):
@@ -304,27 +308,21 @@ class NetworkManager:
         def run(self):
             dev = self.entry.dev
             while self._running and not self.entry.disconnected:
-                # wait for work
                 with self.cv:
                     while self._running and not self.q:
-                        self.cv.wait(timeout=0.05)
+                        self.cv.wait(timeout=0.02)
                     if not self._running or self.entry.disconnected:
                         break
-                    # move all pending work into a local batch (minimize lock time)
-                    batch = list(self.q)
-                    self.q.clear()
-
-                # drain batch in FIFO order
-                for reports in batch:
-                    for rep in reports:
-                        try:
-                            dev.write(rep)  # only this thread touches the handle
-                        except Exception:
-                            self.entry.disconnected = True
-                            self.uiq.put(('status', self.entry.name, "DISCONNECTED"))
-                            return
-
-                # tiny yield to avoid 100% CPU if traffic is sparse
+                    reports = self.q.popleft()
+                # send newest frame fully, then yield
+                for rep in reports:
+                    try:
+                        dev.write(rep)     # only this thread touches this handle
+                    except Exception:
+                        self.entry.disconnected = True
+                        self.uiq.put(('status', self.entry.name, "DISCONNECTED"))
+                        return
+                # short cooperative yield to avoid CPU spin
                 time.sleep(0.0005)
 
     def __init__(self, uiq, reply_addr_ref, get_devices_callback):
@@ -542,26 +540,11 @@ class CockpitGUI:
                     self.known_devices[serial] = entry
                     with self.devices_lock:
                         self.devices.append(entry)
-
-                    # REPLACED BELOW
-                    # threading.Thread(
-                    #    target=device_reader,
-                    #    args=(entry, self.uiq, self.network_mgr.udp_send_report),
-                    #    daemon=True
-                    # ).start()
-
-                    # ensure network_mgr is ready (set in main() after GUI is constructed)
-                    nm = self.network_mgr
-                    while nm is None:
-                        time.sleep(0.05)
-                        nm = self.network_mgr
-
                     threading.Thread(
                         target=device_reader,
-                        args=(entry, self.uiq, nm.udp_send_report),
+                        args=(entry, self.uiq, self.network_mgr.udp_send_report),
                         daemon=True
                     ).start()
-
                     self.uiq.put(('status', entry.name, "WAIT HANDSHAKE"))
             dev_count = len(self.devices)
             if dev_count:
@@ -657,202 +640,9 @@ class CockpitGUI:
         with self.devices_lock:
             return list(self.devices)
 
-# --- console_ui (headless) ---
-import threading, time, queue
-from datetime import datetime
-
-if HEADLESS:
-    try:
-        import curses
-    except ImportError:
-        curses = None  # we'll error out nicely below
-
-    LOG_KEEP = 2000
-    def _ts(): return datetime.now().strftime("%H:%M:%S")
-
-    class ConsoleUI:
-        def __init__(self, get_devices_cb):
-            self.get_devices = get_devices_cb
-            self.uiq = queue.Queue()
-            self._running = threading.Event()
-            self._log = []
-            self._stats = {"frames":"0","hz":"0.0","bw":"0.0","avgudp":"0.0","src":"(waiting...)"}
-            self._stats["src"] = reply_addr[0] or "(waiting...)"
-            self._rows = []
-
-        def post(self, evt): self.uiq.put(evt)
-
-        def _consume(self):
-            while True:
-                try: typ, *rest = self.uiq.get_nowait()
-                except queue.Empty: break
-                if typ == 'data_source':
-                    self._stats['src'] = rest[1]
-                elif typ == 'globalstats':
-                    d = rest[0]
-                    self._stats['frames'] = str(d.get('frames',"0"))
-                    self._stats['hz']     = d.get('hz',"0.0")
-                    self._stats['bw']     = d.get('bw',"0.0")
-                    self._stats['avgudp'] = d.get('avgudp',"0.0")
-                elif typ in ('log','handshake'):
-                    dev, msg = rest
-                    line = f"[{_ts()}] [{dev}] {msg}"
-                    self._log.append(line)
-                    if len(self._log) > LOG_KEEP: self._log = self._log[-LOG_KEEP:]
-
-            rows = []
-            for e in self.get_devices():
-                rows.append((e.name, getattr(e, 'status', '?'), getattr(e, 'reconnections', 0)))
-            rows.sort(key=lambda r: r[0])
-            self._rows = rows
-
-        def _paint(self, stdscr):
-            stdscr.erase()
-            h, w = stdscr.getmaxyx()
-            hdr = f"Frames: {self._stats['frames']}   Hz: {self._stats['hz']}   kB/s: {self._stats['bw']}   " \
-                  f"Avg UDP Frame size (Bytes): {self._stats['avgudp']}   Data Source: {self._stats['src']}"
-            stdscr.addnstr(0, 0, hdr, w-1, curses.A_BOLD)
-            stdscr.addnstr(2, 0, "Devices", w-1, curses.A_UNDERLINE)
-            stdscr.addnstr(3, 0, f"{'Device':<38} {'Status':<16} {'Reconnections':<14}", w-1)
-            y = 4
-            for name, status, reconn in self._rows:
-                attr = curses.A_NORMAL
-                sl = status.lower()
-                if 'ready' in sl: attr = curses.color_pair(2)
-                elif ('wait' in sl) or ('handshake' in sl): attr = curses.color_pair(3)
-                elif ('off' in sl) or ('disconn' in sl): attr = curses.color_pair(1)
-                stdscr.addnstr(y, 0, f"{name:<38} {status:<16} {reconn:<14}", w-1, attr)
-                y += 1
-            y += 1
-            stdscr.addnstr(y, 0, "Event Log:", w-1, curses.A_UNDERLINE)
-            y += 1
-            avail = max(0, h - y - 1)
-            tail = self._log[-avail:] if avail else []
-            for i, line in enumerate(tail):
-                stdscr.addnstr(y+i, 0, line, w-1)
-            dev_cnt = len(self._rows)
-            stdscr.addnstr(h-1, 0, f"{dev_cnt} device(s) connected.  q=quit", w-1, curses.A_DIM)
-            stdscr.noutrefresh()
-            curses.doupdate()
-
-        def _loop(self, stdscr):
-            curses.curs_set(0)
-            curses.use_default_colors()
-            curses.init_pair(1, curses.COLOR_RED,   -1)
-            curses.init_pair(2, curses.COLOR_GREEN, -1)
-            curses.init_pair(3, curses.COLOR_YELLOW,-1)
-            stdscr.timeout(100)
-            self._running.set()
-            while self._running.is_set():
-                self._consume()
-                self._paint(stdscr)
-                ch = stdscr.getch()
-                if ch in (ord('q'), 27): self._running.clear()
-                time.sleep(0.02)
-
-        def run(self):
-            if curses is None:
-                print("Missing console backend: install with: pip install windows-curses")
-                sys.exit(1)
-            curses.wrapper(self._loop)
-
-        def stop(self): self._running.clear()
-
-    def start_console_mode():
-        if curses is None:
-            print("Missing console backend: install with: pip install windows-curses")
-            sys.exit(1)
-
-        def holder_devices():
-            with device_lock: return list(devices)
-
-        ui = ConsoleUI(get_devices_cb=holder_devices)
-
-        import hid
-        def _device_monitor():
-            global prev_reconnections
-            while True:
-                dev_infos = list_target_devices()
-                current_serials = {d.get('serial_number','') for d in dev_infos}
-                with device_lock:
-                    stale = [e for e in devices if e.info.get('serial_number','') not in current_serials]
-                for e in stale:
-                    e.disconnected = True
-                    try: e.dev.close()
-                    except Exception: pass
-                    ui.post(('status', e.name, "DISCONNECTED"))
-                    with device_lock:
-                        devices[:] = [x for x in devices if x is not e]
-                for d in dev_infos:
-                    serial = d.get('serial_number','')
-                    with device_lock:
-                        exists = any(x.info.get('serial_number','') == serial for x in devices)
-                    if not exists:
-                        dev = hid.device()
-                        try: dev.open_path(d['path'])
-                        except Exception: continue
-                        entry = DeviceEntry(dev, d)
-                        entry.reconnections = prev_reconnections.get(serial, 0)
-                        prev_reconnections[serial] = entry.reconnections + 1
-                        with device_lock:
-                            devices.append(entry)
-                        threading.Thread(target=device_reader,
-                                         args=(entry, ui.uiq, net.udp_send_report),
-                                         daemon=True).start()
-                        ui.post(('status', entry.name, "WAIT HANDSHAKE"))
-                with device_lock:
-                    ui.post(('statusbar', None, f"{len(devices)} device(s) connected."))
-                time.sleep(1)
-
-        devices, device_lock = [], threading.Lock()
-        net = NetworkManager(ui.uiq, reply_addr, lambda: holder_devices())
-        threading.Thread(target=_device_monitor, daemon=True).start()
-        net.start()
-
-
-
-
-        # console stats updater (mirrors GUI behavior)
-        def _stats_updater():
-            while True:
-                time.sleep(1)
-                with global_stats_lock:
-                    avg_frame = (stats["bytes_rolling"] / stats["frames_rolling"]) if stats["frames_rolling"] else 0
-                    duration  = time.time() - stats["start_time"]
-                    hz        = stats["frame_count_window"] / duration if duration > 0 else 0
-                    kbps      = (stats["bytes"] / 1024) / duration if duration > 0 else 0
-                    ui.post(('globalstats', {
-                        'frames': stats["frame_count_total"],
-                        'hz':     f"{hz:.1f}",
-                        'bw':     f"{kbps:.1f}",
-                        'avgudp': f"{avg_frame:.1f}",
-                    }))
-                    stats["frame_count_window"] = 0
-                    stats["bytes"] = 0
-                    stats["start_time"] = time.time()
-
-        threading.Thread(target=_stats_updater, daemon=True).start()
-
-
-
-
-        try:
-            ui.run()
-        finally:
-            net.stop()
-else:
-    # GUI mode never imports curses; provide a harmless stub
-    def start_console_mode():
-        print("Console mode not enabled. Run with --console or --headless.")
 
 # --- main.py (continued) ---
 def main():
-    if ('--console' in sys.argv) or ('--headless' in sys.argv):
-        start_console_mode()
-        lock.release()
-        return
-
-    # GUI mode (original)
     root = tk.Tk()
     gui = CockpitGUI(root, None)
     net = NetworkManager(gui.uiq, reply_addr, gui.get_devices)

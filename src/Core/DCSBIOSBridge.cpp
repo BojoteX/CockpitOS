@@ -439,8 +439,8 @@ void onAircraftName(const char* str) {
             aircraftNameReceivedAt = millis();
 
             // Treat next incoming output words as fresh for this mission
-            DCSBIOS_bustPrevValues();
-            DCSBIOS_bustDisplayBuffers(); // CT_DISPLAY fields
+            // DCSBIOS_bustPrevValues();
+            // DCSBIOS_bustDisplayBuffers(); // CT_DISPLAY fields
         }
     }
     else if (isBlank) {

@@ -1,3 +1,3 @@
 #pragma once
 
-#define LABEL_SET IFEI
+#define LABEL_SET CUSTOM_RIGHT

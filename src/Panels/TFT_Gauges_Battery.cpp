@@ -285,10 +285,16 @@ static void BatteryGauge_draw(bool force = false, bool blocking = false)
         || (e != lastDrawnAngleE)
         || needsFullFlush;
     if (!stateChanged) return;
-    if (!force && (now - lastDrawTime < GAUGE_DRAW_MIN_INTERVAL_MS)) return;
+
+    // Change 9/2/25
+    // if (!force && (now - lastDrawTime < GAUGE_DRAW_MIN_INTERVAL_MS)) return;
+    if (!force && !needsFullFlush && (now - lastDrawTime < GAUGE_DRAW_MIN_INTERVAL_MS)) return;
 
     lastDrawTime = now;
     gaugeDirty = false;
+
+    // Added 9/2/25
+    if (needsFullFlush) waitDMADone();
 
 #if DEBUG_PERFORMANCE
     beginProfiling(PERF_TFT_BATTERY_DRAW);
@@ -330,7 +336,9 @@ static void BatteryGauge_draw(bool force = false, bool blocking = false)
 
     // Flush
     const uint16_t* buf = (const uint16_t*)frameSpr.getBuffer();
-    flushRectToDisplay(buf, dirty, blocking);
+
+    // flushRectToDisplay(buf, dirty, blocking);
+    flushRectToDisplay(buf, dirty, needsFullFlush || blocking);
 
 #if DEBUG_PERFORMANCE
     endProfiling(PERF_TFT_BATTERY_DRAW);
