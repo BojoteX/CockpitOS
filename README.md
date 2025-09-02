@@ -54,19 +54,15 @@ CockpitOS is a high-performance firmware platform for building **DCS-BIOS**-comp
 
 ## 🚀 Quick Start
 
-1. **Select label set**  
-   Set `LABEL_SET` in `Config.h`.  
-2. **Edit panel list**  
-   Update `selected_panels.txt` in your label set directory.  
-3. **Generate mappings**  
-   Run `python generate_data.py` inside the label set directory.  
-4. **Open in Arduino IDE**  
-   Select your ESP32 board and verify core version.  
-5. **Build & upload**  
-   Upload firmware to your ESP32 target.  
-6. **(Optional) Configure transport**  
-   Set WiFi or USB mode in `Config.h` or none to use Serial (legacy).  
-7. **(Optional) Use companion tools**  
+1. **Generate mappings**  
+   Run `python generate_data.py` inside the LABEL_SET_xxx directory of choice.  
+2. **Open in Arduino IDE**  
+   Verify ESP32 core version 3.x is installed (check library manager). Then select your ESP32 board. (e.g Lolin S2 Mini)   
+3. **(Optional) Configure transport**  
+   Set WiFi or USB mode in `Config.h` or none to use Serial (legacy). You can edit these options inside Arduino IDE   
+4. **Build & upload**  
+   Build & Upload firmware to your ESP32 target.  
+5. **(Optional) Use companion tools**  
    See `Debug Tools/` and `HID Manager/`.  
 
 There are README.md files on each directory explaining functions and in some cases tutorials are included.
