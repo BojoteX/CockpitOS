@@ -1,3 +1,3 @@
 #pragma once
 
-#define LABEL_SET CUSTOM_RIGHT
+#define LABEL_SET TEST_ONLY

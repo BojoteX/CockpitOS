@@ -1,8 +1,17 @@
 # --- main.py --- 
 import sys, re, os, configparser
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_PATH = os.path.join(SCRIPT_DIR, "settings.ini")
+LOCKFILE = os.path.join(SCRIPT_DIR, "cockpitos_dashboard.lock")
+DEFAULT_REPORT_SIZE = 64
+DEFAULT_MULTICAST_IP = "239.255.50.10"
+DEFAULT_UDP_PORT = 5010
+HANDSHAKE_REQ = b"DCSBIOS-HANDSHAKE"
+FEATURE_REPORT_ID = 0
+IDLE_TIMEOUT = 2.0
+MAX_DEVICES = 20
 
 def ini_console_enabled(path=SETTINGS_PATH):
     try:
@@ -53,39 +62,28 @@ if missing:
         text.pack(padx=12, pady=(0,10)); text.insert("1.0", msg); text.config(state='normal'); text.focus()
         tk.Button(root, text="Close", command=root.destroy, width=18).pack(pady=10)
         root.protocol("WM_DELETE_WINDOW", root.destroy); root.mainloop()
+    input("Press Enter to exit...")
     sys.exit(1)
 
 from filelock import FileLock, Timeout
-
-LOCKFILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cockpitos_dashboard.lock")
 
 try:
     lock = FileLock(LOCKFILE + ".lock")
     lock.acquire(timeout=0.1)
 except Timeout:
     print("ERROR: Another instance of CockpitController HID Handler is already running.")
+    input("Press Enter to exit...")
     sys.exit(1)
 
 # Import tkinter only if GUI mode
 if not HEADLESS:
     import tkinter as tk
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
 # --- config.py ---
 import configparser
 import time
 import threading
 import ipaddress
-
-DEFAULT_REPORT_SIZE = 64
-DEFAULT_MULTICAST_IP = "239.255.50.10"
-DEFAULT_UDP_PORT = 5010
-HANDSHAKE_REQ = b"DCSBIOS-HANDSHAKE"
-FEATURE_REPORT_ID = 0
-IDLE_TIMEOUT = 2.0
-MAX_DEVICES = 20
-LOCKFILE = "cockpitos_dashboard.lock"
 
 def is_bt_serial(s: str) -> bool:
     # MAC forms: AA:BB:CC:DD:EE:FF or AA-BB-CC-DD-EE-FF, plain 12-hex, or your BX-<16hex>
@@ -97,6 +95,7 @@ def read_settings_from_ini(filename="settings.ini"):
     if not os.path.isfile(filename):
         config['USB'] = {'VID': '0xCAFE', 'PID': '0xCAF3'}
         config['DCS'] = {'UDP_SOURCE_IP': '127.0.0.1'}
+        config['MAIN'] = {'CONSOLE': '0'}
         with open(filename, 'w') as configfile:
             config.write(configfile)
     config.read(filename)
@@ -403,7 +402,7 @@ class NetworkManager:
             self.udp_rx_sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
             while self._running.is_set():
-                data, addr = self.udp_rx_sock.recvfrom(4096)
+                data, addr = self.udp_rx_sock.recvfrom(16384)
 
                 # learn data source once
                 if (not self._ip_committed and addr and is_valid_ipv4(addr[0])
@@ -734,7 +733,7 @@ if HEADLESS:
             hdr = f"Frames: {self._stats['frames']}   Hz: {self._stats['hz']}   kB/s: {self._stats['bw']}   " \
                   f"Avg UDP Frame size (Bytes): {self._stats['avgudp']}   Data Source: {self._stats['src']}"
             stdscr.addnstr(0, 0, hdr, w-1, curses.A_BOLD)
-            stdscr.addnstr(2, 0, "Devices", w-1, curses.A_UNDERLINE)
+            # stdscr.addnstr(2, 0, "Devices", w-1, curses.A_UNDERLINE)
             stdscr.addnstr(3, 0, f"{'Device':<38} {'Status':<16} {'Reconnections':<14}", w-1)
             y = 4
             for name, status, reconn in self._rows:
@@ -746,7 +745,7 @@ if HEADLESS:
                 stdscr.addnstr(y, 0, f"{name:<38} {status:<16} {reconn:<14}", w-1, attr)
                 y += 1
             y += 1
-            stdscr.addnstr(y, 0, "Event Log:", w-1, curses.A_UNDERLINE)
+            # stdscr.addnstr(y, 0, "Event Log:", w-1, curses.A_UNDERLINE)
             y += 1
             avail = max(0, h - y - 1)
             tail = self._log[-avail:] if avail else []
@@ -775,6 +774,7 @@ if HEADLESS:
         def run(self):
             if curses is None:
                 print("Missing console backend: install with: pip install windows-curses")
+                input("Press Enter to exit...")
                 sys.exit(1)
             curses.wrapper(self._loop)
 
@@ -783,6 +783,7 @@ if HEADLESS:
     def start_console_mode():
         if curses is None:
             print("Missing console backend: install with: pip install windows-curses")
+            input("Press Enter to exit...")
             sys.exit(1)
 
         def holder_devices():
