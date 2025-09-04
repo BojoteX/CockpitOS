@@ -1,46 +1,82 @@
-🔭 Listening for ESP32S2 Debug/Info messages on 192.168.7.178 port 4210...
-
-[20:11:33 - 192.168.7.40] ❌ USB Stopped
-[20:11:42 - 192.168.7.40] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.40
-[20:11:42 - 192.168.7.40] =================== [STARTING DEVICE] ===================
-[20:11:42 - 192.168.7.40] SRAM free:     44 KB, largest:     21 KB, frag:  50.9%
-[20:11:42 - 192.168.7.40] PSRAM free:      0 KB, largest:      0 KB, frag:   0.0%
-[20:11:42 - 192.168.7.40] I²C Initialized using the ESP-IDF Library (Fast mode)
-[20:11:42 - 192.168.7.40] Using SDA 8 and SCL 9 for I2C
-[20:11:42 - 192.168.7.40] Device is LOLIN S2 Mini by WEMOS
-[20:11:42 - 192.168.7.40] Registered Panel: hasGeneric
-[20:11:43 - 192.168.7.40] No I2C devices found.
-[20:11:43 - 192.168.7.40] Initializing Displays
-[20:11:43 - 192.168.7.40] Initializing LEDs
-[20:11:43 - 192.168.7.40] ⚠️ Lock/Shoot NOT detected!
-[20:11:43 - 192.168.7.40] ⚠️ Caution Advisory NOT detected!
-[20:11:43 - 192.168.7.40] ⚠️ No Annunciators detected!
-[20:11:43 - 192.168.7.40] 🔆 Turning ALL GPIO LEDs ON
-[20:11:44 - 192.168.7.40] ⚫ Turning ALL GPIO LEDs OFF
-[20:11:44 - 192.168.7.40] Syncronizing Panel state....
-[20:11:44 - 192.168.7.40] ⚠️ HC165: Disabled (HC165_BITS=0)
-[20:11:44 - 192.168.7.40] ✅ Generic panel initialized
-[20:11:44 - 192.168.7.40] Selected mode: DCS-BIOS
-[20:11:44 - 192.168.7.40] Device "CockpitOS Panel TEST_ONLY (Please change this name)" is ready
-[20:11:44 - 192.168.7.40] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
-[20:11:44 - 192.168.7.40] [DCS] ❌ Sim not ready yet...
-[20:11:44 - 192.168.7.40] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
-[20:11:45 - 192.168.7.40] [SYNC PANELS] 🔁 Mission Started 501 ms ago
-[20:11:45 - 192.168.7.40] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
-[20:11:45 - 192.168.7.40] Syncronizing Panel state....
-[20:11:45 - 192.168.7.40] [SYNC] Normal mission start panel sync
-[20:11:47 - 192.168.7.40] [STATE UPDATE] 🔁 MASTER_ARM_SW = SAFE
-[20:11:47 - 192.168.7.40] [STATE UPDATE] 🔁 MASTER_MODE_AA = POS 0
-[20:11:47 - 192.168.7.40] [STATE UPDATE] 🔁 MASTER_MODE_AG = POS 0
-[20:11:48 - 192.168.7.40] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
-[20:11:48 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
-[20:11:48 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
-[20:11:51 - 192.168.7.40] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
-[20:11:51 - 192.168.7.40] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
-[20:11:58 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
-[20:11:59 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
-[20:12:00 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
-[20:12:01 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
-[20:12:50 - 192.168.7.40] SRAM free:     44 KB, largest:     21 KB, frag:  50.9%
-[20:12:51 - 192.168.7.40] Initializing Displays
-[20:12:51 - 192.168.7.40] Initializing LEDs
+[20:14:39 - 192.168.7.40] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.40
+[20:14:39 - 192.168.7.40] =================== [STARTING DEVICE] ===================
+[20:14:39 - 192.168.7.40] SRAM free:     44 KB, largest:     21 KB, frag:  50.9%
+[20:14:39 - 192.168.7.40] PSRAM free:      0 KB, largest:      0 KB, frag:   0.0%
+[20:14:39 - 192.168.7.40] I²C Initialized using the ESP-IDF Library (Fast mode)
+[20:14:39 - 192.168.7.40] Using SDA 8 and SCL 9 for I2C
+[20:14:39 - 192.168.7.40] Device is LOLIN S2 Mini by WEMOS
+[20:14:39 - 192.168.7.40] Registered Panel: hasGeneric
+[20:14:40 - 192.168.7.40] No I2C devices found.
+[20:14:40 - 192.168.7.40] Initializing LEDs
+[20:14:40 - 192.168.7.40] ⚠️ Lock/Shoot NOT detected!
+[20:14:40 - 192.168.7.40] ⚠️ Caution Advisory NOT detected!
+[20:14:40 - 192.168.7.40] ⚠️ No Annunciators detected!
+[20:14:40 - 192.168.7.40] 🔆 Turning ALL GPIO LEDs ON
+[20:14:41 - 192.168.7.40] ⚫ Turning ALL GPIO LEDs OFF
+[20:14:41 - 192.168.7.40] Syncronizing Panel state....
+[20:14:41 - 192.168.7.40] ✅ Generic panel initialized
+[20:14:41 - 192.168.7.40] Selected mode: DCS-BIOS
+[20:14:41 - 192.168.7.40] Device "CockpitOS Panel TEST_ONLY (Please change this name)" is ready
+[20:14:41 - 192.168.7.40] ESP32 Arduino core v3.2.1  |  IDF v5.4.2
+[20:14:41 - 192.168.7.40] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[20:14:41 - 192.168.7.40] 🔌 Main Loop started
+[20:14:41 - 192.168.7.40] [DCS] ❌ Sim not ready yet...
+[20:14:41 - 192.168.7.40] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
+[20:14:41 - 192.168.7.40] [DCS-BIOS] ✅ STREAM UP
+[20:14:41 - 192.168.7.40] [MISSION START] FA-18C_hornet
+[20:14:42 - 192.168.7.40] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[20:14:42 - 192.168.7.40] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[20:14:42 - 192.168.7.40] Syncronizing Panel state....
+[20:14:42 - 192.168.7.40] ✅ Generic panel initialized
+[20:14:42 - 192.168.7.40] [SYNC] Normal mission start panel sync
+[20:14:42 - 192.168.7.40] [STATE UPDATE] 🔁 MASTER_ARM_SW = SAFE
+[20:14:42 - 192.168.7.40] [STATE UPDATE] 🔁 MASTER_MODE_AA = POS 0
+[20:14:42 - 192.168.7.40] [STATE UPDATE] 🔁 MASTER_MODE_AG = POS 0
+[20:14:43 - 192.168.7.40] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[20:14:43 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[20:14:43 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[20:14:58 - 192.168.7.40] [MISSION PAUSED] DCSBIOS stream is NOT active
+[20:14:58 - 192.168.7.40] [DCS] ❌ Sim not ready yet...
+[20:15:05 - 192.168.7.40] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
+[20:15:05 - 192.168.7.40] [MISSION RESUMED] DCSBIOS stream is UP again
+[20:15:05 - 192.168.7.40] [SYNC PANELS] 🔁 Mission Started 24009 ms ago
+[20:15:05 - 192.168.7.40] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[20:15:05 - 192.168.7.40] Syncronizing Panel state....
+[20:15:05 - 192.168.7.40] ✅ Generic panel initialized
+[20:15:05 - 192.168.7.40] [SYNC] Fallback: forced panel re-sync
+[20:15:22 - 192.168.7.40] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[20:15:23 - 192.168.7.40] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[20:15:30 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[20:15:30 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[20:15:31 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[20:15:32 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[20:15:33 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[20:15:34 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[20:15:41 - 192.168.7.40] 
+[20:15:41 - 192.168.7.40] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[20:15:41 - 192.168.7.40] 🔍  Profiling Averages:
+[20:15:41 - 192.168.7.40] ∘ Main Loop       :   0.02 ms
+[20:15:41 - 192.168.7.40] +----------------------------------------------------------------+
+[20:15:41 - 192.168.7.40] 🕑  System Status:
+[20:15:41 - 192.168.7.40] ∘ Poll Load     :   0.6% of 4.00 ms slot
+[20:15:41 - 192.168.7.40] ∘ Headroom      : 3.975 ms ( 99.4%)
+[20:15:41 - 192.168.7.40] ∘ Scale Cap.    : 160.00x current workload
+[20:15:41 - 192.168.7.40] ∘ Uptime        : 1m07s
+[20:15:41 - 192.168.7.40] ∘ CPU Frequency : 240 MHz
+[20:15:41 - 192.168.7.40] ∘ Last Reset    : Power-on
+[20:15:41 - 192.168.7.40] +----------------------------------------------------------------+
+[20:15:41 - 192.168.7.40] 💾  Memory Fragmentation:
+[20:15:41 - 192.168.7.40] ∘ Internal SRAM : free     41 KB, largest     18 KB, frag  54.3%
+[20:15:41 - 192.168.7.40] ∘ PSRAM Pool    : free      0 KB, largest      0 KB, frag   0.0%
+[20:15:41 - 192.168.7.40] +----------------------------------------------------------------+
+[20:15:41 - 192.168.7.40] 📡  USB-CDC Buffer Health:
+[20:15:41 - 192.168.7.40] ∘ TX Free Slots :      0 bytes
+[20:15:41 - 192.168.7.40] ∘ RX Pending    :      0 bytes
+[20:15:41 - 192.168.7.40] +----------------------------------------------------------------+
+[20:15:41 - 192.168.7.40] 🔁  Ring Buffer Health:
+[20:15:41 - 192.168.7.40] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[20:15:41 - 192.168.7.40] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[20:15:41 - 192.168.7.40] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[20:15:41 - 192.168.7.40] +----------------------------------------------------------------+
+[20:15:50 - 192.168.7.40] [MISSION PAUSED] DCSBIOS stream is NOT active
+[20:15:50 - 192.168.7.40] [DCS] ❌ Sim not ready yet...

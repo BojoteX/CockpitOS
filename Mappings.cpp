@@ -68,16 +68,6 @@ void initMappings() {
     // Runs a discovery routine to check for PCA panels automatically, but they still need to be added manually in kPanels[] (see Mappings.h)
     debugPrintf("Using SDA %d and SCL %d for I2C\n", SDA_PIN, SCL_PIN);
 
-#if defined(ARDUINO_LOLIN_S3_MINI)
-    debugPrintln("Device is LOLIN S3 Mini by WEMOS");
-#elif defined(ARDUINO_LOLIN_S2_MINI)
-    debugPrintln("Device is LOLIN S2 Mini by WEMOS");
-#elif defined(ARDUINO_LOLIN_C3_MINI)
-    debugPrintln("Device is LOLIN C3 Mini by WEMOS");
-#else
-    debugPrintln("Unknown device type");
-#endif
-
     // Print registered panels
     int n = PanelRegistry_count();
     for (int i=0; i<PanelRegistry_count(); ++i)

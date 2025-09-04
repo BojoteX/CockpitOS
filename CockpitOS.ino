@@ -145,24 +145,52 @@ void setup() {
     initPerfMonitor(); // this is used for profiling, see PerfMonitor.h for details, format and how to add LABELS for profiling blocks
     #endif     
 
-    if (!isModeSelectorDCS()) {
-        debugPrintln("Selected mode: HID");
-    }
-    else {
-        debugPrintln("Selected mode: DCS-BIOS");
-    }    
-
     if(DEBUG) {
-        debugPrintf("Device \"%s\" is ready (DEBUG ENABLED)\n", USB_SERIAL);
+        debugPrintf("Device \"%s\" is ready and DEBUG is active ", USB_SERIAL);
+        if (!isModeSelectorDCS()) {
+            debugPrintln("(HID mode selected)");
+        }
+        else {
+            debugPrintln("(DCS-BIOS mode selected)");
+        }          
     }
     else {
-        debugPrintf("Device \"%s\" is ready\n", USB_SERIAL);
+        debugPrintf("Device \"%s\" is ready ", USB_SERIAL);
+        if (!isModeSelectorDCS()) {
+            debugPrintln("(HID mode selected)");
+        }
+        else {
+            debugPrintln("(DCS-BIOS mode selected)");
+        }  
     }    
 
     // What Arduino ESP32 was this compiled with?
-    debugPrintf("ESP32 Arduino core v%d.%d.%d  |  IDF v%d.%d.%d\n", 
+    debugPrintf("ESP32 Arduino core v%d.%d.%d  |  IDF v%d.%d.%d  |  ", 
       ESP_ARDUINO_VERSION_MAJOR, ESP_ARDUINO_VERSION_MINOR, ESP_ARDUINO_VERSION_PATCH, 
       ESP_IDF_VERSION_MAJOR, ESP_IDF_VERSION_MINOR, ESP_IDF_VERSION_PATCH);
+
+  // Works across all boards of the same chip family
+  #if defined(CONFIG_IDF_TARGET_ESP32C3)
+    #define ESP_FAMILY_C3 1
+    debugPrint("ESP32 Variant is C3 ");
+  #elif defined(CONFIG_IDF_TARGET_ESP32S2)
+    #define ESP_FAMILY_S2 1
+    debugPrint("ESP32 Variant is S2 ");
+  #elif defined(CONFIG_IDF_TARGET_ESP32S3)
+    #define ESP_FAMILY_S3 1
+    debugPrint("ESP32 Variant is S3 ");
+  #elif defined(CONFIG_IDF_TARGET_ESP32)
+    #define ESP_FAMILY_CLASSIC 1
+    debugPrint("ESP32 Classic Variant ");
+  #else
+    debugPrint("ESP32 Variant is Unknown ");
+  #endif
+
+  #if SOC_USB_OTG_SUPPORTED
+    debugPrintln("(USB OTG Supported)");
+  #else
+    debugPrintln("(USB OTG NOT Supported)\n");
+  #endif
 
     #if USE_DCSBIOS_USB
     debugPrintln("ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.");

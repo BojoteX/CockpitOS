@@ -1,82 +1,2330 @@
-[20:14:39 - 192.168.7.40] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.40
-[20:14:39 - 192.168.7.40] =================== [STARTING DEVICE] ===================
-[20:14:39 - 192.168.7.40] SRAM free:     44 KB, largest:     21 KB, frag:  50.9%
-[20:14:39 - 192.168.7.40] PSRAM free:      0 KB, largest:      0 KB, frag:   0.0%
-[20:14:39 - 192.168.7.40] I²C Initialized using the ESP-IDF Library (Fast mode)
-[20:14:39 - 192.168.7.40] Using SDA 8 and SCL 9 for I2C
-[20:14:39 - 192.168.7.40] Device is LOLIN S2 Mini by WEMOS
-[20:14:39 - 192.168.7.40] Registered Panel: hasGeneric
-[20:14:40 - 192.168.7.40] No I2C devices found.
-[20:14:40 - 192.168.7.40] Initializing LEDs
-[20:14:40 - 192.168.7.40] ⚠️ Lock/Shoot NOT detected!
-[20:14:40 - 192.168.7.40] ⚠️ Caution Advisory NOT detected!
-[20:14:40 - 192.168.7.40] ⚠️ No Annunciators detected!
-[20:14:40 - 192.168.7.40] 🔆 Turning ALL GPIO LEDs ON
-[20:14:41 - 192.168.7.40] ⚫ Turning ALL GPIO LEDs OFF
-[20:14:41 - 192.168.7.40] Syncronizing Panel state....
-[20:14:41 - 192.168.7.40] ✅ Generic panel initialized
-[20:14:41 - 192.168.7.40] Selected mode: DCS-BIOS
-[20:14:41 - 192.168.7.40] Device "CockpitOS Panel TEST_ONLY (Please change this name)" is ready
-[20:14:41 - 192.168.7.40] ESP32 Arduino core v3.2.1  |  IDF v5.4.2
-[20:14:41 - 192.168.7.40] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
-[20:14:41 - 192.168.7.40] 🔌 Main Loop started
-[20:14:41 - 192.168.7.40] [DCS] ❌ Sim not ready yet...
-[20:14:41 - 192.168.7.40] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
-[20:14:41 - 192.168.7.40] [DCS-BIOS] ✅ STREAM UP
-[20:14:41 - 192.168.7.40] [MISSION START] FA-18C_hornet
-[20:14:42 - 192.168.7.40] [SYNC PANELS] 🔁 Mission Started 501 ms ago
-[20:14:42 - 192.168.7.40] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
-[20:14:42 - 192.168.7.40] Syncronizing Panel state....
-[20:14:42 - 192.168.7.40] ✅ Generic panel initialized
-[20:14:42 - 192.168.7.40] [SYNC] Normal mission start panel sync
-[20:14:42 - 192.168.7.40] [STATE UPDATE] 🔁 MASTER_ARM_SW = SAFE
-[20:14:42 - 192.168.7.40] [STATE UPDATE] 🔁 MASTER_MODE_AA = POS 0
-[20:14:42 - 192.168.7.40] [STATE UPDATE] 🔁 MASTER_MODE_AG = POS 0
-[20:14:43 - 192.168.7.40] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
-[20:14:43 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
-[20:14:43 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
-[20:14:58 - 192.168.7.40] [MISSION PAUSED] DCSBIOS stream is NOT active
-[20:14:58 - 192.168.7.40] [DCS] ❌ Sim not ready yet...
-[20:15:05 - 192.168.7.40] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
-[20:15:05 - 192.168.7.40] [MISSION RESUMED] DCSBIOS stream is UP again
-[20:15:05 - 192.168.7.40] [SYNC PANELS] 🔁 Mission Started 24009 ms ago
-[20:15:05 - 192.168.7.40] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
-[20:15:05 - 192.168.7.40] Syncronizing Panel state....
-[20:15:05 - 192.168.7.40] ✅ Generic panel initialized
-[20:15:05 - 192.168.7.40] [SYNC] Fallback: forced panel re-sync
-[20:15:22 - 192.168.7.40] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
-[20:15:23 - 192.168.7.40] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
-[20:15:30 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
-[20:15:30 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
-[20:15:31 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
-[20:15:32 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
-[20:15:33 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
-[20:15:34 - 192.168.7.40] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
-[20:15:41 - 192.168.7.40] 
-[20:15:41 - 192.168.7.40] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
-[20:15:41 - 192.168.7.40] 🔍  Profiling Averages:
-[20:15:41 - 192.168.7.40] ∘ Main Loop       :   0.02 ms
-[20:15:41 - 192.168.7.40] +----------------------------------------------------------------+
-[20:15:41 - 192.168.7.40] 🕑  System Status:
-[20:15:41 - 192.168.7.40] ∘ Poll Load     :   0.6% of 4.00 ms slot
-[20:15:41 - 192.168.7.40] ∘ Headroom      : 3.975 ms ( 99.4%)
-[20:15:41 - 192.168.7.40] ∘ Scale Cap.    : 160.00x current workload
-[20:15:41 - 192.168.7.40] ∘ Uptime        : 1m07s
-[20:15:41 - 192.168.7.40] ∘ CPU Frequency : 240 MHz
-[20:15:41 - 192.168.7.40] ∘ Last Reset    : Power-on
-[20:15:41 - 192.168.7.40] +----------------------------------------------------------------+
-[20:15:41 - 192.168.7.40] 💾  Memory Fragmentation:
-[20:15:41 - 192.168.7.40] ∘ Internal SRAM : free     41 KB, largest     18 KB, frag  54.3%
-[20:15:41 - 192.168.7.40] ∘ PSRAM Pool    : free      0 KB, largest      0 KB, frag   0.0%
-[20:15:41 - 192.168.7.40] +----------------------------------------------------------------+
-[20:15:41 - 192.168.7.40] 📡  USB-CDC Buffer Health:
-[20:15:41 - 192.168.7.40] ∘ TX Free Slots :      0 bytes
-[20:15:41 - 192.168.7.40] ∘ RX Pending    :      0 bytes
-[20:15:41 - 192.168.7.40] +----------------------------------------------------------------+
-[20:15:41 - 192.168.7.40] 🔁  Ring Buffer Health:
-[20:15:41 - 192.168.7.40] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
-[20:15:41 - 192.168.7.40] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
-[20:15:41 - 192.168.7.40] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
-[20:15:41 - 192.168.7.40] +----------------------------------------------------------------+
-[20:15:50 - 192.168.7.40] [MISSION PAUSED] DCSBIOS stream is NOT active
-[20:15:50 - 192.168.7.40] [DCS] ❌ Sim not ready yet...
+🔭 Listening for ESP32S2 Debug/Info messages on 192.168.7.178 port 4210...
+
+[09:12:13 - 192.168.7.208] ❌ USB Stopped
+[09:12:23 - 192.168.7.208] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.208
+[09:12:23 - 192.168.7.208] =================== [STARTING DEVICE] ===================
+[09:12:23 - 192.168.7.208] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[09:12:23 - 192.168.7.208] I²C Initialized using the ESP-IDF Library (Fast mode)
+[09:12:23 - 192.168.7.208] Using SDA 7 and SCL 13 for I2C
+[09:12:23 - 192.168.7.208] Device is LOLIN S3 Mini by WEMOS
+[09:12:23 - 192.168.7.208] Registered Panel: hasGeneric
+[09:12:24 - 192.168.7.208] No I2C devices found.
+[09:12:24 - 192.168.7.208] Initializing Displays
+[09:12:24 - 192.168.7.208] ⚠️ Lock/Shoot NOT detected!
+[09:12:24 - 192.168.7.208] ⚠️ Caution Advisory NOT detected!
+[09:12:25 - 192.168.7.208] ⚫ Turning ALL GPIO LEDs OFF
+[09:12:25 - 192.168.7.208] Syncronizing Panel state....
+[09:12:25 - 192.168.7.208] ⚠️ HC165: Disabled (HC165_BITS=0)
+[09:12:25 - 192.168.7.208] ✅ Generic panel initialized
+[09:12:25 - 192.168.7.208] Selected mode: DCS-BIOS
+[09:12:25 - 192.168.7.208] ESP32 Arduino core v3.2.1  |  IDF v5.4.2
+[09:12:25 - 192.168.7.208] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[09:12:25 - 192.168.7.208] 🔌 Main Loop started
+[09:12:25 - 192.168.7.208] [DCS] ❌ Sim not ready yet...
+[09:12:25 - 192.168.7.208] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
+[09:12:25 - 192.168.7.208] [DCS-BIOS] ✅ STREAM UP
+[09:12:25 - 192.168.7.208] [STATE UPDATE] 🔁 MASTER_ARM_SW = SAFE
+[09:12:25 - 192.168.7.208] [STATE UPDATE] 🔁 MASTER_MODE_AA = POS 0
+[09:12:25 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:12:25 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:12:25 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:12:25 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:12:26 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:12:26 - 192.168.7.208] Syncronizing Panel state....
+[09:12:26 - 192.168.7.208] ✅ Generic panel initialized
+[09:12:26 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:12:47 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:12:47 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:12:54 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:12:55 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:12:56 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:12:56 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:12:57 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:12:58 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:13:25 - 192.168.7.208] 
+[09:13:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:13:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:13:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:13:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:13:25 - 192.168.7.208] 🕑  System Status:
+[09:13:25 - 192.168.7.208] ∘ Poll Load     :   0.6% of 4.00 ms slot
+[09:13:25 - 192.168.7.208] ∘ Scale Cap.    : 171.80x current workload
+[09:13:25 - 192.168.7.208] ∘ Uptime        : 1m07s
+[09:13:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:13:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:13:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:13:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:13:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:13:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:13:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:13:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:13:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:13:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:13:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:13:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:13:31 - 192.168.7.208] [MISSION STOP]
+[09:13:34 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:13:34 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:13:34 - 192.168.7.208] Syncronizing Panel state....
+[09:13:34 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:13:57 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:13:58 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:14:05 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:14:05 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:14:06 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:14:07 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:14:08 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:14:09 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:14:25 - 192.168.7.208] 
+[09:14:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:14:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:14:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:14:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:14:25 - 192.168.7.208] ∘ Uptime        : 2m07s
+[09:14:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:14:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:14:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:14:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:14:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:14:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:14:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:14:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:14:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:14:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:14:41 - 192.168.7.208] [MISSION STOP]
+[09:14:44 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:14:45 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:14:45 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:14:45 - 192.168.7.208] Syncronizing Panel state....
+[09:14:45 - 192.168.7.208] ✅ Generic panel initialized
+[09:14:45 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:15:08 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:15:08 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:15:15 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:15:16 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:15:17 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:15:17 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:15:25 - 192.168.7.208] 
+[09:15:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:15:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:15:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:15:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:15:25 - 192.168.7.208] 🕑  System Status:
+[09:15:25 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:15:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:15:25 - 192.168.7.208] ∘ Scale Cap.    : 187.60x current workload
+[09:15:25 - 192.168.7.208] ∘ Uptime        : 3m07s
+[09:15:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:15:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:15:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:15:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:15:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:15:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:15:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:15:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:15:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:15:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:15:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:15:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:15:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:15:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:15:52 - 192.168.7.208] [MISSION STOP]
+[09:15:55 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:15:55 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:15:55 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:15:55 - 192.168.7.208] Syncronizing Panel state....
+[09:15:55 - 192.168.7.208] ✅ Generic panel initialized
+[09:16:18 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:16:25 - 192.168.7.208] 
+[09:16:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:16:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:16:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:16:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:16:25 - 192.168.7.208] 🕑  System Status:
+[09:16:25 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:16:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:16:25 - 192.168.7.208] ∘ Scale Cap.    : 187.50x current workload
+[09:16:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:16:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:16:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:16:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:16:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:16:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:16:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:16:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:16:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:16:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:16:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:16:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:16:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:16:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:16:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:16:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:16:26 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:16:26 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:16:27 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:16:28 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:16:30 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:17:02 - 192.168.7.208] [MISSION STOP]
+[09:17:05 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:17:06 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:17:06 - 192.168.7.208] Syncronizing Panel state....
+[09:17:06 - 192.168.7.208] ✅ Generic panel initialized
+[09:17:06 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:17:25 - 192.168.7.208] 
+[09:17:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:17:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:17:25 - 192.168.7.208] 🕑  System Status:
+[09:17:25 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:17:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:17:25 - 192.168.7.208] ∘ Uptime        : 5m07s
+[09:17:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:17:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:17:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:17:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:17:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:17:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:17:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:17:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:17:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:17:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:17:25 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:17:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:17:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:17:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:17:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:17:29 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:17:36 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:17:37 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:17:38 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:17:39 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:17:39 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:17:40 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:18:13 - 192.168.7.208] [MISSION STOP]
+[09:18:16 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:18:16 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:18:16 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:18:16 - 192.168.7.208] Syncronizing Panel state....
+[09:18:16 - 192.168.7.208] ✅ Generic panel initialized
+[09:18:16 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:18:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:18:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:18:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:18:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:18:25 - 192.168.7.208] 🕑  System Status:
+[09:18:25 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:18:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:18:25 - 192.168.7.208] ∘ Scale Cap.    : 186.59x current workload
+[09:18:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:18:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:18:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:18:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:18:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:18:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:18:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:18:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:18:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:18:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:18:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:18:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:18:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:18:39 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:18:40 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:18:47 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:18:47 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:18:49 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:18:50 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:18:51 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:19:24 - 192.168.7.208] [MISSION STOP]
+[09:19:25 - 192.168.7.208] 
+[09:19:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:19:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:19:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:19:25 - 192.168.7.208] 🕑  System Status:
+[09:19:25 - 192.168.7.208] ∘ Poll Load     :   0.6% of 4.00 ms slot
+[09:19:25 - 192.168.7.208] ∘ Headroom      : 3.977 ms ( 99.4%)
+[09:19:25 - 192.168.7.208] ∘ Scale Cap.    : 175.72x current workload
+[09:19:25 - 192.168.7.208] ∘ Uptime        : 7m07s
+[09:19:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:19:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:19:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:19:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.6%
+[09:19:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:19:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:19:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:19:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:19:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:19:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:19:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:19:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:19:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:19:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:19:26 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:19:27 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:19:27 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:19:27 - 192.168.7.208] Syncronizing Panel state....
+[09:19:27 - 192.168.7.208] ✅ Generic panel initialized
+[09:19:27 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:19:50 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:19:50 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:19:57 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:19:58 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:19:59 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:20:00 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:20:00 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:20:01 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:20:25 - 192.168.7.208] 
+[09:20:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:20:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:20:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:20:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:20:25 - 192.168.7.208] 🕑  System Status:
+[09:20:25 - 192.168.7.208] ∘ Headroom      : 3.978 ms ( 99.4%)
+[09:20:25 - 192.168.7.208] ∘ Scale Cap.    : 178.95x current workload
+[09:20:25 - 192.168.7.208] ∘ Uptime        : 8m07s
+[09:20:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:20:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:20:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:20:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:20:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:20:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:20:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:20:25 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:20:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:20:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:20:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:20:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:20:34 - 192.168.7.208] [MISSION STOP]
+[09:20:37 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:20:37 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:20:37 - 192.168.7.208] Syncronizing Panel state....
+[09:20:37 - 192.168.7.208] ✅ Generic panel initialized
+[09:20:37 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:21:00 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:21:01 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:21:08 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:21:08 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:21:09 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:21:10 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:21:11 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:21:12 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:21:25 - 192.168.7.208] 
+[09:21:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:21:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:21:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:21:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:21:25 - 192.168.7.208] 🕑  System Status:
+[09:21:25 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:21:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:21:25 - 192.168.7.208] ∘ Scale Cap.    : 186.51x current workload
+[09:21:25 - 192.168.7.208] ∘ Uptime        : 9m07s
+[09:21:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:21:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:21:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:21:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:21:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:21:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:21:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:21:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:21:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:21:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:21:47 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:21:48 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:21:48 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:21:48 - 192.168.7.208] Syncronizing Panel state....
+[09:21:48 - 192.168.7.208] ✅ Generic panel initialized
+[09:21:48 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:22:11 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:22:12 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:22:18 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:22:19 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:22:20 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:22:21 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:22:25 - 192.168.7.208] 
+[09:22:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:22:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:22:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:22:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:22:25 - 192.168.7.208] 🕑  System Status:
+[09:22:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:22:25 - 192.168.7.208] ∘ Scale Cap.    : 186.56x current workload
+[09:22:25 - 192.168.7.208] ∘ Uptime        : 10m07s
+[09:22:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:22:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:22:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:22:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:22:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:22:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:22:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:22:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:22:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:22:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:22:25 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:22:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:22:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:22:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:22:56 - 192.168.7.208] [MISSION STOP]
+[09:22:58 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:22:59 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:22:59 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:22:59 - 192.168.7.208] Syncronizing Panel state....
+[09:22:59 - 192.168.7.208] ✅ Generic panel initialized
+[09:22:59 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:23:22 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:23:22 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:23:25 - 192.168.7.208] 
+[09:23:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:23:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:23:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:23:25 - 192.168.7.208] 🕑  System Status:
+[09:23:25 - 192.168.7.208] ∘ Poll Load     :   0.6% of 4.00 ms slot
+[09:23:25 - 192.168.7.208] ∘ Headroom      : 3.978 ms ( 99.4%)
+[09:23:25 - 192.168.7.208] ∘ Scale Cap.    : 181.69x current workload
+[09:23:25 - 192.168.7.208] ∘ Uptime        : 11m07s
+[09:23:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:23:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:23:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:23:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:23:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:23:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:23:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:23:26 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:23:26 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:23:26 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:23:26 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:23:26 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:23:29 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:23:30 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:23:30 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:23:31 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:23:32 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:23:33 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:24:08 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:24:09 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:24:09 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:24:09 - 192.168.7.208] Syncronizing Panel state....
+[09:24:09 - 192.168.7.208] ✅ Generic panel initialized
+[09:24:09 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:24:25 - 192.168.7.208] 
+[09:24:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:24:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:24:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:24:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:24:25 - 192.168.7.208] 🕑  System Status:
+[09:24:25 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:24:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:24:25 - 192.168.7.208] ∘ Scale Cap.    : 186.25x current workload
+[09:24:25 - 192.168.7.208] ∘ Uptime        : 12m07s
+[09:24:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:24:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:24:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:24:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:24:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:24:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:24:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:24:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:24:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:24:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:24:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:24:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:24:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:24:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:24:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:24:32 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:24:33 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:24:39 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:24:40 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:24:41 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:24:42 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:24:42 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:24:44 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:25:16 - 192.168.7.208] [MISSION STOP]
+[09:25:19 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:25:19 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:25:19 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:25:19 - 192.168.7.208] Syncronizing Panel state....
+[09:25:19 - 192.168.7.208] ✅ Generic panel initialized
+[09:25:19 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:25:25 - 192.168.7.208] 
+[09:25:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:25:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:25:25 - 192.168.7.208] 🕑  System Status:
+[09:25:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:25:25 - 192.168.7.208] ∘ Scale Cap.    : 186.65x current workload
+[09:25:25 - 192.168.7.208] ∘ Uptime        : 13m07s
+[09:25:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:25:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:25:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:25:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:25:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:25:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:25:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:25:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:25:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:25:25 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:25:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:25:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:25:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:25:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:25:43 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:25:50 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:25:51 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:25:51 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:25:53 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:26:25 - 192.168.7.208] 
+[09:26:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:26:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:26:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:26:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:26:25 - 192.168.7.208] 🕑  System Status:
+[09:26:25 - 192.168.7.208] ∘ Poll Load     :   0.6% of 4.00 ms slot
+[09:26:25 - 192.168.7.208] ∘ Scale Cap.    : 168.37x current workload
+[09:26:25 - 192.168.7.208] ∘ Uptime        : 14m07s
+[09:26:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:26:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:26:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:26:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:26:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:26:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:26:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:26:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:26:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:26:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:26:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:26:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:26:25 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:26:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:26:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  1, max  2, overruns 0
+[09:26:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:26:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:26:27 - 192.168.7.208] [MISSION STOP]
+[09:26:29 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:26:30 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:26:30 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:26:30 - 192.168.7.208] Syncronizing Panel state....
+[09:26:30 - 192.168.7.208] ✅ Generic panel initialized
+[09:26:30 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:26:53 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:26:54 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:27:00 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:27:01 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:27:02 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:27:03 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:27:04 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:27:05 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:27:25 - 192.168.7.208] 
+[09:27:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:27:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:27:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:27:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:27:25 - 192.168.7.208] 🕑  System Status:
+[09:27:25 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:27:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:27:25 - 192.168.7.208] ∘ Uptime        : 15m07s
+[09:27:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:27:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:27:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:27:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:27:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:27:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:27:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:27:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:27:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:27:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:27:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:27:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:27:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:27:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:27:37 - 192.168.7.208] [MISSION STOP]
+[09:27:40 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:27:40 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:27:40 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:27:40 - 192.168.7.208] Syncronizing Panel state....
+[09:27:41 - 192.168.7.208] ✅ Generic panel initialized
+[09:27:41 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:28:04 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:28:04 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:28:11 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:28:12 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:28:12 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:28:13 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:28:14 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:28:15 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:28:25 - 192.168.7.208] 
+[09:28:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:28:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:28:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:28:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:28:25 - 192.168.7.208] ∘ Scale Cap.    : 186.59x current workload
+[09:28:25 - 192.168.7.208] ∘ Uptime        : 16m07s
+[09:28:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:28:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:28:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:28:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:28:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:28:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:28:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:28:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:28:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:28:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:28:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:28:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:28:25 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:28:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:28:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:28:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:28:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:28:48 - 192.168.7.208] [MISSION STOP]
+[09:28:51 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:28:51 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:28:51 - 192.168.7.208] Syncronizing Panel state....
+[09:28:51 - 192.168.7.208] ✅ Generic panel initialized
+[09:28:51 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:29:14 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:29:15 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:29:21 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:29:22 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:29:23 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:29:24 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:29:25 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:29:25 - 192.168.7.208] 
+[09:29:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:29:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:29:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:29:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:29:25 - 192.168.7.208] 🕑  System Status:
+[09:29:25 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:29:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:29:25 - 192.168.7.208] ∘ Uptime        : 17m07s
+[09:29:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:29:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:29:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:29:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:29:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:29:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:29:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:29:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:29:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:29:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:29:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:29:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:29:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:29:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  2, overruns 0
+[09:29:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:29:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:29:26 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:30:01 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:30:02 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:30:02 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:30:02 - 192.168.7.208] Syncronizing Panel state....
+[09:30:02 - 192.168.7.208] ✅ Generic panel initialized
+[09:30:02 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:30:25 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:30:25 - 192.168.7.208] 
+[09:30:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:30:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:30:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:30:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:30:25 - 192.168.7.208] 🕑  System Status:
+[09:30:25 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:30:25 - 192.168.7.208] ∘ Scale Cap.    : 186.49x current workload
+[09:30:25 - 192.168.7.208] ∘ Uptime        : 18m07s
+[09:30:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:30:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:30:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:30:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:30:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:30:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:30:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:30:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:30:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:30:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:30:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:30:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:30:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:30:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:30:25 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:30:32 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:30:33 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:30:34 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:30:34 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:30:35 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:30:36 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:31:09 - 192.168.7.208] [MISSION STOP]
+[09:31:12 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:31:12 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:31:12 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:31:12 - 192.168.7.208] Syncronizing Panel state....
+[09:31:12 - 192.168.7.208] ✅ Generic panel initialized
+[09:31:12 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:31:25 - 192.168.7.208] 
+[09:31:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:31:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:31:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:31:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:31:25 - 192.168.7.208] 🕑  System Status:
+[09:31:25 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:31:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:31:25 - 192.168.7.208] ∘ Scale Cap.    : 186.54x current workload
+[09:31:25 - 192.168.7.208] ∘ Uptime        : 19m07s
+[09:31:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:31:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:31:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:31:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:31:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.4%
+[09:31:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:31:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:31:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:31:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:31:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:31:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:31:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:31:25 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:31:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:31:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  2, overruns 0
+[09:31:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:31:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:31:35 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:31:36 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:31:43 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:31:43 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:31:44 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:31:45 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:31:46 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:31:47 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:32:19 - 192.168.7.208] [MISSION STOP]
+[09:32:22 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:32:23 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:32:23 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:32:23 - 192.168.7.208] Syncronizing Panel state....
+[09:32:23 - 192.168.7.208] ✅ Generic panel initialized
+[09:32:23 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:32:25 - 192.168.7.208] 
+[09:32:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:32:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:32:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:32:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:32:25 - 192.168.7.208] 🕑  System Status:
+[09:32:25 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:32:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:32:25 - 192.168.7.208] ∘ Scale Cap.    : 186.63x current workload
+[09:32:25 - 192.168.7.208] ∘ Uptime        : 20m07s
+[09:32:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:32:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:32:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:32:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.6%
+[09:32:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:32:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:32:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:32:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:32:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:32:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:32:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:32:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:32:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:32:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:32:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:32:46 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:32:46 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:32:53 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:32:54 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:32:55 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:32:56 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:32:56 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:32:58 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:33:25 - 192.168.7.208] 
+[09:33:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:33:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:33:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:33:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:33:25 - 192.168.7.208] 🕑  System Status:
+[09:33:25 - 192.168.7.208] ∘ Poll Load     :   0.6% of 4.00 ms slot
+[09:33:25 - 192.168.7.208] ∘ Headroom      : 3.976 ms ( 99.4%)
+[09:33:25 - 192.168.7.208] ∘ Scale Cap.    : 168.22x current workload
+[09:33:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:33:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:33:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:33:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:33:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:33:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:33:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:33:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:33:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:33:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:33:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:33:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:33:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:33:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:33:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:33:30 - 192.168.7.208] [MISSION STOP]
+[09:33:33 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:33:33 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:33:33 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:33:33 - 192.168.7.208] Syncronizing Panel state....
+[09:33:33 - 192.168.7.208] ✅ Generic panel initialized
+[09:33:33 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:33:57 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:33:57 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:34:04 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:34:05 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:34:05 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:34:06 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:34:07 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:34:08 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:34:25 - 192.168.7.208] 
+[09:34:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:34:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:34:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:34:25 - 192.168.7.208] 🕑  System Status:
+[09:34:25 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:34:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:34:25 - 192.168.7.208] ∘ Scale Cap.    : 186.48x current workload
+[09:34:25 - 192.168.7.208] ∘ Uptime        : 22m07s
+[09:34:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:34:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:34:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:34:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:34:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:34:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:34:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:34:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:34:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:34:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:34:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:34:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:34:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:34:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:34:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:34:41 - 192.168.7.208] [MISSION STOP]
+[09:34:43 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:34:44 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:34:44 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:34:44 - 192.168.7.208] Syncronizing Panel state....
+[09:34:44 - 192.168.7.208] ✅ Generic panel initialized
+[09:34:44 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:35:07 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:35:08 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:35:14 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:35:15 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:35:16 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:35:17 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:35:17 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:35:18 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:35:25 - 192.168.7.208] 
+[09:35:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:35:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:35:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:35:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:35:25 - 192.168.7.208] 🕑  System Status:
+[09:35:25 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:35:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:35:25 - 192.168.7.208] ∘ Scale Cap.    : 186.51x current workload
+[09:35:25 - 192.168.7.208] ∘ Uptime        : 23m07s
+[09:35:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:35:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:35:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:35:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:35:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:35:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:35:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:35:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:35:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:35:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:35:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:35:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:35:25 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:35:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:35:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:35:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:35:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:35:51 - 192.168.7.208] [MISSION STOP]
+[09:35:54 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:35:54 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:35:54 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:35:54 - 192.168.7.208] Syncronizing Panel state....
+[09:35:54 - 192.168.7.208] ✅ Generic panel initialized
+[09:35:54 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:36:18 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:36:18 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:36:25 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:36:25 - 192.168.7.208] 
+[09:36:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:36:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:36:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:36:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:36:25 - 192.168.7.208] 🕑  System Status:
+[09:36:25 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:36:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:36:25 - 192.168.7.208] ∘ Scale Cap.    : 186.62x current workload
+[09:36:25 - 192.168.7.208] ∘ Uptime        : 24m07s
+[09:36:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:36:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:36:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:36:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:36:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:36:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:36:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:36:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:36:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:36:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:36:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:36:25 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:36:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:36:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:36:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:36:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:36:26 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:36:26 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:36:27 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:36:28 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:36:29 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:37:02 - 192.168.7.208] [MISSION STOP]
+[09:37:04 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:37:05 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:37:05 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:37:05 - 192.168.7.208] Syncronizing Panel state....
+[09:37:05 - 192.168.7.208] ✅ Generic panel initialized
+[09:37:05 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:37:25 - 192.168.7.208] 
+[09:37:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:37:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:37:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:37:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:37:25 - 192.168.7.208] 🕑  System Status:
+[09:37:25 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:37:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:37:25 - 192.168.7.208] ∘ Scale Cap.    : 186.47x current workload
+[09:37:25 - 192.168.7.208] ∘ Uptime        : 25m07s
+[09:37:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:37:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:37:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:37:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:37:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:37:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:37:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:37:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:37:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:37:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:37:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:37:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:37:25 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:37:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:37:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:37:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:37:28 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:37:29 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:37:35 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:37:36 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:37:37 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:37:38 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:37:39 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:37:40 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:38:12 - 192.168.7.208] [MISSION STOP]
+[09:38:15 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:38:15 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:38:15 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:38:15 - 192.168.7.208] Syncronizing Panel state....
+[09:38:15 - 192.168.7.208] ✅ Generic panel initialized
+[09:38:15 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:38:25 - 192.168.7.208] 
+[09:38:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:38:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:38:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:38:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:38:25 - 192.168.7.208] 🕑  System Status:
+[09:38:25 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:38:25 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:38:25 - 192.168.7.208] ∘ Scale Cap.    : 186.65x current workload
+[09:38:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:38:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:38:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:38:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:38:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:38:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:38:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:38:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:38:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:38:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:38:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:38:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:38:25 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:38:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:38:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  1, max  2, overruns 0
+[09:38:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:38:39 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:38:39 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:38:46 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:38:47 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:38:47 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:38:48 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:38:49 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:38:50 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:39:23 - 192.168.7.208] [MISSION STOP]
+[09:39:25 - 192.168.7.208] 
+[09:39:25 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:39:25 - 192.168.7.208] 🔍  Profiling Averages:
+[09:39:25 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:39:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:39:25 - 192.168.7.208] 🕑  System Status:
+[09:39:25 - 192.168.7.208] ∘ Poll Load     :   0.6% of 4.00 ms slot
+[09:39:25 - 192.168.7.208] ∘ Headroom      : 3.978 ms ( 99.4%)
+[09:39:25 - 192.168.7.208] ∘ Scale Cap.    : 180.45x current workload
+[09:39:25 - 192.168.7.208] ∘ Uptime        : 27m07s
+[09:39:25 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:39:25 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:39:25 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:39:25 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:39:25 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:39:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:39:25 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:39:25 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:39:25 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:39:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:39:25 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:39:25 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:39:25 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:39:25 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:39:25 - 192.168.7.208] +----------------------------------------------------------------+
+[09:39:25 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:39:26 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:39:26 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:39:26 - 192.168.7.208] Syncronizing Panel state....
+[09:39:26 - 192.168.7.208] ✅ Generic panel initialized
+[09:39:26 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:39:48 - 192.168.7.208] ❌ USB Stopped
+[09:40:47 - 192.168.7.208] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.208
+[09:40:47 - 192.168.7.208] =================== [STARTING DEVICE] ===================
+[09:40:47 - 192.168.7.208] SRAM free:    198 KB, largest:    135 KB, frag:  31.3%
+[09:40:47 - 192.168.7.208] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[09:40:47 - 192.168.7.208] I²C Initialized using the ESP-IDF Library (Fast mode)
+[09:40:47 - 192.168.7.208] Using SDA 7 and SCL 13 for I2C
+[09:40:47 - 192.168.7.208] Device is LOLIN S3 Mini by WEMOS
+[09:40:47 - 192.168.7.208] Registered Panel: hasGeneric
+[09:40:49 - 192.168.7.208] No I2C devices found.
+[09:40:49 - 192.168.7.208] Initializing Displays
+[09:40:49 - 192.168.7.208] Initializing LEDs
+[09:40:49 - 192.168.7.208] ⚠️ Lock/Shoot NOT detected!
+[09:40:49 - 192.168.7.208] ⚠️ Caution Advisory NOT detected!
+[09:40:49 - 192.168.7.208] ⚫ Turning ALL GPIO LEDs OFF
+[09:40:50 - 192.168.7.208] Syncronizing Panel state....
+[09:40:50 - 192.168.7.208] ⚠️ HC165: Disabled (HC165_BITS=0)
+[09:40:50 - 192.168.7.208] ✅ Generic panel initialized
+[09:40:50 - 192.168.7.208] Selected mode: DCS-BIOS
+[09:40:50 - 192.168.7.208] Device "CockpitOS Panel TEST_ONLY (Please change this name)" is ready
+[09:40:50 - 192.168.7.208] ESP32 Arduino core v3.2.1  |  IDF v5.4.2
+[09:40:50 - 192.168.7.208] Variant: 1007421959
+[09:40:50 - 192.168.7.208] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[09:40:50 - 192.168.7.208] 🔌 Main Loop started
+[09:40:50 - 192.168.7.208] [DCS] ❌ Sim not ready yet...
+[09:40:50 - 192.168.7.208] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
+[09:40:50 - 192.168.7.208] [DCS-BIOS] ✅ STREAM UP
+[09:40:50 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:40:50 - 192.168.7.208] [STATE UPDATE] 🔁 MASTER_ARM_SW = SAFE
+[09:40:50 - 192.168.7.208] [STATE UPDATE] 🔁 MASTER_MODE_AA = POS 0
+[09:40:50 - 192.168.7.208] [STATE UPDATE] 🔁 MASTER_MODE_AG = POS 0
+[09:40:50 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:40:50 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:40:50 - 192.168.7.208] Syncronizing Panel state....
+[09:40:50 - 192.168.7.208] ✅ Generic panel initialized
+[09:40:50 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:40:53 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:40:53 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:40:53 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:41:00 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:41:00 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:41:07 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:41:08 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:41:08 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:41:09 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:41:10 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:41:11 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:41:13 - 192.168.7.208] ❌ USB Stopped
+[09:42:10 - 192.168.7.208] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.208
+[09:42:10 - 192.168.7.208] =================== [STARTING DEVICE] ===================
+[09:42:10 - 192.168.7.208] SRAM free:    198 KB, largest:    135 KB, frag:  31.3%
+[09:42:10 - 192.168.7.208] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[09:42:10 - 192.168.7.208] I²C Initialized using the ESP-IDF Library (Fast mode)
+[09:42:10 - 192.168.7.208] Using SDA 7 and SCL 13 for I2C
+[09:42:10 - 192.168.7.208] Device is LOLIN S3 Mini by WEMOS
+[09:42:10 - 192.168.7.208] Registered Panel: hasGeneric
+[09:42:11 - 192.168.7.208] No I2C devices found.
+[09:42:11 - 192.168.7.208] Initializing Displays
+[09:42:11 - 192.168.7.208] Initializing LEDs
+[09:42:11 - 192.168.7.208] ⚠️ Lock/Shoot NOT detected!
+[09:42:11 - 192.168.7.208] ⚠️ Caution Advisory NOT detected!
+[09:42:12 - 192.168.7.208] ⚫ Turning ALL GPIO LEDs OFF
+[09:42:12 - 192.168.7.208] Syncronizing Panel state....
+[09:42:12 - 192.168.7.208] ⚠️ HC165: Disabled (HC165_BITS=0)
+[09:42:12 - 192.168.7.208] ✅ Generic panel initialized
+[09:42:12 - 192.168.7.208] Selected mode: DCS-BIOS
+[09:42:12 - 192.168.7.208] Device "CockpitOS Panel TEST_ONLY (Please change this name)" is ready
+[09:42:12 - 192.168.7.208] ESP32 Arduino core v3.2.1  |  IDF v5.4.2
+[09:42:12 - 192.168.7.208] Variant: esp32s3
+[09:42:12 - 192.168.7.208] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[09:42:12 - 192.168.7.208] 🔌 Main Loop started
+[09:42:12 - 192.168.7.208] [DCS] ❌ Sim not ready yet...
+[09:42:12 - 192.168.7.208] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
+[09:42:12 - 192.168.7.208] [DCS-BIOS] ✅ STREAM UP
+[09:42:12 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:42:13 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:42:13 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:42:13 - 192.168.7.208] Syncronizing Panel state....
+[09:42:13 - 192.168.7.208] ✅ Generic panel initialized
+[09:42:13 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:42:15 - 192.168.7.208] [STATE UPDATE] 🔁 MASTER_ARM_SW = SAFE
+[09:42:15 - 192.168.7.208] [STATE UPDATE] 🔁 MASTER_MODE_AA = POS 0
+[09:42:15 - 192.168.7.208] [STATE UPDATE] 🔁 MASTER_MODE_AG = POS 0
+[09:42:15 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:42:15 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:42:15 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:42:17 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:42:18 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:42:19 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:42:20 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:42:20 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:42:22 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:42:54 - 192.168.7.208] [MISSION STOP]
+[09:42:57 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:42:57 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:42:57 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:42:57 - 192.168.7.208] Syncronizing Panel state....
+[09:42:57 - 192.168.7.208] ✅ Generic panel initialized
+[09:42:57 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:43:12 - 192.168.7.208] 
+[09:43:12 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:43:12 - 192.168.7.208] 🔍  Profiling Averages:
+[09:43:12 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:43:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:43:12 - 192.168.7.208] 🕑  System Status:
+[09:43:12 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:43:12 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:43:12 - 192.168.7.208] ∘ Scale Cap.    : 190.03x current workload
+[09:43:12 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:43:12 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:43:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:43:12 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:43:12 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.6%
+[09:43:12 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:43:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:43:12 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:43:12 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:43:12 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:43:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:43:12 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:43:12 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:43:12 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:43:12 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:43:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:43:21 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:43:21 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:43:28 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:43:29 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:43:30 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:43:31 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:43:31 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:43:32 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:44:05 - 192.168.7.208] [MISSION STOP]
+[09:44:08 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:44:08 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:44:08 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:44:08 - 192.168.7.208] Syncronizing Panel state....
+[09:44:08 - 192.168.7.208] ✅ Generic panel initialized
+[09:44:08 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:44:12 - 192.168.7.208] 
+[09:44:12 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:44:12 - 192.168.7.208] 🔍  Profiling Averages:
+[09:44:12 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:44:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:44:12 - 192.168.7.208] 🕑  System Status:
+[09:44:12 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:44:12 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:44:12 - 192.168.7.208] ∘ Scale Cap.    : 187.52x current workload
+[09:44:12 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:44:12 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:44:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:44:12 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:44:12 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.6%
+[09:44:12 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:44:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:44:12 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:44:12 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:44:12 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:44:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:44:12 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:44:12 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:44:12 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:44:12 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:44:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:44:31 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:44:32 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:44:39 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:44:39 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:44:40 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:44:41 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:44:42 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:44:43 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:45:12 - 192.168.7.208] 
+[09:45:12 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:45:12 - 192.168.7.208] 🔍  Profiling Averages:
+[09:45:12 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:45:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:45:12 - 192.168.7.208] 🕑  System Status:
+[09:45:12 - 192.168.7.208] ∘ Poll Load     :   0.6% of 4.00 ms slot
+[09:45:12 - 192.168.7.208] ∘ Headroom      : 3.976 ms ( 99.4%)
+[09:45:12 - 192.168.7.208] ∘ Scale Cap.    : 169.11x current workload
+[09:45:12 - 192.168.7.208] ∘ Uptime        : 3m07s
+[09:45:12 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:45:12 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:45:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:45:12 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:45:12 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.6%
+[09:45:12 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:45:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:45:12 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:45:12 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:45:12 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:45:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:45:12 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:45:12 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:45:12 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max  2, overruns 0
+[09:45:12 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:45:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:45:15 - 192.168.7.208] [MISSION STOP]
+[09:45:18 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:45:19 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:45:19 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:45:19 - 192.168.7.208] Syncronizing Panel state....
+[09:45:19 - 192.168.7.208] ✅ Generic panel initialized
+[09:45:19 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:45:42 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:45:42 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:45:49 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:45:50 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:45:51 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:45:51 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:45:52 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:45:53 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:46:12 - 192.168.7.208] 
+[09:46:12 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:46:12 - 192.168.7.208] 🔍  Profiling Averages:
+[09:46:12 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:46:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:46:12 - 192.168.7.208] 🕑  System Status:
+[09:46:12 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:46:12 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:46:12 - 192.168.7.208] ∘ Scale Cap.    : 187.43x current workload
+[09:46:12 - 192.168.7.208] ∘ Uptime        : 4m07s
+[09:46:12 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:46:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:46:12 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:46:12 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:46:12 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:46:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:46:12 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:46:12 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:46:12 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:46:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:46:12 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:46:12 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:46:12 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:46:12 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:46:12 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:46:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:46:26 - 192.168.7.208] [MISSION STOP]
+[09:46:29 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:46:29 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:46:29 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:46:29 - 192.168.7.208] Syncronizing Panel state....
+[09:46:29 - 192.168.7.208] ✅ Generic panel initialized
+[09:46:29 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:46:53 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:46:53 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:47:00 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:47:00 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:47:01 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:47:02 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:47:03 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:47:04 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:47:12 - 192.168.7.208] 
+[09:47:12 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:47:12 - 192.168.7.208] 🔍  Profiling Averages:
+[09:47:12 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:47:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:47:12 - 192.168.7.208] 🕑  System Status:
+[09:47:12 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:47:12 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:47:12 - 192.168.7.208] ∘ Uptime        : 5m07s
+[09:47:12 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:47:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:47:12 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:47:12 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    135 KB, frag  30.6%
+[09:47:12 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:47:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:47:12 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:47:12 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:47:12 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:47:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:47:12 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:47:12 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:47:12 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  2, overruns 0
+[09:47:12 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:47:12 - 192.168.7.208] +----------------------------------------------------------------+
+[09:47:37 - 192.168.7.208] [MISSION STOP]
+[09:47:39 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:47:40 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:47:40 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:47:40 - 192.168.7.208] Syncronizing Panel state....
+[09:47:40 - 192.168.7.208] ✅ Generic panel initialized
+[09:47:40 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:47:49 - 192.168.7.208] ❌ USB Stopped
+[09:48:45 - 192.168.7.208] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.208
+[09:48:45 - 192.168.7.208] =================== [STARTING DEVICE] ===================
+[09:48:45 - 192.168.7.208] SRAM free:    198 KB, largest:    135 KB, frag:  31.3%
+[09:48:45 - 192.168.7.208] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[09:48:45 - 192.168.7.208] I²C Initialized using the ESP-IDF Library (Fast mode)
+[09:48:45 - 192.168.7.208] Using SDA 7 and SCL 13 for I2C
+[09:48:45 - 192.168.7.208] Registered Panel: hasGeneric
+[09:48:46 - 192.168.7.208] No I2C devices found.
+[09:48:46 - 192.168.7.208] Initializing Displays
+[09:48:46 - 192.168.7.208] Initializing LEDs
+[09:48:46 - 192.168.7.208] ⚠️ Lock/Shoot NOT detected!
+[09:48:46 - 192.168.7.208] ⚠️ Caution Advisory NOT detected!
+[09:48:47 - 192.168.7.208] ⚫ Turning ALL GPIO LEDs OFF
+[09:48:47 - 192.168.7.208] Syncronizing Panel state....
+[09:48:47 - 192.168.7.208] ⚠️ HC165: Disabled (HC165_BITS=0)
+[09:48:47 - 192.168.7.208] ✅ Generic panel initialized
+[09:48:47 - 192.168.7.208] Selected mode: DCS-BIOS
+[09:48:47 - 192.168.7.208] Device "CockpitOS Panel TEST_ONLY (Please change this name)" is ready
+[09:48:47 - 192.168.7.208] ESP32 Arduino core v3.2.1  |  IDF v5.4.2
+[09:48:47 - 192.168.7.208] Device is LOLIN S3 Mini by WEMOS
+[09:48:47 - 192.168.7.208] ESP32 Variant: esp32s3
+[09:48:47 - 192.168.7.208] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[09:48:47 - 192.168.7.208] 🔌 Main Loop started
+[09:48:47 - 192.168.7.208] [DCS] ❌ Sim not ready yet...
+[09:48:47 - 192.168.7.208] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
+[09:48:47 - 192.168.7.208] [DCS-BIOS] ✅ STREAM UP
+[09:48:50 - 192.168.7.208] [STATE UPDATE] 🔁 MASTER_ARM_SW = SAFE
+[09:48:50 - 192.168.7.208] [STATE UPDATE] 🔁 MASTER_MODE_AA = POS 0
+[09:48:50 - 192.168.7.208] [STATE UPDATE] 🔁 MASTER_MODE_AG = POS 0
+[09:48:50 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:48:50 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:48:50 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:48:50 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:48:50 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:48:50 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:48:50 - 192.168.7.208] Syncronizing Panel state....
+[09:48:50 - 192.168.7.208] ✅ Generic panel initialized
+[09:48:50 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:49:13 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:49:14 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:49:21 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:49:21 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:49:22 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:49:23 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:49:24 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:49:25 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:49:47 - 192.168.7.208] 
+[09:49:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:49:47 - 192.168.7.208] 🔍  Profiling Averages:
+[09:49:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:49:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:49:47 - 192.168.7.208] 🕑  System Status:
+[09:49:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:49:47 - 192.168.7.208] ∘ Headroom      : 3.978 ms ( 99.5%)
+[09:49:47 - 192.168.7.208] ∘ Scale Cap.    : 185.52x current workload
+[09:49:47 - 192.168.7.208] ∘ Uptime        : 1m08s
+[09:49:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:49:47 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:49:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:49:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:49:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:49:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:49:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:49:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:49:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:49:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:49:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:49:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:49:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:49:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[09:49:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:49:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:49:58 - 192.168.7.208] [MISSION STOP]
+[09:50:00 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:50:01 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:50:01 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:50:01 - 192.168.7.208] Syncronizing Panel state....
+[09:50:01 - 192.168.7.208] ✅ Generic panel initialized
+[09:50:01 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:50:24 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:50:24 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:50:31 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:50:32 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:50:33 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:50:34 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:50:34 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:50:36 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:50:47 - 192.168.7.208] 
+[09:50:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:50:47 - 192.168.7.208] 🔍  Profiling Averages:
+[09:50:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:50:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:50:47 - 192.168.7.208] 🕑  System Status:
+[09:50:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:50:47 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:50:47 - 192.168.7.208] ∘ Scale Cap.    : 187.50x current workload
+[09:50:47 - 192.168.7.208] ∘ Uptime        : 2m08s
+[09:50:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:50:47 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:50:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:50:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:50:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.4%
+[09:50:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2026 KB, largest   2015 KB, frag   0.5%
+[09:50:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:50:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:50:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:50:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:50:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:50:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:50:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:50:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  3, max  3, overruns 0
+[09:50:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:50:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:51:08 - 192.168.7.208] [MISSION STOP]
+[09:51:11 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:51:11 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:51:11 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:51:11 - 192.168.7.208] Syncronizing Panel state....
+[09:51:11 - 192.168.7.208] ✅ Generic panel initialized
+[09:51:11 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:51:34 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:51:35 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:51:42 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:51:42 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:51:43 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:51:44 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:51:45 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:51:46 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:51:47 - 192.168.7.208] 
+[09:51:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:51:47 - 192.168.7.208] 🔍  Profiling Averages:
+[09:51:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:51:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:51:47 - 192.168.7.208] 🕑  System Status:
+[09:51:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:51:47 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:51:47 - 192.168.7.208] ∘ Scale Cap.    : 187.46x current workload
+[09:51:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:51:47 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:51:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:51:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:51:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.6%
+[09:51:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:51:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:51:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:51:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:51:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:51:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:51:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:51:47 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:51:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:51:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[09:51:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:51:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:52:19 - 192.168.7.208] [MISSION STOP]
+[09:52:21 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:52:22 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:52:22 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:52:22 - 192.168.7.208] Syncronizing Panel state....
+[09:52:22 - 192.168.7.208] ✅ Generic panel initialized
+[09:52:22 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:52:45 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:52:45 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:52:47 - 192.168.7.208] 
+[09:52:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:52:47 - 192.168.7.208] 🔍  Profiling Averages:
+[09:52:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:52:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:52:47 - 192.168.7.208] 🕑  System Status:
+[09:52:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:52:47 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:52:47 - 192.168.7.208] ∘ Scale Cap.    : 187.59x current workload
+[09:52:47 - 192.168.7.208] ∘ Uptime        : 4m08s
+[09:52:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:52:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:52:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:52:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:52:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:52:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:52:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:52:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:52:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:52:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:52:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:52:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[09:52:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:52:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:52:52 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:52:53 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:52:54 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:52:55 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:52:55 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:52:56 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:53:29 - 192.168.7.208] [MISSION STOP]
+[09:53:32 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:53:32 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:53:32 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:53:32 - 192.168.7.208] Syncronizing Panel state....
+[09:53:32 - 192.168.7.208] ✅ Generic panel initialized
+[09:53:32 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:53:47 - 192.168.7.208] 
+[09:53:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:53:47 - 192.168.7.208] 🔍  Profiling Averages:
+[09:53:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:53:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:53:47 - 192.168.7.208] 🕑  System Status:
+[09:53:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:53:47 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:53:47 - 192.168.7.208] ∘ Scale Cap.    : 186.85x current workload
+[09:53:47 - 192.168.7.208] ∘ Uptime        : 5m08s
+[09:53:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:53:47 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:53:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:53:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:53:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:53:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:53:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:53:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:53:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:53:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:53:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:53:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:53:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:53:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[09:53:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:53:56 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:53:56 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:54:03 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:54:03 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:54:04 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:54:05 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:54:06 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:54:07 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:54:40 - 192.168.7.208] [MISSION STOP]
+[09:54:42 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:54:43 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:54:43 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:54:43 - 192.168.7.208] Syncronizing Panel state....
+[09:54:43 - 192.168.7.208] ✅ Generic panel initialized
+[09:54:43 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:54:47 - 192.168.7.208] 
+[09:54:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:54:47 - 192.168.7.208] 🔍  Profiling Averages:
+[09:54:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:54:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:54:47 - 192.168.7.208] 🕑  System Status:
+[09:54:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:54:47 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:54:47 - 192.168.7.208] ∘ Scale Cap.    : 186.51x current workload
+[09:54:47 - 192.168.7.208] ∘ Uptime        : 6m08s
+[09:54:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:54:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:54:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:54:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:54:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:54:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:54:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:54:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:54:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:54:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:54:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:54:47 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:54:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:54:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[09:54:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:54:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:55:06 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:55:07 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:55:13 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:55:14 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:55:15 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:55:16 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:55:17 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:55:18 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:55:47 - 192.168.7.208] 
+[09:55:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:55:47 - 192.168.7.208] 🔍  Profiling Averages:
+[09:55:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:55:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:55:47 - 192.168.7.208] 🕑  System Status:
+[09:55:47 - 192.168.7.208] ∘ Poll Load     :   0.6% of 4.00 ms slot
+[09:55:47 - 192.168.7.208] ∘ Headroom      : 3.976 ms ( 99.4%)
+[09:55:47 - 192.168.7.208] ∘ Scale Cap.    : 168.26x current workload
+[09:55:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:55:47 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:55:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:55:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:55:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.6%
+[09:55:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:55:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:55:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:55:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:55:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:55:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:55:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:55:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:55:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[09:55:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:55:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:55:50 - 192.168.7.208] [MISSION STOP]
+[09:55:53 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:55:54 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:55:54 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:55:54 - 192.168.7.208] Syncronizing Panel state....
+[09:55:54 - 192.168.7.208] ✅ Generic panel initialized
+[09:55:54 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:56:17 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:56:17 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:56:24 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:56:25 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:56:26 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:56:26 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:56:27 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:56:28 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:56:47 - 192.168.7.208] 
+[09:56:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:56:47 - 192.168.7.208] 🔍  Profiling Averages:
+[09:56:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:56:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:56:47 - 192.168.7.208] 🕑  System Status:
+[09:56:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:56:47 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:56:47 - 192.168.7.208] ∘ Uptime        : 8m08s
+[09:56:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:56:47 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:56:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:56:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:56:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:56:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:56:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:56:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:56:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:56:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:56:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:56:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:56:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:56:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[09:56:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:57:01 - 192.168.7.208] [MISSION STOP]
+[09:57:04 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:57:04 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:57:04 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:57:04 - 192.168.7.208] Syncronizing Panel state....
+[09:57:04 - 192.168.7.208] ✅ Generic panel initialized
+[09:57:04 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:57:27 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:57:28 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:57:35 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:57:35 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:57:36 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:57:37 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:57:38 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:57:39 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:57:47 - 192.168.7.208] 
+[09:57:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:57:47 - 192.168.7.208] 🔍  Profiling Averages:
+[09:57:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:57:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:57:47 - 192.168.7.208] 🕑  System Status:
+[09:57:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:57:47 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:57:47 - 192.168.7.208] ∘ Scale Cap.    : 186.52x current workload
+[09:57:47 - 192.168.7.208] ∘ Uptime        : 9m08s
+[09:57:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:57:47 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:57:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:57:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:57:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:57:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:57:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:57:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:57:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:57:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:57:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:57:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:57:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:57:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[09:57:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:57:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:58:11 - 192.168.7.208] [MISSION STOP]
+[09:58:14 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:58:15 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:58:15 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:58:15 - 192.168.7.208] Syncronizing Panel state....
+[09:58:15 - 192.168.7.208] ✅ Generic panel initialized
+[09:58:15 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:58:38 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:58:38 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:58:45 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:58:46 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:58:47 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:58:47 - 192.168.7.208] 
+[09:58:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:58:47 - 192.168.7.208] 🔍  Profiling Averages:
+[09:58:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:58:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:58:47 - 192.168.7.208] 🕑  System Status:
+[09:58:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:58:47 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:58:47 - 192.168.7.208] ∘ Scale Cap.    : 186.49x current workload
+[09:58:47 - 192.168.7.208] ∘ Uptime        : 10m08s
+[09:58:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:58:47 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:58:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:58:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:58:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[09:58:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:58:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:58:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:58:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:58:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:58:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:58:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:58:47 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:58:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:58:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[09:58:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:58:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:58:47 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:58:48 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:58:49 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:59:22 - 192.168.7.208] [MISSION STOP]
+[09:59:25 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[09:59:25 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[09:59:25 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[09:59:25 - 192.168.7.208] Syncronizing Panel state....
+[09:59:25 - 192.168.7.208] ✅ Generic panel initialized
+[09:59:25 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[09:59:47 - 192.168.7.208] 
+[09:59:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[09:59:47 - 192.168.7.208] 🔍  Profiling Averages:
+[09:59:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[09:59:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:59:47 - 192.168.7.208] 🕑  System Status:
+[09:59:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[09:59:47 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[09:59:47 - 192.168.7.208] ∘ Scale Cap.    : 186.29x current workload
+[09:59:47 - 192.168.7.208] ∘ Uptime        : 11m08s
+[09:59:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[09:59:47 - 192.168.7.208] ∘ Last Reset    : Power-on
+[09:59:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:59:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[09:59:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.6%
+[09:59:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[09:59:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:59:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[09:59:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[09:59:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[09:59:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:59:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[09:59:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[09:59:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  1, max  3, overruns 0
+[09:59:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[09:59:47 - 192.168.7.208] +----------------------------------------------------------------+
+[09:59:48 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[09:59:49 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[09:59:56 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[09:59:56 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[09:59:57 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[09:59:58 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[09:59:59 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:00:00 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:00:33 - 192.168.7.208] [MISSION STOP]
+[10:00:35 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[10:00:36 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[10:00:36 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[10:00:36 - 192.168.7.208] Syncronizing Panel state....
+[10:00:36 - 192.168.7.208] ✅ Generic panel initialized
+[10:00:36 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[10:00:47 - 192.168.7.208] 
+[10:00:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[10:00:47 - 192.168.7.208] 🔍  Profiling Averages:
+[10:00:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[10:00:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:00:47 - 192.168.7.208] 🕑  System Status:
+[10:00:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[10:00:47 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[10:00:47 - 192.168.7.208] ∘ Scale Cap.    : 186.56x current workload
+[10:00:47 - 192.168.7.208] ∘ Uptime        : 12m08s
+[10:00:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[10:00:47 - 192.168.7.208] ∘ Last Reset    : Power-on
+[10:00:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:00:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[10:00:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.6%
+[10:00:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[10:00:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:00:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[10:00:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[10:00:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[10:00:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:00:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[10:00:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:00:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[10:00:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[10:00:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:00:59 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[10:00:59 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[10:01:06 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:01:07 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[10:01:08 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[10:01:09 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:01:09 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:01:10 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:01:43 - 192.168.7.208] [MISSION STOP]
+[10:01:46 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[10:01:46 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[10:01:46 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[10:01:46 - 192.168.7.208] Syncronizing Panel state....
+[10:01:46 - 192.168.7.208] ✅ Generic panel initialized
+[10:01:46 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[10:01:47 - 192.168.7.208] 
+[10:01:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[10:01:47 - 192.168.7.208] 🔍  Profiling Averages:
+[10:01:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[10:01:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:01:47 - 192.168.7.208] 🕑  System Status:
+[10:01:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[10:01:47 - 192.168.7.208] ∘ Headroom      : 3.978 ms ( 99.5%)
+[10:01:47 - 192.168.7.208] ∘ Scale Cap.    : 184.75x current workload
+[10:01:47 - 192.168.7.208] ∘ Uptime        : 13m08s
+[10:01:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[10:01:47 - 192.168.7.208] ∘ Last Reset    : Power-on
+[10:01:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:01:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[10:01:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.6%
+[10:01:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[10:01:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:01:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[10:01:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[10:01:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[10:01:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:01:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[10:01:47 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:01:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:01:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[10:01:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:02:09 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[10:02:10 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[10:02:17 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:02:17 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[10:02:18 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[10:02:19 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:02:20 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:02:21 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:02:47 - 192.168.7.208] 
+[10:02:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[10:02:47 - 192.168.7.208] 🔍  Profiling Averages:
+[10:02:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[10:02:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:02:47 - 192.168.7.208] 🕑  System Status:
+[10:02:47 - 192.168.7.208] ∘ Poll Load     :   0.6% of 4.00 ms slot
+[10:02:47 - 192.168.7.208] ∘ Headroom      : 3.976 ms ( 99.4%)
+[10:02:47 - 192.168.7.208] ∘ Scale Cap.    : 170.05x current workload
+[10:02:47 - 192.168.7.208] ∘ Uptime        : 14m08s
+[10:02:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[10:02:47 - 192.168.7.208] ∘ Last Reset    : Power-on
+[10:02:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:02:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[10:02:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.6%
+[10:02:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[10:02:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:02:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[10:02:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[10:02:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[10:02:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:02:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[10:02:47 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:02:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:02:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[10:02:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[10:02:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:02:54 - 192.168.7.208] [MISSION STOP]
+[10:02:56 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[10:02:57 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[10:02:57 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[10:02:57 - 192.168.7.208] Syncronizing Panel state....
+[10:02:57 - 192.168.7.208] ✅ Generic panel initialized
+[10:02:57 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[10:03:20 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[10:03:20 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[10:03:27 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:03:28 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[10:03:29 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[10:03:30 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:03:30 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:03:31 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:03:47 - 192.168.7.208] 
+[10:03:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[10:03:47 - 192.168.7.208] 🔍  Profiling Averages:
+[10:03:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[10:03:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:03:47 - 192.168.7.208] 🕑  System Status:
+[10:03:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[10:03:47 - 192.168.7.208] ∘ Headroom      : 3.978 ms ( 99.5%)
+[10:03:47 - 192.168.7.208] ∘ Scale Cap.    : 185.90x current workload
+[10:03:47 - 192.168.7.208] ∘ Uptime        : 15m08s
+[10:03:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[10:03:47 - 192.168.7.208] ∘ Last Reset    : Power-on
+[10:03:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:03:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[10:03:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.5%
+[10:03:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[10:03:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:03:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[10:03:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[10:03:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[10:03:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:03:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[10:03:47 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:03:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:03:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[10:03:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:04:04 - 192.168.7.208] [MISSION STOP]
+[10:04:07 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[10:04:07 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[10:04:07 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[10:04:07 - 192.168.7.208] Syncronizing Panel state....
+[10:04:07 - 192.168.7.208] ✅ Generic panel initialized
+[10:04:07 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[10:04:31 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[10:04:31 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[10:04:38 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:04:39 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[10:04:39 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[10:04:40 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:04:41 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:04:42 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:04:47 - 192.168.7.208] 
+[10:04:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[10:04:47 - 192.168.7.208] 🔍  Profiling Averages:
+[10:04:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[10:04:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:04:47 - 192.168.7.208] 🕑  System Status:
+[10:04:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[10:04:47 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[10:04:47 - 192.168.7.208] ∘ Scale Cap.    : 186.25x current workload
+[10:04:47 - 192.168.7.208] ∘ Uptime        : 16m08s
+[10:04:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[10:04:47 - 192.168.7.208] ∘ Last Reset    : Power-on
+[10:04:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:04:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[10:04:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.4%
+[10:04:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2026 KB, largest   2015 KB, frag   0.5%
+[10:04:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:04:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[10:04:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[10:04:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[10:04:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:04:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[10:04:47 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:04:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:04:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[10:04:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[10:04:48 - 192.168.7.208] +----------------------------------------------------------------+
+[10:05:15 - 192.168.7.208] [MISSION STOP]
+[10:05:17 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[10:05:18 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[10:05:18 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[10:05:18 - 192.168.7.208] Syncronizing Panel state....
+[10:05:18 - 192.168.7.208] ✅ Generic panel initialized
+[10:05:18 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[10:05:41 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[10:05:42 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[10:05:47 - 192.168.7.208] 
+[10:05:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[10:05:47 - 192.168.7.208] 🔍  Profiling Averages:
+[10:05:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[10:05:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:05:47 - 192.168.7.208] 🕑  System Status:
+[10:05:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[10:05:47 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[10:05:47 - 192.168.7.208] ∘ Scale Cap.    : 186.36x current workload
+[10:05:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[10:05:47 - 192.168.7.208] ∘ Last Reset    : Power-on
+[10:05:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:05:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.7%
+[10:05:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[10:05:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:05:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[10:05:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[10:05:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[10:05:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:05:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[10:05:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:05:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[10:05:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[10:05:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:05:48 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:05:49 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[10:05:50 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[10:05:51 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:05:51 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:05:52 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:06:25 - 192.168.7.208] [MISSION STOP]
+[10:06:28 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[10:06:28 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[10:06:28 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[10:06:28 - 192.168.7.208] Syncronizing Panel state....
+[10:06:28 - 192.168.7.208] ✅ Generic panel initialized
+[10:06:28 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[10:06:47 - 192.168.7.208] 
+[10:06:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[10:06:47 - 192.168.7.208] 🔍  Profiling Averages:
+[10:06:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[10:06:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:06:47 - 192.168.7.208] 🕑  System Status:
+[10:06:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[10:06:47 - 192.168.7.208] ∘ Headroom      : 3.978 ms ( 99.5%)
+[10:06:47 - 192.168.7.208] ∘ Scale Cap.    : 185.46x current workload
+[10:06:47 - 192.168.7.208] ∘ Uptime        : 18m08s
+[10:06:47 - 192.168.7.208] ∘ Last Reset    : Power-on
+[10:06:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:06:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[10:06:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.6%
+[10:06:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[10:06:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:06:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[10:06:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[10:06:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:06:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[10:06:47 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:06:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:06:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[10:06:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[10:06:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:06:52 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[10:06:52 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[10:06:59 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:06:59 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[10:07:00 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[10:07:01 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:07:02 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:07:03 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:07:36 - 192.168.7.208] [MISSION STOP]
+[10:07:38 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[10:07:39 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[10:07:39 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[10:07:39 - 192.168.7.208] Syncronizing Panel state....
+[10:07:39 - 192.168.7.208] ✅ Generic panel initialized
+[10:07:39 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[10:07:47 - 192.168.7.208] 
+[10:07:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[10:07:47 - 192.168.7.208] 🔍  Profiling Averages:
+[10:07:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[10:07:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:07:47 - 192.168.7.208] 🕑  System Status:
+[10:07:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[10:07:47 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[10:07:47 - 192.168.7.208] ∘ Scale Cap.    : 186.63x current workload
+[10:07:47 - 192.168.7.208] ∘ Uptime        : 19m08s
+[10:07:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[10:07:47 - 192.168.7.208] ∘ Last Reset    : Power-on
+[10:07:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:07:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[10:07:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.6%
+[10:07:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:07:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[10:07:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[10:07:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[10:07:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:07:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[10:07:47 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:07:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[10:07:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[10:07:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:08:02 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[10:08:03 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[10:08:09 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:08:10 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[10:08:11 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[10:08:12 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:08:12 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:08:14 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:08:46 - 192.168.7.208] [MISSION STOP]
+[10:08:47 - 192.168.7.208] 
+[10:08:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[10:08:47 - 192.168.7.208] 🔍  Profiling Averages:
+[10:08:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[10:08:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:08:47 - 192.168.7.208] 🕑  System Status:
+[10:08:47 - 192.168.7.208] ∘ Poll Load     :   0.6% of 4.00 ms slot
+[10:08:47 - 192.168.7.208] ∘ Headroom      : 3.977 ms ( 99.4%)
+[10:08:47 - 192.168.7.208] ∘ Scale Cap.    : 172.03x current workload
+[10:08:47 - 192.168.7.208] ∘ Uptime        : 20m08s
+[10:08:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[10:08:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:08:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[10:08:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.6%
+[10:08:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[10:08:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:08:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[10:08:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[10:08:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[10:08:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:08:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[10:08:47 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:08:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:08:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  3, overruns 0
+[10:08:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[10:08:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:08:49 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[10:08:49 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[10:08:49 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[10:08:49 - 192.168.7.208] Syncronizing Panel state....
+[10:08:49 - 192.168.7.208] ✅ Generic panel initialized
+[10:08:49 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[10:09:13 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[10:09:13 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[10:09:20 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:09:21 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[10:09:21 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[10:09:22 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:09:23 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:09:24 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:09:47 - 192.168.7.208] 
+[10:09:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[10:09:47 - 192.168.7.208] 🔍  Profiling Averages:
+[10:09:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[10:09:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:09:47 - 192.168.7.208] 🕑  System Status:
+[10:09:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[10:09:47 - 192.168.7.208] ∘ Headroom      : 3.978 ms ( 99.5%)
+[10:09:47 - 192.168.7.208] ∘ Scale Cap.    : 182.51x current workload
+[10:09:47 - 192.168.7.208] ∘ Uptime        : 21m08s
+[10:09:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[10:09:47 - 192.168.7.208] ∘ Last Reset    : Power-on
+[10:09:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[10:09:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.6%
+[10:09:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[10:09:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:09:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[10:09:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[10:09:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[10:09:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:09:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[10:09:47 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:09:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:09:47 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  1, max 64, overruns 0
+[10:09:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[10:09:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:09:57 - 192.168.7.208] [MISSION STOP]
+[10:09:59 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[10:10:00 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[10:10:00 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[10:10:00 - 192.168.7.208] Syncronizing Panel state....
+[10:10:00 - 192.168.7.208] ✅ Generic panel initialized
+[10:10:00 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[10:10:23 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[10:10:24 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[10:10:30 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:10:31 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[10:10:32 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[10:10:33 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:10:33 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:10:35 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:10:47 - 192.168.7.208] 
+[10:10:47 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[10:10:47 - 192.168.7.208] 🔍  Profiling Averages:
+[10:10:47 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[10:10:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:10:47 - 192.168.7.208] 🕑  System Status:
+[10:10:47 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[10:10:47 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[10:10:47 - 192.168.7.208] ∘ Scale Cap.    : 186.38x current workload
+[10:10:47 - 192.168.7.208] ∘ Uptime        : 22m08s
+[10:10:47 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[10:10:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:10:47 - 192.168.7.208] 💾  Memory Fragmentation:
+[10:10:47 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.6%
+[10:10:47 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[10:10:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:10:47 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[10:10:47 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[10:10:47 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[10:10:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:10:47 - 192.168.7.208] 🔁  Ring Buffer Health:
+[10:10:47 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:10:47 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:10:47 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[10:10:47 - 192.168.7.208] +----------------------------------------------------------------+
+[10:10:51 - 192.168.7.208] ❌ USB Stopped
+[10:11:48 - 192.168.7.208] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.208
+[10:11:48 - 192.168.7.208] =================== [STARTING DEVICE] ===================
+[10:11:48 - 192.168.7.208] SRAM free:    198 KB, largest:    135 KB, frag:  31.3%
+[10:11:48 - 192.168.7.208] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[10:11:48 - 192.168.7.208] I²C Initialized using the ESP-IDF Library (Fast mode)
+[10:11:48 - 192.168.7.208] Using SDA 7 and SCL 13 for I2C
+[10:11:48 - 192.168.7.208] Registered Panel: hasGeneric
+[10:11:49 - 192.168.7.208] No I2C devices found.
+[10:11:49 - 192.168.7.208] Initializing Displays
+[10:11:49 - 192.168.7.208] Initializing LEDs
+[10:11:49 - 192.168.7.208] ⚠️ Lock/Shoot NOT detected!
+[10:11:49 - 192.168.7.208] ⚠️ Caution Advisory NOT detected!
+[10:11:50 - 192.168.7.208] ⚫ Turning ALL GPIO LEDs OFF
+[10:11:50 - 192.168.7.208] Syncronizing Panel state....
+[10:11:50 - 192.168.7.208] ⚠️ HC165: Disabled (HC165_BITS=0)
+[10:11:50 - 192.168.7.208] ✅ Generic panel initialized
+[10:11:50 - 192.168.7.208] Selected mode: DCS-BIOS
+[10:11:50 - 192.168.7.208] Device "CockpitOS Panel TEST_ONLY (Please change this name)" is ready
+[10:11:50 - 192.168.7.208] ESP32 Arduino core v3.2.1  |  IDF v5.4.2
+[10:11:50 - 192.168.7.208] ESP32 Variant is S3
+[10:11:50 - 192.168.7.208] USB OTG Supported
+[10:11:50 - 192.168.7.208] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[10:11:50 - 192.168.7.208] 🔌 Main Loop started
+[10:11:50 - 192.168.7.208] [DCS] ❌ Sim not ready yet...
+[10:11:50 - 192.168.7.208] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
+[10:11:50 - 192.168.7.208] [DCS-BIOS] ✅ STREAM UP
+[10:11:51 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[10:11:51 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[10:11:51 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[10:11:51 - 192.168.7.208] Syncronizing Panel state....
+[10:11:51 - 192.168.7.208] ✅ Generic panel initialized
+[10:11:54 - 192.168.7.208] [STATE UPDATE] 🔁 MASTER_ARM_SW = SAFE
+[10:11:54 - 192.168.7.208] [STATE UPDATE] 🔁 MASTER_MODE_AA = POS 0
+[10:11:54 - 192.168.7.208] [STATE UPDATE] 🔁 MASTER_MODE_AG = POS 0
+[10:11:54 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[10:11:54 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:11:54 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[10:12:18 - 192.168.7.208] [MISSION STOP]
+[10:12:21 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[10:12:21 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[10:12:21 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[10:12:21 - 192.168.7.208] Syncronizing Panel state....
+[10:12:21 - 192.168.7.208] ✅ Generic panel initialized
+[10:12:21 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[10:12:44 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[10:12:45 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[10:12:50 - 192.168.7.208] 
+[10:12:50 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[10:12:50 - 192.168.7.208] 🔍  Profiling Averages:
+[10:12:50 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[10:12:50 - 192.168.7.208] +----------------------------------------------------------------+
+[10:12:50 - 192.168.7.208] 🕑  System Status:
+[10:12:50 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[10:12:50 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[10:12:50 - 192.168.7.208] ∘ Scale Cap.    : 189.86x current workload
+[10:12:50 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[10:12:50 - 192.168.7.208] ∘ Last Reset    : Power-on
+[10:12:50 - 192.168.7.208] 💾  Memory Fragmentation:
+[10:12:50 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.6%
+[10:12:50 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[10:12:50 - 192.168.7.208] +----------------------------------------------------------------+
+[10:12:50 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[10:12:50 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[10:12:50 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[10:12:50 - 192.168.7.208] +----------------------------------------------------------------+
+[10:12:50 - 192.168.7.208] 🔁  Ring Buffer Health:
+[10:12:50 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:12:50 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  1, max 64, overruns 0
+[10:12:50 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[10:12:51 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:12:52 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[10:12:53 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[10:12:54 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:12:55 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:12:56 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:13:28 - 192.168.7.208] [MISSION STOP]
+[10:13:31 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[10:13:32 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[10:13:32 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[10:13:32 - 192.168.7.208] Syncronizing Panel state....
+[10:13:32 - 192.168.7.208] ✅ Generic panel initialized
+[10:13:32 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[10:13:50 - 192.168.7.208] 
+[10:13:50 - 192.168.7.208] +-------------------- PERFORMANCE SNAPSHOT ----------------------+
+[10:13:50 - 192.168.7.208] 🔍  Profiling Averages:
+[10:13:50 - 192.168.7.208] ∘ Main Loop       :   0.02 ms
+[10:13:50 - 192.168.7.208] +----------------------------------------------------------------+
+[10:13:50 - 192.168.7.208] 🕑  System Status:
+[10:13:50 - 192.168.7.208] ∘ Poll Load     :   0.5% of 4.00 ms slot
+[10:13:50 - 192.168.7.208] ∘ Headroom      : 3.979 ms ( 99.5%)
+[10:13:50 - 192.168.7.208] ∘ Scale Cap.    : 187.48x current workload
+[10:13:50 - 192.168.7.208] ∘ Uptime        : 2m07s
+[10:13:50 - 192.168.7.208] ∘ CPU Frequency : 240 MHz
+[10:13:50 - 192.168.7.208] ∘ Last Reset    : Power-on
+[10:13:50 - 192.168.7.208] +----------------------------------------------------------------+
+[10:13:50 - 192.168.7.208] 💾  Memory Fragmentation:
+[10:13:50 - 192.168.7.208] ∘ Internal SRAM : free    195 KB, largest    127 KB, frag  34.7%
+[10:13:50 - 192.168.7.208] ∘ PSRAM Pool    : free   2028 KB, largest   2015 KB, frag   0.6%
+[10:13:50 - 192.168.7.208] +----------------------------------------------------------------+
+[10:13:50 - 192.168.7.208] 📡  USB-CDC Buffer Health:
+[10:13:50 - 192.168.7.208] ∘ TX Free Slots :      0 bytes
+[10:13:50 - 192.168.7.208] ∘ RX Pending    :      0 bytes
+[10:13:50 - 192.168.7.208] +----------------------------------------------------------------+
+[10:13:50 - 192.168.7.208] 🔁  Ring Buffer Health:
+[10:13:50 - 192.168.7.208] ∘ Serial Debug     : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:13:50 - 192.168.7.208] ∘ UDP Send Debug   : avg   0.0 bytes, max 0 bytes, pending  0, max  0, overruns 0
+[10:13:50 - 192.168.7.208] ∘ UDP Receive DCS  : avg  64.0 bytes, max 64 bytes, pending  2, max 64, overruns 0
+[10:13:50 - 192.168.7.208] ∘ USB Send DCS  : avg  64.0 bytes, max 64 bytes, pending  0, max  1, overruns 0
+[10:13:50 - 192.168.7.208] +----------------------------------------------------------------+
+[10:13:55 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[10:13:55 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[10:14:02 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:14:03 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[10:14:04 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[10:14:05 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:14:05 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:14:06 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:14:26 - 192.168.7.208] ❌ USB Stopped
+[10:19:16 - 192.168.7.208] Connected to WiFi network MyHotspotNetwork with IP 192.168.7.208
+[10:19:16 - 192.168.7.208] =================== [STARTING DEVICE] ===================
+[10:19:16 - 192.168.7.208] PSRAM free:   2028 KB, largest:   2015 KB, frag:   0.6%
+[10:19:16 - 192.168.7.208] I²C Initialized using the ESP-IDF Library (Fast mode)
+[10:19:16 - 192.168.7.208] Using SDA 7 and SCL 13 for I2C
+[10:19:16 - 192.168.7.208] Registered Panel: hasGeneric
+[10:19:17 - 192.168.7.208] No I2C devices found.
+[10:19:17 - 192.168.7.208] Initializing Displays
+[10:19:17 - 192.168.7.208] Initializing LEDs
+[10:19:17 - 192.168.7.208] ⚠️ Lock/Shoot NOT detected!
+[10:19:17 - 192.168.7.208] ⚠️ Caution Advisory NOT detected!
+[10:19:18 - 192.168.7.208] ⚫ Turning ALL GPIO LEDs OFF
+[10:19:18 - 192.168.7.208] Syncronizing Panel state....
+[10:19:18 - 192.168.7.208] ⚠️ HC165: Disabled (HC165_BITS=0)
+[10:19:18 - 192.168.7.208] ✅ Generic panel initialized
+[10:19:18 - 192.168.7.208] Device "CockpitOS Panel TEST_ONLY (Please change this name)" is ready
+[10:19:18 - 192.168.7.208] (DCS-BIOS mode selected)
+[10:19:18 - 192.168.7.208] ESP32 Arduino core v3.2.1  |  IDF v5.4.2  |
+[10:19:18 - 192.168.7.208] ESP32 Variant is S3
+[10:19:18 - 192.168.7.208] (USB OTG Supported)
+[10:19:18 - 192.168.7.208] ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.
+[10:19:18 - 192.168.7.208] 🔌 Main Loop started
+[10:19:18 - 192.168.7.208] [DCS] ❌ Sim not ready yet...
+[10:19:18 - 192.168.7.208] [SET FEATURE] pushed DCSBIOS-HANDSHAKE to ring buffer
+[10:19:18 - 192.168.7.208] [DCS-BIOS] ✅ STREAM UP
+[10:19:18 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[10:19:19 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[10:19:19 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[10:19:19 - 192.168.7.208] Syncronizing Panel state....
+[10:19:19 - 192.168.7.208] ✅ Generic panel initialized
+[10:19:19 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[10:19:19 - 192.168.7.208] [STATE UPDATE] 🔁 MASTER_ARM_SW = SAFE
+[10:19:19 - 192.168.7.208] [STATE UPDATE] 🔁 MASTER_MODE_AA = POS 0
+[10:19:19 - 192.168.7.208] [STATE UPDATE] 🔁 MASTER_MODE_AG = POS 0
+[10:19:19 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[10:19:19 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:19:19 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[10:19:21 - 192.168.7.208] [MISSION STOP]
+[10:19:24 - 192.168.7.208] [MISSION START] FA-18C_hornet
+[10:19:24 - 192.168.7.208] [SYNC PANELS] 🔁 Mission Started 501 ms ago
+[10:19:24 - 192.168.7.208] [SYNC] Command history initialized for ALL inputs (selectors + buttons).
+[10:19:24 - 192.168.7.208] Syncronizing Panel state....
+[10:19:24 - 192.168.7.208] ✅ Generic panel initialized
+[10:19:24 - 192.168.7.208] [SYNC] Normal mission start panel sync
+[10:19:47 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = NORM
+[10:19:48 - 192.168.7.208] [STATE UPDATE] 🔁 IR_COOL_SW = ORIDE
+[10:19:55 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:19:55 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = NORM
+[10:19:56 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_SW = RCVY
+[10:19:57 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
+[10:19:58 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = OPEN
+[10:19:59 - 192.168.7.208] [STATE UPDATE] 🔁 SPIN_RECOVERY_COVER = CLOSED
