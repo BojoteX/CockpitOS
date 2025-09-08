@@ -5,9 +5,6 @@
 #define FEATURE_HANDSHAKE_RESP "DCSBIOS-READY"
 
 #include <USBHID.h>
-
-// Just choose ONE set of descriptors
-// #include "CustomDescriptors/Bidireccional.h" // 3 Axes, 32 Buttons + Incoming reports (from PC)
 #include "CustomDescriptors/BidireccionalNew.h" // 16 Axes, 32 Buttons + Incoming reports (from PC)
 
 extern const uint8_t hidReportDesc[];

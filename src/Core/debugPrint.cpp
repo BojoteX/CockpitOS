@@ -156,11 +156,7 @@ void serialDebugSendChunked(const char* msg, size_t len) {
     // We send directly via Serial if not using the Serial Debug Ring Buffer
     #if !SERIAL_DEBUG_USE_RINGBUFFER
         if (!isSerialConnected()) return;
-        #if (ARDUINO_USB_CDC_ON_BOOT == 1)
         writeToConsole(msg, len);
-        #else
-        // No serial interface
-        #endif
         return;
     #endif    
 
@@ -220,7 +216,7 @@ void serialDebugPrintln(const char* msg) {
 }
 
 void dumpSerialRingBuffer() {
-#if (ARDUINO_USB_CDC_ON_BOOT == 1)
+#if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE)
     char outbuf[1024];
     size_t olen = 0;
     olen += snprintf(outbuf + olen, sizeof(outbuf) - olen, "\n--- Serial Ring Buffer Dump ---\n");
@@ -263,7 +259,8 @@ void dumpSerialRingBuffer() {
 }
 
 void writeToConsole(const char* data, size_t len) {
-    if (!isSerialConnected() || !data || len == 0 || !Serial) return;
+
+    if (!isSerialConnected() || !data || len == 0) return;
 
     // const size_t CHUNK = SERIAL_DEBUG_FLUSH_BUFFER_SIZE;
     const size_t CHUNK = SERIAL_DEBUG_OUTPUT_CHUNK_SIZE;
@@ -271,9 +268,24 @@ void writeToConsole(const char* data, size_t len) {
 
     while (offset < len) {
         size_t toWrite = (len - offset > CHUNK) ? CHUNK : (len - offset);
+
+    #if ARDUINO_USB_CDC_ON_BOOT == 1
         Serial.write(data + offset, toWrite);
-        // Serial.flush();   // Optional: remove if you want, or leave for extra safety
+        Serial.flush();   // Optional: remove if you want, or leave for extra safety
         // yield();
+    #else
+        #if USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE
+            #if ARDUINO_USB_MODE == 1
+		        HWCDCSerial.write(data + offset, toWrite);
+                HWCDCSerial.flush();   // Optional: remove if you want, or leave for extra safety
+                // yield();
+            #else
+                USBSerial.write(data + offset, toWrite);
+                USBSerial.flush();   // Optional: remove if you want, or leave for extra safety
+                // yield();
+            #endif
+        #endif
+    #endif
         offset += toWrite;
     }
 }
@@ -291,12 +303,7 @@ void sendPendingSerial() {
         tempPos += dbgmsg.len;
 
         if (dbgmsg.isLastChunk) {
-            // Write the full reassembled message in one go!
-            #if (ARDUINO_USB_CDC_ON_BOOT == 1)
-            writeToConsole(tempBuf, tempPos);
-            #else
-            // Serial is NOT available
-            #endif
+			writeToConsole(tempBuf, tempPos); // Aliases to Serial
             tempPos = 0;
         }
     }

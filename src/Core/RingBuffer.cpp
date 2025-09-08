@@ -11,7 +11,7 @@
 #error "Invalid configuration: USE_DCSBIOS_WIFI and USE_DCSBIOS_USB cannot both be set to 1. Only one can be enabled at a time because they share the receive ring buffer."
 #endif
 
-#if (USE_DCSBIOS_WIFI || USE_DCSBIOS_USB)
+#if (USE_DCSBIOS_WIFI || USE_DCSBIOS_USB || USE_DCSBIOS_BLUETOOTH)
 
 // My Incoming DCS stream UDP RingBuffer
 
@@ -202,11 +202,11 @@ void dumpUsbOutRingBuffer() {
     #if USE_DCSBIOS_WIFI || DEBUG_USE_WIFI
         wifiDebugSendRaw(outbuf, olen);
     #else
-        #if (ARDUINO_USB_CDC_ON_BOOT == 1)
+        #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE)
             writeToConsole(outbuf, olen);
         #endif
     #endif
 #endif
 }
 
-#endif // (USE_DCSBIOS_WIFI || USE_DCSBIOS_USB)
+#endif // (USE_DCSBIOS_WIFI || USE_DCSBIOS_USB || USE_DCSBIOS_BLUETOOTH)

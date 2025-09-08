@@ -5,7 +5,7 @@
 #define MAX_SELECTOR_GROUPS 32
 
 // ---------- Label->Physical GPIO mapper (S3 only) ----------
-#if defined(ARDUINO_LOLIN_S3_MINI)
+#if defined(ESP_FAMILY_S3)
 // S3 pins for these labels:
 static constexpr uint8_t S3_PIN_RADALT_TEST_SW = 3;
 static constexpr uint8_t S3_PIN_RADALT_HEIGHT_CUSTOM_0 = 5; // POS0 (CCW)
@@ -14,7 +14,7 @@ static constexpr uint8_t S3_PIN_RADALT_HEIGHT_CUSTOM_1 = 2; // POS1 (CW)
 
 static inline uint8_t physPinFor(const InputMapping& m)
 {
-#if defined(ARDUINO_LOLIN_S3_MINI)
+#if defined(ESP_FAMILY_S3)
     if (!m.label) return (uint8_t)m.port;
 
     // Map by LABEL only:

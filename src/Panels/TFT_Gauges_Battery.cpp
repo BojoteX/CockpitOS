@@ -2,6 +2,9 @@
 // Dirty-rect compose + region DMA flush (PSRAM sprites, DMA-safe)
 
 #include "../Globals.h"
+
+#if (defined(ESP_FAMILY_S3) || defined(ESP_FAMILY_S2)) && (defined(ENABLE_TFT_GAUGES) && (ENABLE_TFT_GAUGES == 1))
+
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
 #include "includes/TFT_Gauges_Batt.h"
@@ -41,7 +44,7 @@
 #endif
 
 // Core
-#if defined(ARDUINO_LOLIN_S3_MINI)
+#if defined(ESP_FAMILY_S3)
 #define BATT_CPU_CORE 0
 #else
 #define BATT_CPU_CORE 0
@@ -468,3 +471,7 @@ void BatteryGauge_deinit() {
         if (bgCache[i]) { heap_caps_free(bgCache[i]);   bgCache[i] = nullptr; }
     }
 }
+
+#else
+#warning "Battery Gauge requires ESP32-S2 or ESP32-S3"
+#endif

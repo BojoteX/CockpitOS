@@ -1,53 +1,106 @@
 // HIDManager.cpp
 
-#include <USB.h>
 #include "../Globals.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
-#include "../HIDDescriptors.h"
+
+// DCSBIOS serial handling
+#if !defined(ARDUINO_USB_CDC_ON_BOOT) || ARDUINO_USB_CDC_ON_BOOT == 0
+    #if (ARDUINO_USB_MODE == 0)
+        #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) // Enable only if Serial is needed
+            // #include <USBCDC.h>
+            #include "USB.h"
+            USBCDC USBSerial;
+            #define LOADED_CDC_STACK 1 // Mark that we have a real HID stack loaded
+        #endif
+    #elif (ARDUINO_USB_MODE == 1)
+        #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) // Enable only if Serial is needed
+            #include "HWCDC.h"
+            HWCDC HWCDCSerial;  // not aliased to Serial when OFF_ON_BOOT
+        #endif
+    #endif
+#else
+    // We use Serial, which is already aliased to CDC
+#endif
+
+// ----- USB build: real stack for S2 and S3 only -----
+#if !USE_DCSBIOS_WIFI && !USE_DCSBIOS_BLUETOOTH // No WiFi or Bluetooth, so either USB or Serial only selected
+    #if (ESP_FAMILY_S2 || ESP_FAMILY_S3 || ESP_FAMILY_P4) && ARDUINO_USB_MODE == 0  
+        #if !defined(LOADED_CDC_STACK)
+            #include "USB.h"
+        #endif
+        #include "../HIDDescriptors.h"   // provides extern decls
+        USBHID HID;
+        #define LOADED_USB_STACK 1 // Mark that we have a real HID stack loaded
+    #else    
+        // Stubs only as we don't have USB stack but need the types to compile
+        #include "../CustomDescriptors/BidireccionalNew.h"   // defines GamepadReport_t and hidReportDesc
+        struct { bool ready() const { return false; } } HID;
+        #if !defined(LOADED_CDC_STACK) && !defined(LOADED_USB_STACK)
+            struct { void begin() {} template<typename...A> void onEvent(A...) {} } USB;
+        #endif
+        class GPDevice { public: bool sendReport(const void*, int) { return false; } };
+    #endif
+#else
+        // Stubs only as we don't have USB stack but need the types to compile
+        #include "../CustomDescriptors/BidireccionalNew.h"   // defines GamepadReport_t and hidReportDesc
+        struct { bool ready() const { return false; } } HID;
+        #if !defined(LOADED_CDC_STACK) && !defined(LOADED_USB_STACK)
+            struct { void begin() {} template<typename...A> void onEvent(A...) {} } USB;
+        #endif
+        class GPDevice { public: bool sendReport(const void*, int) { return false; } };
+#endif
+
+#if USE_DCSBIOS_BLUETOOTH
+#include "../BLEManager.h"
+#endif
+
+// Should we load USB events?
+bool loadUSBevents = false;
+bool loadCDCevents = false;
+
+// HID Report and device instance
+GamepadReport_t report = { 0 };  // define the extern
+GPDevice        gamepad;         // define the extern
 
 #if (USE_DCSBIOS_USB && ARDUINO_USB_CDC_ON_BOOT == 1 && !ALLOW_CONCURRENT_CDC_AND_HID)
 #error "Invalid configuration: USE_DCSBIOS_USB requires that you compile this sketch with ARDUINO_USB_CDC_ON_BOOT set to 0, to do this, see Tools menu and set option USB CDC On Boot: Disabled"
 #endif
 
-#if (VERBOSE_MODE || VERBOSE_MODE_SERIAL_ONLY) && !ARDUINO_USB_CDC_ON_BOOT == 1
-#error "Invalid configuration: Your settings configure debug/verbose output to Serial, but the option USB CDC On Boot is Disabled, Enable it and remember to update ALLOW_CONCURRENT_CDC_AND_HID"
-#endif
-
-
-#if (ARDUINO_USB_CDC_ON_BOOT == 1)
-#include "tusb.h"
-// Descriptor Helper
-static uint16_t _desc_str_buf[32];
-static const uint16_t* make_str_desc(const char* s) {
-  size_t len = strlen(s);
-  if (len > 30) len = 30;
-  // bDescriptorType=STRING (0x03), bLength = 2 + 2*len
-  _desc_str_buf[0] = (TUSB_DESC_STRING << 8) | (uint16_t)(2 * len + 2);
-  for (size_t i = 0; i < len; i++) {
-    _desc_str_buf[1 + i] = (uint16_t)s[i];
-  }
-  return _desc_str_buf;
-}
-
-// Override the weak TinyUSB string callback to fix ESP32 Core not setting correct device names when using composite devices (e.g CDC+HID)
-extern "C" {
-  const uint16_t* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
-    switch (index) {
-      case 0: {
-        static const uint16_t lang_desc[] = { (TUSB_DESC_STRING << 8) | 4, USB_LANG_ID };
-        return lang_desc;
+// USB String Descriptors override for TinyUSB stack (S2/S3)
+#if LOADED_USB_STACK
+    #include "tusb.h"
+    // Descriptor Helper
+    static uint16_t _desc_str_buf[32];
+    static const uint16_t* make_str_desc(const char* s) {
+      size_t len = strlen(s);
+      if (len > 30) len = 30;
+      // bDescriptorType=STRING (0x03), bLength = 2 + 2*len
+      _desc_str_buf[0] = (TUSB_DESC_STRING << 8) | (uint16_t)(2 * len + 2);
+      for (size_t i = 0; i < len; i++) {
+        _desc_str_buf[1 + i] = (uint16_t)s[i];
       }
-      case 1: return make_str_desc(USB_MANUFACTURER);
-      case 2: return make_str_desc(USB_SERIAL);
-      case 3: return make_str_desc(USB_SERIAL);
-      case 4: return make_str_desc(USB_SERIAL); // HID name
-      case 5: return make_str_desc(USB_SERIAL); // CDC name
-      case 6: return make_str_desc(USB_SERIAL); // Device name
-      default: return nullptr;
+      return _desc_str_buf;
     }
-  }
-}
+
+    // Override the weak TinyUSB string callback to fix ESP32 Core not setting correct device names when using composite devices (e.g CDC+HID)
+    extern "C" {
+      const uint16_t* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
+        switch (index) {
+          case 0: {
+            static const uint16_t lang_desc[] = { (TUSB_DESC_STRING << 8) | 4, USB_LANG_ID };
+            return lang_desc;
+          }
+          case 1: return make_str_desc(USB_MANUFACTURER);
+          case 2: return make_str_desc(USB_SERIAL);
+          case 3: return make_str_desc(USB_SERIAL);
+          case 4: return make_str_desc(USB_SERIAL); // HID name
+          case 5: return make_str_desc(USB_SERIAL); // CDC name
+          case 6: return make_str_desc(USB_SERIAL); // Device name
+          default: return nullptr;
+        }
+      }
+    }
 #endif
 
 // HID Report spacing & control
@@ -55,23 +108,6 @@ static uint32_t lastHidSendUs = 0;
 static uint8_t lastSentReport[sizeof(report.raw)] = {0};
 static bool reportPending = false;
 static_assert(sizeof(report.raw) == sizeof(lastSentReport), "Report size mismatch!");
-
-USBHID HID;
-
-GamepadReport_t report = {0};
-GPDevice gamepad; // Load the class
-
-/*
-// Wats the max number of groups?
-constexpr size_t maxUsedGroup = []() {
-    uint16_t max = 0;
-    for (size_t i = 0; i < sizeof(InputMappings)/sizeof(InputMappings[0]); ++i) {
-        if (InputMappings[i].group > max) max = InputMappings[i].group;
-    }
-    return max;
-}();
-static_assert(maxUsedGroup < MAX_GROUPS, "❌ Too many unique selector groups — increase MAX_GROUPS in Config.h");
-*/
 
 // Wats the max number of groups?
 size_t getMaxUsedGroup() {
@@ -272,12 +308,12 @@ void HIDManager_commitDeferredReport(const char* deviceName) {
       // Skip is we are in DCS-MODE
     if (isModeSelectorDCS()) return;
 
-  #if !USE_DCSBIOS_WIFI
-    if (!cdcEnsureRxReady(CDC_TIMEOUT_RX_TX) || !cdcEnsureTxReady(CDC_TIMEOUT_RX_TX)) {
-        debugPrintln("❌ [HID] No stream active yet or Tx buffer full");
-        return;
-    }
-  #endif    
+    #if !USE_DCSBIOS_WIFI && !USE_DCSBIOS_BLUETOOTH
+        if (!cdcEnsureRxReady(CDC_TIMEOUT_RX_TX) || !cdcEnsureTxReady(CDC_TIMEOUT_RX_TX)) {
+            debugPrintln("❌ [HID] No stream active yet or Tx buffer full");
+            return;
+        }
+    #endif    
 
     // 2) Send the raw 64-byte gamepad report
     HIDManager_dispatchReport(false);
@@ -296,28 +332,22 @@ bool shouldPollMs(unsigned long &lastPoll) {
 }
 
 // USB Events
-void onUsbStarted(void* arg, esp_event_base_t base, int32_t event_id, void* data) {
-  debugPrintln("🔌 USB Started");
-}
+#if LOADED_USB_STACK
+    void onUsbStarted(void*, esp_event_base_t, int32_t, void*) { debugPrintln("🔌 USB Started"); }
+    void onUsbStopped(void*, esp_event_base_t, int32_t, void*) { debugPrintln("❌ USB Stopped"); }
+    void onUsbSuspended(void*, esp_event_base_t, int32_t, void*) { debugPrintln("💤 USB Suspended"); }
+    void onUsbResumed(void*, esp_event_base_t, int32_t, void*) { debugPrintln("🔁 USB Resumed"); }
 
-void onUsbStopped(void* arg, esp_event_base_t base, int32_t event_id, void* data) {
-  debugPrintln("❌ USB Stopped");
-}
-
-void onUsbSuspended(void* arg, esp_event_base_t base, int32_t event_id, void* data) {
-  debugPrintln("💤 USB Suspended");
-}
-
-void onUsbResumed(void* arg, esp_event_base_t base, int32_t event_id, void* data) {
-  debugPrintln("🔁 USB Resumed");
-}
-
-void setupUSBEvents() {
-    USB.onEvent(ARDUINO_USB_STARTED_EVENT, onUsbStarted);
-    USB.onEvent(ARDUINO_USB_STOPPED_EVENT, onUsbStopped);
-    USB.onEvent(ARDUINO_USB_SUSPEND_EVENT, onUsbSuspended);
-    USB.onEvent(ARDUINO_USB_RESUME_EVENT, onUsbResumed);
-}
+    static inline void setupUSBEvents() {
+        USB.onEvent(ARDUINO_USB_STARTED_EVENT, onUsbStarted);
+        USB.onEvent(ARDUINO_USB_STOPPED_EVENT, onUsbStopped);
+        USB.onEvent(ARDUINO_USB_SUSPEND_EVENT, onUsbSuspended);
+        USB.onEvent(ARDUINO_USB_RESUME_EVENT, onUsbResumed);
+		debugPrint("USB Events registered\n");
+    }
+#else
+    static inline void setupUSBEvents() {}
+#endif
 
 static inline void HID_dbgDumpHistory(const char* label, const char* where) {
     CommandHistoryEntry* e = findCmdEntry(label);
@@ -334,6 +364,7 @@ static inline void HID_dbgDumpHistory(const char* label, const char* where) {
         (unsigned long)e->lastSendTime);
 }
 
+/*
 void HIDManager_dispatchReport(bool force) {
 
 // Only situation in which we are allowed to send HID reports while in DCS mode is when USE_DCSBIOS_USB is enabled, so we skip this check.
@@ -367,6 +398,68 @@ void HIDManager_dispatchReport(bool force) {
     memcpy(lastSentReport, report.raw, sizeof(report.raw));
     lastHidSendUs = now;
 #endif    
+}
+*/
+
+void HIDManager_dispatchReport(bool force) {
+
+    const uint32_t now = micros();
+
+#if USE_DCSBIOS_USB
+    // USB transport: always send to trigger host drain 
+    if (HID.ready()) {
+        gamepad.sendReport(report.raw, sizeof(report.raw));
+    }
+    else {
+        debugPrintln("❌ [HID] Not ready, cannot send HID report.");
+    }
+    return;
+#endif
+
+#if USE_DCSBIOS_BLUETOOTH
+    // BLE transport selected
+    if (isModeSelectorDCS()) {
+        // DCS mode → always send to provoke GET_FEATURE drain
+        BLEManager_send(report.raw, sizeof(report.raw));
+        return;
+    }
+    // HID mode over BLE → apply same gates as your non-USB branch
+    static uint32_t lastSendUs = 0;
+    static uint8_t  lastSent[sizeof(report.raw)] = { 0 };
+
+    if (force) {
+        if ((now - lastSendUs) < HID_REPORT_MIN_INTERVAL_US) return;
+    }
+    else {
+        if (memcmp(lastSent, report.raw, sizeof(report.raw)) == 0) return;
+        if ((now - lastSendUs) < HID_REPORT_MIN_INTERVAL_US) return;
+    }
+
+    BLEManager_send(report.raw, sizeof(report.raw));
+    memcpy(lastSent, report.raw, sizeof(report.raw));
+    lastSendUs = now;
+    return;
+#endif
+
+    // Fallback: pure HID mode (no USB, no BLE transport) — your existing gates
+    if (isModeSelectorDCS()) return;
+
+    static uint32_t lastHidSendUs = 0;
+    static uint8_t  lastSentReport[sizeof(report.raw)] = { 0 };
+
+    if (force) {
+        if ((now - lastHidSendUs) < HID_REPORT_MIN_INTERVAL_US) return;
+    }
+    else {
+        if (memcmp(lastSentReport, report.raw, sizeof(report.raw)) == 0) return;
+        if ((now - lastHidSendUs) < HID_REPORT_MIN_INTERVAL_US) return;
+    }
+
+    if (HID.ready())
+        gamepad.sendReport(report.raw, sizeof(report.raw));
+
+    memcpy(lastSentReport, report.raw, sizeof(report.raw));
+    lastHidSendUs = now;
 }
 
 void HIDManager_moveAxis(const char* dcsIdentifier,
@@ -474,7 +567,6 @@ void HIDManager_toggleIfPressed(bool isPressed, const char* label, bool deferSen
     lastStates[index] = isPressed;
 
     if (isPressed && !prev) {
-        // HID_dbgDumpHistory(label, "rise");
         HIDManager_setToggleNamedButton(label, deferSend);
     }
 }
@@ -491,18 +583,16 @@ void HIDManager_setToggleNamedButton(const char* name, bool deferSend) {
     const bool newOn = !curOn;
     e->lastValue = newOn ? 1 : 0;
 
-
     if (isModeSelectorDCS()) {
         if (m->oride_label && m->oride_value >= 0) {
             sendDCSBIOSCommand(m->oride_label, newOn ? m->oride_value : 0, forcePanelSyncThisMission);
         }
+        #if defined(MODE_HYBRID_DCS_HID) && (MODE_HYBRID_DCS_HID == 1)
+                // In Hybrid mode, we also update HID state but only if a hidId is assigned to this control
+        #else
+                return; // In pure DCS mode, we skip the rest
+        #endif
     }
-
-#if defined(MODE_HYBRID_DCS_HID) && (MODE_HYBRID_DCS_HID == 1)
-    // In Hybrid mode, we also update HID state but only if a hidId is assigned to this control
-#else
-    return; // In pure DCS mode, we skip the rest
-#endif
 
     if (m->hidId <= 0) return;
     const uint32_t mask = (1UL << (m->hidId - 1));
@@ -552,13 +642,13 @@ void HIDManager_setNamedButton(const char* name, bool deferSend, bool pressed) {
         bool force = forcePanelSyncThisMission;
         sendDCSBIOSCommand(m->oride_label, pressed ? m->oride_value : 0, force);
     }
-  }
 
-#if defined(MODE_HYBRID_DCS_HID) && (MODE_HYBRID_DCS_HID == 1)
-  // In Hybrid mode, we also update HID state but only if a hidId is assigned to this control
-#else
-  return; // In pure DCS mode, we skip the rest
-#endif
+    #if defined(MODE_HYBRID_DCS_HID) && (MODE_HYBRID_DCS_HID == 1)
+    // In Hybrid mode, we also update HID state but only if a hidId is assigned to this control
+    #else
+        return; // In pure DCS mode, we skip the rest
+    #endif
+  }
 
   if (m->hidId <= 0) return;
 
@@ -588,20 +678,25 @@ void HID_keepAlive() {
     }
 }
 
+void HIDManager_startUSB() {
+    // THis will load only after loadUSBevents = true
+    USB.begin();
+}
+
 void HIDManager_setup() {
 
     // Load our Group Bitmasks
-    buildHIDGroupBitmasks();    
+    buildHIDGroupBitmasks();
 
-    // Setup USB events
+#if LOADED_CDC_STACK
+    loadCDCevents = true;
+#endif
+
+#if LOADED_USB_STACK
+    loadUSBevents = true;
     setupUSBEvents();
-
-    // Start HID Device
     HID.begin();
-
-    // Start the interface
-    USB.begin();  
-    delay(3000);
+#endif
 }
 
 void HIDManager_loop() {

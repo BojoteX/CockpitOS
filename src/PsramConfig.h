@@ -16,6 +16,7 @@
  *        into external PSRAM by default.
  *        Must be included *before* any includes of WiFi or lwIP headers.
  */
+
 #ifdef CONFIG_SPIRAM_SUPPORT
   // Redirect standard malloc/free to PSRAM
   #undef malloc

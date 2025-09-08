@@ -27,7 +27,7 @@
 // So we can call our custom print functions from anywhere
 #include "debugPrint.h"
 
-#if (USE_DCSBIOS_WIFI || USE_DCSBIOS_USB)
+#if (USE_DCSBIOS_WIFI || USE_DCSBIOS_USB || USE_DCSBIOS_BLUETOOTH)
 #include "RingBuffer.h"
 #endif
 
@@ -41,6 +41,16 @@
 ///////////////////////////////////////////////////////////////////////////////////
 // Extern declarations								  /
 ///////////////////////////////////////////////////////////////////////////////////
+
+#if ARDUINO_USB_CDC_ON_BOOT == 1
+	// Do nothing, we use Serial, which is already aliased to CDC
+#else
+    #if ARDUINO_USB_MODE == 1
+        extern HWCDC HWCDCSerial;
+    #else
+        extern USBCDC USBSerial;
+    #endif
+#endif
 
 // For edge cases
 extern volatile bool forcePanelResyncNow;
@@ -61,6 +71,8 @@ extern bool debugToSerial;   		// true = allow Serial prints
 extern bool debugToUDP;      		// true = allow UDP prints
 
 // Init panels from anywhere
+extern bool loadUSBevents;
+extern bool loadCDCevents;
 extern bool HID_can_send_report();
 extern void panelLoop();
 extern void initializePanels(bool force = false);

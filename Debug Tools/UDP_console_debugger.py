@@ -7,8 +7,8 @@ import shutil
 # Change to script directory
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-LOG_FILE = "udpLogger.log"
-PREV_LOG = "prevLog.log"
+LOG_FILE = "logs/udpLogger.log"
+PREV_LOG = "logs/prevLog.log"
 
 # Rotate logs: Move last log to prevLog if it exists
 if os.path.exists(LOG_FILE):

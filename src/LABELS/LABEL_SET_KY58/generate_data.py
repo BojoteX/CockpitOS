@@ -1285,27 +1285,62 @@ except Exception as e:
 print_and_disable_cpp_files()
 print(f"✅ Renamed .cpp files to cpp.DISABLE in the inactive LABEL SETS to avoid linker conflicts")
 
-# --- Emit LabelSetConfig.h if not already present ---
+# --- Emit LabelSetConfig.h (always regenerate; PID from FULLNAME if available) ---
+import re, hashlib
+
+PID_MIN = 0x1000
+PID_MAX = 0xFFFE
+PID_SPACE = PID_MAX - PID_MIN + 1
+
+def pid_from_name(name: str) -> int:
+    h = hashlib.sha1(name.encode("utf-8")).digest()
+    raw16 = int.from_bytes(h[:2], "big") & 0xFFFF
+    return PID_MIN + (raw16 % PID_SPACE)
+
+def extract_define(txt: str, key: str) -> str:
+    # Matches: #define KEY "value"
+    m = re.search(rf'#define\s+{key}\s+"([^"]+)"', txt)
+    if m: return m.group(1)
+    # Fallback for non-quoted values if ever used
+    m = re.search(rf'#define\s+{key}\s+([^\s]+)', txt)
+    return m.group(1) if m else None
+
 labelsetconfig_filename = "LabelSetConfig.h"
-if not os.path.exists(labelsetconfig_filename):
-    _dir_name = os.path.basename(os.path.abspath(os.getcwd()))
-    _ls_name = _dir_name[len("LABEL_SET_"):] if _dir_name.startswith("LABEL_SET_") else _dir_name
-    _has_hid_mode_selector = 0
-    _mode_default_is_hid = 0
-    _label_set_fullname = f"CockpitOS Panel {_ls_name} (Please change this name)"
-    _lines = [
-        f'#define LABEL_SET_NAME        "{_ls_name}"',
-        f'#define HAS_HID_MODE_SELECTOR {_has_hid_mode_selector}',
-        f'#define MODE_DEFAULT_IS_HID   {_mode_default_is_hid}',
-        f'#define LABEL_SET_FULLNAME    "{_label_set_fullname}"',
-        f'#define HAS_{_ls_name}',
-        ''
-    ]
-    with open(labelsetconfig_filename, "w", encoding="utf-8") as _f:
-        _f.write('\n'.join(_lines))
-    print(f"[✓] Created {labelsetconfig_filename} for LABEL_SET_{_ls_name}")
-else:
-    print(f"[i] {labelsetconfig_filename} already exists, not overwritten.")
+
+# Base names from directory
+_dir_name = os.path.basename(os.path.abspath(os.getcwd()))
+_ls_name = _dir_name[len("LABEL_SET_"):] if _dir_name.startswith("LABEL_SET_") else _dir_name
+
+# Defaults; adjust later if you add UI to set them
+_has_hid_mode_selector = 0
+_mode_default_is_hid   = 0
+
+# If file exists, prefer existing FULLNAME for PID stability across runs
+existing_fullname = None
+if os.path.exists(labelsetconfig_filename):
+    with open(labelsetconfig_filename, "r", encoding="utf-8") as _f:
+        existing_fullname = extract_define(_f.read(), "LABEL_SET_FULLNAME")
+
+# Name used to derive PID
+name_for_pid = existing_fullname if existing_fullname else f"CockpitOS Panel {_ls_name}"
+_pid = pid_from_name(name_for_pid)
+
+# We also write FULLNAME to file; if it already existed, keep it
+_label_set_fullname = existing_fullname if existing_fullname else f"CockpitOS Panel {_ls_name}"
+
+_lines = [
+    f'#define LABEL_SET_NAME        "{_ls_name}"',
+    f'#define HAS_HID_MODE_SELECTOR {_has_hid_mode_selector}',
+    f'#define MODE_DEFAULT_IS_HID   {_mode_default_is_hid}',
+    f'#define LABEL_SET_FULLNAME    "{_label_set_fullname}" // You can safely change this',
+    f'#define HAS_{_ls_name}',
+    f'#define AUTOGEN_USB_PID       0x{_pid:04X} // DO NOT EDIT THIS',
+    ''
+]
+with open(labelsetconfig_filename, "w", encoding="utf-8") as _f:
+    _f.write("\n".join(_lines))
+
+print(f"[✓] Created {labelsetconfig_filename} with AUTOGEN_USB_PID=0x{_pid:04X} (from '{name_for_pid}')")
 
 # Set the active set
 

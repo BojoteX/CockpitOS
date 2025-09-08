@@ -65,6 +65,7 @@ void wifiDebugInit(uint16_t localPort) {
     if (WiFi.status() != WL_CONNECTED) return;
 
 #if USE_DCSBIOS_WIFI
+
     udp.listenMulticast(IPAddress(239,255,50,10), 5010);
 
     udp.onPacket([](AsyncUDPPacket packet) {
@@ -73,7 +74,7 @@ void wifiDebugInit(uint16_t localPort) {
         if (!dcsSourceIPValid || dcsSourceIP != packet.remoteIP()) {
             dcsSourceIP = packet.remoteIP();
             dcsSourceIPValid = true;
-            debugPrintf("[DCS] Updated source IP: %s\n", dcsSourceIP.toString().c_str());
+            serialDebugPrintf("[DCS] Updated source IP: %s\n", dcsSourceIP.toString().c_str());
         }
 
         // Don't do anything unless we start our main loop
@@ -97,8 +98,11 @@ void wifiDebugInit(uint16_t localPort) {
     udp.listen(localPort);  // (required, even if we don't care about receiving)
 
     udp.onPacket([](AsyncUDPPacket packet) {
-        debugPrintf("[UDP] %s\n", packet.data());
+        serialDebugPrintf("[UDP RECEIVED] %.*s\n",
+            (int)packet.length(),
+            (const char*)packet.data());
     });
+
 #endif
 }
 
@@ -121,7 +125,6 @@ bool tryToSendDcsBiosMessageUDP(const char* msg, const char* arg) {
     buf[msgLen] = ' ';
     memcpy(buf + msgLen + 1, arg, argLen);
     len = msgLen + 1 + argLen;
-    buf[len++] = '\r';
     buf[len++] = '\n';
     buf[len] = '\0'; // Not needed for UDP, but safe
 

@@ -7,6 +7,13 @@
 
 */
 
+#include "esp_log.h"
+extern "C" int _sink_vprintf(const char*, va_list) { return 0; }
+__attribute__((constructor)) static void silence_logs(void) {
+  esp_log_level_set("*", ESP_LOG_NONE);     // kill ESP-IDF logs
+  esp_log_set_vprintf(&_sink_vprintf);      // swallow any printf-backed logging
+}
+
 #include "src/Globals.h" // Common header used by everyone
 #include "src/HIDManager.h" // Needed for _init and _loop for HIDManager
 #include "src/DCSBIOSBridge.h" // Needed for _init and _loop for DCSBIOSBridge
@@ -15,6 +22,10 @@
 
 #if DEBUG_USE_WIFI || USE_DCSBIOS_WIFI
 #include "src/WiFiDebug.h" // Only WiFi
+#endif
+
+#if USE_DCSBIOS_BLUETOOTH
+#include "src/BLEManager.h" // Only BLE (Bluetooth)
 #endif
 
 // Keep track when the main loop starts
@@ -82,21 +93,41 @@ void setup() {
 
     // First parameter is output to Serial, second one is output to UDP (only use this for overriding output)
     debugInit();
-    debugSetOutput(debugToSerial, debugToUDP);  
+    debugSetOutput(debugToSerial, debugToUDP);   
 
     // Sets standard read resolution and attenuation
     analogReadResolution(13); // Only value consistent across Arduino Core installs 2.0+ / 3.0+ (0-8191)
-    analogSetAttenuation(ADC_11db);      
+    analogSetAttenuation(ADC_11db);    
 
     // Init our CDC + HID Interfaces
-    DCSBIOSBridge_setup();  // We get CDC started here    
     HIDManager_setup();     // We get HID started here 
+    DCSBIOSBridge_setup();  // We get CDC started here    
 
+    // Start USB (After Serial.begin and USBSerial.begin)
+    if (loadUSBevents || loadCDCevents)
+        HIDManager_startUSB();
+
+    // Let USB enumerate and Serial start
+    delay(3000);
+
+    // WiFi needs to load AFTER HIDManager and DCSBIOSBridge setup. If you need to debug messages during that stage, enable WIFI_DEBUG_USE_RINGBUFFER in Config.h 
     #if DEBUG_USE_WIFI || USE_DCSBIOS_WIFI
     wifi_setup();
+    #endif  
+
+    // Display Buffer registrations, Register tracked selectors and command history sync from inputmappings
+    DCSBIOSBridge_postSetup();
+
+    #if USE_DCSBIOS_BLUETOOTH
+    BLE_setup();
     #endif
 
-    debugPrintln("\n=================== [STARTING DEVICE] ===================");
+    #if USE_DCSBIOS_WIFI
+      if (!isModeSelectorDCS()) {
+        debugPrintln("❌ FATAL: Invalid configuration! USE_DCSBIOS_WIFI requires DCS-BIOS mode, not HID");
+        while (true) {}  // halt
+      }
+    #endif
 
     // Shows available mem/heap frag etc.
     checkHealth();   
@@ -146,7 +177,7 @@ void setup() {
     #endif     
 
     if(DEBUG) {
-        debugPrintf("Device \"%s\" is ready and DEBUG is active ", USB_SERIAL);
+        debugPrintf("Device \"%s\" is ready and DEBUG is active\n", USB_SERIAL);
         if (!isModeSelectorDCS()) {
             debugPrintln("(HID mode selected)");
         }
@@ -155,7 +186,7 @@ void setup() {
         }          
     }
     else {
-        debugPrintf("Device \"%s\" is ready ", USB_SERIAL);
+        debugPrintf("Device \"%s\" is ready\n", USB_SERIAL);
         if (!isModeSelectorDCS()) {
             debugPrintln("(HID mode selected)");
         }
@@ -165,36 +196,32 @@ void setup() {
     }    
 
     // What Arduino ESP32 was this compiled with?
-    debugPrintf("ESP32 Arduino core v%d.%d.%d  |  IDF v%d.%d.%d  |  ", 
+    debugPrintf("ESP32 Arduino core v%d.%d.%d  |  IDF v%d.%d.%d\n", 
       ESP_ARDUINO_VERSION_MAJOR, ESP_ARDUINO_VERSION_MINOR, ESP_ARDUINO_VERSION_PATCH, 
       ESP_IDF_VERSION_MAJOR, ESP_IDF_VERSION_MINOR, ESP_IDF_VERSION_PATCH);
 
-  // Works across all boards of the same chip family
-  #if defined(CONFIG_IDF_TARGET_ESP32C3)
-    #define ESP_FAMILY_C3 1
-    debugPrint("ESP32 Variant is C3 ");
-  #elif defined(CONFIG_IDF_TARGET_ESP32S2)
-    #define ESP_FAMILY_S2 1
-    debugPrint("ESP32 Variant is S2 ");
-  #elif defined(CONFIG_IDF_TARGET_ESP32S3)
-    #define ESP_FAMILY_S3 1
-    debugPrint("ESP32 Variant is S3 ");
-  #elif defined(CONFIG_IDF_TARGET_ESP32)
-    #define ESP_FAMILY_CLASSIC 1
-    debugPrint("ESP32 Classic Variant ");
-  #else
-    debugPrint("ESP32 Variant is Unknown ");
-  #endif
-
   #if SOC_USB_OTG_SUPPORTED
-    debugPrintln("(USB OTG Supported)");
+    debugPrint("(USB OTG Supported)\n");
   #else
-    debugPrintln("(USB OTG NOT Supported)\n");
+    debugPrint("(USB OTG NOT Supported)\n");
   #endif
 
     #if USE_DCSBIOS_USB
-    debugPrintln("ATTENTION: USB mode ENABLED. Run CockpitOS_HID_Controller.py on the computer where your devices are connected.");
+      debugPrintln("[USB] Native USB mode enabled. Run CockpitOS_HID_Manager.py inside HID Controller directory");
+    #elif USE_DCSBIOS_BLUETOOTH
+      debugPrintln("[BLUETOOTH] BLE (Bluetooth) enabled. Run CockpitOS_HID_Manager.py inside HID Controller directory");
+    #elif USE_DCSBIOS_WIFI
+      debugPrintf("[WiFi] WiFi mode enabled. Connected to %s\n", WIFI_SSID);
+    #elif USE_DCSBIOS_SERIAL
+      debugPrintln("[Serial] Serial CDC enabled. Run 'connect-serial-port.cmd' (socat) to connect.");
     #endif
+
+    #if ARDUINO_USB_MODE
+      debugPrintf("CDC Mode is 'Hardware CDC / JTAG' | ARDUINO_USB_MODE=%d, ARDUINO_USB_CDC_ON_BOOT=%d\n", ARDUINO_USB_MODE, ARDUINO_USB_CDC_ON_BOOT);
+    #else
+      debugPrintf("CDC Mode is 'USB-OTG (TinyUSB)' | ARDUINO_USB_MODE=%d, ARDUINO_USB_CDC_ON_BOOT=%d\n", ARDUINO_USB_MODE, ARDUINO_USB_CDC_ON_BOOT);
+    #endif
+
 }
 
 void loop() {
@@ -215,6 +242,10 @@ void loop() {
     panelLoop(); // Main Panels loop
     DCSBIOSBridge_loop(); // DCSBios Logic loop
     HIDManager_loop();  // HIDManager Logic loop
+
+    #if USE_DCSBIOS_BLUETOOTH
+    BLE_loop();
+    #endif
 
     // All profiling blocks REQUIRE we close them
     #if DEBUG_PERFORMANCE

@@ -5,6 +5,7 @@
 #include "../Mappings.h"
 #include "../Pins.h"
 
+void DCSBIOSBridge_postSetup();
 void initPanels();
 void DCSBIOS_forceMissionStop();
 void forceResync();

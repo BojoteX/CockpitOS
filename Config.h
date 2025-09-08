@@ -13,10 +13,12 @@
   #error "You need to run the auto-generator script in the LABELS directory"
 #endif
 
-// Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. Pure USB or WIFI. This methods COMPLETELY bypasses Serial. If both are set to 0, then standard CDC / Serial is used. Both CAN NOT be set to 1 at the same time
-#define USE_DCSBIOS_WIFI                          0   // Completely bypasses socat and uses WiFi to connect to DCS. 
-// DO NOT set both to 1. Only ONE can be active -or- both set to 0 to operate in legacy CDC mode (Serial+socat)
-#define USE_DCSBIOS_USB                           1   // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work.
+// Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. 
+// Bluetooth BLE, Pure Native USB, WIFI or Serial (CDC/Socat). Only ONE can be active 
+#define USE_DCSBIOS_BLUETOOTH                     0   // Completely bypasses socat and uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (All ESP32 that support BLE Bluetooth)
+#define USE_DCSBIOS_WIFI                          0   // Completely bypasses socat and uses WiFi to connect to DCS. (ALL ESP32 Devices except H2) 
+#define USE_DCSBIOS_USB                           1   // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (S2, S3 & P4 Only)
+#define USE_DCSBIOS_SERIAL                        0   // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported)
 
 // Wi-Fi network credentials (used for WiFi remote Debug Console and DCSBIOS WiFi mode if selected)
 #define WIFI_SSID                                 "MyHotspotNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
@@ -28,21 +30,20 @@
 #define DEBUG_ENABLED                             0  // Use it ONLY when identifying issues or troubleshooting
 #define DEBUG_ENABLED_FOR_PCA_ONLY                0  // Use it ONLY when mapping Port/bit/mask in PCA9xxx devices
 #define DEBUG_ENABLED_FOR_HC165_ONLY              0  // Use it ONLY when mapping bits in HC165 devices
-#define DEBUG_USE_WIFI                            1  // Uses WiFi to output VERBOSE and DEBUG messages
+#define DEBUG_USE_WIFI                            0  // Uses WiFi to output VERBOSE and DEBUG messages
 #define VERBOSE_MODE                              0  // Logs INFO messages to both Serial and UDP (very useful) 
 #define VERBOSE_MODE_SERIAL_ONLY                  0  // Verbose will only output to Serial. 
-#define VERBOSE_MODE_WIFI_ONLY                    1  // Verbose will only output to WiFi so Serial port is clean. Requires DEBUG_USE_WIFI
+#define VERBOSE_MODE_WIFI_ONLY                    0  // Verbose will only output to WiFi so Serial port is clean. Requires DEBUG_USE_WIFI
 #define VERBOSE_PERFORMANCE_ONLY                  0  // Requires DEBUG_PERFORMANCE as well, this will only output perf snapshots, make sure you pick WIFI or SERIAL above and DEBUG_ENABLED is 0
-#define DEBUG_PERFORMANCE                         1  // Shows a performance snapshot every x seconds (interval can be configured below)
+#define DEBUG_PERFORMANCE                         0  // Shows a performance snapshot every x seconds (interval can be configured below)
 #define DEBUG_PERFORMANCE_SHOW_TASKS              0  // Includes the current task list with the snapshot. Not really needed.
 #define PERFORMANCE_SNAPSHOT_INTERVAL_SECONDS     60 // Interval between snapshots (in seconds)
 
 // Advanced config, these settings have been carefully tuned for performance and stability, 
+#define ENABLE_TFT_GAUGES                          1 // Enable TFT Gauges (should always be 1, except for testing or debugging)
 #define MODE_HYBRID_DCS_HID                        0 // Allow both DCS and HID mode simultaneously
 #define DCSBIOS_USE_LITE_VERSION                   1 // Set to 1 to use a LITE (local) version of the DCSBIOS Library. 0 Uses the Original unmodified Library (you'll need to install it)
 #define ALLOW_CONCURRENT_CDC_AND_HID               1 // Careful, this should ALWAYS be set to 0, concurrent CDC + HID is unstable
-#define ENABLE_CDC_EVENTS                          1 // Enable CDC (TinyUSB) Serial events (Need to disable for HWSerial)
-#define ENABLE_HWCDC_EVENTS                        0 // Enable HW CDC (Hardware / JTAG) Serial events
 #define GAMEPAD_REPORT_SIZE                       64 // Must match the HID descriptor, you should NEVER have to change this.
 #define SERVO_UPDATE_FREQ_MS                      20 // For Analog servo instruments. Update rate in ms (as per servo specs)
 #define SCAN_WIFI_NETWORKS                         0 // For debugging and see what networks the device sees (this outputs to Serial interface)
@@ -67,7 +68,16 @@
 #define HID_REPORT_MIN_INTERVAL_US              (1000000UL / HID_REPORT_RATE_HZ) // min spacing/separation between reports
 #define DCS_KEEP_ALIVE_MS                       (1000 / DCS_UPDATE_RATE_HZ) // send PING 0 (ASCII command) every x ms (when using keep-alives)
 #define HID_KEEP_ALIVE_MS                       (1000 / HID_REPORT_RATE_HZ) // send HID command every x ms (when using keep-alives)
-#define MAX_SELECTOR_GROUPS                      32  // Max supported selector groups
+#define MAX_SELECTOR_GROUPS                      128  // Max supported selector groups
+#define MAX_PCA_GROUPS                           128  // Max PCA selector groups
+#define MAX_PCA9555_INPUTS                        64  // Max PCA input mappings
+#define MAX_PCAS                                   8  // Max PCA9555 chips (0x20–0x27)
+#define DISABLE_PCA9555                            0  // 1 = skip PCA logic, 0 = enable
+#define MAX_PENDING_UPDATES                      220
+#define STREAM_TIMEOUT_MS                       1000  // ms without activity → consider dead
+#define MAX_REGISTERED_DISPLAY_BUFFERS            64
+#define MAX_VALIDATED_SELECTORS                   32  // Tune to match maximum selectors you need to track
+#define MISSION_START_DEBOUNCE                   500  // ms to wait before panel sync
 
 // Serial Debug Ring Buffer
 #define SERIAL_DEBUG_USE_RINGBUFFER               0 // Should be use a ring buffer for Serial Debug messages? not really necessary
@@ -128,8 +138,8 @@
 #define LABEL_SET_STR STR(LABEL_SET)
 
 // Required for Descriptor handling. For custom commercial implementations using your own name (you are free to do so), just by mindful of PID, VID, Manufacturer and the actual USB_PRODUCT string. No need for attribution, you can use this software as per the included LICENSE
-#define USB_VID		                           0xCAFE
-#define USB_PID		                           0xCAF3
+#define USB_VID		                           0xCAFE // If you change this, make sure you also update the Python script settings.ini file
+#define USB_PID		                           AUTOGEN_USB_PID
 #define USB_SERIAL                           LABEL_SET_STR
 #define USB_PRODUCT                          USB_SERIAL
 #define USB_MANUFACTURER                     "CockpitOS Firmware Project"
@@ -140,8 +150,8 @@
   #define CONFIG_TINYUSB_CDC_ENABLED                1
   #define CONFIG_TINYUSB_CDC_MAX_PORTS              2  
 #else
-  #define CONFIG_TINYUSB_CDC_ENABLED                0
-  #define CONFIG_TINYUSB_CDC_MAX_PORTS              0
+  #define CONFIG_TINYUSB_CDC_ENABLED                1
+  #define CONFIG_TINYUSB_CDC_MAX_PORTS              2
 #endif
 
 // Advanced TinyUSB Config Options.
@@ -158,6 +168,59 @@
 #define CONFIG_TINYUSB_DFU_ENABLED                0
 #define CONFIG_TINYUSB_VENDOR_ENABLED             0
 #define CONFIG_TINYUSB_NCM_ENABLED                0
+
+// --- Sanity guard: only one transport can be enabled at a time ---
+#if ( (USE_DCSBIOS_BLUETOOTH + USE_DCSBIOS_WIFI + USE_DCSBIOS_USB + USE_DCSBIOS_SERIAL) != 1 )
+  #error "Invalid config: Exactly ONE of USE_DCSBIOS_BLUETOOTH / USE_DCSBIOS_WIFI / USE_DCSBIOS_USB / USE_DCSBIOS_SERIAL must be set to 1"
+#endif
+
+#if (ARDUINO_USB_CDC_ON_BOOT == 1)
+  #error "❌ Invalid config: Set 'USB CDC On Boot' to 'Disabled' (see Tools menu in Arduino IDE)."
+#endif
+
+// Works across all boards of the same chip family
+#if defined(CONFIG_IDF_TARGET_ESP32C3)
+  #define ESP_FAMILY_C3 1
+#elif defined(CONFIG_IDF_TARGET_ESP32C6)
+  #define ESP_FAMILY_C6 1
+#elif defined(CONFIG_IDF_TARGET_ESP32H2)
+  #define ESP_FAMILY_H2 1
+#elif defined(CONFIG_IDF_TARGET_ESP32P4)
+  #define ESP_FAMILY_P4 1
+#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+  #define ESP_FAMILY_S2 1
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+  #define ESP_FAMILY_S3 1
+#elif defined(CONFIG_IDF_TARGET_ESP32C2)
+  #define ESP_FAMILY_C2 1
+#elif defined(CONFIG_IDF_TARGET_ESP32C5)
+  #define ESP_FAMILY_C5 1  
+#elif defined(CONFIG_IDF_TARGET_ESP32)
+  #define ESP_FAMILY_CLASSIC 1
+#else
+  #define ESP_FAMILY_UNKNOWN 1
+#endif
+
+#if USE_DCSBIOS_USB
+  // Check that we are on a TinyUSB-capable family
+  #if !(defined(ESP_FAMILY_S2) || defined(ESP_FAMILY_S3) || defined(ESP_FAMILY_P4))
+    #error "❌ USE_DCSBIOS_USB is only supported on ESP32-S2 / ESP32-S3 / ESP32-P4 devices."
+  #endif
+  // Check that we are in TinyUSB mode
+  #if (ARDUINO_USB_MODE != 0)
+    #error "❌ You need to enable USB-OTG (TinyUSB). See Tools menu, 'USB Mode' option. This is required if you compile this program with the USE_DCSBIOS_USB option selected."
+  #endif
+#endif
+
+// --- BLE allowed chips ---
+#if USE_DCSBIOS_BLUETOOTH
+  #if !( defined(ESP_FAMILY_CLASSIC) || defined(ESP_FAMILY_S3) || \
+         defined(ESP_FAMILY_C2)      || defined(ESP_FAMILY_C3) || \
+         defined(ESP_FAMILY_C5)      || defined(ESP_FAMILY_C6) || \
+         defined(ESP_FAMILY_H2) )
+    #error "❌ BLE is not supported on ESP32-S2 or ESP32-P4. Choose another mode"
+  #endif
+#endif
 
 // Define the Built-in LED if compiling with a board that does not define it. Only if you get errors about LED_BUILTIN not defined.
 // #ifndef LED_BUILTIN

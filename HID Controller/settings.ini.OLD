@@ -1,5 +1,6 @@
 [USB]
 vid = 0xCAFE
+# pid = 0xCAF3
 
 [DCS]
 udp_source_ip = 192.168.7.178

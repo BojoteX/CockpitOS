@@ -41,6 +41,8 @@ for mod, pip_name in REQUIRED_MODULES.items():
     except ImportError:
         missing.append(pip_name if pip_name else mod)
 
+import os
+
 if missing:
     # Build a clean pip install line (skip stdlib names like 'tkinter'/'curses' when pip_name is None)
     to_pip = [m for m in missing if m not in ("tkinter", "curses")]
@@ -50,18 +52,25 @@ if missing:
     if to_pip:
         msg += f"\nTo install the missing Python modules, run:\n\n    pip install {' '.join(to_pip)}\n"
     msg += "\nAfter installing, restart this program."
-    if HEADLESS:
+
+    # HEADLESS mode or no display (no X server)
+    is_headless = HEADLESS or not os.environ.get("DISPLAY")
+    if is_headless:
         print(msg)
     else:
-        import tkinter as tk
-        from tkinter import scrolledtext as ST
-        root = tk.Tk(); root.title("Missing Required Modules"); root.geometry("560x320"); root.resizable(False, False)
-        lbl = tk.Label(root, text="Missing required modules for CockpitController HID Handler:",
-                       font=("Arial", 12, "bold"), pady=10); lbl.pack()
-        text = ST.ScrolledText(root, width=68, height=10, font=("Consolas", 10))
-        text.pack(padx=12, pady=(0,10)); text.insert("1.0", msg); text.config(state='normal'); text.focus()
-        tk.Button(root, text="Close", command=root.destroy, width=18).pack(pady=10)
-        root.protocol("WM_DELETE_WINDOW", root.destroy); root.mainloop()
+        try:
+            import tkinter as tk
+            from tkinter import scrolledtext as ST
+            root = tk.Tk(); root.title("Missing Required Modules"); root.geometry("560x320"); root.resizable(False, False)
+            lbl = tk.Label(root, text="Missing required modules for CockpitController HID Handler:",
+                           font=("Arial", 12, "bold"), pady=10); lbl.pack()
+            text = ST.ScrolledText(root, width=68, height=10, font=("Consolas", 10))
+            text.pack(padx=12, pady=(0,10)); text.insert("1.0", msg); text.config(state='normal'); text.focus()
+            tk.Button(root, text="Close", command=root.destroy, width=18).pack(pady=10)
+            root.protocol("WM_DELETE_WINDOW", root.destroy); root.mainloop()
+        except Exception:
+            # fallback: print to CLI if Tk fails (e.g., no display)
+            print(msg)
     input("Press Enter to exit...")
     sys.exit(1)
 
@@ -93,21 +102,28 @@ def is_bt_serial(s: str) -> bool:
 def read_settings_from_ini(filename="settings.ini"):
     config = configparser.ConfigParser()
     if not os.path.isfile(filename):
-        config['USB'] = {'VID': '0xCAFE', 'PID': '0xCAF3'}
+        config['USB'] = {'VID': '0xCAFE'}  # PID omitted by default
         config['DCS'] = {'UDP_SOURCE_IP': '127.0.0.1'}
         config['MAIN'] = {'CONSOLE': '0'}
         with open(filename, 'w') as configfile:
             config.write(configfile)
     config.read(filename)
+
     try:
         vid = int(config['USB']['VID'], 0)
-        pid = int(config['USB']['PID'], 0)
     except Exception:
-        vid, pid = 0xCAFE, 0xCAF3
+        vid = 0xCAFE
+
+    try:
+        pid = int(config['USB'].get('PID', ''), 0)
+    except Exception:
+        pid = None
+
     try:
         dcs_ip = config['DCS'].get('UDP_SOURCE_IP', '127.0.0.1')
     except Exception:
         dcs_ip = '127.0.0.1'
+
     return vid, pid, dcs_ip
 
 def write_settings_dcs_ip(new_ip, filename="settings.ini"):
@@ -151,7 +167,14 @@ import hid
 import time
 
 def list_target_devices():
-    return [d for d in hid.enumerate() if d['vendor_id'] == USB_VID and d['product_id'] == USB_PID]
+    devices = []
+    for d in hid.enumerate():
+        if d['vendor_id'] != USB_VID:
+            continue
+        if USB_PID and d['product_id'] != USB_PID:
+            continue
+        devices.append(d)
+    return devices
 
 def try_fifo_handshake(dev, uiq=None, device_name=None):
     payload = HANDSHAKE_REQ.ljust(DEFAULT_REPORT_SIZE, b'\x00')
@@ -864,15 +887,27 @@ else:
     def start_console_mode():
         print("Console mode not enabled. Run with --console or --headless.")
 
-# --- main.py (continued) ---
+# --- main.py ---
 def main():
-    if ('--console' in sys.argv) or ('--headless' in sys.argv) or ini_console_enabled():
+    # Auto-detect headless if no DISPLAY, even if not passed on CLI
+    no_display = not os.environ.get("DISPLAY")
+    force_console = ('--console' in sys.argv) or ('--headless' in sys.argv) or ini_console_enabled() or no_display
+
+    if force_console:
         start_console_mode()
         lock.release()
         return
 
-    # GUI mode (original)
-    root = tk.Tk()
+    # GUI mode (only if X11 display is available)
+    try:
+        root = tk.Tk()
+    except Exception as e:
+        print(f"GUI cannot be started: {e}")
+        print("Falling back to console mode...")
+        start_console_mode()
+        lock.release()
+        return
+
     gui = CockpitGUI(root, None)
     net = NetworkManager(gui.uiq, reply_addr, gui.get_devices)
     gui.network_mgr = net

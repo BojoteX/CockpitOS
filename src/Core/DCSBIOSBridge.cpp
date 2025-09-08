@@ -1,16 +1,23 @@
 // DCSBIOSBridge.cpp
 
+// ARDUINO_USB_MODE == 1 is Hardware CDC
+// ARDUINO_USB_MODE == 0 is TinyUSB CDC
+
 #include "../Globals.h"
 #include "../DCSBIOSBridge.h"
 #include "../HIDManager.h"
 #include "../LEDControl.h"
 
-#if (ARDUINO_USB_CDC_ON_BOOT == 1)
+#if (ARDUINO_USB_MODE == 0) && USE_DCSBIOS_SERIAL 
 #include "tusb.h"
 #endif
 
 #if DEBUG_USE_WIFI || USE_DCSBIOS_WIFI
 #include "../WiFiDebug.h"
+#endif
+
+#if USE_DCSBIOS_BLUETOOTH
+#include "../BLEManager.h"
 #endif
 
 #if DCSBIOS_USE_LITE_VERSION
@@ -28,15 +35,11 @@ volatile bool forcePanelResyncNow = false;
 // Keep track of DCS-BIOS connection state
 static unsigned long lastNotReadyPrint = 0;
 
-#if (USE_DCSBIOS_WIFI || USE_DCSBIOS_USB)
+#if (USE_DCSBIOS_WIFI || USE_DCSBIOS_USB || USE_DCSBIOS_BLUETOOTH)
 // Size of max packet for DCS Receive
 static uint8_t reassemblyBuf[DCS_UDP_MAX_REASSEMBLED];
 static uint32_t maxFramesDrainOverflow = 0;  // Global or file-scope
 #endif
-
-// --- Selector Sync Validation (stage 1/3) ---
-#define MAX_VALIDATED_SELECTORS 32  // Tune to match maximum selectors you need to track
-#define MISSION_START_DEBOUNCE 500  // ms to wait before panel sync
 
 struct SelectorValidationEntry {
     const char* label;
@@ -61,17 +64,6 @@ struct PendingUpdate {
     uint16_t max_value;
 };
 
-// ——— Configuration ———
-#define MAX_PENDING_UPDATES 220
-
-// ——— Stream Health ———
-#define STREAM_TIMEOUT_MS   1000 // ms without activity → consider dead
-
-// Used for reliably detecting an active stream and when it goes up or down.
-// static constexpr unsigned long STREAM_TIMEOUT_MS = 3;  // ms without activity → consider dead
-
-// Max display fields across all panels (tune as needed, e.g., 64 or 128)
-#define MAX_REGISTERED_DISPLAY_BUFFERS 64
 static RegisteredDisplayBuffer registeredBuffers[MAX_REGISTERED_DISPLAY_BUFFERS];
 static size_t numRegisteredBuffers = 0;
 
@@ -646,7 +638,7 @@ void parseDcsBiosUdpPacket(const uint8_t* data, size_t len) {
     // yield();
 }
 
-#if USE_DCSBIOS_WIFI || USE_DCSBIOS_USB
+#if USE_DCSBIOS_WIFI || USE_DCSBIOS_USB || USE_DCSBIOS_BLUETOOTH
 void onDcsBiosUdpPacket() {
     static struct {
         uint8_t  data[DCS_UDP_MAX_REASSEMBLED];
@@ -912,7 +904,7 @@ static volatile bool isConnected    = false;
 static volatile bool cdcTxReady     = true; // Needs to be true, otherwise we could never do a first send. We still prevent writes with cdcRxReady below
 static volatile bool cdcRxReady     = false; // This will be set automatically when the stream starts
 
-#if (ARDUINO_USB_CDC_ON_BOOT == 1)
+#if ((ARDUINO_USB_CDC_ON_BOOT == 1 || USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) && ARDUINO_USB_MODE == 0)
 static void cdcConnectedHandler(void* arg, esp_event_base_t base, int32_t id, void* event_data) {
     debugPrintln("🔌 CDC Connected (DTR asserted)");
     isConnected = true;
@@ -970,31 +962,75 @@ static void cdcRxOvfHandler(void* arg,
     auto* ev = (arduino_usb_cdc_event_data_t*)event_data;
     debugPrintf("[CDC RX_OVERFLOW] ❌ dropped=%u\n", (unsigned)ev->rx_overflow.dropped_bytes);
 }
-#endif
+#elif ((ARDUINO_USB_CDC_ON_BOOT == 1 || USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) && ARDUINO_USB_MODE == 1)
 
-#if (ARDUINO_USB_CDC_ON_BOOT == 1)
-// TinyUSB CDC events
-void setupCDCEvents() {
-#if defined(ENABLE_CDC_EVENTS) && (ENABLE_CDC_EVENTS > 0)
-    Serial.onEvent(ARDUINO_USB_CDC_CONNECTED_EVENT, cdcConnectedHandler);
-    Serial.onEvent(ARDUINO_USB_CDC_DISCONNECTED_EVENT, cdcDisconnectedHandler);
-    // Serial.onEvent(ARDUINO_USB_CDC_LINE_STATE_EVENT, cdcLineStateHandler);
-    // Serial.onEvent(ARDUINO_USB_CDC_LINE_CODING_EVENT, cdcLineCodingHandler);       
-    Serial.onEvent(ARDUINO_USB_CDC_RX_EVENT, cdcRxHandler);
-    Serial.onEvent(ARDUINO_USB_CDC_TX_EVENT, cdcTxHandler);
-    Serial.onEvent(ARDUINO_USB_CDC_RX_OVERFLOW_EVENT, cdcRxOvfHandler);
-#endif
+// One callback for all HW CDC events (like the example)
+static void hwcdcEvent(void*, esp_event_base_t base, int32_t id, void* data) {
+    if (base != ARDUINO_HW_CDC_EVENTS) return;
+
+    switch (id) {
+    case ARDUINO_HW_CDC_CONNECTED_EVENT:
+        isConnected = true; cdcRxReady = true; cdcTxReady = true;
+        debugPrintln("🔌 HWCDC Connected (DTR asserted)");
+        break;
+
+        // Treat BUS_RESET as link usable; some hosts assert this instead of CONNECTED
+    case ARDUINO_HW_CDC_BUS_RESET_EVENT:
+        isConnected = true; cdcRxReady = true; cdcTxReady = true;
+        debugPrintln("🔧 HWCDC Bus Reset");
+        break;
+
+    case ARDUINO_HW_CDC_RX_EVENT:
+        cdcRxReady = true;
+        break;
+
+    case ARDUINO_HW_CDC_TX_EVENT:
+        cdcTxReady = true;
+        break;
+    }
 }
 
-// Hardware CDC events (ESP32 core 3.x)
-void setupHWCDCEvents() {
-#if defined(ENABLE_HWCDC_EVENTS) && (ENABLE_HWCDC_EVENTS > 0)
-    Serial.onEvent(ARDUINO_HW_CDC_CONNECTED_EVENT, cdcConnectedHandler);
-    Serial.onEvent(ARDUINO_HW_CDC_DISCONNECTED_EVENT, cdcDisconnectedHandler);
-    Serial.onEvent(ARDUINO_HW_CDC_RX_EVENT, cdcRxHandler);
-    Serial.onEvent(ARDUINO_HW_CDC_TX_EVENT, cdcTxHandler);
-    Serial.onEvent(ARDUINO_HW_CDC_RX_OVERFLOW_EVENT, cdcRxOvfHandler);
 #endif
+
+#if ((USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) && ARDUINO_USB_MODE == 0)
+// TinyUSB CDC events
+
+    #if ARDUINO_USB_CDC_ON_BOOT == 1
+        void setupCDCEvents() {
+            Serial.onEvent(ARDUINO_USB_CDC_CONNECTED_EVENT, cdcConnectedHandler);
+            Serial.onEvent(ARDUINO_USB_CDC_DISCONNECTED_EVENT, cdcDisconnectedHandler);
+            // Serial.onEvent(ARDUINO_USB_CDC_LINE_STATE_EVENT, cdcLineStateHandler);
+            // Serial.onEvent(ARDUINO_USB_CDC_LINE_CODING_EVENT, cdcLineCodingHandler);       
+            Serial.onEvent(ARDUINO_USB_CDC_RX_EVENT, cdcRxHandler);
+            Serial.onEvent(ARDUINO_USB_CDC_TX_EVENT, cdcTxHandler);
+            Serial.onEvent(ARDUINO_USB_CDC_RX_OVERFLOW_EVENT, cdcRxOvfHandler);
+	        debugPrintln("USBCDC Events registered");
+        }
+    #else
+        void setupCDCEvents() {
+            USBSerial.onEvent(ARDUINO_USB_CDC_CONNECTED_EVENT, cdcConnectedHandler);
+            USBSerial.onEvent(ARDUINO_USB_CDC_DISCONNECTED_EVENT, cdcDisconnectedHandler);
+            // Serial.onEvent(ARDUINO_USB_CDC_LINE_STATE_EVENT, cdcLineStateHandler);
+            // Serial.onEvent(ARDUINO_USB_CDC_LINE_CODING_EVENT, cdcLineCodingHandler);       
+            USBSerial.onEvent(ARDUINO_USB_CDC_RX_EVENT, cdcRxHandler);
+            USBSerial.onEvent(ARDUINO_USB_CDC_TX_EVENT, cdcTxHandler);
+            USBSerial.onEvent(ARDUINO_USB_CDC_RX_OVERFLOW_EVENT, cdcRxOvfHandler);
+            debugPrintln("USBCDC Events registered");
+        }
+    #endif
+
+#endif
+
+#if ((USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) && ARDUINO_USB_MODE == 1)
+// Hardware CDC events (ESP32 core 3.x)
+static inline void setupHWCDCEvents() {
+    // Register BEFORE begin(), like the example
+    #if ARDUINO_USB_CDC_ON_BOOT == 1
+        Serial.onEvent(hwcdcEvent);
+    #else
+	    HWCDCSerial.onEvent(hwcdcEvent);
+    #endif
+	debugPrintln("HWCDC Events registered");
 }
 #endif
 
@@ -1021,42 +1057,100 @@ bool cdcEnsureRxReady(uint32_t timeoutMs) {
 }
 
 bool isSerialConnected() {
-    return isConnected;
+    #if ARDUINO_USB_CDC_ON_BOOT == 1
+	    // debugPrintf("[Serial] isConnected=%d, cdcTxReady=%d, cdcRxReady=%d\n", isConnected, cdcTxReady, cdcRxReady);
+        #if ARDUINO_USB_MODE == 1
+            return Serial.isConnected();
+        #else
+            return isConnected;
+        #endif
+    #else
+        #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE)
+            #if ARDUINO_USB_MODE == 1
+	            // debugPrintf("[HWCDCSerial] isConnected=%d, cdcTxReady=%d, cdcRxReady=%d\n", HWCDCSerial.isConnected(), cdcTxReady, cdcRxReady);
+                return HWCDCSerial.isConnected();
+            #else
+                // debugPrintf("[USBSerial] isConnected=%d, cdcTxReady=%d, cdcRxReady=%d\n", isConnected, cdcTxReady, cdcRxReady);
+	            // return (bool)USBSerial;
+                return isConnected;
+            #endif
+        #endif
+    #endif
+	return false;
 }
 
 bool tryToSendDcsBiosMessage(const char* msg, const char* arg) {
-    // Estimate the total space needed
     if (!msg || !arg) return false;
 
-    constexpr size_t maxMsgLen = 64;
-    constexpr size_t maxArgLen = 32;
+    constexpr size_t kMaxMsg = 64;
+    constexpr size_t kMaxArg = 32;
 
-    size_t msgLen = strnlen(msg, maxMsgLen);
-    size_t argLen = strnlen(arg, maxArgLen);
+    const size_t msgLen = strnlen(msg, kMaxMsg);
+    const size_t argLen = strnlen(arg, kMaxArg);
+    if (msgLen == kMaxMsg || argLen == kMaxArg) return false;
 
-    if (msgLen == maxMsgLen || argLen == maxArgLen) return false;
+    const size_t totalLen = msgLen + 1 + argLen + 1; // "CMD ARG\n"
 
-    size_t len = msgLen + 1 + argLen + 2; // "CMD ARG\n"
+#if ((USE_DCSBIOS_SERIAL) && ARDUINO_USB_MODE == 0)
 
-#if (ARDUINO_USB_CDC_ON_BOOT == 1)
-    // Serial ONLY send
-    if (tud_cdc_write_available() < len) return false;
-    tud_cdc_write(msg, msgLen);
-    tud_cdc_write_str(" ");
-    tud_cdc_write(arg, argLen);
-    tud_cdc_write_str("\n");
-    size_t before = tud_cdc_write_available();
+    /*
+    // TinyUSB CDC (S2/S3)
+    if (tud_cdc_write_available() < (uint32_t)totalLen) return false;
+
+    // Pack once
+    char buf[64 + 1 + 32 + 1]; // 98B on stack, no heap
+    memcpy(buf, msg, msgLen);
+    buf[msgLen] = ' ';
+    memcpy(buf + msgLen + 1, arg, argLen);
+    buf[totalLen - 1] = '\n';
+
+    const uint32_t before = tud_cdc_write_available();
+    tud_cdc_write(buf, totalLen);
     tud_cdc_write_flush();
-    size_t after = tud_cdc_write_available();
-    if (after <= before) return false;
+    const uint32_t after = tud_cdc_write_available();
+    return (after < before);  // space decreased → data queued
+    */
+
+    // TinyUSB CDC (S2/S3)
+    if (tud_cdc_write_available() < (uint32_t)totalLen) {
+        tud_cdc_write_flush();                            // nudge drain
+        if (tud_cdc_write_available() < (uint32_t)totalLen) return false;
+    }
+
+    // Pack once
+    char buf[64 + 1 + 32 + 1]; // 98B on stack, no heap
+    if ((uint32_t)totalLen > sizeof(buf)) return false;
+    memcpy(buf, msg, msgLen);
+    buf[msgLen] = ' ';
+    memcpy(buf + msgLen + 1, arg, argLen);
+    buf[totalLen - 1] = '\n';
+
+    int n = tud_cdc_write(buf, totalLen);
+    tud_cdc_write_flush();
+    return n == (int)totalLen;     // definitive success check
+
+#elif ((USE_DCSBIOS_SERIAL) && ARDUINO_USB_MODE == 1)
+    char buf[64 + 1 + 32 + 1];  // "CMD ARG\n"
+    size_t pos = 0;
+    memcpy(&buf[pos], msg, msgLen); pos += msgLen;
+    buf[pos++] = ' ';
+    memcpy(&buf[pos], arg, argLen); pos += argLen;
+    buf[pos++] = '\n';
+    writeToConsole(buf, pos);
     return true;
 #else
-    // No where to send this to...
     return false;
 #endif
 }
 
 bool simReady() {
+
+    /*
+    debugPrintf("[SIM READY CHECK] isMissionRunning=%d, isPanelsSyncedThisMission=%d, mySniffer.isStreamAlive=%d\n",
+                isMissionRunning(),
+                isPanelsSyncedThisMission(),
+		        mySniffer.isStreamAlive());
+    */
 
     if (isMissionRunning() && isPanelsSyncedThisMission() && mySniffer.isStreamAlive())
         return true;
@@ -1094,7 +1188,7 @@ void sendCommand(const char* msg, const char* arg, bool silent) {
         memcpy(&dcsCmd[pos], msg, msgLen); pos += msgLen;
         dcsCmd[pos++] = ' ';
         memcpy(&dcsCmd[pos], arg, argLen); pos += argLen;
-        dcsCmd[pos++] = '\r';
+        // dcsCmd[pos++] = '\r';
         dcsCmd[pos++] = '\n';
         dcsRawUsbOutRingbufPushChunked((const uint8_t*)dcsCmd, pos);
         if (!silent) debugPrintf("🛩️ [DCS-USB] %s %s\n", msg, arg);
@@ -1104,6 +1198,32 @@ void sendCommand(const char* msg, const char* arg, bool silent) {
     }
     else {
         if (!silent) debugPrintf("🛩️ [DCS-USB] DCS NOT READY! could not send %s %s\n", msg, arg);
+    }
+#elif USE_DCSBIOS_BLUETOOTH
+    if (simReady()) {
+
+        // This is the MAX size for our msg and arg. Lets try to fit INSIDE 63 Bytes to avoid chunking (faster)
+        constexpr size_t maxMsgLen = 48;
+        constexpr size_t maxArgLen = 8;
+
+        size_t msgLen = strnlen(msg, maxMsgLen);
+        size_t argLen = strnlen(arg, maxArgLen);
+
+        char dcsCmd[maxMsgLen + maxArgLen + 4];
+        size_t pos = 0;
+        memcpy(&dcsCmd[pos], msg, msgLen); pos += msgLen;
+        dcsCmd[pos++] = ' ';
+        memcpy(&dcsCmd[pos], arg, argLen); pos += argLen;
+        // dcsCmd[pos++] = '\r';
+        dcsCmd[pos++] = '\n';
+        dcsRawUsbOutRingbufPushChunked((const uint8_t*)dcsCmd, pos);
+        if (!silent) debugPrintf("🛩️ [DCS-BLE] %s %s\n", msg, arg);
+
+        // This is a dummy report, it will just trigger on the host side a Feature request to our device, which will drain our ring buffer on each call, host will keep calling until end of message received
+        BLEManager_dispatchReport(true);
+    }
+    else {
+        if (!silent) debugPrintf("🛩️ [DCS-BLE] DCS NOT READY! could not send %s %s\n", msg, arg);
     }
 #else
     if(!isConnected) {
@@ -1243,28 +1363,7 @@ void forceResync() {
 
 }
 
-void DCSBIOSBridge_setup() {
-
-    // If CDC ON BOOT means Serial has started already, so, we'll stop it
-    #if (ARDUINO_USB_CDC_ON_BOOT == 1) 
-        Serial.setDebugOutput(false); 
-        Serial.setRxBufferSize(SERIAL_RX_BUFFER_SIZE);
-        Serial.setTxTimeoutMs(SERIAL_TX_TIMEOUT);  // To avoid CDC getting stuck when SOCAT starts acting up
-        Serial.setTimeout(SERIAL_TX_TIMEOUT);
-        // Serial.enableReboot(false); // Should be set to false for PRODUCTION, true for development  
-
-#if defined(ENABLE_CDC_EVENTS) && (ENABLE_CDC_EVENTS > 0)
-        setupCDCEvents(); // Load CDC Events
-#elif defined(ENABLE_HWCDC_EVENTS) && (ENABLE_HWCDC_EVENTS > 0)
-		setupHWCDCEvents(); // Load Hardware CDC Events
-#endif
-
-		// Start Serial
-		Serial.begin(115200); // Start Serial at 115200 baud
-		debugPrintln("[CDC] Serial started at 115200 baud");
-        debugPrintf("USB Mode is: %u", ARDUINO_USB_MODE);
-
-    #endif
+void DCSBIOSBridge_postSetup() {
 
     // Register our Display buffers automatically (the ones starting with IFEI_)
     for (size_t i = 0; i < numCTDisplayBuffers; ++i) {
@@ -1274,12 +1373,79 @@ void DCSBIOSBridge_setup() {
         }
     }
 
-	// Update our command history from InputMappings
+    // Update our command history from InputMappings
     syncCommandHistoryFromInputMapping();
 
-	// For selector validation after panel sync
+    // For selector validation after panel sync
     initializeSelectorValidation(); // [Selector sync validation] Register tracked selectors
 
+}
+
+void DCSBIOSBridge_setup() {
+
+    // If CDC ON BOOT means Serial has started already, so, we'll stop it
+    #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) 
+        #if ARDUINO_USB_CDC_ON_BOOT == 1
+            Serial.setDebugOutput(false); 
+            Serial.setRxBufferSize(SERIAL_RX_BUFFER_SIZE);
+            Serial.setTxTimeoutMs(SERIAL_TX_TIMEOUT);  // To avoid CDC getting stuck when SOCAT starts acting up
+            Serial.setTimeout(SERIAL_TX_TIMEOUT);
+
+            #if (ARDUINO_USB_MODE == 0)
+                        Serial.enableReboot(false); // Should be set to false for PRODUCTION, true for development  
+                        setupCDCEvents(); // Load CDC Events
+                        debugPrintln("[CDC] Serial was already started");
+
+                        Serial.begin(115200); // Start Serial at 115200 baud
+                        // delay(3000);
+
+                        // Start USB (After Serial.begin and USBSerial.begin)
+                        if (loadUSBevents)
+                            HIDManager_startUSB();
+
+            #elif (ARDUINO_USB_MODE == 1)
+                        setupHWCDCEvents(); // Load Hardware CDC Events
+
+                        Serial.begin(115200); // Start Serial at 115200 baud
+                        // delay(3000);
+
+                        debugPrintln("[HWCDC] Serial was already started");
+                        isConnected = isSerialConnected();
+                        cdcRxReady = isConnected;           // Assume Rx is ready if connected
+            #endif
+
+        #else
+            #if (ARDUINO_USB_MODE == 1) 
+                HWCDCSerial.setDebugOutput(false);
+                HWCDCSerial.setRxBufferSize(SERIAL_RX_BUFFER_SIZE);
+                HWCDCSerial.setTxTimeoutMs(SERIAL_TX_TIMEOUT);  // To avoid CDC getting stuck when SOCAT starts acting up
+                HWCDCSerial.setTimeout(SERIAL_TX_TIMEOUT);
+                setupHWCDCEvents();                 // Load Hardware CDC Events
+                HWCDCSerial.begin();                // enumerate CDC now
+                // delay(3000);
+                debugPrintln("[HW CDC] Serial has started!");
+                isConnected = isSerialConnected();
+				cdcRxReady  = isConnected;           // Assume Rx is ready if connected
+            #else
+				// Load Serial before USBSerial.begin()
+	            Serial.begin(115200); // Start Serial at 115200 baud
+                Serial.setDebugOutput(false);
+
+                USBSerial.setDebugOutput(false);
+                USBSerial.setRxBufferSize(SERIAL_RX_BUFFER_SIZE);
+                USBSerial.setTxTimeoutMs(SERIAL_TX_TIMEOUT);  // To avoid CDC getting stuck when SOCAT starts acting up
+                USBSerial.setTimeout(SERIAL_TX_TIMEOUT);
+                USBSerial.enableReboot(false); // Should be set to false for PRODUCTION, true for development  
+                setupCDCEvents(); // Load CDC Events
+                USBSerial.begin();                // enumerate CDC now
+                // delay(3000);
+                debugPrintln("[USB CDC] Serial has started!");
+                // isConnected = isSerialConnected();
+                // cdcRxReady = isConnected;           // Assume Rx is ready if connected
+
+            #endif
+        #endif
+    #endif
  }
 
 void DCSBIOSBridge_loop() { 
@@ -1301,7 +1467,7 @@ void DCSBIOSBridge_loop() {
     beginProfiling(PERF_DCSBIOS);
     #endif
 
-#if USE_DCSBIOS_WIFI || USE_DCSBIOS_USB   
+#if USE_DCSBIOS_WIFI || USE_DCSBIOS_USB || USE_DCSBIOS_BLUETOOTH
     #if DCS_USE_RINGBUFFER
         onDcsBiosUdpPacket(); // Only run when using a Ring Buffer for DCS Incoming frames
     #else
@@ -1309,13 +1475,29 @@ void DCSBIOSBridge_loop() {
     #endif
 #else
 
-    #if (ARDUINO_USB_CDC_ON_BOOT == 1)
-        cdcRxReady = false;
-        uint8_t b;
-        while (Serial.available() > 0) {
-            b = Serial.read();
-            parseDcsBiosUdpPacket(&b, 1);
-        }   
+    #if (USE_DCSBIOS_SERIAL)
+        #if ARDUINO_USB_CDC_ON_BOOT == 1
+            cdcRxReady = false;
+            uint8_t b;
+            while (Serial.available() > 0) {
+                b = Serial.read();
+                parseDcsBiosUdpPacket(&b, 1);
+            }
+        #else // Serial is not aliased to CDC, use HWCDCSerial
+            cdcRxReady = false;
+            uint8_t b;
+            #if ARDUINO_USB_MODE == 1
+                while (HWCDCSerial.available() > 0) {
+                    b = HWCDCSerial.read();
+                    parseDcsBiosUdpPacket(&b, 1);
+                }
+            #else
+                while (USBSerial.available() > 0) {
+                    b = USBSerial.read();
+                    parseDcsBiosUdpPacket(&b, 1);
+				}
+            #endif
+        #endif
     #endif
 
 #endif

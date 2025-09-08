@@ -14,8 +14,14 @@
 
 #if DEBUG_PERFORMANCE
 
-#if (ARDUINO_USB_CDC_ON_BOOT == 1)
-#include "tusb.h"
+#if (ARDUINO_USB_MODE == 0)
+    #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) // Enable only if Serial is needed
+        #include "tusb.h"
+    #endif
+#elif (ARDUINO_USB_MODE == 1)
+    #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) // Enable only if Serial is needed
+		// Do nothing
+    #endif
 #endif
 
 #if DEBUG_USE_WIFI || USE_DCSBIOS_WIFI
@@ -432,12 +438,20 @@ void perfMonitorUpdate() {
 
     appendOnly_perfDebugPrintln("+----------------------------------------------------------------+");
 
-    #if (ARDUINO_USB_CDC_ON_BOOT == 1)
-    int rxWaiting = Serial.available();
-    int txAvail   = tud_cdc_write_available();  // NOT Serial.availableForWrite()
+    #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE)
+        #if ARDUINO_USB_CDC_ON_BOOT == 1
+            int rxWaiting = Serial.available();
+            int txAvail   = tud_cdc_write_available();  // NOT Serial.availableForWrite()
+        #elif (ARDUINO_USB_MODE == 1)
+            int rxWaiting = HWCDCSerial.available();
+	        int txAvail = HWCDCSerial.availableForWrite();
+        #elif (ARDUINO_USB_MODE == 0)
+            int rxWaiting = USBSerial.available();
+			int txAvail = tud_cdc_write_available();
+        #endif
     #else
-    int rxWaiting = 0;
-    int txAvail   = 0;    
+        int rxWaiting = 0;
+        int txAvail   = 0;    
     #endif
 
     flushAllprintsAbove();
@@ -459,7 +473,7 @@ void perfMonitorUpdate() {
     wifiDebugSendGetPending(), wifiDebugSendGetHighWater(), wifiDebugSendGetOverflow());
 #endif
 
-#if (USE_DCSBIOS_WIFI || USE_DCSBIOS_USB)
+#if (USE_DCSBIOS_WIFI || USE_DCSBIOS_USB || USE_DCSBIOS_BLUETOOTH)
     // UDP Receive buffer health
     appendOnly_perfDebugPrintf("    ∘ UDP Receive DCS  : avg %5.1f bytes, max %u bytes, pending %2u, max %2u, overruns %u\n",
     dcsUdpRecvAvgMsgLen(), dcsUdpRecvMaxMsgLen(),

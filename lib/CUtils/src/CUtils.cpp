@@ -82,7 +82,7 @@ void printLEDMenu() {
 }
 
 void handleLEDSelection() {
-    #if (ARDUINO_USB_CDC_ON_BOOT == 1)
+  #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE)
   while (true) {
     serialDebugPrintln("Enter LED number to activate (or press Enter to exit):");
     while (!Serial.available()) yield();
@@ -113,7 +113,7 @@ void handleLEDSelection() {
 
 // —— Replay SOCAT Stream for debugging without using serial —— 
 void runReplayWithPrompt() {
-    #if (ARDUINO_USB_CDC_ON_BOOT == 1)
+  #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE)
   bool infinite = false;
   while (true) {
     DcsbiosProtocolReplay();

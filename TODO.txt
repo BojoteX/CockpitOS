@@ -8,14 +8,12 @@ enabled, notice the Lockshoot indicator staying WHITE. It stops working. Just di
 
 - HID Handler edge cases (replicate starting the computer or resuming from sleep with device already connected)
 
-- HID Manager Headless + C++ version
-
 - Keep testing panel sync to ensure 100% reliability with SAFE/ARM test
 
 - Front Right panel implementations (Physical)
 
 - Make WS2812 generic and modify panel struct/union to add index characteristics (color). Device instance should be deduced from the DIO pin.
 
-- Test UART for Serial coms on S3's and C3's simultaneously with USB HIDs (using HID keepalives). To test stability. use DCSBIOS with the hardware CDC option
+- Test compiling on 2.0.4 and using analog on IR Cool. Check range
 
-Test compiling on 2.0.4 and using analog on IR Cool. Check range
+- Check gauges and PSRam changes

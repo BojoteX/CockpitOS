@@ -21,13 +21,6 @@ extern AutoAnalogInput autoAnalogs[MAX_AUTO_ANALOGS];
 extern size_t numAutoAnalogs;
 void buildAutoAnalogInputs();
 
-
-// ===== PCA9555 (I²C expander) =====
-#define DISABLE_PCA9555                0   // 1 = skip PCA logic, 0 = enable
-#define MAX_PCA9555_INPUTS             64  // Max PCA input mappings
-#define MAX_PCA_GROUPS                 32  // Max selector groups
-#define MAX_PCAS                       8   // Max PCA9555 chips (0x20–0x27)
-
 struct PCA9555Input {
     uint8_t addr, port, bit;  // bit==255 for fallback (-1)
     bool isMomentary, isSelector;
