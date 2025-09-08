@@ -14,6 +14,10 @@ enabled, notice the Lockshoot indicator staying WHITE. It stops working. Just di
 
 - Make WS2812 generic and modify panel struct/union to add index characteristics (color). Device instance should be deduced from the DIO pin.
 
-- Test compiling on 2.0.4 and using analog on IR Cool. Check range
-
 - Check gauges and PSRam changes
+
+-Add support for Nimble starting with ESP32 Arduino Core 3.3.0
+
+- Add battery check for BLE device
+
+- Fix string errors (BLE)

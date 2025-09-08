@@ -18,7 +18,7 @@ struct InputMapping {
 
 //  label                       source     port bit hidId  DCSCommand           value   Type        group
 static const InputMapping InputMappings[] = {
-    { "HMD_OFF_BRT"          , "NONE" ,  0 ,  0 ,  -1 , "HMD_OFF_BRT"        , 65535 , "analog"       ,  0 },
+    { "HMD_OFF_BRT"          , "GPIO" ,  9 ,  0 ,  -1 , "HMD_OFF_BRT"        , 65535 , "analog"       ,  0 },
     { "HMD_OFF_BRT_DEC"      , "NONE" ,  0 ,  0 ,  -1 , "HMD_OFF_BRT"        ,     0 , "variable_step",  0 },
     { "HMD_OFF_BRT_INC"      , "NONE" ,  0 ,  0 ,  -1 , "HMD_OFF_BRT"        ,     1 , "variable_step",  0 },
     { "IR_COOL_SW_ORIDE"     , "NONE" ,  0 ,  0 ,  -1 , "IR_COOL_SW"         ,     0 , "selector"     ,  3 },
@@ -29,7 +29,7 @@ static const InputMapping InputMappings[] = {
     { "SPIN_RECOVERY_SW_NORM", "NONE" ,  0 ,  0 ,  -1 , "SPIN_RECOVERY_SW"   ,     1 , "selector"     ,  2 },
     { "MASTER_ARM_SW_ARM"    , "GPIO" ,  5 ,  0 ,   3 , "MASTER_ARM_SW"      ,     0 , "selector"     ,  1 },
     { "MASTER_ARM_SW_SAFE"   , "GPIO" , -1 ,  0 ,   4 , "MASTER_ARM_SW"      ,     1 , "selector"     ,  1 },
-    { "MASTER_MODE_AA"       , "GPIO" ,  9 ,  0 ,   2 , "MASTER_MODE_AA"     ,     1 , "momentary"    ,  0 },
+    { "MASTER_MODE_AA"       , "NONE" ,  0 ,  0 ,   2 , "MASTER_MODE_AA"     ,     1 , "momentary"    ,  0 },
     { "MASTER_MODE_AG"       , "NONE" ,  0 ,  0 ,  -1 , "MASTER_MODE_AG"     ,     1 , "momentary"    ,  0 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);

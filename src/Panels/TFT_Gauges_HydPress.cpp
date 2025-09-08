@@ -145,7 +145,14 @@ static bool dmaBusy = false;
 static inline void waitDMADone() { if (dmaBusy) { tft.waitDMA(); dmaBusy = false; } }
 
 // --- Dirty-rect utils ---
-struct Rect { int16_t x = 0, y = 0, w = 0, h = 0; };
+/*
+struct Rect {
+    int16_t x = 0, y = 0, w = 0, h = 0;
+};
+*/
+
+struct Rect { int16_t x, y, w, h; };
+
 static inline bool rectEmpty(const Rect& r) { return r.w <= 0 || r.h <= 0; }
 static inline Rect rectClamp(const Rect& r) {
     int16_t x = r.x, y = r.y, w = r.w, h = r.h;

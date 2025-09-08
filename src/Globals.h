@@ -48,7 +48,12 @@
     #if ARDUINO_USB_MODE == 1
         extern HWCDC HWCDCSerial;
     #else
-        extern USBCDC USBSerial;
+        #if (ARDUINO_USB_MODE == 0)
+            #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE)
+                #include "USB.h"
+                extern USBCDC USBSerial;
+            #endif
+        #endif
     #endif
 #endif
 

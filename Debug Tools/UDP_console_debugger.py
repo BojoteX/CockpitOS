@@ -7,6 +7,10 @@ import shutil
 # Change to script directory
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
+# Ensure logs directory exists
+if not os.path.exists("logs"):
+    os.makedirs("logs")
+
 LOG_FILE = "logs/udpLogger.log"
 PREV_LOG = "logs/prevLog.log"
 
