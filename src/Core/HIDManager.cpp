@@ -5,22 +5,38 @@
 #include "../DCSBIOSBridge.h"
 
 // DCSBIOS serial handling
-#if !defined(ARDUINO_USB_CDC_ON_BOOT) || ARDUINO_USB_CDC_ON_BOOT == 0
-    #if (ARDUINO_USB_MODE == 0)
-        #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) // Enable only if Serial is needed
-            // #include <USBCDC.h>
+#if !defined(ARDUINO_USB_CDC_ON_BOOT) || ARDUINO_USB_CDC_ON_BOOT == 0 // if CDC is off on boot
+    #if (ARDUINO_USB_MODE == 0) // and we are in TinyUSB mode
+        #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) // And some form of serial was enabled, then
             #include "USB.h"
             USBCDC USBSerial;
             #define LOADED_CDC_STACK 1 // Mark that we have a real HID stack loaded
+        #else // No serial needed, but we still need to define the HWCDC object to compile (and close HWCDCSerial if opened by default)
+            #if DEVICE_HAS_HWSERIAL == 1
+                #include "HWCDC.h"
+                #define CLOSE_HWCDC_SERIAL 1 // Mark that we need to close the HWserial port
+            #endif
         #endif
     #elif (ARDUINO_USB_MODE == 1)
         #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) // Enable only if Serial is needed
             #include "HWCDC.h"
             HWCDC HWCDCSerial;  // not aliased to Serial when OFF_ON_BOOT
+        #else
+            #include "HWCDC.h"
+            // HWCDC HWCDCSerial;  // not aliased to Serial when OFF_ON_BOOT
+            #define CLOSE_HWCDC_SERIAL 1 // Mark that we need to close the HWserial port
         #endif
     #endif
-#else
-    // We use Serial, which is already aliased to CDC
+#else // CDC is ON on boot, so Serial is already aliased to CDC
+    #if (!USE_DCSBIOS_SERIAL && !VERBOSE_MODE_SERIAL_ONLY && !VERBOSE_MODE) // If serial is NOT needed, mark to close it later
+        #if ARDUINO_USB_MODE == 1
+            // HWCDC Serial;
+            #define CLOSE_HWCDC_SERIAL 1 // Mark that we need to close the HW serial port
+        #else   
+            // USBCDC Serial;
+            #define CLOSE_CDC_SERIAL 1 // Mark that we need to close the CDC serial port
+        #endif
+    #endif
 #endif
 
 // ----- USB build: real stack for S2 and S3 only -----
@@ -41,12 +57,16 @@
         #endif
         class GPDevice { public: bool sendReport(const void*, int) { return false; } };
     #endif
-#else
+#else // WiFi or Bluetooth selected, so no USB stack (But if ARDUINO_USB_MODE==0 we still need stubs except for TinyUSB CDC)
         // Stubs only as we don't have USB stack but need the types to compile
         #include "../CustomDescriptors/BidireccionalNew.h"   // defines GamepadReport_t and hidReportDesc
         struct { bool ready() const { return false; } } HID;
         #if !defined(LOADED_CDC_STACK) && !defined(LOADED_USB_STACK)
-            struct { void begin() {} template<typename...A> void onEvent(A...) {} } USB;
+            #if CLOSE_CDC_SERIAL
+		        // No stub for USB as we need to close the serial port AND USB is already defined above
+            #else 
+                struct { void begin() {} template<typename...A> void onEvent(A...) {} } USB;
+            #endif
         #endif
         class GPDevice { public: bool sendReport(const void*, int) { return false; } };
 #endif
@@ -59,13 +79,20 @@
 bool loadUSBevents = false;
 bool loadCDCevents = false;
 
+// Serial close flags based on CLOSE_CDC_SERIAL or CLOSE_HWCDC_SERIAL
+bool closeCDCserial = false;
+bool closeHWCDCserial = false;
+
 // HID Report and device instance
 GamepadReport_t report = { 0 };  // define the extern
 GPDevice        gamepad;         // define the extern
 
-#if (USE_DCSBIOS_USB && ARDUINO_USB_CDC_ON_BOOT == 1 && !ALLOW_CONCURRENT_CDC_AND_HID)
-#error "Invalid configuration: USE_DCSBIOS_USB requires that you compile this sketch with ARDUINO_USB_CDC_ON_BOOT set to 0, to do this, see Tools menu and set option USB CDC On Boot: Disabled"
+// --- HID step pulse auto-clear ---
+#ifndef STEP_PULSE_MS
+#define STEP_PULSE_MS 250u    // HID pulse length for step controls
 #endif
+static uint32_t g_hidStepPulseMask = 0;        // bits (hidId-1) pending auto-clear
+static uint32_t g_hidStepPulseDueMs[33] = { 0 }; // index 1..32 by hidId
 
 // USB String Descriptors override for TinyUSB stack (S2/S3)
 #if LOADED_USB_STACK
@@ -104,10 +131,11 @@ GPDevice        gamepad;         // define the extern
 #endif
 
 // HID Report spacing & control
-static uint32_t lastHidSendUs = 0;
-static uint8_t lastSentReport[sizeof(report.raw)] = {0};
+// static uint32_t lastHidSendUs = 0;
+// static uint8_t lastSentReport[sizeof(report.raw)] = {0};
+
 static bool reportPending = false;
-static_assert(sizeof(report.raw) == sizeof(lastSentReport), "Report size mismatch!");
+// static_assert(sizeof(report.raw) == sizeof(lastSentReport), "Report size mismatch!");
 
 // Wats the max number of groups?
 size_t getMaxUsedGroup() {
@@ -151,6 +179,10 @@ static const InputMapping* findHidMappingByDcs(const char* dcsLabel, uint16_t va
 }
 
 void flushBufferedHidCommands() {
+
+    // Gate at function entry
+    if (isModeSelectorDCS()) return;         // Exclusive: skip when in DCS mode
+
     auto history = dcsbios_getCommandHistory();
     size_t n     = dcsbios_getCommandHistorySize();
     unsigned long now = millis();
@@ -302,26 +334,6 @@ void HIDManager_resetAllAxes() {
     }
 }
 
-// Commit Deferred HID report for an entire panel
-void HIDManager_commitDeferredReport(const char* deviceName) {
-
-      // Skip is we are in DCS-MODE
-    if (isModeSelectorDCS()) return;
-
-    #if !USE_DCSBIOS_WIFI && !USE_DCSBIOS_BLUETOOTH
-        if (!cdcEnsureRxReady(CDC_TIMEOUT_RX_TX) || !cdcEnsureTxReady(CDC_TIMEOUT_RX_TX)) {
-            debugPrintln("❌ [HID] No stream active yet or Tx buffer full");
-            return;
-        }
-    #endif    
-
-    // 2) Send the raw 64-byte gamepad report
-    HIDManager_dispatchReport(false);
-
-    // 3) (Optional) Debug
-    debugPrintf("🛩️ [HID] Deferred report sent for: \"%s\"\n", deviceName);
-}
-
 // For polling rate on panels that need it
 bool shouldPollMs(unsigned long &lastPoll) {
   const unsigned long pollingIntervalMs = 1000 / POLLING_RATE_HZ;
@@ -363,43 +375,6 @@ static inline void HID_dbgDumpHistory(const char* label, const char* where) {
         (unsigned long)e->lastChangeTime,
         (unsigned long)e->lastSendTime);
 }
-
-/*
-void HIDManager_dispatchReport(bool force) {
-
-// Only situation in which we are allowed to send HID reports while in DCS mode is when USE_DCSBIOS_USB is enabled, so we skip this check.
-#if USE_DCSBIOS_USB
-    if (HID.ready()) {
-        gamepad.sendReport(report.raw, sizeof(report.raw)); // Already using HID_SENDREPORT_TIMEOUT
-    }
-    else {
-		debugPrintln("❌ [HID] Not ready, cannot send HID report.");
-    }
-#else
-    // DCS mode disables HID entirely
-    if (isModeSelectorDCS()) return;
-
-    uint32_t now = micros();
-
-    if (force) {
-        // REGULAR INTERVAL: Enforce minimum interval
-        if ((now - lastHidSendUs) < HID_REPORT_MIN_INTERVAL_US) return;
-        // Else, proceed and update last send time below
-    }
-
-    // Skip if report is identical and not forced
-    if (!force && memcmp(lastSentReport, report.raw, sizeof(report.raw)) == 0) return;
-
-    // We also check for HID_can_send_report to check for special Rx ready condition (ESP32 Arduino Core bug workaround!) 
-    if(HID.ready())
-      gamepad.sendReport(report.raw, sizeof(report.raw)); // Already using HID_SENDREPORT_TIMEOUT
-
-    // Mark success
-    memcpy(lastSentReport, report.raw, sizeof(report.raw));
-    lastHidSendUs = now;
-#endif    
-}
-*/
 
 void HIDManager_dispatchReport(bool force) {
 
@@ -469,20 +444,14 @@ void HIDManager_moveAxis(const char* dcsIdentifier,
 {
     // --- constants (int-only) ---
     constexpr int DEADZONE_LOW = 512;
-    constexpr int DEADZONE_HIGH = 8191;     // match descriptor 0..8191
+    constexpr int DEADZONE_HIGH = 4095;   // was 8191
+    constexpr int HID_MAX = 4095;   // was 8191
     constexpr int THRESHOLD = 128;
     constexpr int SMOOTHING_FACTOR = 8;
     constexpr int STABILIZATION_CYCLES = 10;
-    constexpr int HID_MAX = 8191;
-
-    const bool inDcsMode =
-        isModeSelectorDCS();             // panel selector says "DCS"
-    const bool hybridEnabled =
-#if defined(MODE_HYBRID_DCS_HID) && (MODE_HYBRID_DCS_HID == 1)
-        true;
-#else
-        false;
-#endif
+    
+    const bool inDcsMode = isModeSelectorDCS();             // panel selector says "DCS"
+    const bool hybridEnabled = false;
 
     auto sendHID = [&](int value, bool force) {
         if (axis < HID_AXIS_COUNT) report.axes[axis] = (uint16_t)value;
@@ -578,94 +547,132 @@ void HIDManager_setToggleNamedButton(const char* name, bool deferSend) {
     CommandHistoryEntry* e = findCmdEntry(name);
     if (!e) return;
 
-    // Sentinel-safe current state (unknown treated as OFF)
+    // Toggle state
     const bool curOn = (e->lastValue != 0xFFFF) && (e->lastValue > 0);
     const bool newOn = !curOn;
     e->lastValue = newOn ? 1 : 0;
 
-    if (isModeSelectorDCS()) {
-        if (m->oride_label && m->oride_value >= 0) {
-            sendDCSBIOSCommand(m->oride_label, newOn ? m->oride_value : 0, forcePanelSyncThisMission);
-        }
-        #if defined(MODE_HYBRID_DCS_HID) && (MODE_HYBRID_DCS_HID == 1)
-                // In Hybrid mode, we also update HID state but only if a hidId is assigned to this control
-        #else
-                return; // In pure DCS mode, we skip the rest
-        #endif
+    const bool inDcs = isModeSelectorDCS();
+    const bool hybridEnabled = false;
+    const bool dcsAllowed = inDcs || hybridEnabled;
+    const bool hidAllowed = (!inDcs) || hybridEnabled;
+
+    // DCS path
+    if (dcsAllowed && m->oride_label && m->oride_value >= 0) {
+        sendDCSBIOSCommand(m->oride_label, newOn ? m->oride_value : 0, forcePanelSyncThisMission);
     }
 
-    if (m->hidId <= 0) return;
+    // HID path
+    if (!hidAllowed || m->hidId <= 0) return;
     const uint32_t mask = (1UL << (m->hidId - 1));
     if (m->group > 0 && newOn) report.buttons &= ~groupBitmask[m->group];
     if (newOn) report.buttons |= mask; else report.buttons &= ~mask;
-    if (!deferSend) HIDManager_sendReport(name, newOn ? 1 : 0);
+    if (!deferSend) HIDManager_dispatchReport(false);
 }
 
 void HIDManager_setNamedButton(const char* name, bool deferSend, bool pressed) {
+    const InputMapping* m = findInputByLabel(name);
+    if (!m) { debugPrintf("⚠️ [HIDManager] %s UNKNOWN\n", name); return; }
 
-  const InputMapping* m = findInputByLabel(name);
-  if (!m) {
-      debugPrintf("⚠️ [HIDManager] %s UNKNOWN\n", name);
-      return;
-  }
-
-  // During init, ignore momentary button presses
-  if (deferSend && m->controlType && strcmp(m->controlType, "momentary") == 0) {
-      debugPrintf("⚠️ [HIDManager] Momentary button %s ignored during init sync routine.\n", name);
-      return;
-  }
-
-  if (isModeSelectorDCS()) {
-
-      if (CoverGate_intercept(name, pressed) && !deferSend) {
-          return;
-      }
-
-      if (isLatchedButton(name)) {
-          HIDManager_toggleIfPressed(pressed, name);
-          return;
-      }
-
-      // -- Bypass selector/dwell for variable/fixed step --
-      if (strcmp(m->controlType, "variable_step") == 0 || strcmp(m->controlType, "fixed_step") == 0) {
-          static char buf[12];
-          if (strcmp(m->controlType, "variable_step") == 0)
-              strcpy(buf, pressed ? "+3200" : "-3200");
-          else
-              strcpy(buf, pressed ? "INC" : "DEC");
-          sendCommand(m->oride_label, buf, false);
-          return; // Skip the rest!
-      }
-
-	  // -- Handle DCS commands normally --
-      if (m->oride_label && m->oride_value >= 0) {
-        bool force = forcePanelSyncThisMission;
-        sendDCSBIOSCommand(m->oride_label, pressed ? m->oride_value : 0, force);
+    // Regular non-selector buttons
+    if (deferSend && m->controlType && strcmp(m->controlType, "momentary") == 0) {
+        debugPrintf("⚠️ [HIDManager] Momentary %s ignored during init.\n", name);
+        return;
     }
 
-    #if defined(MODE_HYBRID_DCS_HID) && (MODE_HYBRID_DCS_HID == 1)
-    // In Hybrid mode, we also update HID state but only if a hidId is assigned to this control
-    #else
-        return; // In pure DCS mode, we skip the rest
-    #endif
-  }
+    const bool inDcs = isModeSelectorDCS();
+    const bool hybridEnabled = false;
+    const bool dcsAllowed = inDcs || hybridEnabled;
+    const bool hidAllowed = (!inDcs) || hybridEnabled;
 
-  if (m->hidId <= 0) return;
+    // HID-only latch handling: only when DCS is NOT allowed
+    if (!dcsAllowed && isLatchedButton(name)) {
+        HIDManager_toggleIfPressed(pressed, name, deferSend);
+        return;
+    }
 
-  uint32_t mask = (1UL << (m->hidId - 1));
+    // -------- DCS path (HYBRID or physical DCS) --------
+    if (dcsAllowed) {
+        // Gate only DCS with cover logic; HID remains independent
+        if (!(CoverGate_intercept(name, pressed) && !deferSend)) {
+            const char* ctype = m->controlType ? m->controlType : "";
+            const bool isVarStep = (strcmp(ctype, "variable_step") == 0);
+            const bool isFixStep = (strcmp(ctype, "fixed_step") == 0);
 
-  if (m->group > 0 && pressed)
-    report.buttons &= ~groupBitmask[m->group];
+            if (isVarStep || isFixStep) {
+                static char buf[12];
+                if (isVarStep) strcpy(buf, pressed ? "+3200" : "-3200");
+                else           strcpy(buf, pressed ? "INC" : "DEC");
+                sendCommand(m->oride_label, buf, false);
+            }
+            else if (isLatchedButton(name)) {
+                // Rising-edge toggle handles both pipes when DCS is allowed
+                HIDManager_toggleIfPressed(pressed, name, deferSend);
+                return;
+            }
+            else if (m->oride_label && m->oride_value >= 0) {
+                const bool force = forcePanelSyncThisMission;
+                sendDCSBIOSCommand(m->oride_label, pressed ? m->oride_value : 0, force);
+            }
+        }
+        // else: cover handled DCS side; HID may still run below.
+    }
 
-  if (pressed)
-    report.buttons |= mask;
-  else
-    report.buttons &= ~mask;
+    // -------- HID path (HID or HYBRID) --------
+    if (!hidAllowed || m->hidId <= 0 || m->hidId > 32) return;
 
-  // OJO Cambio recient
-  if (!deferSend) {
-    HIDManager_sendReport(name, pressed ? m->oride_value : 0);
-  }
+    const uint32_t bit = (1UL << (m->hidId - 1));
+    const char* ctype = m->controlType ? m->controlType : "";
+    const bool isVarStep = (strcmp(ctype, "variable_step") == 0);
+    const bool isFixStep = (strcmp(ctype, "fixed_step") == 0);
+
+    // STEP CONTROLS → two distinct buttons (INC/DEC). Emit ON and schedule auto-OFF.
+    if (isVarStep || isFixStep) {
+        report.buttons |= bit;
+        HIDManager_dispatchReport(false);
+        g_hidStepPulseMask |= bit;
+        g_hidStepPulseDueMs[m->hidId] = millis() + STEP_PULSE_MS;
+        return;
+    }
+
+    // SELECTORS → enqueue only on PRESS; never enqueue 0 on RELEASE
+    if (m->group > 0) {
+        if (pressed) {
+            // immediate UI exclusivity, then buffer the target position value
+            report.buttons &= ~groupBitmask[m->group];
+            report.buttons |= bit;
+            HIDManager_sendReport(name, m->oride_value); // buffer value for dwell arbitration
+        }
+        else {
+            // local UI clear only; do not push 0 to history
+            report.buttons &= ~bit;
+            HIDManager_dispatchReport(false);
+        }
+        return;
+    }
+
+    if (pressed) report.buttons |= bit; else report.buttons &= ~bit;
+    if (!deferSend) HIDManager_dispatchReport(false);
+}
+
+void HIDManager_commitDeferredReport(const char* deviceName) {
+    const bool inDcs = isModeSelectorDCS();
+#if defined(MODE_HYBRID_DCS_HID) && (MODE_HYBRID_DCS_HID == 1)
+    const bool hidPermitted = true;   // HYBRID: permit HID flush even in DCS
+#else
+    const bool hidPermitted = !inDcs; // Exclusive modes: HID only when selector says HID
+#endif
+    if (!hidPermitted) return;
+
+#if !USE_DCSBIOS_WIFI && !USE_DCSBIOS_BLUETOOTH
+    if (!cdcEnsureRxReady(CDC_TIMEOUT_RX_TX) || !cdcEnsureTxReady(CDC_TIMEOUT_RX_TX)) {
+        debugPrintln("❌ [HID] No stream active yet or Tx buffer full");
+        return;
+    }
+#endif
+
+    HIDManager_dispatchReport(false);
+    debugPrintf("🛩️ [HID] Deferred report sent for: \"%s\"\n", deviceName);
 }
 
 void HID_keepAlive() {
@@ -685,7 +692,7 @@ void HIDManager_startUSB() {
 
 void HIDManager_setup() {
 
-    // Load our Group Bitmasks
+    // Load our Group
     buildHIDGroupBitmasks();
 
 #if LOADED_CDC_STACK
@@ -697,18 +704,43 @@ void HIDManager_setup() {
     setupUSBEvents();
     HID.begin();
 #endif
+
+    // Set Serial close flags based on CLOSE_CDC_SERIAL or CLOSE_HWCDC_SERIAL like we do for USB   
+#if defined(CLOSE_CDC_SERIAL)
+    closeCDCserial = true;
+#endif
+
+#if defined(CLOSE_HWCDC_SERIAL)
+    closeHWCDCserial = true;
+#endif
 }
 
 void HIDManager_loop() {
 
-    // Optional
-    #if HID_KEEP_ALIVE_ENABLED
-    if (!isModeSelectorDCS()) HID_keepAlive();  // Called only when in HID mode and if HID_KEEP_ALIVE_ENABLED    
-    #endif    
-
-    #if defined(SELECTOR_DWELL_MS) && (SELECTOR_DWELL_MS > 0)
-    // In HID mode, flush any buffered selector-group presses
-    if (!isModeSelectorDCS()) flushBufferedHidCommands();
+#if HID_KEEP_ALIVE_ENABLED
+    #if defined(MODE_HYBRID_DCS_HID) && (MODE_HYBRID_DCS_HID == 1)
+        HID_keepAlive();
+    #else
+        if (!isModeSelectorDCS()) HID_keepAlive();
     #endif
+#endif
 
+	// Flush buffered HID commands every frame (if any)
+    flushBufferedHidCommands();
+
+    // Auto-clear pending HID pulses for variable/fixed_step controls
+    if (g_hidStepPulseMask) {
+        const unsigned long now = millis();
+        uint32_t pending = g_hidStepPulseMask;
+
+        for (uint8_t hid = 1; hid <= 32; ++hid) {
+            const uint32_t bit = (1UL << (hid - 1));
+            if (!(pending & bit)) continue;
+            if ((int32_t)(now - g_hidStepPulseDueMs[hid]) >= 0) {
+                report.buttons &= ~bit;
+                HIDManager_dispatchReport(false);
+                g_hidStepPulseMask &= ~bit;
+            }
+        }
+    }
 }

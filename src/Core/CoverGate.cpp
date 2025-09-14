@@ -110,22 +110,26 @@ void CoverGate_loop() {
 
         // --- Selector deferred armed action ---
         if ((g.kind == CoverGateKind::Selector) && (s_state[i].p == P_SEND_ON)) {
+
             s_reentry = true;
-            HIDManager_setNamedButton(g.action_label, false, true);  // select armed/ON
+            HIDManager_setNamedButton(g.action_label, false, true);
             s_reentry = false;
 
             s_state[i].p = P_NONE;
             continue;
+
         }
 
         // --- Selector deferred cover close ---
         if ((g.kind == CoverGateKind::Selector) && (s_state[i].p == P_CLOSE_COVER)) {
             s_reentry = true;
-            HIDManager_setNamedButton(g.cover_label, false, false);  // close cover
+            // HIDManager_setNamedButton(g.action_label, false, false);
+            HIDManager_setNamedButton(g.cover_label, false, false);   // close the cover
             s_reentry = false;
 
             s_state[i].p = P_NONE;
             continue;
+
         }
 
         // --- Guarded latched momentary: deferred ON (only if currently OFF per cache) ---

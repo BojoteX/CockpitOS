@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
-  DEVICE_GPIO,
   DEVICE_TM1637,
-  DEVICE_PCA9555,
-  DEVICE_WS2812,
-  DEVICE_GN1640T,
   DEVICE_NONE,
   DEVICE_GAUGE,
+  DEVICE_GPIO,
+  DEVICE_GN1640T,
+  DEVICE_WS2812,
+  DEVICE_PCA9555,
 };
 
 struct LEDMapping {
@@ -21,7 +21,7 @@ struct LEDMapping {
     struct { uint8_t address; uint8_t port; uint8_t bit; } pcaInfo;
     struct { uint8_t clkPin; uint8_t dioPin; uint8_t segment; uint8_t bit; } tm1637Info;
     struct { uint8_t address; uint8_t column; uint8_t row; } gn1640Info;
-    struct { uint8_t index; } ws2812Info;
+    struct { uint8_t index; uint8_t pin; uint8_t defR; uint8_t defG; uint8_t defB; uint8_t defBright; } ws2812Info;
   } info;
   bool dimmable;
   bool activeLow;
@@ -31,11 +31,11 @@ struct LEDMapping {
 static const LEDMapping panelLEDs[] = {
   { "FIRE_APU_LT"         , DEVICE_TM1637  , {.tm1637Info = {PIN(37), PIN(40), 5, 0}}, false, false }, // TM1637 CLK PIN(37) DIO PIN(40) Seg 5 Bit 0,
   { "AOA_INDEXER_HIGH"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "AOA_INDEXER_HIGH_F"  , DEVICE_WS2812  , {.ws2812Info = {3}}, true, false }, // WS2812 Index 3,
+  { "AOA_INDEXER_HIGH_F"  , DEVICE_WS2812  , {.ws2812Info = {3, WS2812B_PIN,   0, 255,   0, 200}}, true, false }, // WS2812 Index 3,
   { "AOA_INDEXER_LOW"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "AOA_INDEXER_LOW_F"   , DEVICE_WS2812  , {.ws2812Info = {5}}, true, false }, // WS2812 Index 5,
+  { "AOA_INDEXER_LOW_F"   , DEVICE_WS2812  , {.ws2812Info = {5, WS2812B_PIN, 255,   0,   0, 200}}, true, false }, // WS2812 Index 5,
   { "AOA_INDEXER_NORMAL"  , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "AOA_INDEXER_NORMAL_F", DEVICE_WS2812  , {.ws2812Info = {4}}, true, false }, // WS2812 Index 4,
+  { "AOA_INDEXER_NORMAL_F", DEVICE_WS2812  , {.ws2812Info = {4, WS2812B_PIN, 255, 165,   0, 200}}, true, false }, // WS2812 Index 4,
   { "CHART_DIMMER"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CONSOLES_DIMMER"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "FLOOD_DIMMER"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
@@ -53,9 +53,9 @@ static const LEDMapping panelLEDs[] = {
   { "LH_ADV_STBY"         , DEVICE_TM1637  , {.tm1637Info = {PIN(37), PIN(39), 2, 1}}, false, false }, // TM1637 CLK PIN(37) DIO PIN(39) Seg 2 Bit 1,
   { "LH_ADV_XMIT"         , DEVICE_TM1637  , {.tm1637Info = {PIN(37), PIN(39), 4, 1}}, false, false }, // TM1637 CLK PIN(37) DIO PIN(39) Seg 4 Bit 1,
   { "FIRE_LEFT_LT"        , DEVICE_TM1637  , {.tm1637Info = {PIN(37), PIN(39), 0, 2}}, false, false }, // TM1637 CLK PIN(37) DIO PIN(39) Seg 0 Bit 2,
-  { "LS_LOCK"             , DEVICE_WS2812  , {.ws2812Info = {0}}, false, false }, // WS2812 Index 0,
-  { "LS_SHOOT"            , DEVICE_WS2812  , {.ws2812Info = {1}}, false, false }, // WS2812 Index 1,
-  { "LS_SHOOT_STROBE"     , DEVICE_WS2812  , {.ws2812Info = {2}}, false, false }, // WS2812 Index 2,
+  { "LS_LOCK"             , DEVICE_WS2812  , {.ws2812Info = {0, WS2812B_PIN,   0, 255,   0, 255}}, false, false }, // WS2812 Index 0,
+  { "LS_SHOOT"            , DEVICE_WS2812  , {.ws2812Info = {1, WS2812B_PIN,   0, 255,   0, 255}}, false, false }, // WS2812 Index 1,
+  { "LS_SHOOT_STROBE"     , DEVICE_WS2812  , {.ws2812Info = {2, WS2812B_PIN,   0, 255,   0, 255}}, false, false }, // WS2812 Index 2,
   { "HMD_OFF_BRT"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "SPIN_LT"             , DEVICE_GPIO    , {.gpioInfo = {PIN(34)}}, false, false }, // GPIO PIN(34),
   { "MASTER_MODE_AA_LT"   , DEVICE_PCA9555 , {.pcaInfo = {0x5B, 1, 3}}, false, true }, // PCA 0x5B Port 1 Bit 3,

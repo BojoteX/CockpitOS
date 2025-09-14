@@ -15,37 +15,33 @@
 
 // Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. 
 // Bluetooth BLE, Pure Native USB, WIFI or Serial (CDC/Socat). Only ONE can be active 
-#define USE_DCSBIOS_BLUETOOTH                     0   // Completely bypasses socat and uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (All ESP32 that support BLE Bluetooth)
+#define USE_DCSBIOS_BLUETOOTH                     0   // *INTERNAL USE ONLY* (Not included) Completely bypasses socat and uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (All ESP32 that support BLE Bluetooth).
 #define USE_DCSBIOS_WIFI                          0   // Completely bypasses socat and uses WiFi to connect to DCS. (ALL ESP32 Devices except H2) 
-#define USE_DCSBIOS_USB                           1   // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (S2, S3 & P4 Only)
-#define USE_DCSBIOS_SERIAL                        0   // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported)
+#define USE_DCSBIOS_USB                           1   // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (S2, S3 & P4 Only). S3 & P4 require USB Mode set to USB-OTG (TinyUSB) in Tools Menu
+#define USE_DCSBIOS_SERIAL                        0   // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 
 // Wi-Fi network credentials (used for WiFi remote Debug Console and DCSBIOS WiFi mode if selected)
 #define WIFI_SSID                                 "MyHotspotNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
 #define WIFI_PASS                                 "TestingOnly"
 
 // For production, ALL THESE should be set to 0. Use for debugging only. Most commonly used together are DEBUG_USE_WIFI + VERBOSE_MODE_WIFI_ONLY + DEBUG_PERFORMANCE
-#define TEST_LEDS                                 0  // Interactive menu (via serial console) to test LEDs individually
-#define IS_REPLAY                                 0  // Simulate a loopback DCS stream to check your panel is working and debug via Serial
-#define DEBUG_ENABLED                             0  // Use it ONLY when identifying issues or troubleshooting
-#define DEBUG_ENABLED_FOR_PCA_ONLY                0  // Use it ONLY when mapping Port/bit/mask in PCA9xxx devices
-#define DEBUG_ENABLED_FOR_HC165_ONLY              0  // Use it ONLY when mapping bits in HC165 devices
-#define DEBUG_USE_WIFI                            0  // Uses WiFi to output VERBOSE and DEBUG messages
-#define VERBOSE_MODE                              0  // Logs INFO messages to both Serial and UDP (very useful) 
-#define VERBOSE_MODE_SERIAL_ONLY                  0  // Verbose will only output to Serial. 
-#define VERBOSE_MODE_WIFI_ONLY                    0  // Verbose will only output to WiFi so Serial port is clean. Requires DEBUG_USE_WIFI
-#define VERBOSE_PERFORMANCE_ONLY                  0  // Requires DEBUG_PERFORMANCE as well, this will only output perf snapshots, make sure you pick WIFI or SERIAL above and DEBUG_ENABLED is 0
-#define DEBUG_PERFORMANCE                         0  // Shows a performance snapshot every x seconds (interval can be configured below)
-#define DEBUG_PERFORMANCE_SHOW_TASKS              0  // Includes the current task list with the snapshot. Not really needed.
-#define PERFORMANCE_SNAPSHOT_INTERVAL_SECONDS     60 // Interval between snapshots (in seconds)
+#define DEBUG_ENABLED                              0  // Use it ONLY when identifying issues or troubleshooting
+#define DEBUG_ENABLED_FOR_PCA_ONLY                 0  // Use it ONLY when mapping Port/bit/mask in PCA9xxx devices
+#define DEBUG_ENABLED_FOR_HC165_ONLY               0  // Use it ONLY when mapping bits in HC165 devices
+#define DEBUG_USE_WIFI                             0  // Uses WiFi to output VERBOSE and DEBUG messages
+#define VERBOSE_MODE                               0  // Logs INFO messages to both Serial and UDP (very useful) 
+#define VERBOSE_MODE_SERIAL_ONLY                   0  // Verbose will only output to Serial. 
+#define VERBOSE_MODE_WIFI_ONLY                     0  // Verbose will only output to WiFi so Serial port is clean. Requires DEBUG_USE_WIFI
+#define VERBOSE_PERFORMANCE_ONLY                   0  // Requires DEBUG_PERFORMANCE as well, this will only output perf snapshots, make sure you pick WIFI or SERIAL above and DEBUG_ENABLED is 0
+#define DEBUG_PERFORMANCE                          0  // Shows a performance snapshot every x seconds (interval can be configured below)
+#define DEBUG_PERFORMANCE_SHOW_TASKS               0  // Includes the current task list with the snapshot. Not really needed.
+#define PERFORMANCE_SNAPSHOT_INTERVAL_SECONDS      60 // Interval between snapshots (in seconds)
 
 // Advanced config, these settings have been carefully tuned for performance and stability, 
+#define TEST_LEDS                                  0 // Interactive menu (via serial console) to test LEDs individually
+#define IS_REPLAY                                  0 // Simulate a loopback DCS stream to check your panel is working and debug via Serial
 #define ENABLE_TFT_GAUGES                          1 // Enable TFT Gauges (should always be 1, except for testing or debugging)
-#define MODE_HYBRID_DCS_HID                        0 // Allow both DCS and HID mode simultaneously
 #define DCSBIOS_USE_LITE_VERSION                   1 // Set to 1 to use a LITE (local) version of the DCSBIOS Library. 0 Uses the Original unmodified Library (you'll need to install it)
-#define ALLOW_CONCURRENT_CDC_AND_HID               1 // Careful, this should ALWAYS be set to 0, concurrent CDC + HID is unstable
-#define GAMEPAD_REPORT_SIZE                       64 // Must match the HID descriptor, you should NEVER have to change this.
-#define SERVO_UPDATE_FREQ_MS                      20 // For Analog servo instruments. Update rate in ms (as per servo specs)
 #define SCAN_WIFI_NETWORKS                         0 // For debugging and see what networks the device sees (this outputs to Serial interface)
 #define USE_WIRE_FOR_I2C                           0 // If set to 1 uses the Arduino compatible I2C Wire Library (slow)
 #define PCA_FAST_MODE                              1 // Set to 1 to enable 400MHz PCA Bus FAST MODE 
@@ -78,6 +74,8 @@
 #define MAX_REGISTERED_DISPLAY_BUFFERS            64
 #define MAX_VALIDATED_SELECTORS                   32  // Tune to match maximum selectors you need to track
 #define MISSION_START_DEBOUNCE                   500  // ms to wait before panel sync
+#define GAMEPAD_REPORT_SIZE                       64 // Must match the HID descriptor, you should NEVER have to change this.
+#define SERVO_UPDATE_FREQ_MS                      20 // For Analog servo instruments. Update rate in ms (as per servo specs)
 
 // Serial Debug Ring Buffer
 #define SERIAL_DEBUG_USE_RINGBUFFER               0 // Should be use a ring buffer for Serial Debug messages? not really necessary
@@ -142,7 +140,7 @@
 #define USB_PID		                           AUTOGEN_USB_PID
 #define USB_SERIAL                           LABEL_SET_STR
 #define USB_PRODUCT                          USB_SERIAL
-#define USB_MANUFACTURER                     "CockpitOS Firmware Project"
+#define USB_MANUFACTURER                     "CockpitOS"
 #define USB_LANG_ID                          0x0409  // English (US)
 
 // Automatically enables what we'll be using, no need to edit.
@@ -181,24 +179,34 @@
 // Works across all boards of the same chip family
 #if defined(CONFIG_IDF_TARGET_ESP32C3)
   #define ESP_FAMILY_C3 1
+  #define DEVICE_HAS_HWSERIAL 1
 #elif defined(CONFIG_IDF_TARGET_ESP32C6)
   #define ESP_FAMILY_C6 1
+  #define DEVICE_HAS_HWSERIAL 1
 #elif defined(CONFIG_IDF_TARGET_ESP32H2)
   #define ESP_FAMILY_H2 1
+  #define DEVICE_HAS_HWSERIAL 1
 #elif defined(CONFIG_IDF_TARGET_ESP32P4)
   #define ESP_FAMILY_P4 1
+  #define DEVICE_HAS_HWSERIAL 1
 #elif defined(CONFIG_IDF_TARGET_ESP32S2)
   #define ESP_FAMILY_S2 1
+  #define DEVICE_HAS_HWSERIAL 0 // No JTAG / HW CDC
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
   #define ESP_FAMILY_S3 1
+  #define DEVICE_HAS_HWSERIAL 1
 #elif defined(CONFIG_IDF_TARGET_ESP32C2)
   #define ESP_FAMILY_C2 1
+  #define DEVICE_HAS_HWSERIAL 1
 #elif defined(CONFIG_IDF_TARGET_ESP32C5)
   #define ESP_FAMILY_C5 1  
+  #define DEVICE_HAS_HWSERIAL 1
 #elif defined(CONFIG_IDF_TARGET_ESP32)
   #define ESP_FAMILY_CLASSIC 1
+  #define DEVICE_HAS_HWSERIAL 1
 #else
   #define ESP_FAMILY_UNKNOWN 1
+  #define DEVICE_HAS_HWSERIAL 0
 #endif
 
 #if USE_DCSBIOS_USB

@@ -22,7 +22,7 @@ def ini_console_enabled(path=SETTINGS_PATH):
             return v in ('1','true','yes','on','y')
     except Exception:
         pass
-    return False
+    return True
 
 HEADLESS   = ('--console' in sys.argv) or ('--headless' in sys.argv) or ini_console_enabled()
 IS_WINDOWS = (os.name == 'nt') or sys.platform.startswith('win')
@@ -104,7 +104,7 @@ def read_settings_from_ini(filename="settings.ini"):
     if not os.path.isfile(filename):
         config['USB'] = {'VID': '0xCAFE'}  # PID omitted by default
         config['DCS'] = {'UDP_SOURCE_IP': '127.0.0.1'}
-        config['MAIN'] = {'CONSOLE': '0'}
+        config['MAIN'] = {'CONSOLE': '1'}
         with open(filename, 'w') as configfile:
             config.write(configfile)
     config.read(filename)

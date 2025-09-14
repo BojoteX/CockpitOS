@@ -99,39 +99,25 @@ void setLED(const char* label, bool state, uint8_t intensity, uint16_t rawValue,
             #if DEBUG_PERFORMANCE
             beginProfiling(PERF_LED_WS2812);
             #endif
-
             {
-                uint8_t index = led->info.ws2812Info.index;
-                CRGB color = Black;
+                const auto& w = led->info.ws2812Info;
 
-                if (state) {
-                    if (index <= 2) {
-                        // Lockshoot (green or off, no brightness)
-                        color = Green;
-                    }
-                    else {
-                        // AOA (dimmable: red, yellow, green)
-                        uint8_t level = map(intensity, 0, 100, 0, 255);
-                        if (strstr(led->label, "AOA_INDEXER_HIGH_F")) {
-                            color = CRGB(0, level, 0); // Green
-                        }
-                        else if (strstr(led->label, "AOA_INDEXER_LOW_F")) {
-                            color = CRGB(level, 0, 0); // Red
-                        }
-                        else if (strstr(led->label, "AOA_INDEXER_NORMAL_F")) {
-                            // Orange-ish: strong red, 75% green
-                            color = CRGB(level, (uint8_t)(level * 0.65), 0);
+                // Gain: use live intensity if dimmable, else the mapping’s default brightness
+                const uint8_t gain = led->dimmable ? map(intensity, 0, 100, 0, 255) : w.defBright;
 
-                        }
-                        else {
-                            color = CRGB(level, level, level); // Fallback whiteish
-                        }
-                    }
-                }
+                // Fixed-point scale without floats
+                auto scale8 = [&](uint8_t v) -> uint8_t {
+                    return static_cast<uint8_t>((static_cast<uint16_t>(v) * gain) >> 8);
+                    };
 
-                WS2812_setLEDColor(index, color);
+                // Color comes exclusively from mapping defaults, scaled by gain
+                const CRGB color = state
+                    ? CRGB(scale8(w.defR), scale8(w.defG), scale8(w.defB))
+                    : Black;
+
+                // Route to the correct strip by pin
+                WS2812_setLEDColor(w.pin, w.index, color);
             }
-
             #if DEBUG_PERFORMANCE
             endProfiling(PERF_LED_WS2812);
             #endif

@@ -2,6 +2,21 @@
 
 #include "../../../src/Globals.h"
 
+// --- Serial alias for this file only ---
+#if !defined(ARDUINO_USB_CDC_ON_BOOT) || (ARDUINO_USB_CDC_ON_BOOT == 0)
+    #if defined(ARDUINO_USB_MODE) && (ARDUINO_USB_MODE == 0)   // TinyUSB CDC
+        #ifdef Serial
+            #undef Serial
+        #endif
+        #define Serial USBSerial
+    #elif defined(ARDUINO_USB_MODE) && (ARDUINO_USB_MODE == 1) // HW CDC
+        #ifdef Serial
+            #undef Serial
+        #endif
+        #define Serial HWCDCSerial
+    #endif
+#endif
+
 #if DEBUG_USE_WIFI || USE_DCSBIOS_WIFI
 #include "../../../src/WiFiDebug.h"
 #endif

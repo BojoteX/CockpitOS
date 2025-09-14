@@ -89,13 +89,13 @@ void initializeDisplays() {
 }
 
 void initializeLEDs() {
+
     if (PanelRegistry_has(PanelKind::MasterARM)) PCA9555_autoInitFromLEDMap(0x5B);
     if (PanelRegistry_has(PanelKind::ECM)) PCA9555_autoInitFromLEDMap(0x22);
     if (PanelRegistry_has(PanelKind::Brain)) PCA9555_autoInitFromLEDMap(0x26);
 
     if (PanelRegistry_has(PanelKind::LockShoot)) {
         debugPrintln("✅ Lock/Shoot detected, initializing...");
-        WS2812_init();
     } else {
         debugPrintln("⚠️ Lock/Shoot NOT detected!");
     }
@@ -139,6 +139,15 @@ void initializeLEDs() {
     // GPIO LEDs
     preconfigureGPIO();
     GPIO_setAllLEDs(true); delay(1000); GPIO_setAllLEDs(false);
+
+    // Load ALL WS2812 defined in our file
+    initWS2812FromMap(); 
+
+    // Test ALL WS2812 LEDs;
+    // WS2812_allOnFromMap();
+    WS2812Mini::WS2812_allOnFromMap();
+    delay(1000);
+    WS2812Mini::WS2812_allOffAll();
 
     // Always init GPIO 0 (ESP32S2) for testing and debugging
     // pinMode(0, INPUT_PULLUP);

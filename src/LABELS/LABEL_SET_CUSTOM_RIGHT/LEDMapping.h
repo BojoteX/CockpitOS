@@ -4,10 +4,10 @@
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
   DEVICE_GPIO,
-  DEVICE_GN1640T,
-  DEVICE_WS2812,
-  DEVICE_NONE,
   DEVICE_TM1637,
+  DEVICE_WS2812,
+  DEVICE_GN1640T,
+  DEVICE_NONE,
   DEVICE_GAUGE,
   DEVICE_PCA9555,
 };
@@ -21,7 +21,7 @@ struct LEDMapping {
     struct { uint8_t address; uint8_t port; uint8_t bit; } pcaInfo;
     struct { uint8_t clkPin; uint8_t dioPin; uint8_t segment; uint8_t bit; } tm1637Info;
     struct { uint8_t address; uint8_t column; uint8_t row; } gn1640Info;
-    struct { uint8_t index; } ws2812Info;
+    struct { uint8_t index; uint8_t pin; uint8_t defR; uint8_t defG; uint8_t defB; uint8_t defBright; } ws2812Info;
   } info;
   bool dimmable;
   bool activeLow;

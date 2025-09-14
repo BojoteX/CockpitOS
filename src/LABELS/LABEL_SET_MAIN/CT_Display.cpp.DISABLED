@@ -24,39 +24,34 @@ const DisplayBufferEntry* findDisplayBufferByLabel(const char* label) {
 }
 
 
-void renderField(const char* label, const char* strValue, const DisplayFieldDefLabel* defOverride, FieldState* stateOverride) {
+void renderField(const char* label, const char* strValue,
+                 const DisplayFieldDefLabel* defOverride,
+                 FieldState* stateOverride) {
     const DisplayFieldDefLabel* def = defOverride ? defOverride : findFieldDefByLabel(label);
-
     if (!def) return;
-
-    if (!def->renderFunc) {
-        debugPrintf("[DISPLAY] No renderFunc for label '%s', skipping\n", def->label);
-        return;
-    }
+    if (!def->renderFunc) { debugPrintf("[DISPLAY] No renderFunc for label '%s', skipping\n", def->label); return; }
 
     FieldState* state = stateOverride;
-    int idx = 0;
-
-    if (!stateOverride) {
-        idx = def - fieldDefs;
+    if (!state) {
+        int idx = def - fieldDefs;
         state = &fieldStates[idx];
     }
 
     bool valid = true;
     if (def->type == FIELD_NUMERIC) {
-        int value = strToIntFast(strValue);
+        const int value = strToIntFast(strValue);
         valid = (value >= def->minValue && value <= def->maxValue);
     }
-
     const char* toShow = valid ? strValue : state->lastValue;
 
-    if (memcmp(toShow, state->lastValue, sizeof(state->lastValue)) == 0)
-        return;
+    // bound compare/copy by field length, clamp to cache size
+    uint8_t need = def->numDigits ? def->numDigits : 1;
+    if (need > sizeof(state->lastValue)) need = sizeof(state->lastValue);
 
-    memcpy(state->lastValue, toShow, sizeof(state->lastValue));
+    if (memcmp(toShow, state->lastValue, need) == 0) return;
+
+    memcpy(state->lastValue, toShow, need);
     if (def->clearFunc) def->clearFunc(def->driver, def->segMap, *def);
-
-    // Call the render function with the appropriate parameters
     def->renderFunc(def->driver, def->segMap, toShow, *def);
 }
 

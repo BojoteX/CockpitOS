@@ -10,14 +10,9 @@ enabled, notice the Lockshoot indicator staying WHITE. It stops working. Just di
 
 - Keep testing panel sync to ensure 100% reliability with SAFE/ARM test
 
-- Front Right panel implementations (Physical)
+- Front Right panel implementations (Physical) - Implemented hook LED. Hook + Wing Fold. Implement Backlight
 
-- Make WS2812 generic and modify panel struct/union to add index characteristics (color). Device instance should be deduced from the DIO pin.
+connect both hubs to raspberry (perf test) 
+Implement inactivity automatic deep sleep after x minutes to conserve battery
+Test axes on BLE device
 
-- Check gauges and PSRam changes
-
--Add support for Nimble starting with ESP32 Arduino Core 3.3.0
-
-- Add battery check for BLE device
-
-- Fix string errors (BLE)

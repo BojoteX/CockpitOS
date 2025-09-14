@@ -157,10 +157,10 @@ void wifi_setup() {
     IPAddress ip = WiFi.localIP();
     char ipbuf[24];
     snprintf(ipbuf, sizeof(ipbuf), "%u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
-    serialDebugPrintf(" Connected to WiFi network %s with IP %s\n", WIFI_SSID, ipbuf);
+    serialDebugPrintf(" '%s' Connected to WiFi network %s with IP %s\n", USB_PRODUCT, WIFI_SSID, ipbuf);
     wifiDebugInit(DEBUG_LOCAL_PORT);
     delay(100);
-    wifiDebugPrintf(" Connected to WiFi network %s with IP %s\n", WIFI_SSID, ipbuf);
+    wifiDebugPrintf(" '%s' Connected to WiFi network %s with IP %s\n", USB_PRODUCT, WIFI_SSID, ipbuf);
 }
 
 // --------- FORMATTED/LINE-BASED DEBUG PRINTS ---------

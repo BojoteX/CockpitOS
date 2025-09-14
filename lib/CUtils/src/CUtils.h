@@ -55,43 +55,10 @@ void GPIO_setAllLEDs(bool state);
 void preconfigureGPIO();
 
 // —— WS2812 —— (Lockshoot + AoA Indexer)
-
-// Index mapping for WS2812 LEDs
-// 0 - Lockshoot 1
-// 1 - Lockshoot 2
-// 2 - Lockshoot 3
-// 3 - AOA HIGH (Red)
-// 4 - AOA LOW (Yellow)
-// 5 - AOA NORMAL (Green)
-
-// #define NUM_LEDS 3
-#define NUM_LEDS 6
-struct CRGB {
-    uint8_t r, g, b;
-    constexpr CRGB() : r(0), g(0), b(0) {}
-    constexpr CRGB(uint8_t r_, uint8_t g_, uint8_t b_) : r(r_), g(g_), b(b_) {}
-};
-static const CRGB Black  = CRGB(0,   0,   0);
-static const CRGB Red    = CRGB(255, 0,   0);
-static const CRGB Green  = CRGB(0,   255, 0);
-static const CRGB Blue   = CRGB(0,   0,   255);
-static const CRGB Yellow = CRGB(255, 255, 0);
-
-void WS2812_init();
-void WS2812_setLEDColor(uint8_t idx, CRGB color);
-void WS2812_clearAll();
-void WS2812_allOn(CRGB color);
-void WS2812_allOff();
-void WS2812_sweep(const CRGB* colors, uint8_t count);
-void WS2812_testPattern();
-void WS2812_setAllLEDs(bool state);  
-void WS2812_tick(); 
-
-extern uint8_t brightness;
-extern uint32_t lastShowTime;
-extern CRGB leds[NUM_LEDS];
-extern uint8_t pixels[NUM_LEDS * 3];
-extern bool wsDirty;
+// For compatibility
+#define WS2812MINI_EXPORT_LEGACY_GLOBALS 1
+#define NUM_LEDS 6 // Leave this for legacy compatibility (old driver)
+#include "WS2812.h"
 
 // —— TM1637 (4-digit displays + buttons) —— 
 // struct TM1637Device { uint8_t clkPin, dioPin, ledData[6]; };

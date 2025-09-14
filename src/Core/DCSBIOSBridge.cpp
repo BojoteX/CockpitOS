@@ -4,13 +4,14 @@
 // ARDUINO_USB_MODE == 0 is TinyUSB CDC
 
 #include "../Globals.h"
+
+#if ((ARDUINO_USB_MODE == 0) && (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE)) || ((ARDUINO_USB_CDC_ON_BOOT == 1) && ARDUINO_USB_MODE == 0)  
+    #include "tusb.h"
+#endif
+
 #include "../DCSBIOSBridge.h"
 #include "../HIDManager.h"
 #include "../LEDControl.h"
-
-#if (ARDUINO_USB_MODE == 0) && USE_DCSBIOS_SERIAL 
-#include "tusb.h"
-#endif
 
 #if DEBUG_USE_WIFI || USE_DCSBIOS_WIFI
 #include "../WiFiDebug.h"
@@ -476,7 +477,8 @@ void onLedChange(const char* label, uint16_t value, uint16_t max_value) {
             if (intensity > 93) intensity = 100;
             setLED(label, true, intensity, value, max_value);
             char buf[128];
-            snprintf(buf, sizeof(buf), "[LED] %s Intensity %u\%.", label, value);
+            // snprintf(buf, sizeof(buf), "[LED] %s Intensity %u\%.", label, value);
+            snprintf(buf, sizeof(buf), "[LED] %s Intensity %u%%.", label, intensity);
             if(DEBUG) debugPrintln(buf);
         }
     }
@@ -791,6 +793,9 @@ CommandHistoryEntry* findCmdEntry(const char* label) {
 }
 
 static void flushBufferedDcsCommands() {
+
+    // Gate at function entry
+    if (!isModeSelectorDCS() || !simReady()) return;  // Exclusive: only in DCS mode and sim ready
 
     unsigned long now = millis();
 
@@ -1297,7 +1302,7 @@ void DCSBIOS_keepAlive() {
 void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
 
 	// Prevent any command if sim is not ready yet even if forced
-    if (!simReady) 
+    if (!simReady()) 
         debugPrintf("⚠️ [DCS] NOT READY! ignoring command \"%s %u\" (force=%u)\n", label, value, force);
 
     static char buf[10];
@@ -1442,7 +1447,34 @@ void DCSBIOSBridge_setup() {
                 debugPrintln("[USB CDC] Serial has started!");
                 // isConnected = isSerialConnected();
                 // cdcRxReady = isConnected;           // Assume Rx is ready if connected
+            #endif
+        #endif
+    #else // No Serial is needed
+        #if ARDUINO_USB_CDC_ON_BOOT == 1 // If Serial was started
 
+            // keep closing everything Serial related
+            // Serial.end(); // Stop it here
+            // Serial0.end(); // and here...
+
+			// Stop Serial
+            // if (closeHWCDCserial) {
+                #if ARDUINO_USB_MODE == 1
+                    Serial.end(); // JTAG / CDC Hardware mode needs to be active in order to close it
+                #endif      
+            // }
+
+            // if (closeCDCserial) {
+                #if ARDUINO_USB_MODE == 0
+					Serial.end(); // Does NOT close serial as you selected CDC on boot
+                #endif
+            // }
+
+        #else // If it was not started we also stop it because Arduino Core likes to load HWSerial by default  
+            #if DEVICE_HAS_HWSERIAL == 1
+                if (closeHWCDCserial || closeCDCserial) {
+                    HWCDC HWCDCSerial; // HWCDCSerial exists with both USB MODEs 
+                    HWCDCSerial.end();
+                }
             #endif
         #endif
     #endif
@@ -1479,23 +1511,32 @@ void DCSBIOSBridge_loop() {
         #if ARDUINO_USB_CDC_ON_BOOT == 1
             cdcRxReady = false;
             uint8_t b;
+            bool got = false;
             while (Serial.available() > 0) {
                 b = Serial.read();
-                parseDcsBiosUdpPacket(&b, 1);
+				parseDcsBiosUdpPacket(&b, 1); // Parse byte per byte (Serial using ring buffer internally)
+                got = true;
             }
+            if (got) cdcRxReady = true;
         #else // Serial is not aliased to CDC, use HWCDCSerial
             cdcRxReady = false;
             uint8_t b;
             #if ARDUINO_USB_MODE == 1
+                bool got = false;
                 while (HWCDCSerial.available() > 0) {
                     b = HWCDCSerial.read();
-                    parseDcsBiosUdpPacket(&b, 1);
+					parseDcsBiosUdpPacket(&b, 1); // Parse byte per byte (HW Serial using ring buffer internally)
+                    got = true;
                 }
+                if (got) cdcRxReady = true;
             #else
+                bool got = false;
                 while (USBSerial.available() > 0) {
                     b = USBSerial.read();
-                    parseDcsBiosUdpPacket(&b, 1);
+					parseDcsBiosUdpPacket(&b, 1); // Parse byte per byte (USB Serial using ring buffer internally)
+                    got = true;
 				}
+                if (got) cdcRxReady = true;
             #endif
         #endif
     #endif
@@ -1511,9 +1552,8 @@ void DCSBIOSBridge_loop() {
     if (isModeSelectorDCS()) DCSBIOS_keepAlive();  // Still called only when in DCS mode   
     #endif
 
-    // #if defined(SELECTOR_DWELL_MS) && (SELECTOR_DWELL_MS > 0)
-    if (isModeSelectorDCS() && simReady()) flushBufferedDcsCommands();
-    // #endif    
+	// Flush any pending DCS commands (selectors, buttons, axes)
+    flushBufferedDcsCommands();
 
     if (aircraftNameReceivedAt != 0 && !panelsInitializedThisMission) {
         if (millis() - aircraftNameReceivedAt > MISSION_START_DEBOUNCE) {

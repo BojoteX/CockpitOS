@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
-  DEVICE_GN1640T,
-  DEVICE_PCA9555,
+  DEVICE_WS2812,
+  DEVICE_GPIO,
   DEVICE_GAUGE,
   DEVICE_TM1637,
+  DEVICE_PCA9555,
   DEVICE_NONE,
-  DEVICE_GPIO,
-  DEVICE_WS2812,
+  DEVICE_GN1640T,
 };
 
 struct LEDMapping {
@@ -21,7 +21,7 @@ struct LEDMapping {
     struct { uint8_t address; uint8_t port; uint8_t bit; } pcaInfo;
     struct { uint8_t clkPin; uint8_t dioPin; uint8_t segment; uint8_t bit; } tm1637Info;
     struct { uint8_t address; uint8_t column; uint8_t row; } gn1640Info;
-    struct { uint8_t index; } ws2812Info;
+    struct { uint8_t index; uint8_t pin; uint8_t defR; uint8_t defG; uint8_t defB; uint8_t defBright; } ws2812Info;
   } info;
   bool dimmable;
   bool activeLow;
@@ -29,8 +29,17 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
+  { "COM_AUX"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "COM_ICS"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "COM_MIDS_A"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "COM_MIDS_B"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "COM_RWR"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "COM_TACAN"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "COM_VOX"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "COM_WPN"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "CMSD_JET_SEL_L"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "HMD_OFF_BRT"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "SPIN_LT"          , DEVICE_GPIO    , {.gpioInfo = {7}}, false, false }, // GPIO 7,
+  { "SPIN_LT"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MASTER_MODE_AA_LT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MASTER_MODE_AG_LT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MC_DISCH"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
@@ -45,6 +54,25 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {"COM_WPN", &panelLEDs[7]},
+  {"COM_VOX", &panelLEDs[6]},
+  {nullptr, nullptr},
+  {"COM_TACAN", &panelLEDs[5]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"MASTER_MODE_AA_LT", &panelLEDs[11]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"COM_AUX", &panelLEDs[0]},
+  {"MC_DISCH", &panelLEDs[13]},
+  {"MC_READY", &panelLEDs[14]},
+  {nullptr, nullptr},
+  {"COM_ICS", &panelLEDs[1]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -52,36 +80,7 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"MASTER_MODE_AA_LT", &panelLEDs[2]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"MC_DISCH", &panelLEDs[4]},
-  {"MC_READY", &panelLEDs[5]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"MASTER_MODE_AG_LT", &panelLEDs[3]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"HMD_OFF_BRT", &panelLEDs[0]},
+  {"MASTER_MODE_AG_LT", &panelLEDs[12]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -91,10 +90,20 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {"HMD_OFF_BRT", &panelLEDs[9]},
+  {"COM_RWR", &panelLEDs[4]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"SPIN_LT", &panelLEDs[1]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"COM_MIDS_A", &panelLEDs[2]},
+  {"COM_MIDS_B", &panelLEDs[3]},
+  {"CMSD_JET_SEL_L", &panelLEDs[8]},
+  {nullptr, nullptr},
+  {"SPIN_LT", &panelLEDs[10]},
 };
 
 // Reuse shared recursive hash implementation

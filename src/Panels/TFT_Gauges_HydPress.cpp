@@ -8,6 +8,12 @@
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
 #include "includes/TFT_Gauges_HydPress.h"
+
+// Load Library
+#if !__has_include(<LovyanGFX.hpp>)
+#error "❌ Missing LovyanGFX.hpp — Please install LovyanGFX library: https://github.com/lovyan03/LovyanGFX"
+#endif
+
 #include <LovyanGFX.hpp>
 #include <cstring>
 #include <cmath>

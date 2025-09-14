@@ -96,7 +96,7 @@ void setup() {
     debugSetOutput(debugToSerial, debugToUDP);   
 
     // Sets standard read resolution and attenuation
-    analogReadResolution(13); // Only value consistent across Arduino Core installs 2.0+ / 3.0+ (0-8191)
+    analogReadResolution(12); // Only value consistent across Arduino Core installs 2.0+ / 3.0+ (0-8191)
     analogSetAttenuation(ADC_11db);    
 
     // Init our CDC + HID Interfaces
@@ -115,12 +115,12 @@ void setup() {
     wifi_setup();
     #endif  
 
-    // Display Buffer registrations, Register tracked selectors and command history sync from inputmappings
-    DCSBIOSBridge_postSetup();
-
     #if USE_DCSBIOS_BLUETOOTH
     BLE_setup();
     #endif
+
+    // Display Buffer registrations, Register tracked selectors and command history sync from inputmappings
+    DCSBIOSBridge_postSetup();
 
     #if USE_DCSBIOS_WIFI
       if (!isModeSelectorDCS()) {
@@ -207,7 +207,10 @@ void setup() {
   #endif
 
     #if USE_DCSBIOS_USB
-      debugPrintln("[USB] Native USB mode enabled. Run CockpitOS_HID_Manager.py inside HID Controller directory");
+      debugPrintln("[USB] USB mode enabled. Run CockpitOS_HID_Manager.py inside HID Controller directory");
+      #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) 
+        debugPrintln("[WARNING] ⚠️ Serial is also enabled! do NOT use USB + Serial concurrently as its completely unstable");
+      #endif
     #elif USE_DCSBIOS_BLUETOOTH
       debugPrintln("[BLUETOOTH] BLE (Bluetooth) enabled. Run CockpitOS_HID_Manager.py inside HID Controller directory");
     #elif USE_DCSBIOS_WIFI
@@ -221,7 +224,6 @@ void setup() {
     #else
       debugPrintf("CDC Mode is 'USB-OTG (TinyUSB)' | ARDUINO_USB_MODE=%d, ARDUINO_USB_CDC_ON_BOOT=%d\n", ARDUINO_USB_MODE, ARDUINO_USB_CDC_ON_BOOT);
     #endif
-
 }
 
 void loop() {
@@ -230,7 +232,7 @@ void loop() {
       debugPrintln("🔌 Main Loop started");
       // This is a dummy report, it will only run ONCE (when loop starts) to trigger a Feature request to our device when USE_DCSBIOS_USB is active to do an initial drain of our ring buffer to allow the USB handshake to happen
       HIDManager_dispatchReport(true);
-    }
+    }    
     mainLoopStarted = true;
 
     // Performance Profiling using beginProfiling("name") -> endProfiling("name") but only when DEBUG_PERFORMANCE  
@@ -238,10 +240,11 @@ void loop() {
     beginProfiling(PERF_MAIN_LOOP);
     #endif
 
-    // Call our panels loop logic (Mappings.cpp is where this function lives)
-    panelLoop(); // Main Panels loop
-    DCSBIOSBridge_loop(); // DCSBios Logic loop
-    HIDManager_loop();  // HIDManager Logic loop
+    // Loop logic/order
+    panelLoop();           // read inputs, update mappings
+    CoverGate_loop();      // resolve cover/armed actions
+    DCSBIOSBridge_loop();  // flush DCS (sees freshly queued actions)
+    HIDManager_loop();     // HID flush, keep-alive, pulses
 
     #if USE_DCSBIOS_BLUETOOTH
     BLE_loop();

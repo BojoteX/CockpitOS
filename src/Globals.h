@@ -2,12 +2,6 @@
 
 #pragma once
 
-/* NOT USED ANYMORE
-// You dont need to change this addresses, they are the broadcast address from your network and the DCS address is obtained dynamically.
-#define DCS_COMPUTER_IP_ADDRESS                   "255.255.255.255" // This is a placeholder, the real IP is obtained when the stream starts
-#define DEBUG_CONSOLE_IP_ADDRESS                  "255.255.255.255" // Also a place holder, this sends debug info to any computer on your network
-*/
-
 // Converts S2 PINs to S3 for compatibility with TEK backplane (Brain Controller) used by the S2
 
 #include "PsramConfig.h"
@@ -42,17 +36,15 @@
 // Extern declarations								  /
 ///////////////////////////////////////////////////////////////////////////////////
 
-#if ARDUINO_USB_CDC_ON_BOOT == 1
-	// Do nothing, we use Serial, which is already aliased to CDC
+#if ARDUINO_USB_CDC_ON_BOOT == 1 
+    // Do nothing...
 #else
     #if ARDUINO_USB_MODE == 1
         extern HWCDC HWCDCSerial;
     #else
-        #if (ARDUINO_USB_MODE == 0)
-            #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE)
-                #include "USB.h"
-                extern USBCDC USBSerial;
-            #endif
+        extern USBCDC USBSerial;
+        #if DEVICE_HAS_HWSERIAL == 1
+            extern HWCDC HWCDCSerial; // We load it anyway (even in TinyUSB mode) so we can close it if HWCDCSerial/JTAG is not needed
         #endif
     #endif
 #endif
@@ -75,9 +67,15 @@ extern bool DEBUG;
 extern bool debugToSerial;   		// true = allow Serial prints
 extern bool debugToUDP;      		// true = allow UDP prints
 
-// Init panels from anywhere
+// Close serial flags
+extern bool closeCDCserial;
+extern bool closeHWCDCserial;
+
+// USB/CDC event load flags
 extern bool loadUSBevents;
 extern bool loadCDCevents;
+
+// From our HIDManager.cpp
 extern bool HID_can_send_report();
 extern void panelLoop();
 extern void initializePanels(bool force = false);
