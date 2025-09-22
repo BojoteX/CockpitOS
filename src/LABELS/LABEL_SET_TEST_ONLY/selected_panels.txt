@@ -6,8 +6,9 @@
 #
 # To update the list of available panels, just re-run this script.
 
+Interior Lights Panel
+Arresting Hook Handle and Light
 Dispenser/EMC Panel
 Fire Test Panel
 Map Gain/Spin Recovery Panel
 Master Arm Panel
-Communication Panel

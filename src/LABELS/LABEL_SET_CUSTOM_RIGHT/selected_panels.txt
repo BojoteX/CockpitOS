@@ -6,9 +6,10 @@
 #
 # To update the list of available panels, just re-run this script.
 
+Wing Fold Switch
+Arresting Hook Handle and Light
 HYD 1 and HYD Pressure Indicator
 Interior Lights Panel
 Radar Altimeter
 Flight Computer Cool Switch
 Caution Light Panel
-

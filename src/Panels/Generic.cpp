@@ -63,7 +63,7 @@ void Generic_init() {
     // 1. Sync Analog Axes to Known State
     for (size_t i = 0; i < numAutoAnalogs; ++i) {
         const auto& a = autoAnalogs[i];
-        HIDManager_moveAxis(a.label, a.gpio, a.axis, true);
+        HIDManager_moveAxis(a.label, a.gpio, a.axis, true, true);
     }
 
     // 2. Fire All GPIO Selector States to Reset
@@ -102,6 +102,13 @@ void Generic_init() {
 //  LOOP: Generic_loop() — Fast, Deterministic Main Loop
 // ============================================================================
 void Generic_loop() {
+
+    /*
+    for (size_t i = 0; i < numAutoAnalogs; ++i) {
+        AnalogAcq::sample(autoAnalogs[i].gpio);   // fast, every loop
+    }
+    */
+
     // 1. Polling Interval: Return Early If Not Time ---
     static unsigned long lastPoll = 0;
     if (!shouldPollMs(lastPoll)) return;
@@ -111,7 +118,8 @@ void Generic_loop() {
     // ------------------------------------------------------------------------
     for (size_t i = 0; i < numAutoAnalogs; ++i) {
         const auto& a = autoAnalogs[i];
-        HIDManager_moveAxis(a.label, a.gpio, a.axis, false);
+        // AnalogAcq::sample(a.gpio);   // fast, every loop
+        HIDManager_moveAxis(a.label, a.gpio, a.axis, false, false);
     }
 
     // ------------------------------------------------------------------------

@@ -31,11 +31,21 @@ enum HIDAxis : uint8_t {
   HID_AXIS_COUNT
 };
 
+static constexpr uint16_t buildInvertMask() {
+  uint16_t m = 0u;
+  #define ADD(ax) m |= (uint16_t(1u) << (ax));
+  INVERTED_AXIS_LIST(ADD)
+  #undef ADD
+  return m;
+}
+
+static constexpr uint16_t AXIS_INVERT_MASK = buildInvertMask();
+static inline bool axisInverted(HIDAxis a) { return (AXIS_INVERT_MASK >> a) & 1u; }
 
 // ───── Axis Input ─────
 // void HIDManager_moveAxis(const char* dcsIdentifier, uint8_t pin, bool forceSend = false);
 void HIDManager_resetAllAxes();
-void HIDManager_moveAxis(const char* dcsIdentifier, uint8_t pin, HIDAxis axis, bool forceSend = false);
+void HIDManager_moveAxis(const char* dcsIdentifier, uint8_t pin, HIDAxis axis, bool forceSend = false, bool deferredSend = false);
 
 // ───── Named Button State Setters (zero heap) ─────
 // void HIDManager_setNamedButton(const char* name, bool deferSend = false, bool pressed = true);

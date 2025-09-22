@@ -92,3 +92,22 @@ void initializeLEDs();
 void initializeDisplays();
 
 bool isLatchedButton(const char* label);
+
+// Uncomment any X(AXIS_*) to invert, comment again with /*  X(AXIS_*)  */ to revert
+#define INVERTED_AXIS_LIST(X)             \
+  /*  X(AXIS_X)         */                \
+  /*  X(AXIS_Y)         */                \
+  /*  X(AXIS_Z)         */                \
+  /*  X(AXIS_RX)        */                \
+  /*  X(AXIS_RY)        */                \
+  /*  X(AXIS_RZ)        */                \
+  /*  X(AXIS_SLIDER1)   */                \
+  /*  X(AXIS_SLIDER2)   */                \
+  /*  X(AXIS_DIAL)      */                \
+  /*  X(AXIS_WHEEL)     */                \
+  /*  X(AXIS_BRAKE)     */                \
+  /*  X(AXIS_THROTTLE)  */                \
+  /*  X(AXIS_CUSTOM1)   */                \
+  /*  X(AXIS_CUSTOM2)   */                \
+  /*  X(AXIS_CUSTOM3)   */                \
+  /*  X(AXIS_CUSTOM4)   */

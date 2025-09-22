@@ -131,7 +131,11 @@ static uint32_t g_hidStepPulseDueMs[33] = { 0 }; // index 1..32 by hidId
 #endif
 
 // HID Report spacing & control
+// static uint32_t lastHidSendUs = 0;
+// static uint8_t lastSentReport[sizeof(report.raw)] = {0};
+
 static bool reportPending = false;
+// static_assert(sizeof(report.raw) == sizeof(lastSentReport), "Report size mismatch!");
 
 // Wats the max number of groups?
 size_t getMaxUsedGroup() {
@@ -209,6 +213,14 @@ void flushBufferedHidCommands() {
 
         // Always clear all bits in this group first
         report.buttons &= ~groupBitmask[g];
+
+        /*
+        const InputMapping* m = findHidMappingByDcs(winner->label, winner->pendingValue);
+        // **NEW: Set winner's HID bit for ANY value (including 0)**
+        if (m) {
+            report.buttons |= (1UL << (m->hidId - 1));
+        }
+        */
 
         const InputMapping* match = nullptr;
 
@@ -426,19 +438,18 @@ void HIDManager_dispatchReport(bool force) {
 }
 
 void HIDManager_moveAxis(const char* dcsIdentifier,
-    uint8_t pin, HIDAxis axis, bool forceSend, bool deferSend)
+    uint8_t pin, HIDAxis axis, bool forceSend)
 {
     // --- constants (int-only) ---
     constexpr int DEADZONE_LOW = 128;
     constexpr int DEADZONE_HIGH = 3967;
-    constexpr int HID_MAX = 4095;
+    constexpr int HID_MAX = 4095;      
     constexpr int THRESHOLD = 64;
     constexpr int SMOOTHING_FACTOR = 8;
     constexpr int STABILIZATION_CYCLES = 10;
 
     const bool inDcsMode = isModeSelectorDCS();
     const bool hybridEnabled = false;
-
 
 #if SKIP_ANALOG_FILTERING
     if (!inDcsMode) { // HID-only, unfiltered path
@@ -550,168 +561,103 @@ void HIDManager_moveAxis(const char* dcsIdentifier,
     }
 }
 
-void HIDManager_moveAxis_NEW(const char* dcsIdentifier,
+void HIDManager_moveAxis_DISABLED(const char* dcsIdentifier,
     uint8_t      pin,
     HIDAxis      axis,
-    bool         forceSend,
-    bool         deferredSend /*=false*/)
+    bool         forceSend)
 {
-    // ---- Tunables (no per-tick oversampling) ----
-    constexpr uint16_t MIN_MARGIN_RAW12 = 64;     // snap low
-    constexpr uint16_t MAX_MARGIN_RAW12 = 256;    // snap high → guarantees 0xFFFF near top
-    constexpr uint16_t FULLSCALE_MS = 150;    // slew time for 0..65535
-    constexpr uint16_t MOVE_DELTA_16 = 128;
-    constexpr uint16_t MOVE_STEP_16 = 128;
-    constexpr uint8_t  MOVING_HOLD = 4;
-    constexpr uint16_t QUIET_DELTA_16 = 64;
-    constexpr uint8_t  STABLE_K = 4;
-    constexpr uint32_t OUTER_HZ = 250;
-
-    // ---- helpers ----
-    static const uint16_t STEP = [] {
-        const uint32_t den = uint32_t(FULLSCALE_MS) * OUTER_HZ;
-        uint32_t x = den ? (65535u * 1000u + (den >> 1)) / den : 0xFFFFu;
-        if (x == 0) x = 1; if (x > 0xFFFFu) x = 0xFFFFu;
-        return uint16_t(x);
-        }();
-    auto map12to16_clamped = [&](uint16_t raw12)->uint16_t {
-        if (raw12 <= MIN_MARGIN_RAW12)                    return 0x0000;
-        if (raw12 >= uint16_t(4095u - MAX_MARGIN_RAW12))  return 0xFFFF;
-        return uint16_t((raw12 << 4) | (raw12 >> 8));
-        };
-    auto maybeInvert = [&](uint16_t v)->uint16_t {
-        return axisInverted(axis) ? uint16_t(0xFFFFu - v) : v;
-        };
-
-    // ---- sinks ----
-    const bool inDcsMode = isModeSelectorDCS();
+    // --- constants (int-only) ---
+    constexpr int DEADZONE_LOW = 512;
+    constexpr int DEADZONE_HIGH = 4095;   // was 8191
+    constexpr int HID_MAX = 4095;   // was 8191
+    constexpr int THRESHOLD = 128;
+    constexpr int SMOOTHING_FACTOR = 8;
+    constexpr int STABILIZATION_CYCLES = 10;
+    
+	// --- sanity checks ---
+    const bool inDcsMode = isModeSelectorDCS();             // panel selector says "DCS"
     const bool hybridEnabled = false;
-    const bool doForce = (forceSend || deferredSend);
-    auto sendHID = [&](bool force) { HIDManager_dispatchReport(force); };
-    auto sendDCS = [&](uint16_t v16, bool force) {
+
+#if SKIP_ANALOG_FILTERING
+	if (!inDcsMode) { // Only in HID mode
+        // HID-only, unfiltered ADC path. No filtering, mapping, or DCS.
+        const int unfiltered = analogRead(pin);                 // 0..4095 on S2/S3 ADC
+        if (axis < HID_AXIS_COUNT) report.axes[axis] = (uint16_t)unfiltered;
+        HIDManager_dispatchReport(forceSend);
+        return;
+    }
+#endif
+
+    auto sendHID = [&](int value, bool force) {
+        if (axis < HID_AXIS_COUNT) report.axes[axis] = (uint16_t)value;
+        HIDManager_dispatchReport(force);
+        };
+
+    auto sendDCS = [&](uint16_t dcsValue, bool force) {
         auto* e = findCmdEntry(dcsIdentifier);
-        if (e && applyThrottle(*e, dcsIdentifier, v16, force)) {
-            sendDCSBIOSCommand(dcsIdentifier, v16, force);
-            e->lastValue = v16;
+        if (e && applyThrottle(*e, dcsIdentifier, dcsValue, force)) {
+            sendDCSBIOSCommand(dcsIdentifier, dcsValue, force);
+            e->lastValue = dcsValue;
             e->lastSendTime = millis();
         }
         };
 
-    // ---- per-axis state ----
-    static bool     init[HID_AXIS_COUNT] = { false };
-    static bool     hasLastPrinted[HID_AXIS_COUNT] = { false };
-    static uint16_t out16_[HID_AXIS_COUNT] = { 0 };
-    static uint16_t prevOut16[HID_AXIS_COUNT] = { 0 };
-    static uint16_t lastPrintedRaw[HID_AXIS_COUNT] = { 0 };
-    static uint16_t candidate_[HID_AXIS_COUNT] = { 0xFFFF };
-    static uint8_t  movingCnt_[HID_AXIS_COUNT] = { 0 };
-    static uint8_t  stableCnt_[HID_AXIS_COUNT] = { 0 };
-    const uint8_t ai = (uint8_t)axis;
+    // --- read & filter ---
+    int raw = analogRead(pin);
+    if (stabCount[pin] == 0) lastFiltered[pin] = raw;
+    else                     lastFiltered[pin] = (lastFiltered[pin] * (SMOOTHING_FACTOR - 1) + raw) / SMOOTHING_FACTOR;
 
-#if SKIP_ANALOG_FILTERING
-    const uint16_t raw12 = uint16_t(analogRead(pin));
-    const uint16_t raw16 = map12to16_clamped(raw12);
-    out16_[ai] = prevOut16[ai] = raw16; candidate_[ai] = raw16; stableCnt_[ai] = 0;
-    const uint16_t v16 = maybeInvert(raw16);
-    report.axes[ai] = v16;
-    if (inDcsMode) { sendDCS(v16, doForce); if (hybridEnabled) sendHID(doForce); }
-    else { sendHID(doForce); }
-    lastPrintedRaw[ai] = raw16; hasLastPrinted[ai] = true;
-    return;
-#else
-    // ----- One-shot snapshot on deferredSend (use current window) -----
-    if (deferredSend) {
-        uint16_t avg12, mn, mx, ema12;
-        AnalogAcq::consume(pin, avg12, mn, mx, ema12);
-        uint16_t raw16 = map12to16_clamped(avg12);
-        out16_[ai] = prevOut16[ai] = raw16; candidate_[ai] = raw16; stableCnt_[ai] = 0;
-        const uint16_t v16 = maybeInvert(raw16);
-        report.axes[ai] = v16;
-        if (inDcsMode) { sendDCS(v16, doForce); if (hybridEnabled) sendHID(doForce); }
-        else { sendHID(doForce); }
-        lastPrintedRaw[ai] = raw16; hasLastPrinted[ai] = true;
+    int filtered = lastFiltered[pin];
+    if (filtered < DEADZONE_LOW)  filtered = 0;
+    if (filtered > DEADZONE_HIGH) filtered = HID_MAX;
+
+    const uint16_t dcsValue = map(filtered, 0, HID_MAX, 0, 65535);
+
+    // --- force path ---
+    if (forceSend) {
+        stabCount[pin] = STABILIZATION_CYCLES;
+        stabilized[pin] = true;
+        lastOutput[pin] = filtered;
+
+        if (inDcsMode) {
+            sendDCS(dcsValue, /*force*/true);
+            if (hybridEnabled) sendHID(filtered, /*force*/true);
+        }
+        else {
+            sendHID(filtered, /*force*/true);
+        }
         return;
     }
 
-    // ----- Normal update: consume acquisition window (no ADC reads here) -----
-    uint16_t avg12, winMin, winMax, ema12;
-    AnalogAcq::consume(pin, avg12, winMin, winMax, ema12);
+    // --- stabilization ---
+    if (!stabilized[pin]) {
+        if (++stabCount[pin] >= STABILIZATION_CYCLES) {
+            stabilized[pin] = true;
+            lastOutput[pin] = filtered;
 
-    // Rail snap priority using window extrema
-    uint16_t target16;
-    if (winMax >= uint16_t(4095u - MAX_MARGIN_RAW12))      target16 = 0xFFFFu;
-    else if (winMin <= MIN_MARGIN_RAW12)                   target16 = 0x0000u;
-    else                                                   target16 = map12to16_clamped(avg12);
-
-    if (!init[ai]) { out16_[ai] = prevOut16[ai] = target16; candidate_[ai] = 0xFFFF; init[ai] = true; }
-
-    // Slew toward target (skip slew at rails)
-    if (target16 == 0x0000u || target16 == 0xFFFFu) {
-        out16_[ai] = target16;
-    }
-    else {
-        const int32_t d = int32_t(target16) - int32_t(out16_[ai]);
-        if (d > (int32_t)STEP) out16_[ai] = uint16_t(out16_[ai] + STEP);
-        else if (d < -(int32_t)STEP) out16_[ai] = uint16_t(out16_[ai] - STEP);
-        else                         out16_[ai] = target16;
-    }
-
-    // Motion detect
-    const uint16_t gap = (out16_[ai] > target16) ? (out16_[ai] - target16) : (target16 - out16_[ai]);
-    if (gap >= MOVE_DELTA_16 || out16_[ai] != prevOut16[ai]) movingCnt_[ai] = MOVING_HOLD;
-    else if (movingCnt_[ai]) --movingCnt_[ai];
-    const bool isMoving = (movingCnt_[ai] != 0);
-
-    // Rails: emit immediately (remove 2-frame debounce)
-    if (out16_[ai] == 0x0000u || out16_[ai] == 0xFFFFu) {
-        if (!hasLastPrinted[ai] || out16_[ai] != lastPrintedRaw[ai]) {
-            const uint16_t v16 = maybeInvert(out16_[ai]);
-            report.axes[ai] = v16;
-            if (inDcsMode) { sendDCS(v16, doForce); if (hybridEnabled) sendHID(doForce); }
-            else { sendHID(doForce); }
-            lastPrintedRaw[ai] = out16_[ai]; hasLastPrinted[ai] = true;
+            if (inDcsMode) {
+                sendDCS(dcsValue, /*force*/forcePanelSyncThisMission);
+                if (hybridEnabled) sendHID(filtered, /*force*/false);
+            }
+            else {
+                sendHID(filtered, /*force*/false);
+            }
         }
-        candidate_[ai] = out16_[ai]; stableCnt_[ai] = 0; prevOut16[ai] = out16_[ai];
         return;
     }
 
-    // Moving: step emits
-    if (isMoving) {
-        const uint16_t dprint = hasLastPrinted[ai]
-            ? (out16_[ai] > lastPrintedRaw[ai] ? (out16_[ai] - lastPrintedRaw[ai]) : (lastPrintedRaw[ai] - out16_[ai]))
-            : 0xFFFFu;
-        if (!hasLastPrinted[ai] || dprint >= MOVE_STEP_16) {
-            const uint16_t v16 = maybeInvert(out16_[ai]);
-            report.axes[ai] = v16;
-            if (inDcsMode) { sendDCS(v16, doForce); if (hybridEnabled) sendHID(doForce); }
-            else { sendHID(doForce); }
-            lastPrintedRaw[ai] = out16_[ai]; hasLastPrinted[ai] = true;
-        }
-        candidate_[ai] = out16_[ai]; stableCnt_[ai] = 0;
+    // --- threshold gate ---
+    if (abs(filtered - lastOutput[pin]) <= THRESHOLD) return;
+    lastOutput[pin] = filtered;
+
+    // --- normal update ---
+    if (inDcsMode) {
+        sendDCS(dcsValue, /*force*/false);
+        if (hybridEnabled) sendHID(filtered, /*force*/false);
     }
     else {
-        // Idle: dwell + separation
-        if (candidate_[ai] == 0xFFFFu) candidate_[ai] = out16_[ai];
-        const uint16_t dCand = (out16_[ai] > candidate_[ai]) ? (out16_[ai] - candidate_[ai]) : (candidate_[ai] - out16_[ai]);
-        if (dCand <= QUIET_DELTA_16) { if (stableCnt_[ai] < 255) ++stableCnt_[ai]; }
-        else { candidate_[ai] = out16_[ai]; stableCnt_[ai] = 1; }
-
-        const uint16_t dLast = hasLastPrinted[ai]
-            ? (candidate_[ai] > lastPrintedRaw[ai] ? (candidate_[ai] - lastPrintedRaw[ai]) : (lastPrintedRaw[ai] - candidate_[ai]))
-            : 0xFFFFu;
-
-        if (stableCnt_[ai] >= STABLE_K && (!hasLastPrinted[ai] || dLast >= QUIET_DELTA_16)) {
-            const uint16_t v16 = maybeInvert(candidate_[ai]);
-            report.axes[ai] = v16;
-            if (inDcsMode) { sendDCS(v16, doForce); if (hybridEnabled) sendHID(doForce); }
-            else { sendHID(doForce); }
-            lastPrintedRaw[ai] = candidate_[ai]; hasLastPrinted[ai] = true;
-            stableCnt_[ai] = STABLE_K;
-        }
+        sendHID(filtered, /*force*/false);
     }
-
-    prevOut16[ai] = out16_[ai];
-#endif
 }
 
 void HIDManager_toggleIfPressed(bool isPressed, const char* label, bool deferSend) {

@@ -399,7 +399,7 @@ void initPanels() {
     for (uint16_t g = 0; g < MAX_GROUPS; ++g) lastGroupSendUs[g] = 0;
     for (size_t i = 0; i < numValidatedSelectors; ++i) validatedSelectors[i].lastSimValue = 0xFFFF;
 
-    // HIDManager_resetAllAxes();
+    HIDManager_resetAllAxes();
     syncCommandHistoryFromInputMapping();
     // debugPrintln("[SYNC PANELS] ❌ Just ran syncCommandHistoryFromInputMapping()\n");
 
@@ -588,6 +588,16 @@ void initializeSelectorValidation() {
             m.group == 0
             ) continue;
 
+		/*  RESTRICTIVE CHECKS
+        if (
+            strcmp(m.controlType, "selector") != 0 ||
+            m.group == 0 ||
+            (m.source && (strcmp(m.source, "NONE") == 0 || strcmp(m.source, "PCA_0x00") == 0))
+            ) continue;
+        */
+
+        // if (m.hidId <= 0) continue;
+
         bool alreadyRegistered = false;
         for (size_t j = 0; j < numValidatedSelectors; ++j) {
             if (strcmp(validatedSelectors[j].label, dcs_label) == 0) {
@@ -676,6 +686,7 @@ void onDcsBiosUdpPacket() {
 // DcsbiosReplayData.h is generated from dcsbios_data.json using Python (see ReplayData directory). This was used in early development
 // to test locally via Serial Console. The preferred method for live debugging is WiFi UDP. See Config.h for configuration.
 #if IS_REPLAY
+// #include "../PsramConfig.h"
 // ReplayDataBuffer
 uint8_t* replayBuffer = nullptr;
 #include "../../ReplayData/DcsbiosReplayData.h"
@@ -1087,6 +1098,24 @@ bool tryToSendDcsBiosMessage(const char* msg, const char* arg) {
 
 #if ((USE_DCSBIOS_SERIAL) && ARDUINO_USB_MODE == 0)
 
+    /*
+    // TinyUSB CDC (S2/S3)
+    if (tud_cdc_write_available() < (uint32_t)totalLen) return false;
+
+    // Pack once
+    char buf[64 + 1 + 32 + 1]; // 98B on stack, no heap
+    memcpy(buf, msg, msgLen);
+    buf[msgLen] = ' ';
+    memcpy(buf + msgLen + 1, arg, argLen);
+    buf[totalLen - 1] = '\n';
+
+    const uint32_t before = tud_cdc_write_available();
+    tud_cdc_write(buf, totalLen);
+    tud_cdc_write_flush();
+    const uint32_t after = tud_cdc_write_available();
+    return (after < before);  // space decreased → data queued
+    */
+
     // TinyUSB CDC (S2/S3)
     if (tud_cdc_write_available() < (uint32_t)totalLen) {
         tud_cdc_write_flush();                            // nudge drain
@@ -1120,6 +1149,13 @@ bool tryToSendDcsBiosMessage(const char* msg, const char* arg) {
 }
 
 bool simReady() {
+
+    /*
+    debugPrintf("[SIM READY CHECK] isMissionRunning=%d, isPanelsSyncedThisMission=%d, mySniffer.isStreamAlive=%d\n",
+                isMissionRunning(),
+                isPanelsSyncedThisMission(),
+		        mySniffer.isStreamAlive());
+    */
 
     if (isMissionRunning() && isPanelsSyncedThisMission() && mySniffer.isStreamAlive())
         return true;
@@ -1200,6 +1236,13 @@ void sendCommand(const char* msg, const char* arg, bool silent) {
     if(!isConnected) {
         // Since socat does NOT assert DTR, we need to be able to send even if no Serial connection is detected, 
         // just check cdc Tx & Rx are working to ensure CDC is 100% healthy
+
+        /*
+        if (!cdcEnsureRxReady(CDC_TIMEOUT_RX_TX) || !cdcEnsureTxReady(CDC_TIMEOUT_RX_TX)) {
+            if(!silent) debugPrintln("❌ [DCS] No stream active yet or Tx buffer full");
+            return;
+        }
+        */
 
         if (simReady()) {
 
@@ -1411,14 +1454,22 @@ void DCSBIOSBridge_setup() {
     #else // No Serial is needed
         #if ARDUINO_USB_CDC_ON_BOOT == 1 // If Serial was started
 
+            // keep closing everything Serial related
+            // Serial.end(); // Stop it here
+            // Serial0.end(); // and here...
+
 			// Stop Serial
+            // if (closeHWCDCserial) {
                 #if ARDUINO_USB_MODE == 1
                     Serial.end(); // JTAG / CDC Hardware mode needs to be active in order to close it
                 #endif      
+            // }
 
+            // if (closeCDCserial) {
                 #if ARDUINO_USB_MODE == 0
 					Serial.end(); // Does NOT close serial as you selected CDC on boot
                 #endif
+            // }
 
         #else // If it was not started we also stop it because Arduino Core likes to load HWSerial by default  
             #if DEVICE_HAS_HWSERIAL == 1

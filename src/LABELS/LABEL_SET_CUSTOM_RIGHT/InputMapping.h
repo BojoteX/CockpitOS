@@ -18,14 +18,16 @@ struct InputMapping {
 
 //  label                       source     port bit hidId  DCSCommand           value   Type        group
 static const InputMapping InputMappings[] = {
-    { "AV_COOL_SW_NORM"            , "PCA_0x26" ,  0 , -1 ,  -1 , "AV_COOL_SW"            ,     0 , "selector"     ,  1 },
+    { "HOOK_LEVER_POS0"            , "NONE" ,  0 ,  0 ,  -1 , "HOOK_LEVER"            ,     0 , "selector"     ,  4 },
+    { "HOOK_LEVER_POS1"            , "NONE" ,  0 ,  0 ,  -1 , "HOOK_LEVER"            ,     1 , "selector"     ,  4 },
     { "AV_COOL_SW_EMERG"           , "PCA_0x26" ,  0 ,  4 ,  -1 , "AV_COOL_SW"            ,     1 , "selector"     ,  1 },
+    { "AV_COOL_SW_NORM"            , "PCA_0x26" ,  0 , -1 ,  -1 , "AV_COOL_SW"            ,     0 , "selector"     ,  1 },
     { "CHART_DIMMER"               , "NONE" ,  0 ,  0 ,  -1 , "CHART_DIMMER"          , 65535 , "analog"       ,  0 },
     { "CHART_DIMMER_DEC"           , "NONE" ,  0 ,  0 ,  -1 , "CHART_DIMMER"          ,     0 , "variable_step",  0 },
     { "CHART_DIMMER_INC"           , "NONE" ,  0 ,  0 ,  -1 , "CHART_DIMMER"          ,     1 , "variable_step",  0 },
-    { "COCKKPIT_LIGHT_MODE_SW_NVG" , "NONE" ,  0 ,  0 ,  -1 , "COCKKPIT_LIGHT_MODE_SW",     0 , "selector"     ,  2 },
-    { "COCKKPIT_LIGHT_MODE_SW_NITE", "NONE" ,  0 ,  0 ,  -1 , "COCKKPIT_LIGHT_MODE_SW",     1 , "selector"     ,  2 },
     { "COCKKPIT_LIGHT_MODE_SW_DAY" , "NONE" ,  0 ,  0 ,  -1 , "COCKKPIT_LIGHT_MODE_SW",     2 , "selector"     ,  2 },
+    { "COCKKPIT_LIGHT_MODE_SW_NITE", "NONE" ,  0 ,  0 ,  -1 , "COCKKPIT_LIGHT_MODE_SW",     1 , "selector"     ,  2 },
+    { "COCKKPIT_LIGHT_MODE_SW_NVG" , "NONE" ,  0 ,  0 ,  -1 , "COCKKPIT_LIGHT_MODE_SW",     0 , "selector"     ,  2 },
     { "CONSOLES_DIMMER"            , "NONE" ,  0 ,  0 ,  -1 , "CONSOLES_DIMMER"       , 65535 , "analog"       ,  0 },
     { "CONSOLES_DIMMER_DEC"        , "NONE" ,  0 ,  0 ,  -1 , "CONSOLES_DIMMER"       ,     0 , "variable_step",  0 },
     { "CONSOLES_DIMMER_INC"        , "NONE" ,  0 ,  0 ,  -1 , "CONSOLES_DIMMER"       ,     1 , "variable_step",  0 },
@@ -35,14 +37,19 @@ static const InputMapping InputMappings[] = {
     { "INST_PNL_DIMMER"            , "NONE" ,  0 ,  0 ,  -1 , "INST_PNL_DIMMER"       , 65535 , "analog"       ,  0 },
     { "INST_PNL_DIMMER_DEC"        , "NONE" ,  0 ,  0 ,  -1 , "INST_PNL_DIMMER"       ,     0 , "variable_step",  0 },
     { "INST_PNL_DIMMER_INC"        , "NONE" ,  0 ,  0 ,  -1 , "INST_PNL_DIMMER"       ,     1 , "variable_step",  0 },
-    { "LIGHTS_TEST_SW_TEST"        , "NONE" ,  0 ,  0 ,  -1 , "LIGHTS_TEST_SW"        ,     0 , "selector"     ,  3 },
     { "LIGHTS_TEST_SW_OFF"         , "NONE" ,  0 ,  0 ,  -1 , "LIGHTS_TEST_SW"        ,     1 , "selector"     ,  3 },
+    { "LIGHTS_TEST_SW_TEST"        , "NONE" ,  0 ,  0 ,  -1 , "LIGHTS_TEST_SW"        ,     0 , "selector"     ,  3 },
     { "WARN_CAUTION_DIMMER"        , "NONE" ,  0 ,  0 ,  -1 , "WARN_CAUTION_DIMMER"   , 65535 , "analog"       ,  0 },
     { "WARN_CAUTION_DIMMER_DEC"    , "NONE" ,  0 ,  0 ,  -1 , "WARN_CAUTION_DIMMER"   ,     0 , "variable_step",  0 },
     { "WARN_CAUTION_DIMMER_INC"    , "NONE" ,  0 ,  0 ,  -1 , "WARN_CAUTION_DIMMER"   ,     1 , "variable_step",  0 },
     { "RADALT_HEIGHT_POS0"         , "GPIO" , PIN(38) ,  0 ,  -1 , "RADALT_HEIGHT"         ,     0 , "variable_step",  0 },
     { "RADALT_HEIGHT_POS1"         , "GPIO" , PIN(1) ,  0 ,  -1 , "RADALT_HEIGHT"         ,     1 , "variable_step",  0 },
     { "RADALT_TEST_SW"             , "GPIO" , PIN(16) ,  0 ,  -1 , "RADALT_TEST_SW"        ,     1 , "momentary"    ,  0 },
+    { "WING_FOLD_PULL_POS0"        , "NONE" ,  0 ,  0 ,  -1 , "WING_FOLD_PULL"        ,     0 , "selector"     ,  5 },
+    { "WING_FOLD_PULL_POS1"        , "NONE" ,  0 ,  0 ,  -1 , "WING_FOLD_PULL"        ,     1 , "selector"     ,  5 },
+    { "WING_FOLD_ROTATE_UNFOLD"    , "NONE" ,  0 ,  0 ,  -1 , "WING_FOLD_ROTATE"      ,     0 , "selector"     ,  6 },
+    { "WING_FOLD_ROTATE_HOLD"      , "NONE" ,  0 ,  0 ,  -1 , "WING_FOLD_ROTATE"      ,     1 , "selector"     ,  6 },
+    { "WING_FOLD_ROTATE_FOLD"      , "NONE" ,  0 ,  0 ,  -1 , "WING_FOLD_ROTATE"      ,     2 , "selector"     ,  6 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);
 
@@ -50,67 +57,84 @@ static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMapping
 static const char* const TrackedSelectorLabels[] = {
     "AV_COOL_SW",
     "COCKKPIT_LIGHT_MODE_SW",
+    "HOOK_LEVER",
     "LIGHTS_TEST_SW",
+    "WING_FOLD_PULL",
+    "WING_FOLD_ROTATE",
 };
 static const size_t TrackedSelectorLabelsCount = sizeof(TrackedSelectorLabels)/sizeof(TrackedSelectorLabels[0]);
 
 
 // Static hash lookup table for InputMappings[]
 struct InputHashEntry { const char* label; const InputMapping* mapping; };
-static const InputHashEntry inputHashTable[53] = {
-  {"RADALT_HEIGHT_POS1", &InputMappings[23]},
+static const InputHashEntry inputHashTable[67] = {
   {nullptr, nullptr},
-  {"AV_COOL_SW_NORM", &InputMappings[0]},
-  {"CONSOLES_DIMMER_DEC", &InputMappings[9]},
-  {"FLOOD_DIMMER", &InputMappings[11]},
-  {"LIGHTS_TEST_SW_TEST", &InputMappings[17]},
+  {"COCKKPIT_LIGHT_MODE_SW_NVG", &InputMappings[9]},
+  {nullptr, nullptr},
+  {"AV_COOL_SW_NORM", &InputMappings[3]},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"WARN_CAUTION_DIMMER", &InputMappings[19]},
-  {nullptr, nullptr},
+  {"INST_PNL_DIMMER_INC", &InputMappings[18]},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"INST_PNL_DIMMER_INC", &InputMappings[16]},
-  {"CHART_DIMMER_DEC", &InputMappings[3]},
+  {"AV_COOL_SW_EMERG", &InputMappings[2]},
+  {"RADALT_TEST_SW", &InputMappings[26]},
+  {"FLOOD_DIMMER_DEC", &InputMappings[14]},
+  {"LIGHTS_TEST_SW_OFF", &InputMappings[19]},
+  {"LIGHTS_TEST_SW_TEST", &InputMappings[20]},
+  {"WARN_CAUTION_DIMMER", &InputMappings[21]},
+  {"CHART_DIMMER_DEC", &InputMappings[5]},
+  {"INST_PNL_DIMMER", &InputMappings[16]},
+  {"WING_FOLD_ROTATE_UNFOLD", &InputMappings[29]},
+  {nullptr, nullptr},
+  {"CONSOLES_DIMMER_DEC", &InputMappings[11]},
+  {"WING_FOLD_ROTATE_HOLD", &InputMappings[30]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"INST_PNL_DIMMER_DEC", &InputMappings[17]},
+  {"HOOK_LEVER_POS0", &InputMappings[0]},
+  {"HOOK_LEVER_POS1", &InputMappings[1]},
   {"COCKKPIT_LIGHT_MODE_SW_DAY", &InputMappings[7]},
   {nullptr, nullptr},
+  {"WARN_CAUTION_DIMMER_INC", &InputMappings[23]},
+  {nullptr, nullptr},
+  {"RADALT_HEIGHT_POS0", &InputMappings[24]},
+  {"RADALT_HEIGHT_POS1", &InputMappings[25]},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {"CONSOLES_DIMMER", &InputMappings[10]},
+  {"WING_FOLD_ROTATE_FOLD", &InputMappings[31]},
   {nullptr, nullptr},
-  {"CONSOLES_DIMMER_INC", &InputMappings[10]},
-  {"CONSOLES_DIMMER", &InputMappings[8]},
-  {"FLOOD_DIMMER_DEC", &InputMappings[12]},
-  {"INST_PNL_DIMMER", &InputMappings[14]},
+  {"CHART_DIMMER", &InputMappings[4]},
   {nullptr, nullptr},
-  {"COCKKPIT_LIGHT_MODE_SW_NITE", &InputMappings[6]},
-  {"COCKKPIT_LIGHT_MODE_SW_NVG", &InputMappings[5]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"CHART_DIMMER_INC", &InputMappings[4]},
-  {"WARN_CAUTION_DIMMER_DEC", &InputMappings[20]},
-  {"RADALT_TEST_SW", &InputMappings[24]},
-  {"AV_COOL_SW_EMERG", &InputMappings[1]},
+  {"COCKKPIT_LIGHT_MODE_SW_NITE", &InputMappings[8]},
+  {"FLOOD_DIMMER", &InputMappings[13]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"FLOOD_DIMMER_INC", &InputMappings[13]},
-  {nullptr, nullptr},
-  {"CHART_DIMMER", &InputMappings[2]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"LIGHTS_TEST_SW_OFF", &InputMappings[18]},
-  {nullptr, nullptr},
-  {"INST_PNL_DIMMER_DEC", &InputMappings[15]},
+  {"WARN_CAUTION_DIMMER_DEC", &InputMappings[22]},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"WARN_CAUTION_DIMMER_INC", &InputMappings[21]},
-  {"RADALT_HEIGHT_POS0", &InputMappings[22]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"WING_FOLD_PULL_POS0", &InputMappings[27]},
+  {"FLOOD_DIMMER_INC", &InputMappings[15]},
+  {"WING_FOLD_PULL_POS1", &InputMappings[28]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"CHART_DIMMER_INC", &InputMappings[6]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"CONSOLES_DIMMER_INC", &InputMappings[12]},
 };
 
 // Shared recursive hash implementation for display label lookup
@@ -121,9 +145,9 @@ constexpr uint16_t labelHash(const char* s);
 constexpr uint16_t inputHash(const char* s) { return labelHash(s); }
 
 inline const InputMapping* findInputByLabel(const char* label) {
-  uint16_t startH = inputHash(label) % 53;
-  for (uint16_t i = 0; i < 53; ++i) {
-    uint16_t idx = (startH + i >= 53) ? (startH + i - 53) : (startH + i);
+  uint16_t startH = inputHash(label) % 67;
+  for (uint16_t i = 0; i < 67; ++i) {
+    uint16_t idx = (startH + i >= 67) ? (startH + i - 67) : (startH + i);
     const auto& entry = inputHashTable[idx];
     if (!entry.label) continue;
     if (strcmp(entry.label, label) == 0) return entry.mapping;

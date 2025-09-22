@@ -6,6 +6,10 @@ TODO:
 
 - Front Right panel implementations (Physical) - Implemented hook LED. Hook + Wing Fold. Implement Backlight
 
-Implement inactivity automatic deep sleep after x minutes to conserve battery
-Test axes on BLE device
+Test TMR axes on BLE device
 
+H2 behavior with HWCDC is weird.. maybe its ARDUINO_USB_MODE is neither 1 or 0?
+
+HID axes with filtering acting weird (snap to corner)
+
+Axes need to be also rate limited? or on top of loop (see Generic's loop function)

@@ -4,10 +4,58 @@
 #include "../Globals.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
+// #include "../InputControl.h"
 
 // ===== GPIO INPUT HANDLING=====
 #define MAX_GPIO_ENCODERS                8
 #define ENCODER_TICKS_PER_NOTCH          4
+
+
+
+// ---- Analog acquisition (EMA + window stats) ----
+// Up to 64 GPIOs. K=3 → α=1/8 EMA.
+namespace AnalogAcq {
+    constexpr uint8_t MAX_PINS = 64;
+    constexpr uint8_t K = 3; // EMA strength
+
+    struct Slot {
+        uint16_t ema = 0;        // running EMA (12-bit domain)
+        uint32_t sum = 0;        // window sum
+        uint16_t minv = 0x0FFF;  // window min
+        uint16_t maxv = 0x0000;  // window max
+        uint16_t cnt = 0;        // window count
+        bool     boot = false;   // seeded?
+    };
+    static Slot s[MAX_PINS];
+
+    void sample(uint8_t pin) {
+        if (pin >= MAX_PINS) return;
+        uint16_t raw = (uint16_t)analogRead(pin);   // single conversion
+        Slot& a = s[pin];
+        if (!a.boot) { a.boot = true; a.ema = raw; a.minv = raw; a.maxv = raw; }
+        // EMA: ema += (raw - ema) >> K  (integer, fast)
+        a.ema = (uint16_t)(a.ema + ((int32_t)raw - (int32_t)a.ema) / (1 << K));
+        // Window stats for this 250 Hz window
+        a.sum += raw; a.cnt++;
+        if (raw < a.minv) a.minv = raw;
+        if (raw > a.maxv) a.maxv = raw;
+    }
+
+    // Consume current window and reset stats. Returns avg/min/max/ema (all 12-bit space).
+    void consume(uint8_t pin, uint16_t& avg12, uint16_t& min12, uint16_t& max12, uint16_t& ema12) {
+        avg12 = 0; min12 = 0; max12 = 0; ema12 = 0;
+        if (pin >= MAX_PINS) return;
+        Slot& a = s[pin];
+        ema12 = a.ema;
+        if (a.cnt) { avg12 = (uint16_t)(a.sum / a.cnt); min12 = a.minv; max12 = a.maxv; }
+        else { avg12 = a.ema;                      min12 = a.ema; max12 = a.ema; }
+        // reset window for next 250 Hz period
+        a.sum = 0; a.cnt = 0; a.minv = 0x0FFF; a.maxv = 0x0000;
+    }
+}
+
+
+
 
 // Encoder Transition Table
 static const int8_t encoder_transition_table[16] = {
@@ -370,7 +418,7 @@ void buildPcaList() {
     for (size_t i = 0; i < InputMappingSize; ++i) {
         const auto& m = InputMappings[i];
 
-#if defined(DISABLE_PCA9555) && DISABLE_PCA9555 == 1
+#if !ENABLE_PCA9555
         continue; // Skip PCA9555 if disabled
 #endif
 

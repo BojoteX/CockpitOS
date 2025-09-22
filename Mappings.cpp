@@ -65,13 +65,9 @@ const char* getPanelName(uint8_t addr) {
 
 void initMappings() {
 
+#if ENABLE_PCA9555
     // Runs a discovery routine to check for PCA panels automatically, but they still need to be added manually in kPanels[] (see Mappings.h)
     debugPrintf("Using SDA %d and SCL %d for I2C\n", SDA_PIN, SCL_PIN);
-
-    // Print registered panels
-    int n = PanelRegistry_count();
-    for (int i=0; i<PanelRegistry_count(); ++i)
-      debugPrintf("Registered Panel: %s\n", PanelRegistry_labelAt(i));
 
     PCA9555_scanConnectedPanels();
 
@@ -81,6 +77,13 @@ void initMappings() {
   
     // Show what PCA panels were discovered
     printDiscoveredPanels();
+#endif
+
+    // Print registered panels
+    int n = PanelRegistry_count();
+    for (int i=0; i<PanelRegistry_count(); ++i)
+      debugPrintf("Registered Panel: %s\n", PanelRegistry_labelAt(i));
+
 }
 
 // Runs only once when device starts, never again
@@ -179,6 +182,7 @@ void panelLoop() {
     sendPendingSerial();
     #endif
 
+#if ENABLE_PCA9555 
     if (isPCA9555LoggingEnabled()) {
         for (uint8_t i = 0; i < discoveredDeviceCount; ++i) {
             uint8_t addr = discoveredDevices[i].address;
@@ -186,6 +190,8 @@ void panelLoop() {
             readPCA9555(addr, p0, p1);
         }
     }
+#endif
+    
 }
 
 bool isLatchedButton(const char* label) {

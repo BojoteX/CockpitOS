@@ -96,9 +96,9 @@ void setup() {
     debugSetOutput(debugToSerial, debugToUDP);   
 
     // Sets standard read resolution and attenuation
-    analogReadResolution(12); // Only value consistent across Arduino Core installs 2.0+ / 3.0+ (0-8191)
-    analogSetAttenuation(ADC_11db);    
-
+    analogReadResolution(12); // (0-4095)
+    analogSetAttenuation(ADC_11db);  
+    
     // Init our CDC + HID Interfaces
     HIDManager_setup();     // We get HID started here 
     DCSBIOSBridge_setup();  // We get CDC started here    
@@ -133,21 +133,26 @@ void setup() {
     checkHealth();   
     debugPrintln();
 
-    // Init PCA + Detect PCA Panels (Automatic PCA detection)    
+    // Init PCA + Detect PCA Panels (Automatic PCA detection)   
+    #if ENABLE_PCA9555 
     PCA9555_init();
-    
-    // Init Mappings (Aircraft specific) this should ALWAYS run first before all other inits
-    initMappings();   
+    #else
+    debugPrintln("[PCA9555] ⚠️ PCA Functionality is currently DISABLED, to ENABLE please set ENABLE_PCA9555 to 1 in Config.h");
+    #endif   
+
+    initMappings(); // PCA Init Mappings (Aircraft specific) this should ALWAYS run first before all other inits
 
     // If you set DEBUG_ENABLED or DEBUG_ENABLED_FOR_PCA_ONLY you get PCA9555 logging
-  #if DEBUG_ENABLED_FOR_PCA_ONLY
+  #if DEBUG_ENABLED_FOR_PCA_ONLY 
     enablePCA9555Logging(1);
   #else  
     enablePCA9555Logging(DEBUG); // If you set DEBUG_ENABLED only it will also log PCA, otherwise no PCA logging.
   #endif
 
     // Initialize PCA9555 Inputs + Cached Port States explicitly to OFF (active-low LEDs)
-    PCA9555_initCache();   
+    #if ENABLE_PCA9555 
+    PCA9555_initCache(); 
+    #endif  
 
     // Initializes your Displays etc. 
     debugPrintln("Initializing Displays");

@@ -30,6 +30,8 @@ struct CommandHistoryEntry {
 
 struct DcsOutputEntry { uint16_t addr, mask; uint8_t shift; uint16_t max_value; const char* label; ControlType controlType; };
 static const DcsOutputEntry DcsOutputTable[] = {
+    {0x74A0,0x0400,10,1,"ARRESTING_HOOK_LT",CT_LED},
+    {0x74A0,0x0200,9,1,"HOOK_LEVER",CT_SELECTOR},
     {0x74A4,0x0100,8,1,"CLIP_APU_ACC_LT",CT_LED},
     {0x74A4,0x0200,9,1,"CLIP_BATT_SW_LT",CT_LED},
     {0x74A0,0x8000,15,1,"CLIP_CK_SEAT_LT",CT_LED},
@@ -59,6 +61,8 @@ static const DcsOutputEntry DcsOutputTable[] = {
     {0x7518,0xFFFF,0,65535,"RADALT_MIN_HEIGHT_PTR",CT_GAUGE},
     {0x751C,0xFFFF,0,65535,"RADALT_OFF_FLAG",CT_GAUGE},
     {0x749C,0x4000,14,1,"RADALT_TEST_SW",CT_SELECTOR},
+    {0x74A0,0x0800,11,1,"WING_FOLD_PULL",CT_SELECTOR},
+    {0x74A0,0x3000,12,2,"WING_FOLD_ROTATE",CT_SELECTOR},
 };
 static const size_t DcsOutputTableSize = sizeof(DcsOutputTable)/sizeof(DcsOutputTable[0]);
 
@@ -70,22 +74,22 @@ struct AddressEntry {
 };
 
 static const AddressEntry dcsAddressTable[] = {
-  { 0x74A4, { &DcsOutputTable[0], &DcsOutputTable[1], &DcsOutputTable[3], &DcsOutputTable[4], &DcsOutputTable[5], &DcsOutputTable[6], &DcsOutputTable[9], &DcsOutputTable[10] }, 8 },
-  { 0x74A0, { &DcsOutputTable[2], &DcsOutputTable[12], &DcsOutputTable[24] }, 3 },
-  { 0x74A8, { &DcsOutputTable[7], &DcsOutputTable[8], &DcsOutputTable[11] }, 3 },
-  { 0x751E, { &DcsOutputTable[13] }, 1 },
-  { 0x7520, { &DcsOutputTable[14] }, 1 },
-  { 0x754A, { &DcsOutputTable[15] }, 1 },
-  { 0x74C8, { &DcsOutputTable[16], &DcsOutputTable[20] }, 2 },
-  { 0x7544, { &DcsOutputTable[17] }, 1 },
-  { 0x7548, { &DcsOutputTable[18] }, 1 },
-  { 0x7546, { &DcsOutputTable[19] }, 1 },
-  { 0x754C, { &DcsOutputTable[21] }, 1 },
-  { 0x749C, { &DcsOutputTable[22], &DcsOutputTable[28] }, 2 },
-  { 0x751A, { &DcsOutputTable[23] }, 1 },
-  { 0x7516, { &DcsOutputTable[25] }, 1 },
-  { 0x7518, { &DcsOutputTable[26] }, 1 },
-  { 0x751C, { &DcsOutputTable[27] }, 1 },
+  { 0x74A0, { &DcsOutputTable[0], &DcsOutputTable[1], &DcsOutputTable[4], &DcsOutputTable[14], &DcsOutputTable[26], &DcsOutputTable[31], &DcsOutputTable[32] }, 7 },
+  { 0x74A4, { &DcsOutputTable[2], &DcsOutputTable[3], &DcsOutputTable[5], &DcsOutputTable[6], &DcsOutputTable[7], &DcsOutputTable[8], &DcsOutputTable[11], &DcsOutputTable[12] }, 8 },
+  { 0x74A8, { &DcsOutputTable[9], &DcsOutputTable[10], &DcsOutputTable[13] }, 3 },
+  { 0x751E, { &DcsOutputTable[15] }, 1 },
+  { 0x7520, { &DcsOutputTable[16] }, 1 },
+  { 0x754A, { &DcsOutputTable[17] }, 1 },
+  { 0x74C8, { &DcsOutputTable[18], &DcsOutputTable[22] }, 2 },
+  { 0x7544, { &DcsOutputTable[19] }, 1 },
+  { 0x7548, { &DcsOutputTable[20] }, 1 },
+  { 0x7546, { &DcsOutputTable[21] }, 1 },
+  { 0x754C, { &DcsOutputTable[23] }, 1 },
+  { 0x749C, { &DcsOutputTable[24], &DcsOutputTable[30] }, 2 },
+  { 0x751A, { &DcsOutputTable[25] }, 1 },
+  { 0x7516, { &DcsOutputTable[27] }, 1 },
+  { 0x7518, { &DcsOutputTable[28] }, 1 },
+  { 0x751C, { &DcsOutputTable[29] }, 1 },
 };
 
 // Address hash entry
@@ -112,11 +116,11 @@ static const DcsAddressHashEntry dcsAddressHashTable[53] = {
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
-  { 0x74A0, &dcsAddressTable[1] },
+  { 0x74A0, &dcsAddressTable[0] },
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
-  { 0x74A4, &dcsAddressTable[0] },
+  { 0x74A4, &dcsAddressTable[1] },
   { 0x7544, &dcsAddressTable[7] },
   {0xFFFF, nullptr},
   { 0x7546, &dcsAddressTable[9] },
@@ -168,14 +172,16 @@ inline const AddressEntry* findDcsOutputEntries(uint16_t addr) {
 
 struct SelectorEntry { const char* label; const char* dcsCommand; uint16_t value; const char* controlType; uint16_t group; const char* posLabel; };
 static const SelectorEntry SelectorMap[] = {
-    { "AV_COOL_SW_NORM","AV_COOL_SW",0,"selector",1,"NORM" },
-    { "AV_COOL_SW_EMERG","AV_COOL_SW",1,"selector",1,"EMERG" },
+    { "HOOK_LEVER_POS0","HOOK_LEVER",0,"selector",5,"POS0" },
+    { "HOOK_LEVER_POS1","HOOK_LEVER",1,"selector",5,"POS1" },
+    { "AV_COOL_SW_EMERG","AV_COOL_SW",0,"selector",1,"EMERG" },
+    { "AV_COOL_SW_NORM","AV_COOL_SW",1,"selector",1,"NORM" },
     { "CHART_DIMMER","CHART_DIMMER",65535,"analog",0,"LEVEL" },
     { "CHART_DIMMER_DEC","CHART_DIMMER",0,"variable_step",0,"DEC" },
     { "CHART_DIMMER_INC","CHART_DIMMER",1,"variable_step",0,"INC" },
-    { "COCKKPIT_LIGHT_MODE_SW_NVG","COCKKPIT_LIGHT_MODE_SW",0,"selector",2,"NVG" },
+    { "COCKKPIT_LIGHT_MODE_SW_DAY","COCKKPIT_LIGHT_MODE_SW",0,"selector",2,"DAY" },
     { "COCKKPIT_LIGHT_MODE_SW_NITE","COCKKPIT_LIGHT_MODE_SW",1,"selector",2,"NITE" },
-    { "COCKKPIT_LIGHT_MODE_SW_DAY","COCKKPIT_LIGHT_MODE_SW",2,"selector",2,"DAY" },
+    { "COCKKPIT_LIGHT_MODE_SW_NVG","COCKKPIT_LIGHT_MODE_SW",2,"selector",2,"NVG" },
     { "CONSOLES_DIMMER","CONSOLES_DIMMER",65535,"analog",0,"LEVEL" },
     { "CONSOLES_DIMMER_DEC","CONSOLES_DIMMER",0,"variable_step",0,"DEC" },
     { "CONSOLES_DIMMER_INC","CONSOLES_DIMMER",1,"variable_step",0,"INC" },
@@ -185,14 +191,19 @@ static const SelectorEntry SelectorMap[] = {
     { "INST_PNL_DIMMER","INST_PNL_DIMMER",65535,"analog",0,"LEVEL" },
     { "INST_PNL_DIMMER_DEC","INST_PNL_DIMMER",0,"variable_step",0,"DEC" },
     { "INST_PNL_DIMMER_INC","INST_PNL_DIMMER",1,"variable_step",0,"INC" },
-    { "LIGHTS_TEST_SW_TEST","LIGHTS_TEST_SW",0,"selector",3,"TEST" },
-    { "LIGHTS_TEST_SW_OFF","LIGHTS_TEST_SW",1,"selector",3,"OFF" },
+    { "LIGHTS_TEST_SW_OFF","LIGHTS_TEST_SW",0,"selector",3,"OFF" },
+    { "LIGHTS_TEST_SW_TEST","LIGHTS_TEST_SW",1,"selector",3,"TEST" },
     { "WARN_CAUTION_DIMMER","WARN_CAUTION_DIMMER",65535,"analog",0,"LEVEL" },
     { "WARN_CAUTION_DIMMER_DEC","WARN_CAUTION_DIMMER",0,"variable_step",0,"DEC" },
     { "WARN_CAUTION_DIMMER_INC","WARN_CAUTION_DIMMER",1,"variable_step",0,"INC" },
     { "RADALT_HEIGHT_POS0","RADALT_HEIGHT",0,"variable_step",0,"POS0" },
     { "RADALT_HEIGHT_POS1","RADALT_HEIGHT",1,"variable_step",0,"POS1" },
     { "RADALT_TEST_SW","RADALT_TEST_SW",1,"momentary",0,"PRESS" },
+    { "WING_FOLD_PULL_POS0","WING_FOLD_PULL",0,"selector",6,"POS0" },
+    { "WING_FOLD_PULL_POS1","WING_FOLD_PULL",1,"selector",6,"POS1" },
+    { "WING_FOLD_ROTATE_UNFOLD","WING_FOLD_ROTATE",0,"selector",4,"UNFOLD" },
+    { "WING_FOLD_ROTATE_HOLD","WING_FOLD_ROTATE",1,"selector",4,"HOLD" },
+    { "WING_FOLD_ROTATE_FOLD","WING_FOLD_ROTATE",2,"selector",4,"FOLD" },
 };
 static const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);
 
@@ -203,11 +214,14 @@ static CommandHistoryEntry commandHistory[] = {
     { "COCKKPIT_LIGHT_MODE_SW", 0, 0, true, 2, 0,   0, false, {0}, {0}, 0 },
     { "CONSOLES_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
     { "FLOOD_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
+    { "HOOK_LEVER", 0, 0, true, 5, 0,   0, false, {0}, {0}, 0 },
     { "INST_PNL_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
     { "LIGHTS_TEST_SW", 0, 0, true, 3, 0,   0, false, {0}, {0}, 0 },
     { "RADALT_HEIGHT", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
     { "RADALT_TEST_SW", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
     { "WARN_CAUTION_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
+    { "WING_FOLD_PULL", 0, 0, true, 6, 0,   0, false, {0}, {0}, 0 },
+    { "WING_FOLD_ROTATE", 0, 0, true, 4, 0,   0, false, {0}, {0}, 0 },
 };
 static const size_t commandHistorySize = sizeof(commandHistory)/sizeof(CommandHistoryEntry);
 

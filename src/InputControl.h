@@ -2,6 +2,11 @@
 
 #include "HIDManager.h" // for HIDAxis enum, or forward declare if needed
 
+namespace AnalogAcq {
+  void sample(uint8_t pin);
+  void consume(uint8_t pin, uint16_t &avg12, uint16_t &min12, uint16_t &max12, uint16_t &ema12);
+}
+
 // ===== GPIO (Inputs/Selectors/Analogs) =====
 extern uint8_t numGPIOEncoders;
 extern uint8_t encoderPinMask[48];

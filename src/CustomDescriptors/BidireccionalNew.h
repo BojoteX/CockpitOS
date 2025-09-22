@@ -9,7 +9,7 @@ static const uint8_t hidReportDesc[] = {
 
     // Axes: 16 axes, each 16-bit = 32 bytes
     0x15, 0x00,             // Logical Minimum (0)
-    0x26, 0xFF, 0x0F,       // Logical Maximum (4095)
+    0x26, 0xFF, 0xFF,       // Logical Maximum (65535)
     0x35, 0x00,       	    // Physical Minimum (0)
     0x46, 0xFF, 0x0F, 	    // Physical Maximum (4095)
     0x75, 0x10,             // Report Size (16 bits)
