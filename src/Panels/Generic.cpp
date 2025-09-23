@@ -103,6 +103,7 @@ void Generic_init() {
 // ============================================================================
 void Generic_loop() {
 
+    // Disabled as it has a big impact on performance. No oversampling
     /*
     for (size_t i = 0; i < numAutoAnalogs; ++i) {
         AnalogAcq::sample(autoAnalogs[i].gpio);   // fast, every loop
@@ -118,7 +119,6 @@ void Generic_loop() {
     // ------------------------------------------------------------------------
     for (size_t i = 0; i < numAutoAnalogs; ++i) {
         const auto& a = autoAnalogs[i];
-        // AnalogAcq::sample(a.gpio);   // fast, every loop
         HIDManager_moveAxis(a.label, a.gpio, a.axis, false, false);
     }
 

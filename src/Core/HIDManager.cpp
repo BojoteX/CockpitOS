@@ -430,7 +430,7 @@ void HIDManager_moveAxis(const char* dcsIdentifier,
 {
     // --- constants (int-only) ---
     constexpr int DEADZONE_LOW = 128;
-    constexpr int DEADZONE_HIGH = 3967;
+    constexpr int DEADZONE_HIGH = 4095;
     constexpr int HID_MAX = 4095;
     constexpr int THRESHOLD = 64;
     constexpr int SMOOTHING_FACTOR = 8;
@@ -501,6 +501,7 @@ void HIDManager_moveAxis(const char* dcsIdentifier,
     // Seed axis BEFORE any early returns so keep-alives resend the intended value
     if (axis < HID_AXIS_COUNT) report.axes[axis] = (uint16_t)reportVal;
 
+    // debugPrintf("Raw value before mapping is %u\n", filtered);
     const uint16_t dcsValue = map(filtered, 0, HID_MAX, 0, 65535);
 
     // --- force path (kept) ---
@@ -510,6 +511,7 @@ void HIDManager_moveAxis(const char* dcsIdentifier,
         lastOutput[pin] = filtered;
 
         if (inDcsMode) {
+            debugPrintf("Sending DCS value from forceSend: %u\n", dcsValue);
             sendDCS(dcsValue, /*force*/true);
             if (hybridEnabled) sendHID(filtered, /*force*/true);
         }
@@ -526,6 +528,7 @@ void HIDManager_moveAxis(const char* dcsIdentifier,
             lastOutput[pin] = filtered;
 
             if (inDcsMode) {
+                debugPrintf("Sending DCS value from Stabilization: %u\n", dcsValue);
                 sendDCS(dcsValue, /*force*/forcePanelSyncThisMission);
                 if (hybridEnabled) sendHID(filtered, /*force*/false);
             }
@@ -542,6 +545,7 @@ void HIDManager_moveAxis(const char* dcsIdentifier,
 
     // --- normal update (kept) ---
     if (inDcsMode) {
+        debugPrintf("Sending DCS value from Normal Update: %u\n", dcsValue);
         sendDCS(dcsValue, /*force*/false);
         if (hybridEnabled) sendHID(filtered, /*force*/false);
     }

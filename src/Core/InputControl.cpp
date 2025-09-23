@@ -11,8 +11,8 @@
 #define ENCODER_TICKS_PER_NOTCH          4
 
 
-
-// ---- Analog acquisition (EMA + window stats) ----
+// ---- CURRENTLY DISABLED -----
+// ---- Analog acquisition (EMA + window stats) 
 // Up to 64 GPIOs. K=3 → α=1/8 EMA.
 namespace AnalogAcq {
     constexpr uint8_t MAX_PINS = 64;
@@ -53,7 +53,7 @@ namespace AnalogAcq {
         a.sum = 0; a.cnt = 0; a.minv = 0x0FFF; a.maxv = 0x0000;
     }
 }
-
+// ---- CURRENTLY DISABLED -----
 
 
 
