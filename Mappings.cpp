@@ -165,6 +165,7 @@ void initializePanels(bool force) {
 
     PanelRegistry_forEachInit();
 
+    debugPrintln("Finished Syncronizing Panel state....");
     if (!isModeSelectorDCS()) HIDManager_commitDeferredReport("All devices");
 }
 

@@ -18,16 +18,16 @@ enum HIDAxis : uint8_t {
   AXIS_RX,            // 0x33
   AXIS_RY,            // 0x34
   AXIS_RZ,            // 0x35
-  AXIS_SLIDER1,       // 0x36
-  AXIS_SLIDER2,       // 0x36 (again)
   AXIS_DIAL,          // 0x37
-  AXIS_WHEEL,         // 0x38
-  AXIS_BRAKE,         // reuse Slider or vendor page
-  AXIS_THROTTLE,      // reuse Slider or vendor page
-  AXIS_CUSTOM1,       // vendor-defined (or Slider)
-  AXIS_CUSTOM2,       // vendor-defined (or Slider)
-  AXIS_CUSTOM3,       // vendor-defined (or Slider)
-  AXIS_CUSTOM4,       // vendor-defined (or Slider)
+  AXIS_SLIDER,        // 0x36
+  AXIS_SLIDER1,       // 0x36 (again) 
+  AXIS_SLIDER2,       // 0x36 (again)
+  AXIS_SLIDER3,       // 0x36 (again)
+  AXIS_SLIDER4,       // 0x36 (again)
+  AXIS_SLIDER5,       // 0x36 (again)
+  AXIS_SLIDER6,       // 0x36 (again)
+  AXIS_SLIDER7,       // 0x36 (again)
+  AXIS_SLIDER8,       // 0x36 (again)
   HID_AXIS_COUNT
 };
 

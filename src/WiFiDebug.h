@@ -10,7 +10,8 @@
 // Remote DEBUG_REMOTE_IP and DEBUG_REMOTE_PORT of the remote debug console
 // static const IPAddress DEBUG_REMOTE_IP(DEBUG_CONSOLE_IP_ADDRESS); // Specific IP to send debug messages
 
-static const IPAddress DEBUG_REMOTE_IP(255,255,255,255);
+#define DCS_COMPUTER_IP "255.255.255.255" 
+static IPAddress DEBUG_REMOTE_IP;
 static const uint16_t DEBUG_REMOTE_PORT = 4210;
 
 // Not really used but required by AsyncUDP. Its the local port where we listen to any DEBUG messages (only used when NOT using WiFi for DCSBIOS)

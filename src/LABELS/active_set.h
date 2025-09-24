@@ -1,5 +1,5 @@
-// PID:0x34F4 
+// PID:0x21AB 
 
 #pragma once
 
-#define LABEL_SET RIGHT_PANEL_CONTROLLER
+#define LABEL_SET MAIN

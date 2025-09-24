@@ -9,7 +9,7 @@
 static AsyncUDP udp;
 
 IPAddress dcsSourceIP;      // Last source IP seen
-bool dcsSourceIPValid = false;
+static volatile bool dcsSourceIPValid = false;
 
 static char udpTempBuf[UDP_TMPBUF_SIZE]; // Max Size of UDP Debug Send Packet
 static volatile uint32_t wifiDebugSendOverflow = 0;
@@ -106,6 +106,7 @@ void wifiDebugInit(uint16_t localPort) {
 #endif
 }
 
+/*
 bool tryToSendDcsBiosMessageUDP(const char* msg, const char* arg) {
     if (WiFi.status() != WL_CONNECTED) return false;
 
@@ -128,16 +129,61 @@ bool tryToSendDcsBiosMessageUDP(const char* msg, const char* arg) {
     buf[len++] = '\n';
     buf[len] = '\0'; // Not needed for UDP, but safe
 
-    /*
-    // Direct send to DCS port (not debug)
-    udp.writeTo((const uint8_t*)buf, len, DCS_REMOTE_IP, DCS_REMOTE_PORT);
-    */
+    IPAddress targetIP = dcsSourceIPValid ? dcsSourceIP : IPAddress();
+    if (!dcsSourceIPValid) {
+        if (!targetIP.fromString(DCS_COMPUTER_IP)) {
+            // Fallback if the string is malformed
+			targetIP = IPAddress(255, 255, 255, 255); // Not ideal , but better than nothing
+        }
+		serialDebugPrintf("[DCS-WIFI] ⚠️ Using fallback IP %s to send via UDP (might fail)\n", targetIP.toString().c_str());
+    }
 
-	// Direct send to DCS port (not debug) with DCS source IP validation and automatic fallback
-    IPAddress targetIP = dcsSourceIPValid ? dcsSourceIP : IPAddress(DCS_REMOTE_IP); // macro or config
     udp.writeTo((const uint8_t*)buf, len, targetIP, DCS_REMOTE_PORT);
+	return true;
+}
+*/
 
+bool tryToSendDcsBiosMessageUDP(const char* msg, const char* arg) {
+    if (WiFi.status() != WL_CONNECTED) return false;
+    if (!msg || !arg) return false;
 
+    constexpr size_t MAX_MSG = 64;   // max chars allowed
+    constexpr size_t MAX_ARG = 32;
+
+    const size_t msgLen = strnlen(msg, MAX_MSG + 1);
+    const size_t argLen = strnlen(arg, MAX_ARG + 1);
+    if (msgLen == 0 || argLen == 0) return false;        // no empties
+    if (msgLen > MAX_MSG || argLen > MAX_ARG) return false; // overflow guard
+    // reject whitespace that would break the wire format
+    for (size_t i = 0; i < msgLen; ++i) if (msg[i] <= ' ') return false;
+    for (size_t i = 0; i < argLen; ++i) if (arg[i] == '\n') return false;
+
+    char buf[MAX_MSG + 1 + MAX_ARG + 2]; // space + '\n'
+    size_t len = 0;
+    memcpy(buf + len, msg, msgLen); len += msgLen;
+    buf[len++] = ' ';
+    memcpy(buf + len, arg, argLen); len += argLen;
+    buf[len++] = '\n';
+
+    IPAddress ipSnapshot;
+    bool haveSource = dcsSourceIPValid;          // snapshot flags first
+    if (haveSource) {
+        ipSnapshot = dcsSourceIP;                // snapshot IP once
+    }
+    else {
+        if (!ipSnapshot.fromString(DCS_COMPUTER_IP)) ipSnapshot = IPAddress(255, 255, 255, 255);
+        // If broadcasting:
+        // udp.setBroadcast(true);
+    }
+
+    int written = udp.writeTo(reinterpret_cast<const uint8_t*>(buf), len, ipSnapshot, DCS_REMOTE_PORT);
+    if (written != static_cast<int>(len)) {
+        serialDebugPrintf("[DCS-WIFI] UDP send failed (%d/%u) to %s:%u\n",
+            written, static_cast<unsigned>(len),
+            ipSnapshot.toString().c_str(), static_cast<unsigned>(DCS_REMOTE_PORT));
+        return false;
+    }
+	delay(1); // tiny delay to avoid flooding
     return true;
 }
 

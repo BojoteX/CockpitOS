@@ -101,13 +101,13 @@ bool isLatchedButton(const char* label);
   /*  X(AXIS_RX)        */                \
   /*  X(AXIS_RY)        */                \
   /*  X(AXIS_RZ)        */                \
+  /*  X(AXIS_DIAL)      */                \
+  /*  X(AXIS_SLIDER)    */                \
   /*  X(AXIS_SLIDER1)   */                \
   /*  X(AXIS_SLIDER2)   */                \
-  /*  X(AXIS_DIAL)      */                \
-  /*  X(AXIS_WHEEL)     */                \
-  /*  X(AXIS_BRAKE)     */                \
-  /*  X(AXIS_THROTTLE)  */                \
-  /*  X(AXIS_CUSTOM1)   */                \
-  /*  X(AXIS_CUSTOM2)   */                \
-  /*  X(AXIS_CUSTOM3)   */                \
-  /*  X(AXIS_CUSTOM4)   */
+  /*  X(AXIS_SLIDER3)   */                \
+  /*  X(AXIS_SLIDER4)   */                \
+  /*  X(AXIS_SLIDER5)   */                \
+  /*  X(AXIS_SLIDER6)   */                \
+  /*  X(AXIS_SLIDER7)   */                \
+  /*  X(AXIS_SLIDER8)   */

@@ -60,25 +60,19 @@ void Generic_init() {
     CoverGate_init();
     // --- [Per-mission: State/HIDManager Sync & Firing] ---
 
-    // 1. Sync Analog Axes to Known State
-    for (size_t i = 0; i < numAutoAnalogs; ++i) {
-        const auto& a = autoAnalogs[i];
-        HIDManager_moveAxis(a.label, a.gpio, a.axis, true, true);
-    }
-
-    // 2. Fire All GPIO Selector States to Reset
+    // 1. Fire All GPIO Selector States to Reset
     pollGPIOEncoders();
     pollGPIOSelectors(true);
     pollGPIOMomentaries(true);
 
-    // 3. Sync All HC165 (Shift Register) States to HID
+    // 2. Sync All HC165 (Shift Register) States to HID
     if (HC165_BITS > 0) {
         hc165Bits = HC165_read();
         hc165PrevBits = hc165Bits;                  // prevent fake edges
         processHC165Resolved(hc165Bits, hc165PrevBits, true);
     }
 
-    // 4. Take Fresh PCA9555 Snapshot and Fire All PCA States
+    // 3. Take Fresh PCA9555 Snapshot and Fire All PCA States
     for (size_t i = 0; i < numPcas; ++i) {
         uint8_t p0, p1;
         if (readPCA9555(pcas[i].addr, p0, p1)) {
@@ -88,11 +82,17 @@ void Generic_init() {
     }
     pollPCA9555_flat(true);
 
-	// 5. Matrix Polling (fire all)
+	// 4. Matrix Polling (fire all)
     Matrix_poll(true);
 
-	// 6. TM1637 Inputs (fire all)
+	// 5. TM1637 Inputs (fire all)
     TM1637_poll(true);
+
+    // 6. Sync Analog Axes to Known State
+    for (size_t i = 0; i < numAutoAnalogs; ++i) {
+        const auto& a = autoAnalogs[i];
+        HIDManager_moveAxis(a.label, a.gpio, a.axis, true, true);
+    }
 
     // --- [Done] ---
     debugPrintln("✅ Generic panel initialized");

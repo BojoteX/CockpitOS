@@ -399,6 +399,10 @@ void initPanels() {
     for (uint16_t g = 0; g < MAX_GROUPS; ++g) lastGroupSendUs[g] = 0;
     for (size_t i = 0; i < numValidatedSelectors; ++i) validatedSelectors[i].lastSimValue = 0xFFFF;
 
+	// Send Command to DCS to signal panel init (works only with HID Manager when used in USB mode so we can filter out panel sync)
+	debugPrint("[PANEL SYNC] Started...\n");
+	sendCommand("DCSBIOS_PANEL_SYNC_START", "1", true); // true = force
+
     // HIDManager_resetAllAxes();
     syncCommandHistoryFromInputMapping();
     // debugPrintln("[SYNC PANELS] ❌ Just ran syncCommandHistoryFromInputMapping()\n");
@@ -408,6 +412,9 @@ void initPanels() {
 
     flushBufferedDcsCommands(); // clears losers / commits winners immediately
     // debugPrintln("[SYNC PANELS] ❌ Just ran flushBufferedDcsCommands()\n");
+
+    sendCommand("DCSBIOS_PANEL_SYNC_FINISH", "1", true); // true = force
+    debugPrint("[PANEL SYNC] Finished...\n");
 
     forcePanelSyncThisMission = false;
 
