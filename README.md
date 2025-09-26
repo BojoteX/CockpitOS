@@ -108,6 +108,9 @@ Modules are designed for **static data**, **non‑blocking I/O**, and **O(1)** l
 4. **Configure transport**  
    Now go back to Arduino IDE, Select the Config.h tab and choose either USB, Serial or Wi‑Fi mode.
 5. **Build & upload**  
+
+> Tip: BEFORE YOU COMPILE make sure the "USB CDC On Boot" option is set to Disabled (otherwise you'll get a compile error). Also, if using an S3 device, make sure the USB Mode in the Tools menu is set to USB-OTG (TinyUSB), otherwise USB Mode will not work (In the S2 its the default, so there is no need to select it)
+
    Compile and Upload. Power‑cycle the board
 6. **Test**  
    Wire a simple button or LED to any of your board available GPIOs. Make sure they match what you selected in InputMapping.h (Buttons & Switches) and LEDMappings (LEDs) 
