@@ -18,8 +18,8 @@ struct InputMapping {
 
 //  label                       source     port bit hidId  DCSCommand           value   Type        group
 static const InputMapping InputMappings[] = {
-    { "HOOK_LEVER_POS0"            , "GPIO" ,  -1 ,  0 ,  -1 , "HOOK_LEVER"            ,     0 , "selector"     , 15 },
-    { "HOOK_LEVER_POS1"            , "GPIO" ,  14 ,  0 ,  -1 , "HOOK_LEVER"            ,     1 , "selector"     , 15 },
+    { "HOOK_LEVER_POS0"            , "GPIO" , -1 ,  0 ,  -1 , "HOOK_LEVER"            ,     0 , "selector"     , 15 },
+    { "HOOK_LEVER_POS1"            , "GPIO" , 14 ,  0 ,  -1 , "HOOK_LEVER"            ,     1 , "selector"     , 15 },
     { "AUX_REL_SW_NORM"            , "NONE" ,  0 ,  0 ,  -1 , "AUX_REL_SW"            ,     0 , "selector"     ,  8 },
     { "AUX_REL_SW_ENABLE"          , "NONE" ,  0 ,  0 ,  -1 , "AUX_REL_SW"            ,     1 , "selector"     ,  8 },
     { "CMSD_DISPENSE_SW_OFF"       , "NONE" ,  0 ,  0 ,  -1 , "CMSD_DISPENSE_SW"      ,     0 , "selector"     ,  9 },
@@ -46,7 +46,7 @@ static const InputMapping InputMappings[] = {
     { "FLOOD_DIMMER"               , "NONE" ,  0 ,  0 ,  -1 , "FLOOD_DIMMER"          , 65535 , "analog"       ,  0 },
     { "FLOOD_DIMMER_DEC"           , "NONE" ,  0 ,  0 ,  -1 , "FLOOD_DIMMER"          ,     0 , "variable_step",  0 },
     { "FLOOD_DIMMER_INC"           , "NONE" ,  0 ,  0 ,  -1 , "FLOOD_DIMMER"          ,     1 , "variable_step",  0 },
-    { "INST_PNL_DIMMER"            , "GPIO" ,  4 ,  0 ,  -1 , "INST_PNL_DIMMER"       , 65535 , "analog"       ,  0 },
+    { "INST_PNL_DIMMER"            , "GPIO" ,  5 ,  0 ,  -1 , "INST_PNL_DIMMER"       , 65535 , "analog"       ,  0 },
     { "INST_PNL_DIMMER_DEC"        , "NONE" ,  0 ,  0 ,  -1 , "INST_PNL_DIMMER"       ,     0 , "variable_step",  0 },
     { "INST_PNL_DIMMER_INC"        , "NONE" ,  0 ,  0 ,  -1 , "INST_PNL_DIMMER"       ,     1 , "variable_step",  0 },
     { "LIGHTS_TEST_SW_OFF"         , "NONE" ,  0 ,  0 ,  -1 , "LIGHTS_TEST_SW"        ,     0 , "selector"     , 17 },

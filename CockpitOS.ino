@@ -7,12 +7,14 @@
 
 */
 
+/*
 #include "esp_log.h"
 extern "C" int _sink_vprintf(const char*, va_list) { return 0; }
 __attribute__((constructor)) static void silence_logs(void) {
   esp_log_level_set("*", ESP_LOG_NONE);     // kill ESP-IDF logs
   esp_log_set_vprintf(&_sink_vprintf);      // swallow any printf-backed logging
 }
+*/
 
 #include "src/Globals.h" // Common header used by everyone
 #include "src/HIDManager.h" // Needed for _init and _loop for HIDManager
