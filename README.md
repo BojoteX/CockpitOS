@@ -38,19 +38,11 @@ CockpitOS is a high‑performance firmware platform for building **DCS‑BIOS‑
 
 ---
 
-## Why CockpitOS
-- **Aerospace‑inspired rigor:** deterministic, bounded execution with explicit WCET budgets.
-- **Static memory only:** no `malloc`, no `new`, no fragmentation. Exceptions may exist only for optional TFT frame buffers when explicitly configured.
-- **Protocol precision:** implements the Skunkworks DCS‑BIOS expectations precisely to avoid desyncs.
-- **Scale with confidence:** auto‑generated lookup tables and perfect‑hash label routing enable O(1) updates even at high I/O rates.
-
----
-
 ## Key Features
 - **Static lookup tables** for inputs, LEDs, and displays — auto‑generated per aircraft or panel set.
 - **Group‑aware selectors** with exclusivity enforcement, debouncing, and dwell‑time control.
 - **Mission & aircraft sync** — clean state handling on mission start/stop.
-- **Multi‑transport DCS‑BIOS** — USB CDC or Wi‑Fi UDP selectable in `Config.h`.
+- **Multi‑transport DCS‑BIOS** — USB, Serial or Wi‑Fi selectable in `Config.h`.
 - **Headless debugging** — UDP console for remote logs without disturbing USB CDC.
 - **Profiling hooks** — monitor loop time, CPU headroom, CDC/HID readiness.
 - **High‑rate operation** — typical 250 Hz panel polling, 60 Hz display refresh.
@@ -63,7 +55,7 @@ CockpitOS is a high‑performance firmware platform for building **DCS‑BIOS‑
 ## Architecture
 Modules are designed for **static data**, **non‑blocking I/O**, and **O(1)** lookups.
 
-- **DCSBIOSBridge / DcsBiosSniffer**  
+- **DCSBIOSBridge**  
   Parses the binary stream, surfaces state changes, and handles ASCII command TX.
 - **InputMapping[] (auto‑generated)**  
   Single authoritative table for all inputs: selectors, buttons, rotaries, analogs. Includes group IDs and DCS command metadata.
@@ -72,9 +64,9 @@ Modules are designed for **static data**, **non‑blocking I/O**, and **O(1)** l
 - **LEDControl**  
   `setLED(label, state, intensity)` with perfect‑hash index + zero‑heap fan‑out.
 - **HIDManager**  
-  Centralized HID reports with non‑blocking completion callback tracking.
+  Centralized Input Mapping (HID or DCS Commands) with non‑blocking completion callback tracking.
 - **USB CDC**  
-  Non‑blocking ring buffer. Robust under RX flood (socat/DCS replay).
+  Non‑blocking ring buffer. Robust under RX flood.
 - **Display Subsystems**  
   - HT1622 driver with timing‑accurate GPIO protocol, dirty‑only nibble commits.  
   - SPI TFT pipeline with dirty‑rect compose + DMA region flush.
@@ -88,17 +80,15 @@ Modules are designed for **static data**, **non‑blocking I/O**, and **O(1)** l
 - **LED/Segment:** GPIO PWM, PCA9555, TM1637, GN1640T, WS2812.  
 - **LCD/TFT:** HT1622 segment LCDs; SPI TFTs (e.g., GC9A01, ST77xx) via compatible libraries.  
 
-> Note: Keep signal integrity in star/topology wiring in mind; CockpitOS favors conservative timings and explicit pull‑up/pull‑down strategies.
-
 ---
 
 ## Requirements
 - **IDE:** Arduino IDE ≥ 2.3.6
 - **ESP32 Arduino Core:** ≥ 3.2.x
-- **Boards validated by users:** LOLIN S2 Mini, LOLIN S3 Mini (others likely compatible)
+- **Boards validated by users:** LOLIN S2 Mini, LOLIN S3 Mini (All ESP32 boards likely compatible)
 - **Libraries:**
   - **LovyanGFX** for advanced TFT gauges (required for TFT path)
-  - **DCS‑BIOS Skunkworks** (optional)
+  - **DCS‑BIOS Skunkworks** (optional, a lite parser is included)
 
 > Not tested: STM32, Teensy, ESP8266, MicroPython, ESP‑IDF, PlatformIO.
 
@@ -130,64 +120,23 @@ Modules are designed for **static data**, **non‑blocking I/O**, and **O(1)** l
 
 ---
 
-## Configuration
-Key options live in `src/Config.h` and the generated mapping headers.
-
-- **Transport:** `COCKPIT_USE_USB` vs `COCKPIT_USE_WIFI_UDP`
-- **Panel selection:** respected by the generator (`selected_panels.txt` or “global” mode)
-- **Debugging:** UDP console on a configurable port; optional CDC debug (avoid while using DCS‑BIOS on the same CDC interface)
-- **Polling rates:** caps for I²C scans, shift‑register reads, and display refresh
-- **Safety:** compile‑time asserts for pin ranges, buffer sizes, and table lengths
-
-> **Do not** enable verbose Serial debug on the same CDC port used for DCS‑BIOS.
-
----
-
 ## Data Generation Pipeline
 The generator ingests Skunkworks DCS‑BIOS definitions (JSON/Lua) and emits static, compile‑time artifacts:
 
 - **`InputMapping.h/.cpp`** — one row per control with: label, source, port/bit, group ID, DCS command, max value, HID ID, flags.  
 - **`LEDMapping.h/.cpp`** — per‑LED routing and device type.  
-- **`DCSBIOSBridgeData.h`** — compact address/mask/shift tables for IntegerBuffer‑style callbacks.  
-- **`DisplayMapping.h/.cpp`** — display field routing and clear/render handlers.
 
 **Design choices:**  
 - No dynamic memory.  
-- Emit wrapper callbacks `cb_<LABEL>()` that route to shared handlers with a fixed label string.  
 - Provide a minimal perfect hash for O(1) label→index mapping with no collisions.
 
 ---
 
 ## DCS‑BIOS Integration
 **RX (binary):** Protocol parser processes address/mask/shift records → triggers IntegerBuffer/StringBuffer callbacks.  
-**TX (ASCII):** Commands like `"HMD_OFF_BRT 35500\n"` are queued in a non‑blocking CDC ring buffer.
-
-**Best practices:**  
-- Prefer `IntegerBuffer` for LEDs and internal state, not `DCSBios::LED`, to keep software control.  
-- Deduplicate string updates if captures contain repeated frames. Treat the input stream as source of truth.  
-- For headless tests, ensure DTR is either bypassed or asserted by your tool (socat or equivalent).
-
-**Example (conceptual):**
-```cpp
-// Inside DCSBIOS init code
-DcsBios::IntegerBuffer fireCover(ADDR_FIRE, MASK_FIRE, SHIFT_FIRE,
-  [](unsigned int v){ LEDControl::setLED("FIRE_COVER", v != 0, 255); });
-```
+**TX (ASCII):** Commands like `"HMD_OFF_BRT 35500\n"` are queued in a non‑blocking ring buffer.
 
 ---
-
-## Display Subsystems
-
-### HT1622 LCD Driver
-Validated GPIO implementation with exact timing:
-- Two NOPs **before** WR low (data setup)
-- Two NOPs **between** WR low→high (hold)
-- Two NOPs **after** WR high (post‑hold)
-- ~1 µs delay after each `writeNibble()` to reduce visible sweep
-- `gpio_set_level()` for CS/DATA; fast GPIO toggling only for WR
-
-**Dirty‑only nibble commit:** Only modified nibbles in shadow RAM are written.  
-**Partial commits:** `commitNextRegion()` updates small regions per loop to bound WCET.
 
 ### SPI TFT Gauges: Dirty‑Rect Compose + Region DMA Flush
 A high‑performance SPI pipeline that updates only the pixels that changed.
@@ -199,27 +148,15 @@ A high‑performance SPI pipeline that updates only the pixels that changed.
 4) **DMA flush** each rect to the TFT window.  
 5) **Bookkeeping** updates `lastValue` and history for rate limiting.
 
-**Tuning notes:**  
-- Fixed‑point math with precomputed lookup tables for sin/cos.  
-- Hard limit rect count per frame to cap WCET.  
-- Optionally pre‑render needles at coarse angles to trade memory for CPU.
-
 ---
 
 ## Performance & Determinism
 - **Lookup speed:** perfect‑hash label routing, modulo‑free arithmetic, O(1) dispatch.  
 - **I/O:** cached I²C reads; single‑edge decoding for 74HC165; matrix rotaries with deterministic scan windows.  
-- **Concurrency:** separate, non‑blocking CDC/HID paths using completion callbacks (`tud_hid_report_complete_cb`) and `cdcTxReady`.  
-- **Compiler:** build with `-fno-exceptions -fno-rtti`, function/data sectioning, and LTO where available.
-
-**Example WCET budget (240×240 SPI TFT):**
-- Compose 80×80 px rect (16‑bit) ≈ 12.8 KiB copy  
-- 40 MHz SPI DMA push ≈ ~2–3 ms per rect  
-- Cap at ≤3 rects/frame to keep < 10 ms/frame (target 60 Hz with room to spare)
 
 ---
 
-## Safety‑Critical Discipline
+## Safety‑Critical Discipline we followed
 - Treat every code path as mission‑critical.  
 - No unbounded loops without iteration caps.  
 - Always check buffer bounds and return codes.  
@@ -240,82 +177,23 @@ A high‑performance SPI pipeline that updates only the pixels that changed.
 
 ---
 
-## Examples
-
-### Example: Input selector on PCA9555
-```cpp
-// Generated row (illustrative)
-{ "ECM_MODE_SW_AUTO", SOURCE_PCA9555, 0, 4, 200, "ECM_MODE_SW", 5, 800, FLAG_SELECTOR };
-```
-
-### Example: Button on 74HC165 (active‑low, LSB‑first)
-```cpp
-// Illustrative read of one 8-bit 74HC165 chain
-uint8_t read165() {
-  digitalWrite(PIN_PL, LOW);  delayMicroseconds(1);
-  digitalWrite(PIN_PL, HIGH); delayMicroseconds(1);
-  uint8_t v=0;
-  for (uint8_t i=0;i<8;i++) {
-    v |= (digitalRead(PIN_QH)?1:0) << i;
-    digitalWrite(PIN_CP, HIGH);
-    digitalWrite(PIN_CP, LOW);
-  }
-  return v; // 1 = released, 0 = pressed
-}
-```
-
-### Example: LED update via DCS IntegerBuffer
-```cpp
-DcsBios::IntegerBuffer rwrEnable(ADDR, MASK, SHIFT, [](unsigned int v) {
-  LEDControl::setLED("RWR_ENABLE_LED", v != 0, 255);
-});
-```
-
----
-
-## Troubleshooting
-- **No output in socat unless a serial monitor is open**  
-  DTR not asserted. Bypass DTR in TinyUSB or assert DTR in your test tool.
-- **LED stutter under heavy RX**  
-  Avoid blocking work in callbacks. Bound per‑loop LED and TFT work. Defer low‑priority updates.
-- **Selector shows two positions**  
-  Verify shared `btnGroup` for all positions and matrix scan timing.
-- **HT1622 init fails with fast GPIO**  
-  Use `gpio_set_level()` for CS/DATA; keep fast GPIO only for WR with validated NOP spacing.
-- **String outputs trigger multiple times in replay**  
-  Your capture likely repeats frames. Implement deduping; treat stream as authoritative.
-
----
-
 ## FAQ
-**Q: Can I use dynamic memory for convenience?**  
-A: No. Static or stack allocation only. Avoid fragmentation and nondeterministic timing.
 
 **Q: Which ESP32 board is best?**  
-A: ESP32‑S2/S3 with native USB simplifies CDC/HID integration and testing.
+A: ESP32‑S2/S3 with native USB simplifies integration and testing.
 
 **Q: Can I run Wi‑Fi and USB simultaneously?**  
-A: Yes, but isolate concerns: use UDP for logs to keep CDC free for DCS‑BIOS TX/RX.
+A: Yes, but only if your board has the memory to spare AND WiFi is used for logs/debug only.
 
 **Q: How do I map a new panel?**  
-A: Add rows to your label set, run the generator, wire inputs/outputs, compile, and test with DCS or replay logs.
-
----
-
-## Contributing
-Contributions are welcome. Follow these rules:
-- No dynamic memory. No exceptions. No RTTI.
-- Keep execution bounded. No blocking calls.
-- Respect module interfaces and generated data contracts.
-- Add unit or bench tests where feasible (timing/logic).  
-Open a PR with a concise summary and include WCET notes for new paths.
+A: Add rows to your label set, run the generator, wire inputs/outputs, compile, and test with DCS or replay logs. Check the README.md inside LABELS
 
 ---
 
 ## License
 MIT — see `LICENSE`.
 
-> CockpitOS targets hobby simulation use. Rigor is applied, but this is **not** certified avionics software.
+> CockpitOS targets hobby simulation use. Rigor is applied, but this is **not** certified avionics software. You can use and distribute free of charge even for commercial products, just ensure you read our LICENSE
 
 ---
 
