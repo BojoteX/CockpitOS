@@ -105,24 +105,28 @@ Modules are designed for **static data**, **non‑blocking I/O**, and **O(1)** l
 ---
 
 ## Quick Start
-1. **Choose labels / aircraft**  
-   Select or create a label set under `LABELS/` for your aircraft or panel subset.
-2. **Generate data**  
+1. **Open in Arduino IDE**  
+   Make sure "esp32 by Espressif Systems" is installed (check Boards Manager) ensure ESP32 core ≥ 3.3.x is selected. Once installed, go into boards manager and select your board (e.g., LOLIN S2 Mini).
+2. **Choose labels / aircraft**  
+   Select an existing label set under `LABELS/` for your aircraft or panel subset. Preferably, use LABEL_SET_TEST_ONLY so you familiarize yourself with how this works.
+3. **Generate data**  
    ```bash
    cd LABELS/<YOUR_LABEL_SET>
-   python generate_data.py
-   # Optional: python generate_display_mapping.py
+   Check InputMapping.h and LEDMapping.h, notice the GPIO assignments. Check tutorial on LABELS directory to understand how to modify the files.
+   After you modify the files, run "python generate_data.py" to make this LABEL SET default.
    ```
-3. **Open in Arduino IDE**  
-   Install ESP32 core ≥ 3.2.x and select your board (e.g., LOLIN S2 Mini).
 4. **Configure transport**  
-   In `src/Config.h` choose USB CDC or Wi‑Fi UDP, and enable features per panel.
+   Now go back to Arduino IDE, Select the Config.h tab and choose either USB, Serial or Wi‑Fi mode.
 5. **Build & upload**  
-   Compile with warnings as errors. Upload. Power‑cycle the board.
+   Compile and Upload. Power‑cycle the board
 6. **Test**  
-   Use DCS or a replay stream (e.g., `socat`) to validate RX/TX behavior.
+   Wire a simple button or LED to any of your board available GPIOs. Make sure they match what you selected in InputMapping.h (Buttons & Switches) and LEDMappings (LEDs) 
+7. **Expand**  
+   Now repeat all the above steps, starting in #3, this time, check selected_panels.txt. That file is what tells the auto-generator what panels to include in InputMapping.h and LEDMapping.h
+8. **Ask our Custom trained GPT if having issues**  
+   Check the link on our Github page. A Custom GPT has been trained with the entire codebase, it will answer any question and help you step by step if confused.
 
-> Tip: Each subfolder includes a local README when extra steps are required.
+> Tip: Check the README.md inside the LABELS directory, including the quick guides for InputMapping.h and LEDMapping.h editing.
 
 ---
 
