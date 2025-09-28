@@ -1267,12 +1267,14 @@ void DCSBIOS_keepAlive() {
 
 void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
 
+    /*
 	// Prevent any command if sim is not ready yet even if forced
     if (!simReady()) 
         debugPrintf("⚠️ [DCS] NOT READY! ignoring command \"%s %u\" (force=%u)\n", label, value, force);
 
     static char buf[10];
     snprintf(buf, sizeof(buf), "%u", value);
+    */
 
     CommandHistoryEntry* e = findCmdEntry(label);
     if (!e) {
@@ -1281,6 +1283,21 @@ void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
     }
 
     const unsigned long now = millis();
+
+    if (!simReady()) {
+        debugPrintf("⚠️ [DCS] NOT READY! ignoring command \"%s %u\" (force=%u)\n", label, value, force);
+
+		// Buffer the command if it's a selector (group > 0) and not forced for later flush
+        if (!force && e->group > 0) {
+            e->pendingValue = value;
+            e->lastChangeTime = now;
+            e->hasPending = true;
+        }
+        return;
+    }
+
+    static char buf[10];
+    snprintf(buf, sizeof(buf), "%u", value);
 
 // #if defined(SELECTOR_DWELL_MS) && (SELECTOR_DWELL_MS > 0)
     if (!force && e->group > 0) {
