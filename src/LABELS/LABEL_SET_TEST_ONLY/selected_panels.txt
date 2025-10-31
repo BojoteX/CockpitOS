@@ -6,6 +6,7 @@
 #
 # To update the list of available panels, just re-run this script.
 
+Master Caution Light
 Interior Lights Panel
 Arresting Hook Handle and Light
 Wing Fold Switch

@@ -89,6 +89,11 @@
   #define HC165_CONTROLLER_PL        PIN(39)   // Latch (PL)
   #define HC165_CONTROLLER_CP        PIN(38)   // Clock (CP)
   #define HC165_CONTROLLER_QH        PIN(40)   // Data (QH)
+#elif defined(HAS_TEST_ONLY)
+  #define HC165_BITS                 8   // Number of bits in HC165 shift register (0 = disabled) 
+  #define HC165_CONTROLLER_PL        12   // Latch (PL)
+  #define HC165_CONTROLLER_CP        11   // Clock (CP)
+  #define HC165_CONTROLLER_QH        10   // Data (QH)
 #else
   #define HC165_BITS                 0   // Number of bits in HC165 shift register (0 = disabled) 
   #define HC165_CONTROLLER_PL       -1

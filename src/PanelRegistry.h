@@ -39,8 +39,23 @@ struct _AutoPanelRegister {
   explicit _AutoPanelRegister(const PanelHooks& h){ PanelRegistry_register(h); }
 };
 
+/*
 // Single registration macro. Pass nullptr for unused hooks.
 #define REGISTER_PANEL(KIND, INIT, LOOP, DINIT, DLOOP, TICK, PRIO) \
   static const PanelHooks _hooks_##KIND = { "has" #KIND, PanelKind::KIND, \
     (uint8_t)(PRIO), (INIT), (LOOP), (DINIT), (DLOOP), (TICK) }; \
   static _AutoPanelRegister _apr_##KIND(_hooks_##KIND)
+*/
+
+#define ASSERT_PANEL_KIND_EXISTS(KIND)                                           \
+  static_assert(static_cast<int>(PanelKind::KIND) >= 0,                          \
+    "\n\n[PanelRegistry] Invalid panel name '" #KIND                            \
+    "'.\n--> You probably forgot to add '" #KIND                                \
+    "' to enum class PanelKind in Mappings.h (and to its activation in Mappings.cpp).\n")
+
+#define REGISTER_PANEL(KIND, INIT, LOOP, DINIT, DLOOP, TICK, PRIO) \
+  ASSERT_PANEL_KIND_EXISTS(KIND); \
+  static const PanelHooks _hooks_##KIND = { "has" #KIND, PanelKind::KIND, \
+    (uint8_t)(PRIO), (INIT), (LOOP), (DINIT), (DLOOP), (TICK) }; \
+  static _AutoPanelRegister _apr_##KIND(_hooks_##KIND)
+

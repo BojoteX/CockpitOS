@@ -63,6 +63,7 @@ static const DcsOutputEntry DcsOutputTable[] = {
     {0x749C,0x4000,14,1,"RADALT_TEST_SW",CT_SELECTOR},
     {0x74A0,0x0800,11,1,"WING_FOLD_PULL",CT_SELECTOR},
     {0x74A0,0x3000,12,2,"WING_FOLD_ROTATE",CT_SELECTOR},
+    {0x74A0,0x0800,11,1,"WING_FOLD_PULL",CT_SELECTOR},
 };
 static const size_t DcsOutputTableSize = sizeof(DcsOutputTable)/sizeof(DcsOutputTable[0]);
 
@@ -74,7 +75,7 @@ struct AddressEntry {
 };
 
 static const AddressEntry dcsAddressTable[] = {
-  { 0x74A0, { &DcsOutputTable[0], &DcsOutputTable[1], &DcsOutputTable[4], &DcsOutputTable[14], &DcsOutputTable[26], &DcsOutputTable[31], &DcsOutputTable[32] }, 7 },
+  { 0x74A0, { &DcsOutputTable[0], &DcsOutputTable[1], &DcsOutputTable[4], &DcsOutputTable[14], &DcsOutputTable[26], &DcsOutputTable[31], &DcsOutputTable[32], &DcsOutputTable[33] }, 8 },
   { 0x74A4, { &DcsOutputTable[2], &DcsOutputTable[3], &DcsOutputTable[5], &DcsOutputTable[6], &DcsOutputTable[7], &DcsOutputTable[8], &DcsOutputTable[11], &DcsOutputTable[12] }, 8 },
   { 0x74A8, { &DcsOutputTable[9], &DcsOutputTable[10], &DcsOutputTable[13] }, 3 },
   { 0x751E, { &DcsOutputTable[15] }, 1 },
@@ -204,6 +205,8 @@ static const SelectorEntry SelectorMap[] = {
     { "WING_FOLD_ROTATE_UNFOLD","WING_FOLD_ROTATE",0,"selector",4,"UNFOLD" },
     { "WING_FOLD_ROTATE_HOLD","WING_FOLD_ROTATE",1,"selector",4,"HOLD" },
     { "WING_FOLD_ROTATE_FOLD","WING_FOLD_ROTATE",2,"selector",4,"FOLD" },
+    { "WING_FOLD_CUSTOM_PULL_POS0","WING_FOLD_PULL",0,"selector",6,"POS0" },
+    { "WING_FOLD_CUSTOM_PULL_POS1","WING_FOLD_PULL",1,"selector",6,"POS1" },
 };
 static const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);
 

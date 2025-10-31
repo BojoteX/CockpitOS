@@ -3,12 +3,12 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
+  DEVICE_NONE,
   DEVICE_WS2812,
   DEVICE_GAUGE,
-  DEVICE_NONE,
-  DEVICE_GN1640T,
   DEVICE_TM1637,
   DEVICE_PCA9555,
+  DEVICE_GN1640T,
   DEVICE_GPIO,
 };
 
@@ -34,7 +34,8 @@ static const LEDMapping panelLEDs[] = {
   { "CONSOLES_DIMMER"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "FLOOD_DIMMER"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "INST_PNL_DIMMER"    , DEVICE_GPIO    , {.gpioInfo = {6}}, true, false }, // GPIO 6,
-  { "WARN_CAUTION_DIMMER", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
+  { "WARN_CAUTION_DIMMER", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "MASTER_CAUTION_LT"  , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);
@@ -82,7 +83,7 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"MASTER_CAUTION_LT", &panelLEDs[6]},
   {nullptr, nullptr},
   {"CHART_DIMMER", &panelLEDs[1]},
   {nullptr, nullptr},

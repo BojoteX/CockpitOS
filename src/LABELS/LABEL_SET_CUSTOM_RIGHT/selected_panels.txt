@@ -13,3 +13,4 @@ Interior Lights Panel
 Radar Altimeter
 Flight Computer Cool Switch
 Caution Light Panel
+Custom

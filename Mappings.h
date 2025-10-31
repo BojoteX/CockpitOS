@@ -36,6 +36,7 @@ enum class PanelKind : uint8_t {
   Generic,
   AnalogGauge,
   KY58,
+  WingFold,
   COUNT
 };
 static_assert(static_cast<uint8_t>(PanelKind::COUNT) <= 32,

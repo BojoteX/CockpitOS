@@ -39,6 +39,8 @@ static const DcsOutputEntry DcsOutputTable[] = {
     {0x7546,0xFFFF,0,65535,"INST_PNL_DIMMER",CT_ANALOG},
     {0x74C8,0x0800,11,1,"LIGHTS_TEST_SW",CT_SELECTOR},
     {0x754C,0xFFFF,0,65535,"WARN_CAUTION_DIMMER",CT_ANALOG},
+    {0x7408,0x0200,9,1,"MASTER_CAUTION_LT",CT_LED},
+    {0x7408,0x0400,10,1,"MASTER_CAUTION_RESET_SW",CT_SELECTOR},
     {0x74A0,0x0800,11,1,"WING_FOLD_PULL",CT_SELECTOR},
     {0x74A0,0x3000,12,2,"WING_FOLD_ROTATE",CT_SELECTOR},
 };
@@ -52,13 +54,14 @@ struct AddressEntry {
 };
 
 static const AddressEntry dcsAddressTable[] = {
-  { 0x74A0, { &DcsOutputTable[0], &DcsOutputTable[1], &DcsOutputTable[9], &DcsOutputTable[10] }, 4 },
+  { 0x74A0, { &DcsOutputTable[0], &DcsOutputTable[1], &DcsOutputTable[11], &DcsOutputTable[12] }, 4 },
   { 0x754A, { &DcsOutputTable[2] }, 1 },
   { 0x74C8, { &DcsOutputTable[3], &DcsOutputTable[7] }, 2 },
   { 0x7544, { &DcsOutputTable[4] }, 1 },
   { 0x7548, { &DcsOutputTable[5] }, 1 },
   { 0x7546, { &DcsOutputTable[6] }, 1 },
   { 0x754C, { &DcsOutputTable[8] }, 1 },
+  { 0x7408, { &DcsOutputTable[9], &DcsOutputTable[10] }, 2 },
 };
 
 // Address hash entry
@@ -93,7 +96,7 @@ static const DcsAddressHashEntry dcsAddressHashTable[53] = {
   { 0x7544, &dcsAddressTable[3] },
   {0xFFFF, nullptr},
   { 0x7546, &dcsAddressTable[5] },
-  {0xFFFF, nullptr},
+  { 0x7408, &dcsAddressTable[7] },
   { 0x7548, &dcsAddressTable[4] },
   {0xFFFF, nullptr},
   { 0x754A, &dcsAddressTable[1] },
@@ -163,6 +166,7 @@ static const SelectorEntry SelectorMap[] = {
     { "WARN_CAUTION_DIMMER","WARN_CAUTION_DIMMER",65535,"analog",0,"LEVEL" },
     { "WARN_CAUTION_DIMMER_DEC","WARN_CAUTION_DIMMER",0,"variable_step",0,"DEC" },
     { "WARN_CAUTION_DIMMER_INC","WARN_CAUTION_DIMMER",1,"variable_step",0,"INC" },
+    { "MASTER_CAUTION_RESET_SW","MASTER_CAUTION_RESET_SW",1,"momentary",0,"PRESS" },
     { "WING_FOLD_PULL_POS0","WING_FOLD_PULL",0,"selector",5,"POS0" },
     { "WING_FOLD_PULL_POS1","WING_FOLD_PULL",1,"selector",5,"POS1" },
     { "WING_FOLD_ROTATE_UNFOLD","WING_FOLD_ROTATE",0,"selector",3,"UNFOLD" },
@@ -180,6 +184,7 @@ static CommandHistoryEntry commandHistory[] = {
     { "HOOK_LEVER", 0, 0, true, 4, 0,   0, false, {0}, {0}, 0 },
     { "INST_PNL_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
     { "LIGHTS_TEST_SW", 0, 0, true, 2, 0,   0, false, {0}, {0}, 0 },
+    { "MASTER_CAUTION_RESET_SW", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
     { "WARN_CAUTION_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
     { "WING_FOLD_PULL", 0, 0, true, 5, 0,   0, false, {0}, {0}, 0 },
     { "WING_FOLD_ROTATE", 0, 0, true, 3, 0,   0, false, {0}, {0}, 0 },
