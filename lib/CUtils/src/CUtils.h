@@ -65,6 +65,7 @@ void preconfigureGPIO();
 struct TM1637Device { uint8_t clkPin, dioPin, ledData[6]; bool needsUpdate; };
 extern TM1637Device RA_Device;
 extern TM1637Device LA_Device;
+extern TM1637Device JETSEL_Device;
 bool   tm1637_handleSamplingWindow(TM1637Device&, uint16_t& sampleCounter, uint8_t& finalKeys);
 void   tm1637_addSample(TM1637Device&, uint8_t raw);
 uint8_t tm1637_evaluateResult(TM1637Device&);

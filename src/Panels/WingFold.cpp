@@ -5,7 +5,9 @@
 #include "../HIDManager.h"
 #include "includes/WingFold.h"
 
+#if defined(HAS_CUSTOM_RIGHT)
 REGISTER_PANEL(WingFold, WingFold_init, WingFold_loop, nullptr, nullptr, nullptr, 100);
+#endif
 
 // Labels
 static constexpr const char* L_PULL_POS0   = "WING_FOLD_PULL_POS0";        // PUSH
@@ -26,7 +28,7 @@ static int8_t  g_bit_spread = -1;
 // Timing
 static constexpr uint32_t SCAN_MS        = 4;
 static constexpr uint32_t DEB_MS         = 8;
-static constexpr uint32_t BLANK_MS       = 60;
+static constexpr uint32_t BLANK_MS = 250; // time with no angle asserted to allow HOLD
 static constexpr uint32_t AX_SUPPRESS_MS = 120;
 
 // State
@@ -79,13 +81,30 @@ static inline Axial decodeAx(uint8_t byte) {
     return (bitLowSafe(byte, g_bit_push1) || bitLowSafe(byte, g_bit_push2)) ? PUSH : PULL;
 }
 
+/*
 // Emit only the selected entry for each selector, no deferral
 static void emitState(){
   HIDManager_setNamedButton((curS.ax==PULL)? L_PULL_POS1 : L_PULL_POS0, false, true);
   const char* angLab = (curS.ang==FOLD_POS)? L_ROT_FOLD : (curS.ang==HOLD_POS)? L_ROT_HOLD : L_ROT_UNFOLD;
   HIDManager_setNamedButton(angLab, false, true);
 }
+*/
 
+static void emitState(bool forceSend) {
+    HIDManager_setNamedButton(
+        (curS.ax == PULL) ? L_PULL_POS1 : L_PULL_POS0,
+        forceSend,
+        true
+    );
+
+    const char* angLab = (curS.ang == FOLD_POS) ? L_ROT_FOLD :
+        (curS.ang == HOLD_POS) ? L_ROT_HOLD :
+        L_ROT_UNFOLD;
+
+    HIDManager_setNamedButton(angLab, forceSend, true);
+}
+
+/*
 // ---- Lifecycle --------------------------------------------------------------
 void WingFold_init() {
     resolveWingFoldFromMappings();
@@ -101,15 +120,70 @@ void WingFold_init() {
 
     const bool fRaw = bitLowSafe(snap, g_bit_fold);
     const bool sRaw = bitLowSafe(snap, g_bit_spread);
-    prevS.ax = decodeAx(snap);
-    prevS.ang = fRaw && !sRaw ? FOLD_POS : sRaw && !fRaw ? SPREAD_POS : HOLD_POS;
+
+    // Decode actual mechanical state
+    curS.ax = decodeAx(snap);
+    curS.ang = fRaw && !sRaw ? FOLD_POS :
+        sRaw && !fRaw ? SPREAD_POS :
+        HOLD_POS;
+
+    // Keep prevS in lockstep so the first loop iteration sees "no change"
+    prevS = curS;
+
     if (fRaw || sRaw) lastAngleAssert = now;
-    axSuppressUntil = 0; lastChangeWasAxial = false; lastScan = 0;
+    axSuppressUntil = 0;
+    lastChangeWasAxial = false;
+    lastScan = 0;
 
     debugPrintf("WingFold_init: addr=0x%02X port=%u bits p1=%d p2=%d F=%d S=%d\n",
         g_addr, g_port, g_bit_push1, g_bit_push2, g_bit_fold, g_bit_spread);
 
-    emitState();
+    emitState();   // now emits the *real* lever position at mission start
+
+}
+*/
+
+void WingFold_init() {
+    resolveWingFoldFromMappings();
+
+    uint8_t p0 = 0xFF, p1 = 0xFF;
+    if (!readPCA9555(g_addr, p0, p1)) {
+        debugPrintf("WingFold_init: PCA 0x%02X read FAILED\n", g_addr);
+        return;
+    }
+    const uint8_t snap = (g_port == 0) ? p0 : p1;
+
+    deb_byte = snap;
+    deb_t0 = millis();
+    const uint32_t now = millis();
+
+    const bool fRaw = bitLowSafe(snap, g_bit_fold);
+    const bool sRaw = bitLowSafe(snap, g_bit_spread);
+
+    // Decode snapshot
+    Axial ax = decodeAx(snap);
+    Angle ang;
+    if (fRaw && !sRaw)      ang = FOLD_POS;
+    else if (sRaw && !fRaw) ang = SPREAD_POS;
+    else                    ang = HOLD_POS;
+
+    // Mechanical invariant: FOLD + PUSH is illegal
+    if (fRaw && ax == PUSH) ax = PULL;
+
+    curS.ax = ax;
+    curS.ang = ang;
+    prevS = curS;               // first loop sees "no change"
+
+    if (fRaw || sRaw) lastAngleAssert = now;
+    axSuppressUntil = 0;
+    lastChangeWasAxial = false;
+    lastScan = 0;
+
+    debugPrintf("WingFold_init: addr=0x%02X port=%u bits p1=%d p2=%d F=%d S=%d\n",
+        g_addr, g_port, g_bit_push1, g_bit_push2, g_bit_fold, g_bit_spread);
+
+    // INIT-time authoritative event
+    emitState(true);
 }
 
 void WingFold_loop(){
@@ -169,7 +243,7 @@ void WingFold_loop(){
   curS.ang = ang;
 
   if (curS.ax != prevS.ax || curS.ang != prevS.ang) {
-      emitState();
+      emitState(false);
       prevS = curS;
   }
 }

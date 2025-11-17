@@ -22,6 +22,7 @@ enum class PanelKind : uint8_t {
   CA, 
   LA, 
   RA, 
+  JETTSEL,
   IR, 
   LockShoot,
   TFTBatt, 

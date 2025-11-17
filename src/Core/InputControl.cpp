@@ -760,18 +760,22 @@ void Matrix_poll(bool forceSend) {
 // ===== END MATRIX
 
 // ===== TM1637 momentary keys — generic, uses ONLY source/port/bit =====
-// Rules per row in InputMappings:
-//   source="TM1637", port = LA_DIO_PIN or RA_DIO_PIN, bit = key index 0..7.
-// Pressed is active-LOW: (finalKeys & (1<<bit)) == 0.  :contentReference[oaicite:1]{index=1}
+//
+// We mirror the standalone TM1637 key tester logic here, generalized to
+// multiple TM1637 devices (LA, RA, JETTSEL).
+//
+// Semantics:
+//   - InputMapping.source == "TM1637"
+//   - InputMapping.port   == DIO pin (LA_DIO_PIN, RA_DIO_PIN, JETT_DIO_PIN, etc.)
+//   - InputMapping.bit    == key index 0..15 (decoded from TM1637 raw code)
+//
+// Low level:
+//   - tm1637_readKeys(dev) returns an 8-bit "key scan code"; 0xFF = no key.
+//   - We decode it using TM1637_KEY_CODES[] into an index 0..15, or -1 if none.
+//   - Standalone-style debounce: N identical decoded samples before accepting a change.
+//   - For each TM1637 mapping, we fire HIDManager_setNamedButton(label, pressed).
 
-// Forward declarations from your driver
-// struct TM1637Device;
-// extern TM1637Device LA_Device;
-// extern TM1637Device RA_Device;
-// extern bool    tm1637_handleSamplingWindow(TM1637Device& dev, uint16_t& sampleCounter, uint8_t& finalKeys);  // debounced
-// extern uint8_t tm1637_readKeys(TM1637Device& dev);                                                             // raw      :contentReference[oaicite:2]{index=2}
-
-// RA/LA pin IDs are macros in your project; used to resolve device by port
+// Map port → TM1637Device*
 static inline TM1637Device* _resolveTMDev(uint8_t port) {
 #ifdef RA_DIO_PIN
     if (port == (uint8_t)RA_DIO_PIN) return &RA_Device;
@@ -779,11 +783,31 @@ static inline TM1637Device* _resolveTMDev(uint8_t port) {
 #ifdef LA_DIO_PIN
     if (port == (uint8_t)LA_DIO_PIN) return &LA_Device;
 #endif
+#ifdef JETT_DIO_PIN
+    if (port == (uint8_t)JETT_DIO_PIN) return &JETSEL_Device;
+#endif
     return nullptr;
 }
 
-struct TMKeyMap { const char* label; uint8_t devIdx; uint8_t bitIdx; };
-struct TMDev { TM1637Device* dev; uint8_t prevKeys; uint16_t sampleCtr; bool present; };
+struct TMKeyMap {
+    const char* label;
+    uint8_t     devIdx;    // index into tmDevs[]
+    uint8_t     keyIndex;  // 0..15
+};
+
+// Standalone-style logger per device
+struct TMButtonLogger {
+    int8_t  prevKey = -1;   // previously accepted key index
+    int8_t  currentKey = -1;   // current debounced key index
+    int8_t  lastSample = -1;   // last decoded sample
+    uint8_t stableCount = 0;   // how many identical samples so far
+};
+
+struct TMDev {
+    TM1637Device* dev = nullptr;
+    TMButtonLogger logger;
+    bool present = false;
+};
 
 static TMDev    tmDevs[MAX_TM1637_DEV];
 static uint8_t  numTMDevs = 0;
@@ -791,35 +815,104 @@ static TMKeyMap tmKeys[MAX_TM1637_KEYS];
 static uint8_t  numTMKeys = 0;
 static bool     tmBuilt = false;
 
+// Decode table – same as standalone tester
+static const uint8_t TM1637_KEY_CODES[16] = {
+    0xF7,0xF6,0xF5,0xF4,0xF3,0xF2,0xF1,0xF0, // K1 SG1..SG8
+    0xEF,0xEE,0xED,0xEC,0xEB,0xEA,0xE9,0xE8  // K2 SG1..SG8
+};
+
+static int8_t TM1637_decodeKey(uint8_t raw) {
+    if (raw == 0xFF) return -1; // no key
+    for (uint8_t i = 0; i < 16; ++i) {
+        if (raw == TM1637_KEY_CODES[i]) return (int8_t)i;
+    }
+    return -2; // unknown / noise
+}
+
 static inline int8_t _findOrAddTMDev(TM1637Device* dev) {
     if (!dev) return -1;
-    for (uint8_t i = 0; i < numTMDevs; i++) if (tmDevs[i].dev == dev) return (int8_t)i;
+    for (uint8_t i = 0; i < numTMDevs; i++) {
+        if (tmDevs[i].dev == dev) return (int8_t)i;
+    }
     if (numTMDevs >= MAX_TM1637_DEV) return -1;
-    tmDevs[numTMDevs] = TMDev{ dev, 0xFFu, 0u, true };
+    tmDevs[numTMDevs] = TMDev{ dev, TMButtonLogger{}, true };
     return (int8_t)(numTMDevs++);
 }
 
-static void _TM1637_buildOnce() {
-    if (tmBuilt) return;
-    tmBuilt = true;
-    numTMDevs = 0; numTMKeys = 0;
+static void _TM1637_build() {
+    numTMDevs = 0;
+    numTMKeys = 0;
 
     for (size_t i = 0; i < InputMappingSize; ++i) {
         const auto& m = InputMappings[i];
         if (!m.source || strcmp(m.source, "TM1637") != 0 || !m.label) continue;
-        if (m.port < 0 || m.bit < 0) continue;                 // only real keys here
+        if (m.port < 0 || m.bit < 0) continue; // only real keys
         TM1637Device* dev = _resolveTMDev((uint8_t)m.port);
         const int8_t d = _findOrAddTMDev(dev);
         if (d < 0) continue;
         if (numTMKeys >= MAX_TM1637_KEYS) continue;
         tmKeys[numTMKeys++] = TMKeyMap{ m.label, (uint8_t)d, (uint8_t)m.bit };
     }
+
+    debugPrintf("[TM] tmBuilt=1 numTMDevs=%u numTMKeys=%u\n", numTMDevs, numTMKeys);
+    for (uint8_t d = 0; d < numTMDevs; ++d) {
+        TMDev& D = tmDevs[d];
+        debugPrintf("  dev[%u]: devPtr=%p present=%d\n", d, (void*)D.dev, (int)D.present);
+    }
+    for (uint8_t k = 0; k < numTMKeys; ++k) {
+        const TMKeyMap& M = tmKeys[k];
+        debugPrintf("  key[%u]: label=%s devIdx=%u keyIndex=%u\n",
+            k, M.label, M.devIdx, M.keyIndex);
+    }
 }
 
+static inline void _TM1637_buildOnce() {
+    if (!tmBuilt) {
+        _TM1637_build();
+        tmBuilt = true;
+    }
+}
+
+// Standalone-style per-device logger
+static bool TM1637_processLogger(TMDev& D, bool forceSend) {
+    if (!D.dev || !D.present) return false;
+
+    // raw key-scan
+    uint8_t raw = tm1637_readKeys(*D.dev);
+    int8_t k = TM1637_decodeKey(raw);
+
+    // Debug raw for bring-up
+    if (forceSend) {
+        debugPrintf("[TM raw dev %p] raw=0x%02X decode=%d\n",
+            (void*)D.dev, raw, (int)k);
+    }
+
+    TMButtonLogger& L = D.logger;
+
+    if (k == L.lastSample)
+        L.stableCount++;
+    else {
+        L.lastSample = k;
+        L.stableCount = 1;
+    }
+
+    const uint8_t SAMPLE_WINDOW = 4; // same as standalone
+
+    if (L.stableCount >= SAMPLE_WINDOW || forceSend) {
+        if (k != L.currentKey) {
+            L.prevKey = L.currentKey;
+            L.currentKey = k;
+            return true; // a debounced change occurred
+        }
+    }
+    return false;
+}
+
+// Main poller
 void TM1637_poll(bool forceSend) {
     _TM1637_buildOnce();
 
-    // match LA/RA cadence (~100 Hz)
+    // ~100 Hz cadence
     static uint32_t lastMs = 0;
     const uint32_t now = millis();
     if (!forceSend && (uint32_t)(now - lastMs) < 10) return;
@@ -829,37 +922,26 @@ void TM1637_poll(bool forceSend) {
         TMDev& D = tmDevs[d];
         if (!D.present || !D.dev) continue;
 
-        if (forceSend) {
-            // init behavior = panels: raw read once, set baseline, emit current state
-            const uint8_t raw = tm1637_readKeys(*D.dev);
-            for (uint8_t k = 0; k < numTMKeys; ++k) {
-                const TMKeyMap& M = tmKeys[k];
-                if (M.devIdx != d) continue;
-                const uint8_t mask = (uint8_t)(1u << M.bitIdx);
-                const bool pressed = ((raw & mask) == 0); // active-LOW
-                HIDManager_setNamedButton(M.label, true, pressed);
-            }
-            D.prevKeys = raw;
-            continue;
-        }
+        if (!TM1637_processLogger(D, forceSend)) continue;
 
-        uint8_t finalKeys = D.prevKeys;
-        if (!tm1637_handleSamplingWindow(*D.dev, D.sampleCtr, finalKeys)) continue;  // wait for debounced byte 
+        // A debounced key change occurred on this device
+        TMButtonLogger& L = D.logger;
+        int8_t nowKey = L.currentKey;
+        int8_t prevKey = L.prevKey;
 
-        if (finalKeys == D.prevKeys) continue; // byte-level gate like LA/RA 
-
-        // per-key edges, active-LOW like reference
+        // For each mapping on this device, fire edges based on key index
         for (uint8_t k = 0; k < numTMKeys; ++k) {
             const TMKeyMap& M = tmKeys[k];
             if (M.devIdx != d) continue;
-            const uint8_t mask = (uint8_t)(1u << M.bitIdx);
-            const bool prevPressed = ((D.prevKeys & mask) == 0);
-            const bool currPressed = ((finalKeys & mask) == 0); // e.g., LEFT bit3, RIGHT bit0 
-            if (currPressed != prevPressed) {
-                HIDManager_setNamedButton(M.label, false, currPressed);
+
+            bool prevPressed = (prevKey >= 0 && (uint8_t)prevKey == M.keyIndex);
+            bool currPressed = (nowKey >= 0 && (uint8_t)nowKey == M.keyIndex);
+
+            if (forceSend || prevPressed != currPressed) {
+                HIDManager_setNamedButton(M.label, forceSend, currPressed);
             }
         }
-        D.prevKeys = finalKeys;
     }
 }
+
 // ===== END TM1637

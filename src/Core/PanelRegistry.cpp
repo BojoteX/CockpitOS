@@ -85,3 +85,17 @@ void PanelRegistry_forEachLoop() { FOR_ACTIVE(loop); }
 void PanelRegistry_forEachDisplayInit() { FOR_ACTIVE(disp_init); }
 void PanelRegistry_forEachDisplayLoop() { FOR_ACTIVE(disp_loop); }
 void PanelRegistry_forEachTick() { FOR_ACTIVE(tick); }
+
+/* DEBUGGING ONLY
+// PanelRegistry.cpp
+void PanelRegistry_forEachLoop() {
+    for (uint8_t i = 0; i < g_count; ++i) {
+        const uint8_t k = static_cast<uint8_t>(g_panels[i].kind);
+        if (!((g_activeMask >> k) & 1u)) continue;
+
+        const char* name = g_panels[i].label ? g_panels[i].label : "<no-label>";
+        debugPrintf("loop -> %s\n", name);
+        if (g_panels[i].loop) g_panels[i].loop();
+    }
+}
+*/

@@ -18,7 +18,7 @@ struct InputMapping {
 
 //  label                       source     port bit hidId  DCSCommand           value   Type        group
 static const InputMapping InputMappings[] = {
-    { "APU_FIRE_BTN"               , "TM1637" , PIN(40) ,  3 ,  -1 , "APU_FIRE_BTN"           ,     1 , "momentary"    ,  0 },
+    { "APU_FIRE_BTN"               , "TM1637" , PIN(40) ,  0 ,  -1 , "APU_FIRE_BTN"           ,     1 , "momentary"    ,  0 },
     { "EMER_JETT_BTN"              , "PCA_0x5B" ,  0 ,  4 ,  -1 , "EMER_JETT_BTN"          ,     1 , "momentary"    ,  0 },
     { "FIRE_EXT_BTN"               , "PCA_0x5B" ,  0 ,  2 ,  16 , "FIRE_EXT_BTN"           ,     1 , "momentary"    ,  0 },
     { "CHART_DIMMER"               , "NONE" ,  0 ,  0 ,  -1 , "CHART_DIMMER"           , 65535 , "analog"       ,  0 },
@@ -41,7 +41,7 @@ static const InputMapping InputMappings[] = {
     { "WARN_CAUTION_DIMMER"        , "NONE" ,  0 ,  0 ,  -1 , "WARN_CAUTION_DIMMER"    , 65535 , "analog"       ,  0 },
     { "WARN_CAUTION_DIMMER_DEC"    , "NONE" ,  0 ,  0 ,  -1 , "WARN_CAUTION_DIMMER"    ,     0 , "variable_step",  0 },
     { "WARN_CAUTION_DIMMER_INC"    , "NONE" ,  0 ,  0 ,  -1 , "WARN_CAUTION_DIMMER"    ,     1 , "variable_step",  0 },
-    { "LEFT_FIRE_BTN"              , "TM1637" , PIN(39) ,  3 ,  -1 , "LEFT_FIRE_BTN"          ,     1 , "momentary"    ,  0 },
+    { "LEFT_FIRE_BTN"              , "TM1637" , PIN(39) ,  0 ,  -1 , "LEFT_FIRE_BTN"          ,     1 , "momentary"    ,  0 },
     { "LEFT_FIRE_BTN_COVER"        , "NONE" ,  0 ,  0 ,  -1 , "LEFT_FIRE_BTN_COVER"    ,     1 , "momentary"    ,  0 },
     { "HMD_OFF_BRT"                , "GPIO" , PIN(18) ,  0 ,  -1 , "HMD_OFF_BRT"            , 65535 , "analog"       ,  0 },
     { "HMD_OFF_BRT_DEC"            , "NONE" ,  0 ,  0 ,  -1 , "HMD_OFF_BRT"            ,     0 , "variable_step",  0 },
@@ -56,8 +56,8 @@ static const InputMapping InputMappings[] = {
     { "MASTER_ARM_SW_ARM"          , "PCA_0x5B" ,  0 , -1 ,  17 , "MASTER_ARM_SW"          ,     1 , "selector"     ,  8 },
     { "MASTER_MODE_AA"             , "PCA_0x5B" ,  0 ,  1 ,  19 , "MASTER_MODE_AA"         ,     1 , "momentary"    ,  0 },
     { "MASTER_MODE_AG"             , "PCA_0x5B" ,  0 ,  0 ,  20 , "MASTER_MODE_AG"         ,     1 , "momentary"    ,  0 },
-    { "MASTER_CAUTION_RESET_SW"    , "TM1637" , PIN(39) ,  0 ,  -1 , "MASTER_CAUTION_RESET_SW",     1 , "momentary"    ,  0 },
-    { "RIGHT_FIRE_BTN"             , "TM1637" , PIN(40) ,  0 ,  -1 , "RIGHT_FIRE_BTN"         ,     1 , "momentary"    ,  0 },
+    { "MASTER_CAUTION_RESET_SW"    , "TM1637" , PIN(39) ,  9 ,  -1 , "MASTER_CAUTION_RESET_SW",     1 , "momentary"    ,  0 },
+    { "RIGHT_FIRE_BTN"             , "TM1637" , PIN(40) ,  9 ,  -1 , "RIGHT_FIRE_BTN"         ,     1 , "momentary"    ,  0 },
     { "RIGHT_FIRE_BTN_COVER"       , "NONE" ,  0 ,  0 ,  -1 , "RIGHT_FIRE_BTN_COVER"   ,     1 , "momentary"    ,  0 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);

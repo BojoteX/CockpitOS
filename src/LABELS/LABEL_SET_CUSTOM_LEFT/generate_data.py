@@ -14,7 +14,7 @@ _ls_name = current_label_set[len("LABEL_SET_"):] if current_label_set.startswith
 print(f"Current LABEL SET: {current_label_set}")
 
 # -------- CONFIGURATION --------
-FIXED_STEP_INCDEC_THRESHOLD = 10 # Selectors with more positions than this get an INC and DEC pseudo label
+FIXED_STEP_INCDEC_THRESHOLD = 2 # Selectors with more than FIXED_STEP_INCDEC_THRESHOLD + 1 positions get an INC and DEC pseudo label (to use only 2 GPIOs)
 PROCESS_ALL     = False
 OUTPUT_HEADER   = "DCSBIOSBridgeData.h"
 INPUT_REFERENCE = "InputMapping.h"

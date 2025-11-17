@@ -11,3 +11,5 @@ Interior Lights Panel
 Internal Lights
 External Aircraft Model
 HUD Video Record Panel
+Station Jettison Select
+Flaps, Landing Gear, Stores Indicator Panel

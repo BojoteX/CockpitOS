@@ -18,8 +18,8 @@ struct InputMapping {
 
 //  label                       source     port bit hidId  DCSCommand           value   Type        group
 static const InputMapping InputMappings[] = {
-    { "HOOK_LEVER_POS0"            , "PCA_0x26" ,  0 , -1 ,  -1 , "HOOK_LEVER"            ,     0 , "selector"     ,  4 },
-    { "HOOK_LEVER_POS1"            , "PCA_0x26" ,  0 ,  7 ,  -1 , "HOOK_LEVER"            ,     1 , "selector"     ,  4 },
+    { "HOOK_LEVER_POS0"            , "PCA_0x26" ,  0 , -1 ,  -1 , "HOOK_LEVER"            ,     1 , "selector"     ,  4 },
+    { "HOOK_LEVER_POS1"            , "PCA_0x26" ,  0 ,  7 ,  -1 , "HOOK_LEVER"            ,     0 , "selector"     ,  4 },
     { "AV_COOL_SW_EMERG"           , "PCA_0x26" ,  0 ,  4 ,  -1 , "AV_COOL_SW"            ,     1 , "selector"     ,  1 },
     { "AV_COOL_SW_NORM"            , "PCA_0x26" ,  0 , -1 ,  -1 , "AV_COOL_SW"            ,     0 , "selector"     ,  1 },
     { "CHART_DIMMER"               , "NONE" ,  0 ,  0 ,  -1 , "CHART_DIMMER"          , 65535 , "analog"       ,  0 },
@@ -50,8 +50,8 @@ static const InputMapping InputMappings[] = {
     { "WING_FOLD_ROTATE_UNFOLD"    , "NONE" ,  0 ,  2 ,   3 , "WING_FOLD_ROTATE"      ,     0 , "selector"     ,  6 },
     { "WING_FOLD_ROTATE_HOLD"      , "NONE" ,  0 , -1 ,   4 , "WING_FOLD_ROTATE"      ,     1 , "selector"     ,  6 },
     { "WING_FOLD_ROTATE_FOLD"      , "NONE" ,  0 ,  3 ,   5 , "WING_FOLD_ROTATE"      ,     2 , "selector"     ,  6 },
-    { "WING_FOLD_CUSTOM_PULL_POS0" , "NONE" ,  0 ,  0 ,   1 , "WING_FOLD_PULL"        ,     0 , "selector"     ,  5 },
-    { "WING_FOLD_CUSTOM_PULL_POS1" , "NONE" ,  0 , -1 ,   2 , "WING_FOLD_PULL"        ,     1 , "selector"     ,  5 },
+    { "WING_FOLD_CUSTOM_PULL_POS0" , "NONE" ,  0 ,  0 ,  -1 , "WING_FOLD_PULL"        ,     0 , "selector"     ,  5 },
+    { "WING_FOLD_CUSTOM_PULL_POS1" , "NONE" ,  0 ,  0 ,  -1 , "WING_FOLD_PULL"        ,     1 , "selector"     ,  5 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);
 

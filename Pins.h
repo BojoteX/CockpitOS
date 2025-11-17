@@ -17,6 +17,9 @@
 #define GLOBAL_CLK_PIN                        PIN(37)
 #define CA_DIO_PIN                            PIN(36)
 #define LA_DIO_PIN                            PIN(39)
+#define JETT_DIO_PIN                          PIN(8)
+#define JETT_CLK_PIN                          PIN(9)
+#define CA_CLK_PIN                            GLOBAL_CLK_PIN
 #define LA_CLK_PIN                            GLOBAL_CLK_PIN
 #define RA_DIO_PIN                            PIN(40)
 #define RA_CLK_PIN                            GLOBAL_CLK_PIN
@@ -89,11 +92,11 @@
   #define HC165_CONTROLLER_PL        PIN(39)   // Latch (PL)
   #define HC165_CONTROLLER_CP        PIN(38)   // Clock (CP)
   #define HC165_CONTROLLER_QH        PIN(40)   // Data (QH)
-#elif defined(HAS_TEST_ONLY)
-  #define HC165_BITS                 8   // Number of bits in HC165 shift register (0 = disabled) 
-  #define HC165_CONTROLLER_PL        12   // Latch (PL)
-  #define HC165_CONTROLLER_CP        11   // Clock (CP)
-  #define HC165_CONTROLLER_QH        10   // Data (QH)
+// #elif defined(HAS_TEST_ONLY)
+  // #define HC165_BITS                 0   // Number of bits in HC165 shift register (0 = disabled) 
+  // #define HC165_CONTROLLER_PL        PIN(12)   // Latch (PL)
+  // #define HC165_CONTROLLER_CP        PIN(11)   // Clock (CP)
+  // #define HC165_CONTROLLER_QH        PIN(10)   // Data (QH)
 #else
   #define HC165_BITS                 0   // Number of bits in HC165 shift register (0 = disabled) 
   #define HC165_CONTROLLER_PL       -1

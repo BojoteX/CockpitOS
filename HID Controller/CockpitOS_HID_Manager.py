@@ -4,7 +4,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_PATH = os.path.join(SCRIPT_DIR, "settings.ini")
-LOCKFILE = os.path.join(SCRIPT_DIR, "cockpitos_dashboard.lock")
+LOCKFILE = os.path.join(SCRIPT_DIR, "hid_manager")
 DEFAULT_REPORT_SIZE = 64
 DEFAULT_MULTICAST_IP = "239.255.50.10"
 DEFAULT_UDP_PORT = 5010
@@ -762,9 +762,12 @@ if HEADLESS:
             for name, status, reconn in self._rows:
                 attr = curses.A_NORMAL
                 sl = status.lower()
-                if 'ready' in sl: attr = curses.color_pair(2)
-                elif ('wait' in sl) or ('handshake' in sl): attr = curses.color_pair(3)
-                elif ('off' in sl) or ('disconn' in sl): attr = curses.color_pair(1)
+                if 'ready' in sl:
+                    attr = curses.color_pair(2)
+                elif ('wait' in sl) or ('handshake' in sl):
+                    attr = curses.color_pair(3)
+                elif ('off' in sl) or ('disconn' in sl):
+                    attr = curses.color_pair(1)
                 stdscr.addnstr(y, 0, f"{name:<38} {status:<16} {reconn:<14}", w-1, attr)
                 y += 1
             y += 1
@@ -773,9 +776,16 @@ if HEADLESS:
             avail = max(0, h - y - 1)
             tail = self._log[-avail:] if avail else []
             for i, line in enumerate(tail):
-                stdscr.addnstr(y+i, 0, line, w-1)
+                stdscr.addnstr(y + i, 0, line, w-1)
             dev_cnt = len(self._rows)
-            stdscr.addnstr(h-1, 0, f"{dev_cnt} device(s) connected.  q=quit", w-1, curses.A_DIM)
+            # OLD: stdscr.addnstr(h-1, 0, f"{dev_cnt} device(s) connected.  q=quit", w-1, curses.A_DIM)
+            stdscr.addnstr(
+                h - 1,
+                0,
+                f"{dev_cnt} device(s) connected.  Close this window to quit.",
+                w - 1,
+                curses.A_DIM
+            )
             stdscr.noutrefresh()
             curses.doupdate()
 
@@ -790,8 +800,9 @@ if HEADLESS:
             while self._running.is_set():
                 self._consume()
                 self._paint(stdscr)
+                # Still read a key to keep input drained, but ignore it for quitting
                 ch = stdscr.getch()
-                if ch in (ord('q'), 27): self._running.clear()
+                # if ch in (ord('q'), 27): self._running.clear()  # <-- removed
                 time.sleep(0.02)
 
         def run(self):

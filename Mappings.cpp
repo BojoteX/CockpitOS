@@ -19,6 +19,7 @@
 // TM1637 device instances (must match externs)
 TM1637Device LA_Device; // Left Annunciator, should always be present at file scope
 TM1637Device RA_Device; // Right Annunciator, should always be present at file scope
+TM1637Device JETSEL_Device; // Jettison Select, should always be present at file scope
 
 // This table is where you add selectors or buttons that are physically guarded by a "cover"
 const CoverGateDef kCoverGates[] = {
@@ -41,6 +42,11 @@ const char* kLatchedButtons[] = {
     "APU_FIRE_BTN",
     "CMSD_JET_SEL_BTN",
     "RWR_POWER_BTN",
+    "SJ_CTR",
+    "SJ_LI",
+    "SJ_LO",
+    "SJ_RI",
+    "SJ_RO",
     // ...add more as needed
 };
 const unsigned kLatchedButtonCount = sizeof(kLatchedButtons)/sizeof(kLatchedButtons[0]);
@@ -77,6 +83,12 @@ void initMappings() {
   
     // Show what PCA panels were discovered
     printDiscoveredPanels();
+
+#else   
+    // hard-off at runtime when PCA is disabled at compile time
+    PanelRegistry_setActive(PanelKind::ECM,       false);
+    PanelRegistry_setActive(PanelKind::MasterARM, false);
+    PanelRegistry_setActive(PanelKind::Brain,     false);    
 #endif
 
     // Print registered panels
@@ -105,26 +117,36 @@ void initializeLEDs() {
 
     if (PanelRegistry_has(PanelKind::CA)) {
         debugPrintln("✅ Caution Advisory detected, initializing...");
-        GN1640_init(GLOBAL_CLK_PIN, CA_DIO_PIN);
+        GN1640_init(CA_CLK_PIN, CA_DIO_PIN);
     } else {
         debugPrintln("⚠️ Caution Advisory NOT detected!");
     }
 
     if (PanelRegistry_has(PanelKind::LA) && PanelRegistry_has(PanelKind::RA)) {
         debugPrintln("✅ Left & Right Annunciators detected, initializing...");
-        tm1637_init(LA_Device, GLOBAL_CLK_PIN, LA_DIO_PIN);
-        tm1637_init(RA_Device, GLOBAL_CLK_PIN, RA_DIO_PIN);
+        tm1637_init(LA_Device, LA_CLK_PIN, LA_DIO_PIN);
+        tm1637_init(RA_Device, RA_CLK_PIN, RA_DIO_PIN);
     }
     else if (PanelRegistry_has(PanelKind::LA)) {
         debugPrintln("✅ Left Annunciator detected, initializing...");
-        tm1637_init(LA_Device, GLOBAL_CLK_PIN, LA_DIO_PIN);
+        tm1637_init(LA_Device, LA_CLK_PIN, LA_DIO_PIN);
     }
     else if (PanelRegistry_has(PanelKind::RA)) {
         debugPrintln("✅ Right Annunciator detected, initializing...");
-        tm1637_init(RA_Device, GLOBAL_CLK_PIN, RA_DIO_PIN);
+        tm1637_init(RA_Device, RA_CLK_PIN, RA_DIO_PIN);
     } else {
         debugPrintln("⚠️ No Annunciators detected!");
     }
+
+    if (PanelRegistry_has(PanelKind::JETTSEL)) {
+        debugPrintln("✅ JettSel detected, initializing...");
+        tm1637_init(JETSEL_Device, JETT_CLK_PIN, JETT_DIO_PIN);
+    } else {
+        debugPrintln("⚠️ No Jettison Select detected!");
+    }
+
+    // Jett Sel flash
+    if (PanelRegistry_has(PanelKind::JETTSEL)) { tm1637_allOn(JETSEL_Device); delay(1000); tm1637_allOff(JETSEL_Device); }
 
     // Annunciators flash
     if (PanelRegistry_has(PanelKind::LA) && PanelRegistry_has(PanelKind::RA)) { tm1637_allOn(RA_Device); tm1637_allOn(LA_Device); delay(1000); tm1637_allOff(RA_Device); tm1637_allOff(LA_Device); }

@@ -47,13 +47,19 @@ void Generic_init() {
         buildGpioGroupDefs();
 
 		// HC165 Inputs Init
-		buildHC165ResolvedInputs();
+        if (HC165_BITS > 0) {
+            buildHC165ResolvedInputs();
+        }
 
         // PCA9555 Inputs Init      
-        buildPCA9555ResolvedInputs();
-        buildPcaList();
-
-		// Do not re-run
+        #if ENABLE_PCA9555 
+            buildPCA9555ResolvedInputs();
+            buildPcaList();
+        #else
+		    debugPrintln("⚠️ PCA9555: Disabled (ENABLE_PCA9555=0)");
+        #endif
+	
+        // Do not re-run
         ranOnce = true;
     }
 
@@ -72,15 +78,17 @@ void Generic_init() {
         processHC165Resolved(hc165Bits, hc165PrevBits, true);
     }
 
-    // 3. Take Fresh PCA9555 Snapshot and Fire All PCA States
-    for (size_t i = 0; i < numPcas; ++i) {
-        uint8_t p0, p1;
-        if (readPCA9555(pcas[i].addr, p0, p1)) {
-            pcas[i].p0 = p0;
-            pcas[i].p1 = p1;
+    #if ENABLE_PCA9555 
+        // 3. Take Fresh PCA9555 Snapshot and Fire All PCA States
+        for (size_t i = 0; i < numPcas; ++i) {
+            uint8_t p0, p1;
+            if (readPCA9555(pcas[i].addr, p0, p1)) {
+                pcas[i].p0 = p0;
+                pcas[i].p1 = p1;
+            }
         }
-    }
-    pollPCA9555_flat(true);
+        pollPCA9555_flat(true);
+    #endif
 
 	// 4. Matrix Polling (fire all)
     Matrix_poll(true);
@@ -101,6 +109,7 @@ void Generic_init() {
 // ============================================================================
 //  LOOP: Generic_loop() — Fast, Deterministic Main Loop
 // ============================================================================
+
 void Generic_loop() {
 
     // Disabled as it has a big impact on performance. No oversampling
@@ -143,7 +152,9 @@ void Generic_loop() {
     // ------------------------------------------------------------------------
     // 5. PCA9555 Polling (flat, O(1) for all mapped pins/groups)
     // ------------------------------------------------------------------------
-    pollPCA9555_flat(false);
+    #if ENABLE_PCA9555 
+        pollPCA9555_flat(false);
+    #endif
 
     // ------------------------------------------------------------------------
     // 6. Matrix Polling 

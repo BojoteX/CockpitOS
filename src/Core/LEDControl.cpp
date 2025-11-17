@@ -65,6 +65,7 @@ void setLED(const char* label, bool state, uint8_t intensity, uint16_t rawValue,
             #endif            
             break;
 
+            /*
         case DEVICE_TM1637: {
             #if DEBUG_PERFORMANCE
             beginProfiling(PERF_LED_TM1637);
@@ -75,6 +76,31 @@ void setLED(const char* label, bool state, uint8_t intensity, uint16_t rawValue,
                 led->info.tm1637Info.bit,
                 state
             );
+            #if DEBUG_PERFORMANCE
+            endProfiling(PERF_LED_TM1637);
+            #endif            
+            break;
+        }
+        */
+
+        case DEVICE_TM1637: {
+            #if DEBUG_PERFORMANCE
+            beginProfiling(PERF_LED_TM1637);
+            #endif            
+
+            if (led->info.tm1637Info.dioPin == RA_DIO_PIN) {
+                tm1637_displaySingleLED(RA_Device, led->info.tm1637Info.segment, led->info.tm1637Info.bit, state);
+            }
+            else if (led->info.tm1637Info.dioPin == LA_DIO_PIN) {
+                tm1637_displaySingleLED(LA_Device, led->info.tm1637Info.segment, led->info.tm1637Info.bit, state);
+            }
+            else if (led->info.tm1637Info.dioPin == JETT_DIO_PIN) {
+                tm1637_displaySingleLED(JETSEL_Device, led->info.tm1637Info.segment, led->info.tm1637Info.bit, state);
+            }
+            else {
+                debugPrintf("TM1637 unknown DIO pin: %u\n", led->info.tm1637Info.dioPin);
+            }
+
             #if DEBUG_PERFORMANCE
             endProfiling(PERF_LED_TM1637);
             #endif            

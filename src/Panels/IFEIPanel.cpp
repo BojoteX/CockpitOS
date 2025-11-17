@@ -751,7 +751,7 @@ void renderIFEIDispatcher(void* drv, const SegmentMap* segMap, const char* value
             if (isFuelUp && !isBlankN(value, N)) copyN(fuelUp_base, value, N + 1);
             if (isFuelDn && !isBlankN(value, N)) copyN(fuelDn_base, value, N + 1);
 
-            debugPrintf("[if sp_active] %s %s\n", def.label, value);
+            // debugPrintf("[if sp_active] %s %s\n", def.label, value);
             break;
         }
 
@@ -846,7 +846,7 @@ void renderIFEIDispatcher(void* drv, const SegmentMap* segMap, const char* value
         // 2) NEW: while fuel overlay is active, suppress base fuel draw for BOTH sides
         if (fuel_mode_active) {
 
-            debugPrintf("[if (fuel_mode_active)] %s %s\n", def.label, value);
+            // debugPrintf("[if (fuel_mode_active)] %s %s\n", def.label, value);
 
             if (isFuelUp && !isBlankN(value, N)) copyN(fuelUp_base, value, N + 1);
             if (isFuelDn && !isBlankN(value, N)) copyN(fuelDn_base, value, N + 1);
@@ -855,7 +855,7 @@ void renderIFEIDispatcher(void* drv, const SegmentMap* segMap, const char* value
 
         // 3) Base fuel path: allow true blanks when no overlay/SP
         if (isFuelUp) {
-            debugPrintf("[if (fuel up)] %s %s\n", def.label, value);
+            // debugPrintf("[if (fuel up)] %s %s\n", def.label, value);
             if (!isBlankN(value, N)) {
                 copyN(fuelUp_base, value, N + 1);
                 display->addAlphaNumFuelStringToShadow(value, (const SegmentMap(*)[14])segMap);
@@ -866,7 +866,7 @@ void renderIFEIDispatcher(void* drv, const SegmentMap* segMap, const char* value
             break;
         }
         if (isFuelDn) {
-            debugPrintf("[if (fuel down)] %s %s\n", def.label, value);
+            // debugPrintf("[if (fuel down)] %s %s\n", def.label, value);
             if (!isBlankN(value, N)) {
                 copyN(fuelDn_base, value, N + 1);
                 display->addAlphaNumFuelStringToShadow(value, (const SegmentMap(*)[14])segMap);
