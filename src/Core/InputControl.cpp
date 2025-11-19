@@ -759,6 +759,7 @@ void Matrix_poll(bool forceSend) {
 }
 // ===== END MATRIX
 
+/*
 // ===== TM1637 momentary keys — generic, uses ONLY source/port/bit =====
 //
 // We mirror the standalone TM1637 key tester logic here, generalized to
@@ -930,6 +931,304 @@ void TM1637_poll(bool forceSend) {
         int8_t prevKey = L.prevKey;
 
         // For each mapping on this device, fire edges based on key index
+        for (uint8_t k = 0; k < numTMKeys; ++k) {
+            const TMKeyMap& M = tmKeys[k];
+            if (M.devIdx != d) continue;
+
+            bool prevPressed = (prevKey >= 0 && (uint8_t)prevKey == M.keyIndex);
+            bool currPressed = (nowKey >= 0 && (uint8_t)nowKey == M.keyIndex);
+
+            if (forceSend || prevPressed != currPressed) {
+                HIDManager_setNamedButton(M.label, forceSend, currPressed);
+            }
+        }
+    }
+}
+
+// ===== END TM1637
+*/
+
+// ===== TM1637 momentary keys — generic, uses ONLY source/port/bit =====
+//
+// Semantics for TM1637 mappings:
+//   - source == "TM1637"
+//   - port   == DIO pin (LA_DIO_PIN, RA_DIO_PIN, JETT_DIO_PIN, etc.)
+//   - bit    == key index 0..15 (decoded from TM1637 scan code)
+//
+// Low-level (in TM1637.cpp):
+//   - tm1637_readKeys(dev) returns 8-bit raw TM1637 key scan code (0xFF = no key)
+//
+// Here we do:
+//   1) Decode raw -> key index using TM1637_KEY_CODES[] (same as standalone).
+//   2) For each device, maintain a small window of the last W decoded indices.
+//   3) Find the dominant index in the window (most frequent).
+//   4) Only accept a new key when that index dominates (>= threshold count).
+//   5) Map accepted key index -> InputMapping.bit and emit HID edges.
+//
+// This reintroduces strong temporal filtering (like the original majority logic)
+// but at the *decoded key index* level, not per raw bit.
+
+static inline TM1637Device* _resolveTMDev(uint8_t port) {
+#ifdef RA_DIO_PIN
+    if (port == (uint8_t)RA_DIO_PIN) return &RA_Device;
+#endif
+#ifdef LA_DIO_PIN
+    if (port == (uint8_t)LA_DIO_PIN) return &LA_Device;
+#endif
+#ifdef JETT_DIO_PIN
+    if (port == (uint8_t)JETT_DIO_PIN) return &JETSEL_Device;
+#endif
+    return nullptr;
+}
+
+struct TMKeyMap {
+    const char* label;
+    uint8_t     devIdx;    // index into tmDevs[]
+    uint8_t     keyIndex;  // 0..15 (InputMapping.bit)
+};
+
+// Standalone-style logger: tracks which key is currently accepted
+struct TMButtonLogger {
+    int8_t prevKey = -1;  // previously accepted key index (-1 = none)
+    int8_t currentKey = -1;  // current accepted key index (-1 = none)
+};
+
+// Window-based temporal filter per device
+// We keep last W decoded indices (0..15, or 16 = "none") and counts[0..16].
+static constexpr uint8_t TM_WINDOW_SIZE = 8;   // window length
+static constexpr uint8_t TM_NONE_INDEX = 16;  // special "no key" index
+static constexpr uint8_t TM_DOM_ENTER_COUNT = 5;   // require >=5 samples out of 8
+static constexpr uint8_t TM_DOM_RELEASE_COUNT = 5;   // same threshold for release; can be tuned
+
+struct TMKeyWindow {
+    uint8_t buf[TM_WINDOW_SIZE];  // indices 0..16
+    uint8_t counts[17];           // 0..15 keys, 16 = none
+    uint8_t size = 0;             // number of valid entries (<= TM_WINDOW_SIZE)
+    uint8_t head = 0;             // next position to overwrite
+};
+
+struct TMDev {
+    TM1637Device* dev = nullptr;
+    TMButtonLogger logger;
+    TMKeyWindow    window;
+    bool           present = false;
+};
+
+static TMDev    tmDevs[MAX_TM1637_DEV];
+static uint8_t  numTMDevs = 0;
+static TMKeyMap tmKeys[MAX_TM1637_KEYS];
+static uint8_t  numTMKeys = 0;
+static bool     tmBuilt = false;
+
+// --- TM1637 decode table (same as your working standalone) ---
+static const uint8_t TM1637_KEY_CODES[16] = {
+    0xF7,0xF6,0xF5,0xF4,0xF3,0xF2,0xF1,0xF0, // row K1, SG1..8
+    0xEF,0xEE,0xED,0xEC,0xEB,0xEA,0xE9,0xE8  // row K2, SG1..8
+};
+
+static int8_t TM1637_decodeKey(uint8_t raw) {
+    if (raw == 0xFF) return -1; // no key
+    for (uint8_t i = 0; i < 16; ++i) {
+        if (raw == TM1637_KEY_CODES[i]) return (int8_t)i;
+    }
+    return -2; // unknown / noise
+}
+
+// --- Window helpers ---
+
+static void TM1637_windowReset(TMKeyWindow& w) {
+    w.size = 0;
+    w.head = 0;
+    for (uint8_t i = 0; i < 17; ++i) w.counts[i] = 0;
+}
+
+static void TM1637_windowAdd(TMKeyWindow& w, uint8_t idx) {
+    // idx in 0..16 (16 == none)
+    if (w.size < TM_WINDOW_SIZE) {
+        w.buf[w.head++] = idx;
+        w.counts[idx]++;
+        w.size++;
+        if (w.head >= TM_WINDOW_SIZE) w.head = 0;
+    }
+    else {
+        uint8_t old = w.buf[w.head];
+        if (w.counts[old] > 0) w.counts[old]--;
+        w.buf[w.head++] = idx;
+        w.counts[idx]++;
+        if (w.head >= TM_WINDOW_SIZE) w.head = 0;
+    }
+}
+
+// Returns:
+//   0..16 if some index dominates,
+//   -1    if no index meets the threshold.
+static int8_t TM1637_windowDominant(const TMKeyWindow& w,
+    uint8_t enterThresholdCount) {
+    if (w.size == 0) return -1;
+
+    uint8_t bestIdx = 0;
+    uint8_t bestCount = 0;
+    for (uint8_t i = 0; i < 17; ++i) {
+        if (w.counts[i] > bestCount) {
+            bestCount = w.counts[i];
+            bestIdx = i;
+        }
+    }
+    if (bestCount < enterThresholdCount) {
+        return -1;
+    }
+    return (int8_t)bestIdx;
+}
+
+// --- Build TM1637 mapping from InputMappings[] ---
+
+static inline int8_t _findOrAddTMDev(TM1637Device* dev) {
+    if (!dev) return -1;
+    for (uint8_t i = 0; i < numTMDevs; i++) {
+        if (tmDevs[i].dev == dev) return (int8_t)i;
+    }
+    if (numTMDevs >= MAX_TM1637_DEV) return -1;
+    TMDev& D = tmDevs[numTMDevs];
+    D.dev = dev;
+    D.present = true;
+    D.logger = TMButtonLogger{};
+    TM1637_windowReset(D.window);
+    return (int8_t)(numTMDevs++);
+}
+
+static void _TM1637_build() {
+    numTMDevs = 0;
+    numTMKeys = 0;
+
+    for (size_t i = 0; i < InputMappingSize; ++i) {
+        const auto& m = InputMappings[i];
+        if (!m.source || strcmp(m.source, "TM1637") != 0 || !m.label) continue;
+        if (m.port < 0 || m.bit < 0) continue; // only real keys here
+
+        TM1637Device* dev = _resolveTMDev((uint8_t)m.port);
+        const int8_t d = _findOrAddTMDev(dev);
+        if (d < 0) continue;
+        if (numTMKeys >= MAX_TM1637_KEYS) continue;
+
+        tmKeys[numTMKeys++] = TMKeyMap{ m.label, (uint8_t)d, (uint8_t)m.bit };
+    }
+
+    debugPrintf("[TM] tmBuilt=1 numTMDevs=%u numTMKeys=%u\n", numTMDevs, numTMKeys);
+    for (uint8_t d = 0; d < numTMDevs; ++d) {
+        TMDev& D = tmDevs[d];
+        debugPrintf("  dev[%u]: devPtr=%p present=%d\n", d, (void*)D.dev, (int)D.present);
+    }
+    for (uint8_t k = 0; k < numTMKeys; ++k) {
+        const TMKeyMap& M = tmKeys[k];
+        debugPrintf("  key[%u]: label=%s devIdx=%u keyIndex=%u\n",
+            k, M.label, M.devIdx, M.keyIndex);
+    }
+}
+
+static inline void _TM1637_buildOnce() {
+    if (!tmBuilt) {
+        _TM1637_build();
+        tmBuilt = true;
+    }
+}
+
+// Process one device: read raw, decode, update window, decide if state changed.
+static bool TM1637_processDevice(TMDev& D, bool forceSend) {
+    if (!D.dev || !D.present) return false;
+
+    // 1) Raw read + decode
+    uint8_t raw = tm1637_readKeys(*D.dev);
+    int8_t  k = TM1637_decodeKey(raw);  // 0..15, -1 (none), -2 (noise)
+
+    // Map decode to window index
+    uint8_t idx = TM_NONE_INDEX;          // 16 = "none"
+    if (k >= 0 && k < 16) {
+        idx = (uint8_t)k;
+    }
+    else {
+        // -1 or -2 → count as "none" in window
+        idx = TM_NONE_INDEX;
+    }
+
+    // Optional debug on forceSend (init / resync)
+    if (forceSend) {
+        debugPrintf("[TM raw dev %p] raw=0x%02X decode=%d (idx=%u)\n",
+            (void*)D.dev, raw, (int)k, idx);
+    }
+
+    // 2) Window update
+    TM1637_windowAdd(D.window, idx);
+
+    // 3) Dominant index in window
+    int8_t dom = TM1637_windowDominant(D.window, TM_DOM_ENTER_COUNT);
+    int8_t acceptedIndex = -1;
+    if (dom >= 0 && dom <= (int8_t)TM_NONE_INDEX) {
+        acceptedIndex = (dom == (int8_t)TM_NONE_INDEX) ? -1 : dom;
+    }
+
+    // --- Soft multi-key guard ------------------------------------
+    //
+    // If more than one real key index (0..15) appears at least 2 times
+    // in the window, treat this as ambiguous: don't change state.
+    //
+    if (!forceSend && D.window.size >= 3) {  // only bother once we have a few samples
+        uint8_t strongKeys = 0;
+        for (uint8_t i = 0; i < 16; ++i) {   // only real keys, skip "none" (index 16)
+            if (D.window.counts[i] >= 2) {   // "2" is a soft, non-intrusive threshold
+                strongKeys++;
+                if (strongKeys >= 2) break;
+            }
+        }
+        if (strongKeys >= 2) {
+            // Ambiguous multi-key situation: hold current accepted key, no change.
+            return false;
+        }
+    }
+    // --------------------------------------------------------------
+
+    TMButtonLogger& L = D.logger;
+
+    if (forceSend) {
+        // On forceSend, accept whatever dominantIndex says now
+        if (acceptedIndex != L.currentKey) {
+            L.prevKey = L.currentKey;
+            L.currentKey = acceptedIndex;
+            return true;
+        }
+        return false;
+    }
+
+    // Normal path: only change when dominant index differs from currentKey
+    if (acceptedIndex != L.currentKey) {
+        L.prevKey = L.currentKey;
+        L.currentKey = acceptedIndex;
+        return true;
+    }
+    return false;
+}
+
+// Main poller
+void TM1637_poll(bool forceSend) {
+    _TM1637_buildOnce();
+
+    // ~100 Hz cadence
+    static uint32_t lastMs = 0;
+    const uint32_t now = millis();
+    if (!forceSend && (uint32_t)(now - lastMs) < 10) return;
+    lastMs = now;
+
+    for (uint8_t d = 0; d < numTMDevs; ++d) {
+        TMDev& D = tmDevs[d];
+        if (!D.present || !D.dev) continue;
+
+        if (!TM1637_processDevice(D, forceSend)) continue;
+
+        // Debounced state changed on this device
+        TMButtonLogger& L = D.logger;
+        int8_t nowKey = L.currentKey; // -1 = none, 0..15 = key index
+        int8_t prevKey = L.prevKey;
+
+        // Per-mapping edges
         for (uint8_t k = 0; k < numTMKeys; ++k) {
             const TMKeyMap& M = tmKeys[k];
             if (M.devIdx != d) continue;

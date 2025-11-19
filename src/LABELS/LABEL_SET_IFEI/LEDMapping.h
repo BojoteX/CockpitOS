@@ -4,12 +4,12 @@
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
   DEVICE_TM1637,
-  DEVICE_PCA9555,
-  DEVICE_GN1640T,
   DEVICE_GAUGE,
   DEVICE_GPIO,
-  DEVICE_NONE,
   DEVICE_WS2812,
+  DEVICE_NONE,
+  DEVICE_PCA9555,
+  DEVICE_GN1640T,
 };
 
 struct LEDMapping {
@@ -29,12 +29,12 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
-  { "FLP_LG_FLAPS_LT"     , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 5, 0}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 0 Bit 0,
-  { "FLP_LG_FULL_FLAPS_LT", DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 4, 1}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 0 Bit 1,
-  { "FLP_LG_HALF_FLAPS_LT", DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 4, 0}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 1 Bit 0,
-  { "FLP_LG_LEFT_GEAR_LT" , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 3, 0}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 1 Bit 1,
-  { "FLP_LG_NOSE_GEAR_LT" , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 5, 1}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 2 Bit 0,
-  { "FLP_LG_RIGHT_GEAR_LT", DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 3, 1}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 2 Bit 1,
+  { "FLP_LG_FLAPS_LT"     , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 5, 0}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 5 Bit 0,
+  { "FLP_LG_FULL_FLAPS_LT", DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 4, 1}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 4 Bit 1,
+  { "FLP_LG_HALF_FLAPS_LT", DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 4, 0}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 4 Bit 0,
+  { "FLP_LG_LEFT_GEAR_LT" , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 3, 0}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 3 Bit 0,
+  { "FLP_LG_NOSE_GEAR_LT" , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 5, 1}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 5 Bit 1,
+  { "FLP_LG_RIGHT_GEAR_LT", DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 3, 1}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 3 Bit 1,
   { "IFEI"                , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CHART_DIMMER"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CONSOLES_DIMMER"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
@@ -51,11 +51,11 @@ static const LEDMapping panelLEDs[] = {
   { "INSTR_INT_LT"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "NVG_FLOOD_INT_LT"    , DEVICE_NONE    , {.gpioInfo = {0}}, true, false }, // No Info,
   { "STBY_COMPASS_INT_LT" , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "SJ_CTR_LT"           , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 0, 0}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 3 Bit 0,
-  { "SJ_LI_LT"            , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 1, 0}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 3 Bit 1,
-  { "SJ_LO_LT"            , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 1, 1}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 4 Bit 0,
-  { "SJ_RI_LT"            , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 2, 0}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 4 Bit 1,
-  { "SJ_RO_LT"            , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 2, 1}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 5 Bit 2
+  { "SJ_CTR_LT"           , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 0, 0}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 0 Bit 0,
+  { "SJ_LI_LT"            , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 1, 0}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 1 Bit 0,
+  { "SJ_LO_LT"            , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 1, 1}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 1 Bit 1,
+  { "SJ_RI_LT"            , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 2, 0}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 2 Bit 0,
+  { "SJ_RO_LT"            , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 2, 1}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 2 Bit 1
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);

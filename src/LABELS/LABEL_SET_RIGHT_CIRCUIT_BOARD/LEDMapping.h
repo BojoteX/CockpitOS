@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
-  DEVICE_TM1637,
-  DEVICE_GAUGE,
-  DEVICE_GN1640T,
+  DEVICE_NONE,
   DEVICE_PCA9555,
   DEVICE_GPIO,
+  DEVICE_GAUGE,
+  DEVICE_GN1640T,
+  DEVICE_TM1637,
   DEVICE_WS2812,
-  DEVICE_NONE,
 };
 
 struct LEDMapping {
@@ -29,7 +29,16 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
-
+  { "CHART_INT_LT"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "CONSOLE_INT_LT"     , DEVICE_GPIO    , {.gpioInfo = {6}}, true, false }, // GPIO 6,
+  { "EMERG_INSTR_INT_LT" , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "ENG_INSTR_INT_LT"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "FLOOD_INT_LT"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "IFEI_BTN_INT_LT"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "IFEI_DISP_INT_LT"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "INSTR_INT_LT"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "NVG_FLOOD_INT_LT"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "STBY_COMPASS_INT_LT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);
@@ -43,6 +52,19 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {"NVG_FLOOD_INT_LT", &panelLEDs[8]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"FLOOD_INT_LT", &panelLEDs[4]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"IFEI_DISP_INT_LT", &panelLEDs[6]},
+  {"INSTR_INT_LT", &panelLEDs[7]},
+  {"ENG_INSTR_INT_LT", &panelLEDs[3]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -68,28 +90,15 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {"STBY_COMPASS_INT_LT", &panelLEDs[9]},
+  {"IFEI_BTN_INT_LT", &panelLEDs[5]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"CONSOLE_INT_LT", &panelLEDs[1]},
+  {"EMERG_INSTR_INT_LT", &panelLEDs[2]},
+  {"CHART_INT_LT", &panelLEDs[0]},
 };
 
 // Reuse shared recursive hash implementation

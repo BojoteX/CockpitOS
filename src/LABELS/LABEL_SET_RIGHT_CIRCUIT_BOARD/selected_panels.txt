@@ -7,3 +7,4 @@
 # To update the list of available panels, just re-run this script.
 
 Right Essential Circuit Breakers
+Internal Lights
