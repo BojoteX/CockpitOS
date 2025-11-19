@@ -6,6 +6,50 @@
 #define TM1637_CMD_SET_ADDR  0xC0
 #define TM1637_CMD_DISP_CTRL 0x88
 
+static constexpr uint8_t MAX_TM1637_HW = 8;
+static TM1637Device g_tmDevices[MAX_TM1637_HW];
+static uint8_t      g_tmCount = 0;
+
+TM1637Device* TM1637_getOrCreate(uint8_t clkPin, uint8_t dioPin) {
+    // 1) Look for an existing device with the same pins
+    for (uint8_t i = 0; i < g_tmCount; ++i) {
+        TM1637Device& dev = g_tmDevices[i];
+        if (dev.clkPin == clkPin && dev.dioPin == dioPin) {
+            return &dev;
+        }
+    }
+
+    // 2) Create a new one if there is space
+    if (g_tmCount >= MAX_TM1637_HW) {
+        debugPrintf("TM1637: registry full, cannot register CLK=%u DIO=%u\n", clkPin, dioPin);
+        return nullptr;
+    }
+
+    TM1637Device* dev = &g_tmDevices[g_tmCount++];
+    tm1637_init(*dev, clkPin, dioPin);
+    return dev;
+}
+
+TM1637Device* TM1637_findByPins(uint8_t clkPin, uint8_t dioPin) {
+    for (uint8_t i = 0; i < g_tmCount; ++i) {
+        TM1637Device& dev = g_tmDevices[i];
+        if (dev.clkPin == clkPin && dev.dioPin == dioPin) {
+            return &dev;
+        }
+    }
+    return nullptr;
+}
+
+TM1637Device* TM1637_findByDIO(uint8_t dioPin) {
+    for (uint8_t i = 0; i < g_tmCount; ++i) {
+        TM1637Device& dev = g_tmDevices[i];
+        if (dev.dioPin == dioPin) {
+            return &dev;
+        }
+    }
+    return nullptr;
+}
+
 // -------------------------------------------------------------------
 // LOW-LEVEL BUS
 // -------------------------------------------------------------------
@@ -121,28 +165,17 @@ void tm1637_init(TM1637Device& dev, uint8_t clkPin, uint8_t dioPin) {
     tm1637_updateDisplay(dev);
 }
 
-const char* getTM1637Label(const TM1637Device* dev) {
-    if (dev == &RA_Device)     return "RA";
-    if (dev == &LA_Device)     return "LA";
-    if (dev == &JETSEL_Device) return "JETTSEL";
-    return "UNKNOWN";
-}
-
 void tm1637_displaySingleLED(TM1637Device& dev, uint8_t grid, uint8_t segment, bool state) {
-    if (&dev == &LA_Device && !PanelRegistry_has(PanelKind::LA))      return;
-    if (&dev == &RA_Device && !PanelRegistry_has(PanelKind::RA))      return;
-    if (&dev == &JETSEL_Device && !PanelRegistry_has(PanelKind::JETTSEL)) return;
+    if (grid >= 6 || segment >= 8) return;
 
-    if (grid < 6 && segment < 8) {
-        uint8_t before = dev.ledData[grid];
-        if (state)
-            dev.ledData[grid] |= (uint8_t)(1u << segment);
-        else
-            dev.ledData[grid] &= (uint8_t)~(1u << segment);
+    uint8_t before = dev.ledData[grid];
+    if (state)
+        dev.ledData[grid] |= (uint8_t)(1u << segment);
+    else
+        dev.ledData[grid] &= (uint8_t)~(1u << segment);
 
-        if (dev.ledData[grid] != before) {
-            dev.needsUpdate = true;
-        }
+    if (dev.ledData[grid] != before) {
+        dev.needsUpdate = true;
     }
 }
 
@@ -154,41 +187,43 @@ void tm1637_clearDisplay(TM1637Device& dev) {
 
 void tm1637_allOn(TM1637Device& dev) {
     for (int i = 0; i < 6; i++) dev.ledData[i] = 0xFF;
-    tm1637_updateDisplay(dev);   // immediate update
-    dev.needsUpdate = false;
+    tm1637_updateDisplay(dev);
 }
 
 void tm1637_allOff(TM1637Device& dev) {
     memset(dev.ledData, 0, sizeof(dev.ledData));
-    tm1637_updateDisplay(dev);   // immediate update
-    dev.needsUpdate = false;
+    tm1637_updateDisplay(dev);
 }
 
 void tm1637_allOn() {
     debugPrintln("🔆 Turning ALL TM1637 LEDs ON");
-    tm1637_allOn(RA_Device);
-    tm1637_allOn(LA_Device);
-    tm1637_allOn(JETSEL_Device);
+    for (uint8_t i = 0; i < g_tmCount; ++i) {
+        tm1637_allOn(g_tmDevices[i]);
+    }
 }
 
 void tm1637_allOff() {
     debugPrintln("⚫ Turning ALL TM1637 LEDs OFF");
-    tm1637_allOff(RA_Device);
-    tm1637_allOff(LA_Device);
-    tm1637_allOff(JETSEL_Device);
+    for (uint8_t i = 0; i < g_tmCount; ++i) {
+        tm1637_allOff(g_tmDevices[i]);
+    }
 }
 
 void tm1637_tick() {
-    if (LA_Device.needsUpdate) {
-        tm1637_updateDisplay(LA_Device);
-        LA_Device.needsUpdate = false;
+    for (uint8_t i = 0; i < g_tmCount; ++i) {
+        TM1637Device& dev = g_tmDevices[i];
+        if (dev.needsUpdate) {
+            tm1637_updateDisplay(dev);
+            dev.needsUpdate = false;
+        }
     }
-    if (RA_Device.needsUpdate) {
-        tm1637_updateDisplay(RA_Device);
-        RA_Device.needsUpdate = false;
-    }
-    if (JETSEL_Device.needsUpdate) {
-        tm1637_updateDisplay(JETSEL_Device);
-        JETSEL_Device.needsUpdate = false;
-    }
+}
+
+uint8_t TM1637_getDeviceCount() {
+    return g_tmCount;
+}
+
+TM1637Device* TM1637_getDeviceAt(uint8_t index) {
+    if (index >= g_tmCount) return nullptr;
+    return &g_tmDevices[index];
 }

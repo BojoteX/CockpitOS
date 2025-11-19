@@ -61,32 +61,35 @@ void preconfigureGPIO();
 #include "WS2812.h"
 
 // —— TM1637 (4-digit displays + buttons) —— 
-// struct TM1637Device { uint8_t clkPin, dioPin, ledData[6]; };
-struct TM1637Device { uint8_t clkPin, dioPin, ledData[6]; bool needsUpdate; };
-extern TM1637Device RA_Device;
-extern TM1637Device LA_Device;
-extern TM1637Device JETSEL_Device;
-bool   tm1637_handleSamplingWindow(TM1637Device&, uint16_t& sampleCounter, uint8_t& finalKeys);
-void   tm1637_addSample(TM1637Device&, uint8_t raw);
-uint8_t tm1637_evaluateResult(TM1637Device&);
-void   tm1637_resetSampling(TM1637Device&);
+struct TM1637Device {
+    uint8_t clkPin;
+    uint8_t dioPin;
+    uint8_t ledData[6];
+    bool    needsUpdate;
+};
+
+uint8_t       TM1637_getDeviceCount();
+TM1637Device* TM1637_getDeviceAt(uint8_t index);
+
 uint8_t tm1637_readKeys(TM1637Device&);
-void   tm1637_startBothDevices();
-void   tm1637_start(TM1637Device&);
-void   tm1637_stop(TM1637Device&);
-bool   tm1637_writeByte(TM1637Device&, uint8_t b);
-void   tm1637_updateDisplay(TM1637Device&);
-void   tm1637_init(TM1637Device&, uint8_t clk, uint8_t dio);
-void   tm1637_displaySingleLED(TM1637Device&, uint8_t grid, uint8_t seg, bool on);
-void   tm1637_clearDisplay(TM1637Device&);
-void   tm1637_allOn(TM1637Device&);
-void   tm1637_allOff(TM1637Device&);
-void   tm1637_sweep(TM1637Device&, const char* name);
-void   tm1637_sweepPanel();
-void   tm1637_testPattern();
-void   TM1637_setPanelAllLEDs(TM1637Device& dev, bool state);
-void   TM1637_setAllLEDs(bool state);  
-void   tm1637_tick(); 
+void    tm1637_start(TM1637Device&);
+void    tm1637_stop(TM1637Device&);
+bool    tm1637_writeByte(TM1637Device&, uint8_t);
+void    tm1637_updateDisplay(TM1637Device&);
+void    tm1637_init(TM1637Device&, uint8_t clk, uint8_t dio);
+void    tm1637_displaySingleLED(TM1637Device&, uint8_t grid, uint8_t seg, bool on);
+void    tm1637_clearDisplay(TM1637Device&);
+
+// global helpers (operate on all registered TM1637 devices)
+void    tm1637_allOn();
+void    tm1637_allOff();
+void    tm1637_tick();
+
+// registry API
+TM1637Device* TM1637_getOrCreate(uint8_t clkPin, uint8_t dioPin);
+TM1637Device* TM1637_findByPins(uint8_t clkPin, uint8_t dioPin);
+TM1637Device* TM1637_findByDIO(uint8_t dioPin);
+
 
 // —— GN1640 (matrix LED driver) —— 
 void GN1640_startCondition();

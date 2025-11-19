@@ -22,28 +22,30 @@
 
 // Panel specific features like: Does your panel have TFT gauges? is a PCA Expander present? want HID Axes even in DCS Mode?
 #define ENABLE_TFT_GAUGES                           0 // Enable TFT Gauges (should always be 1, except for testing or debugging)
-#define ENABLE_PCA9555                              1 // 0 = skip PCA logic & autodetection, 1 = enable PCA Expanders. Enable only if PCA expanders are present in your hardware/PCB 
+#define ENABLE_PCA9555                              0 // 0 = skip PCA logic & autodetection, 1 = enable PCA Expanders. Enable only if PCA expanders are present in your hardware/PCB 
 #define SEND_HID_AXES_IN_DCS_MODE                   0 // Sends HID Axes even if DCS Mode is active
 #define LOWER_AXIS_THRESHOLD                      128 // Adjust if your Lower Axis won't stick to min (optimal should be 32-64) but noisy axes require 128-256
 #define MIDDLE_AXIS_THRESHOLD                      64 // Adjust if your Middle Axis won't stick to center (optimal should be 32-64) but noisy axes require 128-256
 #define UPPER_AXIS_THRESHOLD                       64 // Adjust if your Upper Axis won't stick to max (optimal should be 32-64) but noisy axes require 128-256
 
 // Wi-Fi network credentials (used for WiFi remote Debug Console and DCSBIOS WiFi mode if selected)
-#define WIFI_SSID                                 "MyHotspotNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
-#define WIFI_PASS                                 "TestingOnly"
+#define WIFI_SSID                                  "MyHotspotNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
+#define WIFI_PASS                                  "TestingOnly"
 
 // For production, ALL THESE should be set to 0. Use for debugging only. Most commonly used together are DEBUG_USE_WIFI + VERBOSE_MODE_WIFI_ONLY + DEBUG_PERFORMANCE
-#define DEBUG_ENABLED                              0  // Use it ONLY when identifying issues or troubleshooting
-#define DEBUG_ENABLED_FOR_PCA_ONLY                 0  // Use it ONLY when mapping Port/bit/mask in PCA9xxx devices
-#define DEBUG_ENABLED_FOR_HC165_ONLY               0  // Use it ONLY when mapping bits in HC165 devices
-#define DEBUG_USE_WIFI                             0  // Uses WiFi to output VERBOSE and DEBUG messages
-#define VERBOSE_MODE                               0  // Logs INFO messages to both Serial and UDP (very useful) 
-#define VERBOSE_MODE_SERIAL_ONLY                   0  // Verbose will only output to Serial. 
-#define VERBOSE_MODE_WIFI_ONLY                     0  // Verbose will only output to WiFi so Serial port is clean. Requires DEBUG_USE_WIFI
-#define VERBOSE_PERFORMANCE_ONLY                   0  // Requires DEBUG_PERFORMANCE as well, this will only output perf snapshots, make sure you pick WIFI or SERIAL above and DEBUG_ENABLED is 0
-#define DEBUG_PERFORMANCE                          0  // Shows a performance snapshot every x seconds (interval can be configured below)
-#define DEBUG_PERFORMANCE_SHOW_TASKS               0  // Includes the current task list with the snapshot. Not really needed.
-#define PERFORMANCE_SNAPSHOT_INTERVAL_SECONDS      60 // Interval between snapshots (in seconds)
+#define DEBUG_ENABLED                               0  // Use it ONLY when identifying issues or troubleshooting
+#define VERBOSE_MODE                                0  // Logs INFO messages to both Serial and UDP (very useful).
+#define VERBOSE_MODE_SERIAL_ONLY                    0  // Verbose will only output to Serial. 
+#define VERBOSE_MODE_WIFI_ONLY                      0  // Verbose will only output to WiFi so Serial port is clean. Requires DEBUG_USE_WIFI
+#define VERBOSE_PERFORMANCE_ONLY                    0  // Requires DEBUG_PERFORMANCE as well, this will only output perf snapshots, make sure you pick WIFI or SERIAL above and DEBUG_ENABLED is 0
+#define DEBUG_PERFORMANCE                           0  // Shows a performance snapshot every x seconds (interval can be configured below)
+#define DEBUG_PERFORMANCE_SHOW_TASKS                0  // Includes the current task list with the snapshot. Not really needed.
+#define PERFORMANCE_SNAPSHOT_INTERVAL_SECONDS       60 // Interval between snapshots (in seconds)
+
+// Key scanning
+#define DEBUG_ENABLED_FOR_PCA_ONLY                  0  // Use it ONLY when mapping Port/bit/mask in PCA9xxx devices
+#define DEBUG_ENABLED_FOR_HC165_ONLY                0  // Use it ONLY when mapping bits in HC165 devices
+#define DEBUG_ENABLED_FOR_TM1637_ONLY               0  // Use ONLY when mapping TM1637 keys
 
 // Advanced config, these settings have been carefully tuned for performance and stability, 
 #define TEST_LEDS                                   0 // Interactive menu (via serial console) to test LEDs individually
@@ -83,6 +85,7 @@
 #define GAMEPAD_REPORT_SIZE                        64 // Must match the HID descriptor, you should NEVER have to change this.
 #define SERVO_UPDATE_FREQ_MS                       20 // For Analog servo instruments. Update rate in ms (as per servo specs)
 #define SKIP_ANALOG_FILTERING                       0 // Applies to HID Only, Set to 1 to skip all filtering for Min latency
+#define ADVANCED_TM1637_INPUT_FILTERING             0 // Enable it if you see ghosts with TM1637 inputs
 
 // Serial Debug Ring Buffer
 #define SERIAL_DEBUG_USE_RINGBUFFER                 0 // Should be use a ring buffer for Serial Debug messages? not really necessary
@@ -235,6 +238,13 @@
          defined(ESP_FAMILY_H2) )
     #error "❌ BLE is not supported on ESP32-S2 or ESP32-P4. Choose another mode"
   #endif
+#endif
+
+// Simplify Wi-Fi Debugging
+#if VERBOSE_MODE_WIFI_ONLY
+  #define DEBUG_USE_WIFI                             1  // Uses WiFi to output VERBOSE and DEBUG messages
+#else
+  #define DEBUG_USE_WIFI                             0  // Uses WiFi to output VERBOSE and DEBUG messages
 #endif
 
 // Define the Built-in LED if compiling with a board that does not define it. Only if you get errors about LED_BUILTIN not defined.

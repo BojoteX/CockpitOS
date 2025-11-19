@@ -759,195 +759,6 @@ void Matrix_poll(bool forceSend) {
 }
 // ===== END MATRIX
 
-/*
-// ===== TM1637 momentary keys — generic, uses ONLY source/port/bit =====
-//
-// We mirror the standalone TM1637 key tester logic here, generalized to
-// multiple TM1637 devices (LA, RA, JETTSEL).
-//
-// Semantics:
-//   - InputMapping.source == "TM1637"
-//   - InputMapping.port   == DIO pin (LA_DIO_PIN, RA_DIO_PIN, JETT_DIO_PIN, etc.)
-//   - InputMapping.bit    == key index 0..15 (decoded from TM1637 raw code)
-//
-// Low level:
-//   - tm1637_readKeys(dev) returns an 8-bit "key scan code"; 0xFF = no key.
-//   - We decode it using TM1637_KEY_CODES[] into an index 0..15, or -1 if none.
-//   - Standalone-style debounce: N identical decoded samples before accepting a change.
-//   - For each TM1637 mapping, we fire HIDManager_setNamedButton(label, pressed).
-
-// Map port → TM1637Device*
-static inline TM1637Device* _resolveTMDev(uint8_t port) {
-#ifdef RA_DIO_PIN
-    if (port == (uint8_t)RA_DIO_PIN) return &RA_Device;
-#endif
-#ifdef LA_DIO_PIN
-    if (port == (uint8_t)LA_DIO_PIN) return &LA_Device;
-#endif
-#ifdef JETT_DIO_PIN
-    if (port == (uint8_t)JETT_DIO_PIN) return &JETSEL_Device;
-#endif
-    return nullptr;
-}
-
-struct TMKeyMap {
-    const char* label;
-    uint8_t     devIdx;    // index into tmDevs[]
-    uint8_t     keyIndex;  // 0..15
-};
-
-// Standalone-style logger per device
-struct TMButtonLogger {
-    int8_t  prevKey = -1;   // previously accepted key index
-    int8_t  currentKey = -1;   // current debounced key index
-    int8_t  lastSample = -1;   // last decoded sample
-    uint8_t stableCount = 0;   // how many identical samples so far
-};
-
-struct TMDev {
-    TM1637Device* dev = nullptr;
-    TMButtonLogger logger;
-    bool present = false;
-};
-
-static TMDev    tmDevs[MAX_TM1637_DEV];
-static uint8_t  numTMDevs = 0;
-static TMKeyMap tmKeys[MAX_TM1637_KEYS];
-static uint8_t  numTMKeys = 0;
-static bool     tmBuilt = false;
-
-// Decode table – same as standalone tester
-static const uint8_t TM1637_KEY_CODES[16] = {
-    0xF7,0xF6,0xF5,0xF4,0xF3,0xF2,0xF1,0xF0, // K1 SG1..SG8
-    0xEF,0xEE,0xED,0xEC,0xEB,0xEA,0xE9,0xE8  // K2 SG1..SG8
-};
-
-static int8_t TM1637_decodeKey(uint8_t raw) {
-    if (raw == 0xFF) return -1; // no key
-    for (uint8_t i = 0; i < 16; ++i) {
-        if (raw == TM1637_KEY_CODES[i]) return (int8_t)i;
-    }
-    return -2; // unknown / noise
-}
-
-static inline int8_t _findOrAddTMDev(TM1637Device* dev) {
-    if (!dev) return -1;
-    for (uint8_t i = 0; i < numTMDevs; i++) {
-        if (tmDevs[i].dev == dev) return (int8_t)i;
-    }
-    if (numTMDevs >= MAX_TM1637_DEV) return -1;
-    tmDevs[numTMDevs] = TMDev{ dev, TMButtonLogger{}, true };
-    return (int8_t)(numTMDevs++);
-}
-
-static void _TM1637_build() {
-    numTMDevs = 0;
-    numTMKeys = 0;
-
-    for (size_t i = 0; i < InputMappingSize; ++i) {
-        const auto& m = InputMappings[i];
-        if (!m.source || strcmp(m.source, "TM1637") != 0 || !m.label) continue;
-        if (m.port < 0 || m.bit < 0) continue; // only real keys
-        TM1637Device* dev = _resolveTMDev((uint8_t)m.port);
-        const int8_t d = _findOrAddTMDev(dev);
-        if (d < 0) continue;
-        if (numTMKeys >= MAX_TM1637_KEYS) continue;
-        tmKeys[numTMKeys++] = TMKeyMap{ m.label, (uint8_t)d, (uint8_t)m.bit };
-    }
-
-    debugPrintf("[TM] tmBuilt=1 numTMDevs=%u numTMKeys=%u\n", numTMDevs, numTMKeys);
-    for (uint8_t d = 0; d < numTMDevs; ++d) {
-        TMDev& D = tmDevs[d];
-        debugPrintf("  dev[%u]: devPtr=%p present=%d\n", d, (void*)D.dev, (int)D.present);
-    }
-    for (uint8_t k = 0; k < numTMKeys; ++k) {
-        const TMKeyMap& M = tmKeys[k];
-        debugPrintf("  key[%u]: label=%s devIdx=%u keyIndex=%u\n",
-            k, M.label, M.devIdx, M.keyIndex);
-    }
-}
-
-static inline void _TM1637_buildOnce() {
-    if (!tmBuilt) {
-        _TM1637_build();
-        tmBuilt = true;
-    }
-}
-
-// Standalone-style per-device logger
-static bool TM1637_processLogger(TMDev& D, bool forceSend) {
-    if (!D.dev || !D.present) return false;
-
-    // raw key-scan
-    uint8_t raw = tm1637_readKeys(*D.dev);
-    int8_t k = TM1637_decodeKey(raw);
-
-    // Debug raw for bring-up
-    if (forceSend) {
-        debugPrintf("[TM raw dev %p] raw=0x%02X decode=%d\n",
-            (void*)D.dev, raw, (int)k);
-    }
-
-    TMButtonLogger& L = D.logger;
-
-    if (k == L.lastSample)
-        L.stableCount++;
-    else {
-        L.lastSample = k;
-        L.stableCount = 1;
-    }
-
-    const uint8_t SAMPLE_WINDOW = 4; // same as standalone
-
-    if (L.stableCount >= SAMPLE_WINDOW || forceSend) {
-        if (k != L.currentKey) {
-            L.prevKey = L.currentKey;
-            L.currentKey = k;
-            return true; // a debounced change occurred
-        }
-    }
-    return false;
-}
-
-// Main poller
-void TM1637_poll(bool forceSend) {
-    _TM1637_buildOnce();
-
-    // ~100 Hz cadence
-    static uint32_t lastMs = 0;
-    const uint32_t now = millis();
-    if (!forceSend && (uint32_t)(now - lastMs) < 10) return;
-    lastMs = now;
-
-    for (uint8_t d = 0; d < numTMDevs; ++d) {
-        TMDev& D = tmDevs[d];
-        if (!D.present || !D.dev) continue;
-
-        if (!TM1637_processLogger(D, forceSend)) continue;
-
-        // A debounced key change occurred on this device
-        TMButtonLogger& L = D.logger;
-        int8_t nowKey = L.currentKey;
-        int8_t prevKey = L.prevKey;
-
-        // For each mapping on this device, fire edges based on key index
-        for (uint8_t k = 0; k < numTMKeys; ++k) {
-            const TMKeyMap& M = tmKeys[k];
-            if (M.devIdx != d) continue;
-
-            bool prevPressed = (prevKey >= 0 && (uint8_t)prevKey == M.keyIndex);
-            bool currPressed = (nowKey >= 0 && (uint8_t)nowKey == M.keyIndex);
-
-            if (forceSend || prevPressed != currPressed) {
-                HIDManager_setNamedButton(M.label, forceSend, currPressed);
-            }
-        }
-    }
-}
-
-// ===== END TM1637
-*/
-
 // ===== TM1637 momentary keys — generic, uses ONLY source/port/bit =====
 //
 // Semantics for TM1637 mappings:
@@ -960,25 +771,14 @@ void TM1637_poll(bool forceSend) {
 //
 // Here we do:
 //   1) Decode raw -> key index using TM1637_KEY_CODES[] (same as standalone).
-//   2) For each device, maintain a small window of the last W decoded indices.
-//   3) Find the dominant index in the window (most frequent).
-//   4) Only accept a new key when that index dominates (>= threshold count).
-//   5) Map accepted key index -> InputMapping.bit and emit HID edges.
+//   2) Depending on ADVANCED_TM1637_INPUT_FILTERING:
+//        - 1: use window-based temporal filtering + multi-key guard (robust).
+//        - 0: accept decoded index directly (no advanced filtering; only edge detection).
+//   3) Map accepted key index -> InputMapping.bit and emit HID edges.
 //
-// This reintroduces strong temporal filtering (like the original majority logic)
-// but at the *decoded key index* level, not per raw bit.
 
 static inline TM1637Device* _resolveTMDev(uint8_t port) {
-#ifdef RA_DIO_PIN
-    if (port == (uint8_t)RA_DIO_PIN) return &RA_Device;
-#endif
-#ifdef LA_DIO_PIN
-    if (port == (uint8_t)LA_DIO_PIN) return &LA_Device;
-#endif
-#ifdef JETT_DIO_PIN
-    if (port == (uint8_t)JETT_DIO_PIN) return &JETSEL_Device;
-#endif
-    return nullptr;
+    return TM1637_findByDIO(port);
 }
 
 struct TMKeyMap {
@@ -987,18 +787,17 @@ struct TMKeyMap {
     uint8_t     keyIndex;  // 0..15 (InputMapping.bit)
 };
 
-// Standalone-style logger: tracks which key is currently accepted
+// Per-device state: tracks which key is currently accepted
 struct TMButtonLogger {
     int8_t prevKey = -1;  // previously accepted key index (-1 = none)
     int8_t currentKey = -1;  // current accepted key index (-1 = none)
 };
 
-// Window-based temporal filter per device
-// We keep last W decoded indices (0..15, or 16 = "none") and counts[0..16].
-static constexpr uint8_t TM_WINDOW_SIZE = 8;   // window length
 static constexpr uint8_t TM_NONE_INDEX = 16;  // special "no key" index
-static constexpr uint8_t TM_DOM_ENTER_COUNT = 5;   // require >=5 samples out of 8
-static constexpr uint8_t TM_DOM_RELEASE_COUNT = 5;   // same threshold for release; can be tuned
+
+// Window-based temporal filter per device (only used when ADVANCED == 1)
+static constexpr uint8_t TM_WINDOW_SIZE = 8;  // window length
+static constexpr uint8_t TM_DOM_ENTER_COUNT = 5;  // require >=5 samples out of 8
 
 struct TMKeyWindow {
     uint8_t buf[TM_WINDOW_SIZE];  // indices 0..16
@@ -1034,7 +833,7 @@ static int8_t TM1637_decodeKey(uint8_t raw) {
     return -2; // unknown / noise
 }
 
-// --- Window helpers ---
+// --- Window helpers (ADVANCED mode) ---
 
 static void TM1637_windowReset(TMKeyWindow& w) {
     w.size = 0;
@@ -1100,10 +899,15 @@ static void _TM1637_build() {
     numTMDevs = 0;
     numTMKeys = 0;
 
+    bool hasTmMappings = false;
+
+    // 1) Build from InputMappings[] (normal case)
     for (size_t i = 0; i < InputMappingSize; ++i) {
         const auto& m = InputMappings[i];
         if (!m.source || strcmp(m.source, "TM1637") != 0 || !m.label) continue;
         if (m.port < 0 || m.bit < 0) continue; // only real keys here
+
+        hasTmMappings = true;
 
         TM1637Device* dev = _resolveTMDev((uint8_t)m.port);
         const int8_t d = _findOrAddTMDev(dev);
@@ -1113,10 +917,27 @@ static void _TM1637_build() {
         tmKeys[numTMKeys++] = TMKeyMap{ m.label, (uint8_t)d, (uint8_t)m.bit };
     }
 
-    debugPrintf("[TM] tmBuilt=1 numTMDevs=%u numTMKeys=%u\n", numTMDevs, numTMKeys);
+#if DEBUG_ENABLED_FOR_TM1637_ONLY
+    // 2) Discovery mode: if there are NO TM1637 mappings, build devices from registry
+    if (!hasTmMappings) {
+        uint8_t count = TM1637_getDeviceCount();
+        for (uint8_t i = 0; i < count && numTMDevs < MAX_TM1637_DEV; ++i) {
+            TM1637Device* dev = TM1637_getDeviceAt(i);
+            if (!dev) continue;
+
+            TMDev& D = tmDevs[numTMDevs++];
+            D.dev = dev;
+            D.present = true;
+            D.logger = TMButtonLogger{};
+            TM1637_windowReset(D.window);
+        }
+    }
+#endif
+
     for (uint8_t d = 0; d < numTMDevs; ++d) {
         TMDev& D = tmDevs[d];
-        debugPrintf("  dev[%u]: devPtr=%p present=%d\n", d, (void*)D.dev, (int)D.present);
+        debugPrintf("  dev[%u]: devPtr=%p present=%d\n",
+            d, (void*)D.dev, (int)D.present);
     }
     for (uint8_t k = 0; k < numTMKeys; ++k) {
         const TMKeyMap& M = tmKeys[k];
@@ -1132,7 +953,57 @@ static inline void _TM1637_buildOnce() {
     }
 }
 
-// Process one device: read raw, decode, update window, decide if state changed.
+#if DEBUG_ENABLED_FOR_TM1637_ONLY
+
+// Find an existing InputMapping for this TM1637 DIO + keyIndex (if any)
+static const InputMapping* TM1637_findMappingForKey(uint8_t dio, uint8_t keyIndex) {
+    for (size_t i = 0; i < InputMappingSize; ++i) {
+        const auto& m = InputMappings[i];
+        if (!m.source) continue;
+        if (strcmp(m.source, "TM1637") != 0) continue;
+        if (m.port != (int8_t)dio) continue;
+        if (m.bit != (int8_t)keyIndex) continue;
+        return &m;
+    }
+    return nullptr;
+}
+
+// Log key changes for mapping/discovery
+static void TM1637_debugLogKeyChange(const TMDev& D, int8_t prevKey, int8_t nowKey) {
+    if (!D.dev) return;
+
+    uint8_t dio = D.dev->dioPin;
+
+    // Only log presses (new key became active)
+    if (nowKey >= 0 && nowKey < 16) {
+        const InputMapping* m = TM1637_findMappingForKey(dio, (uint8_t)nowKey);
+        if (m) {
+            // Already mapped: show which label fired
+            debugPrintf("🔑 TM1637 DIO=%u key#%d (K%u, SG%u) → %s\n",
+                dio,
+                nowKey,
+                (unsigned)(nowKey / 8 + 1),
+                (unsigned)(nowKey % 8),
+                m->label);
+        }
+        else {
+            // Unmapped: print a template line to add to InputMappings
+            debugPrintf("🆕 TM1637 DIO=%u key#%d (K%u, SG%u) PRESSED — no mapping found.\n",
+                dio,
+                nowKey,
+                (unsigned)(nowKey / 8 + 1),
+                (unsigned)(nowKey % 8));
+
+            debugPrintf("    Discovery: { \"<LABEL>\", \"TM1637\", PIN(%u), %d, /* hidId */ -1, \"<DCS_CMD>\", <value>, \"momentary\", 0 },\n",
+                dio, nowKey);
+        }
+    }
+    // For mapping, presses are enough; releases can be added similarly if desired.
+}
+
+#endif // DEBUG_ENABLED_FOR_TM1637_ONLY
+
+// Process one device: read raw, decode, update state, decide if state changed.
 static bool TM1637_processDevice(TMDev& D, bool forceSend) {
     if (!D.dev || !D.present) return false;
 
@@ -1140,15 +1011,19 @@ static bool TM1637_processDevice(TMDev& D, bool forceSend) {
     uint8_t raw = tm1637_readKeys(*D.dev);
     int8_t  k = TM1637_decodeKey(raw);  // 0..15, -1 (none), -2 (noise)
 
-    // Map decode to window index
+    // Map decode to index
     uint8_t idx = TM_NONE_INDEX;          // 16 = "none"
     if (k >= 0 && k < 16) {
         idx = (uint8_t)k;
     }
     else {
-        // -1 or -2 → count as "none" in window
+        // -1 or -2 → treat as "none"
         idx = TM_NONE_INDEX;
     }
+
+#if ADVANCED_TM1637_INPUT_FILTERING
+
+    // 2A) ADVANCED: window-based temporal filtering + soft multi-key guard
 
     // Optional debug on forceSend (init / resync)
     if (forceSend) {
@@ -1156,35 +1031,30 @@ static bool TM1637_processDevice(TMDev& D, bool forceSend) {
             (void*)D.dev, raw, (int)k, idx);
     }
 
-    // 2) Window update
+    // Window update
     TM1637_windowAdd(D.window, idx);
 
-    // 3) Dominant index in window
+    // Dominant index in window
     int8_t dom = TM1637_windowDominant(D.window, TM_DOM_ENTER_COUNT);
     int8_t acceptedIndex = -1;
     if (dom >= 0 && dom <= (int8_t)TM_NONE_INDEX) {
         acceptedIndex = (dom == (int8_t)TM_NONE_INDEX) ? -1 : dom;
     }
 
-    // --- Soft multi-key guard ------------------------------------
-    //
-    // If more than one real key index (0..15) appears at least 2 times
-    // in the window, treat this as ambiguous: don't change state.
-    //
-    if (!forceSend && D.window.size >= 3) {  // only bother once we have a few samples
+    // Soft multi-key guard: if more than one real key (0..15) appears at least 2 times,
+    // treat this as ambiguous and hold current state.
+    if (!forceSend && D.window.size >= 3) {
         uint8_t strongKeys = 0;
-        for (uint8_t i = 0; i < 16; ++i) {   // only real keys, skip "none" (index 16)
-            if (D.window.counts[i] >= 2) {   // "2" is a soft, non-intrusive threshold
+        for (uint8_t i = 0; i < 16; ++i) {   // only real keys, skip "none"
+            if (D.window.counts[i] >= 2) {
                 strongKeys++;
                 if (strongKeys >= 2) break;
             }
         }
         if (strongKeys >= 2) {
-            // Ambiguous multi-key situation: hold current accepted key, no change.
             return false;
         }
     }
-    // --------------------------------------------------------------
 
     TMButtonLogger& L = D.logger;
 
@@ -1205,6 +1075,38 @@ static bool TM1637_processDevice(TMDev& D, bool forceSend) {
         return true;
     }
     return false;
+
+#else  // !ADVANCED_TM1637_INPUT_FILTERING
+
+    // 2B) SIMPLE: no advanced filtering. Accept decoded index immediately.
+    //             We only do edge detection (prev vs curr), no window, no soft guard.
+
+    TMButtonLogger& L = D.logger;
+    int8_t acceptedIndex = -1;
+    if (idx == TM_NONE_INDEX) {
+        acceptedIndex = -1;
+    }
+    else {
+        acceptedIndex = (int8_t)idx; // 0..15
+    }
+
+    if (forceSend) {
+        if (acceptedIndex != L.currentKey) {
+            L.prevKey = L.currentKey;
+            L.currentKey = acceptedIndex;
+            return true;
+        }
+        return false;
+    }
+
+    if (acceptedIndex != L.currentKey) {
+        L.prevKey = L.currentKey;
+        L.currentKey = acceptedIndex;
+        return true;
+    }
+    return false;
+
+#endif // ADVANCED_TM1637_INPUT_FILTERING
 }
 
 // Main poller
@@ -1227,6 +1129,10 @@ void TM1637_poll(bool forceSend) {
         TMButtonLogger& L = D.logger;
         int8_t nowKey = L.currentKey; // -1 = none, 0..15 = key index
         int8_t prevKey = L.prevKey;
+
+#if DEBUG_ENABLED_FOR_TM1637_ONLY
+        TM1637_debugLogKeyChange(D, prevKey, nowKey);
+#endif
 
         // Per-mapping edges
         for (uint8_t k = 0; k < numTMKeys; ++k) {
