@@ -6,6 +6,4 @@
 #
 # To update the list of available panels, just re-run this script.
 
-Master Arm Panel
-Communication Panel
-Master Caution Light
+Up Front Controller (UFC)

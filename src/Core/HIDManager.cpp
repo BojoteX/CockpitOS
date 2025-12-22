@@ -75,6 +75,38 @@
 #include "../BLEManager.h"
 #endif
 
+// === Self-learning axis calibration ===
+static uint16_t axMin[HID_AXIS_COUNT];
+static uint16_t axMax[HID_AXIS_COUNT];
+
+static void axCalibInit() {
+    for (uint8_t i = 0; i < HID_AXIS_COUNT; i++) {
+        axMin[i] = 4095;  // Start high, any reading will be lower
+        axMax[i] = 0;     // Start low, any reading will be higher
+    }
+}
+
+static inline int axScale(int v, HIDAxis ax) {
+    // Learn extremes (monotonic expansion)
+    if (v < (int)axMin[ax]) axMin[ax] = v;
+    if (v > (int)axMax[ax]) axMax[ax] = v;
+
+    const int span = axMax[ax] - axMin[ax];
+    if (span < 256) return v;              // Not calibrated yet
+
+    // Scale to full range
+    int out;
+    if (v <= (int)axMin[ax]) out = 0;
+    else if (v >= (int)axMax[ax]) out = 4095;
+    else out = (v - axMin[ax]) * 4095 / span;
+
+    // Sticky zones at extremes (latching for noisy axes)
+    if (out > 0 && out <= LOWER_AXIS_THRESHOLD) out = 0;
+    if (out < 4095 && out >= (4095 - UPPER_AXIS_THRESHOLD)) out = 4095;
+
+    return out;
+}
+
 // Should we load USB events?
 bool loadUSBevents = false;
 bool loadCDCevents = false;
@@ -315,6 +347,10 @@ void HIDManager_sendReport(const char* label, int32_t rawValue) {
 }
 
 void HIDManager_resetAllAxes() {
+    
+	// Re-initialize axis calibration
+    axCalibInit();
+
     for (int i = 0; i < 40; ++i) {
         stabCount[i] = 0;
         stabilized[i] = false;
@@ -486,10 +522,15 @@ void HIDManager_moveAxis(const char* dcsIdentifier, uint8_t pin, HIDAxis axis, b
     if (filtered > HID_MAX) filtered = HID_MAX;
     if (axisInverted(axis)) filtered = HID_MAX - filtered;
 
+    /*
     // HID late clamp with fixed windows
     int hid = filtered;
     if (hid > 0 && hid <= LOWER_AXIS_THRESHOLD) hid = 0;
     else if (hid >= (HID_MAX - UPPER_AXIS_THRESHOLD) && hid < HID_MAX) hid = HID_MAX;
+    */
+
+	// HID scaling with self-learning calibration
+    int hid = axScale(filtered, axis);
 
     // --- force path (no DCS late-clamp here) ---
     if (forceSend) {
@@ -707,6 +748,9 @@ void HIDManager_startUSB() {
 }
 
 void HIDManager_setup() {
+
+	// Initialize axis calibration
+    axCalibInit();
 
     // Load our Group
     buildHIDGroupBitmasks();

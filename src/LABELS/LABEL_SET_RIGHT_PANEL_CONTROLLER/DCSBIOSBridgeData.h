@@ -224,6 +224,8 @@ static const SelectorEntry SelectorMap[] = {
     { "BLEED_AIR_KNOB_L_OFF","BLEED_AIR_KNOB",1,"selector",5,"L_OFF" },
     { "BLEED_AIR_KNOB_NORM","BLEED_AIR_KNOB",2,"selector",5,"NORM" },
     { "BLEED_AIR_KNOB_R_OFF","BLEED_AIR_KNOB",3,"selector",5,"R_OFF" },
+    { "BLEED_AIR_KNOB_DEC","BLEED_AIR_KNOB",0,"fixed_step",0,"DEC" },
+    { "BLEED_AIR_KNOB_INC","BLEED_AIR_KNOB",1,"fixed_step",0,"INC" },
     { "BLEED_AIR_PULL_POS0","BLEED_AIR_PULL",0,"selector",16,"POS0" },
     { "BLEED_AIR_PULL_POS1","BLEED_AIR_PULL",1,"selector",16,"POS1" },
     { "CABIN_PRESS_SW_POS0","CABIN_PRESS_SW",0,"selector",17,"POS0" },
@@ -283,6 +285,8 @@ static const SelectorEntry SelectorMap[] = {
     { "INS_SW_GND","INS_SW",5,"selector",12,"GND" },
     { "INS_SW_CV","INS_SW",6,"selector",12,"CV" },
     { "INS_SW_OFF","INS_SW",7,"selector",12,"OFF" },
+    { "INS_SW_DEC","INS_SW",0,"fixed_step",0,"DEC" },
+    { "INS_SW_INC","INS_SW",1,"fixed_step",0,"INC" },
     { "LST_NFLR_SW_OFF","LST_NFLR_SW",0,"selector",13,"OFF" },
     { "LST_NFLR_SW_ON","LST_NFLR_SW",1,"selector",13,"ON" },
     { "LTD_R_SW_SAFE","LTD_R_SW",0,"selector",14,"SAFE" },
@@ -291,6 +295,8 @@ static const SelectorEntry SelectorMap[] = {
     { "RADAR_SW_OPR","RADAR_SW",1,"selector",15,"OPR" },
     { "RADAR_SW_STBY","RADAR_SW",2,"selector",15,"STBY" },
     { "RADAR_SW_OFF","RADAR_SW",3,"selector",15,"OFF" },
+    { "RADAR_SW_DEC","RADAR_SW",0,"fixed_step",0,"DEC" },
+    { "RADAR_SW_INC","RADAR_SW",1,"fixed_step",0,"INC" },
     { "RADAR_SW_PULL","RADAR_SW_PULL",1,"momentary",0,"PRESS" },
 };
 static const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);
