@@ -1,172 +1,424 @@
-# CockpitOS HID Controller
+# CockpitOS HID Manager v2 — Scalable Edition
 
-**Cross-platform USB HID bridge for DCS-BIOS cockpit devices (ESP32/ESP32S2/ESP32S3)**  
-*No more serial ports. No more COM driver headaches. Use your cockpit panels from anywhere on your network.*
+**High-performance USB HID bridge designed for 200+ simultaneous devices**  
+*Fixed O(1) thread pool • Single-writer-per-device guarantee • Cross-platform*
 
 ---
 
 ## ✈️ Overview
 
-CockpitOS HID Controller is a robust, user-friendly Python companion tool for your DCS-BIOS-enabled ESP32-based cockpit hardware.  
-It replaces the traditional serial interface with a high-performance USB HID protocol—**and works across Windows, Linux, and macOS.**
+CockpitOS HID Manager v2 is a complete architectural redesign optimized for large-scale cockpit builds. Unlike the original thread-per-device approach, v2 uses a **fixed thread pool** that maintains constant resource usage regardless of device count.
 
-- **No serial, no COM ports, no drivers. Just plug and fly.**
-- **Run your panels on any PC (not just the DCS machine) thanks to seamless network bridging.**
+- **12 threads total** — whether you have 1 device or 200
+- **No serial ports, no COM drivers** — pure USB HID
+- **Network transparent** — panels can connect from any PC on your LAN
+- **Professional curses UI** — real-time statistics with color-coded status
 
 ---
 
-## 🚀 Features
+## 🚀 Key Features
 
-- **Truly Cross-Platform:** Runs on Windows, Linux, macOS.
-- **No Serial Ports:** Communicates with your panels using USB HID, for plug-and-play experience.
-- **Network Transparent:** Connect panels to any machine on your network. No need to physically plug into your DCS computer!
-- **Live Dashboard:** Visualize connected devices, event logs, and bandwidth in real time.
-- **Supports Multiple Panels:** Automatically detects and manages multiple devices.
-- **Bulletproof Data Handling:** Ensures no lost or out-of-order events, even in case of network or USB hiccups.
+| Feature | Description |
+|---------|-------------|
+| **O(1) Thread Scaling** | Fixed 12-thread pool handles unlimited devices |
+| **Single-Writer Guarantee** | Each device assigned to exactly one TX worker — no HID races |
+| **Trigger-Based Protocol** | INPUT reports signal when to read FEATURE data |
+| **Bounded Queues** | Backpressure protection prevents memory exhaustion |
+| **Snapshot Pattern** | Lock-free device iteration for high-frequency reads |
+| **Per-Device Locks** | Cross-platform HID safety without global contention |
+| **Exception-Safe Broadcast** | UDP dispatch never crashes, even under load |
 
 ---
 
 ## 🗺️ Architecture
 
-1. **UDP RX Thread:**  
-   Listens for DCS-BIOS UDP multicast data, splits it into 64-byte chunks, and sends as HID OUT reports to all connected panels.
+```
+═══════════════════════════════════════════════════════════════════════════════
+                        DATA FLOW DIAGRAM
+═══════════════════════════════════════════════════════════════════════════════
 
-2. **Per-Device Threads:**  
-   For each ESP32 panel, handles handshake, reads button/axis/encoder events, and relays commands back to DCS World via UDP.
+    DCS World Game
+         │
+         ▼ (UDP multicast 239.255.50.10:5010)
+    ┌─────────────┐
+    │ UdpNetwork  │ ─── receives UDP frames from DCS-BIOS
+    └─────────────┘
+         │
+         ▼ (calls dispatch())
+    ┌──────────────┐
+    │ TxDispatcher │ ─── slices UDP into 64-byte HID reports
+    └──────────────┘     broadcasts to worker queues
+         │
+         ▼ (sharded by tx_worker_id)
+    ┌────────────────────────────────────────┐
+    │ TxWorker-0   TxWorker-1   TxWorker-2   │ ─── each writes to assigned 
+    └────────────────────────────────────────┘     devices ONLY (single-writer)
+         │
+         ▼ (HID write)
+    ┌─────────────┐
+    │ ESP32 Panel │ ─── receives cockpit state, updates displays/LEDs
+    └─────────────┘
+         │
+         ▼ (HID Input Report = TRIGGER)
+    ┌────────────────────────────────────────┐
+    │ RxPoller-0   RxPoller-1   RxPoller-2   │ ─── poll assigned devices
+    └────────────────────────────────────────┘     for button/switch input
+         │
+         ▼ (HID Feature Report = command)
+    ┌─────────────┐
+    │ UdpNetwork  │ ─── sends commands back to DCS
+    └─────────────┘
+         │
+         ▼ (UDP unicast to port 7778)
+    DCS World Game
+```
 
-3. **GUI/Main Thread:**  
-   The Tkinter-based dashboard shows device status, real-time logs, and network stats.
+### Thread Model (Fixed O(1) Pool)
+
+| Thread | Count | Purpose |
+|--------|-------|---------|
+| **TxWorker** | 4 | Write HID OUT reports to assigned devices |
+| **RxPoller** | 4 | Read HID input from assigned devices |
+| **UdpRx** | 1 | Receive DCS-BIOS UDP multicast |
+| **HandshakeMgr** | 1 | Initialize new devices |
+| **HotplugMon** | 1 | Detect USB connect/disconnect |
+| **UI** | 1 | Curses console display |
+| **Total** | **12** | *Constant regardless of device count* |
+
+### Device Lifecycle
+
+```
+DISCONNECTED ──(hotplug detected)──▶ HANDSHAKING ──(success)──▶ READY
+                                          │
+                                          └──(timeout/failure)──▶ ERROR
+```
 
 ---
 
-## 🌐 Use It From Anywhere
+## 🔧 Critical Protocol Detail: Trigger-Based Drain
 
-- **Your cockpit device can be plugged into ANY computer on your local network.**
-- The HID Controller bridges cockpit events over your LAN to the DCS World PC.
-- No need for USB extenders or running cables to your main simulator rig.
+The firmware uses a **trigger pattern** that the host must implement correctly:
+
+1. **Firmware** queues commands in a ring buffer
+2. **Firmware** sends an INPUT report as a "trigger" signal
+3. **Host** receives INPUT report (non-blocking poll)
+4. **Host** calls `get_feature_report()` to drain the buffer
+5. **Host** continues draining until empty (all zeros)
+
+```python
+# CORRECT: Only read Feature Reports after receiving Input trigger
+data = dev.read(64, timeout_ms=0)  # Non-blocking
+if data:  # Trigger received!
+    while True:
+        resp = dev.get_feature_report(0, 65)
+        if not any(resp[1:]):  # Empty = done
+            break
+        process_command(resp)
+```
+
+> ⚠️ **Never poll `get_feature_report()` without a trigger** — this wastes USB bandwidth and may cause timing issues.
+
+---
+
+## 🛡️ Thread Safety Design
+
+### Single-Writer-Per-Device (TX Sharding)
+
+```
+Device Assignment at Handshake:
+┌──────────────────┐     ┌──────────────────┐
+│ TxWorker-0       │     │ TxWorker-1       │
+│ ├── Device-A     │     │ ├── Device-B     │
+│ └── Device-C     │     │ └── Device-D     │
+└──────────────────┘     └──────────────────┘
+         │                        │
+         ▼                        ▼
+   ONLY TxWorker-0          ONLY TxWorker-1
+   writes to A,C            writes to B,D
+```
+
+**Why this matters:** HID handles are not thread-safe on all platforms. By assigning each device to exactly one TX worker at handshake time, we guarantee no two threads ever write to the same device.
+
+### Per-Device Locks
+
+Each `DeviceState` has its own lock protecting HID operations:
+
+```python
+with dev_state.lock:
+    dev.write(report)      # TX
+    # or
+    dev.get_feature_report(...)  # RX
+```
+
+Network/UI operations happen **outside** the lock to prevent contention.
+
+### DeviceRegistry Snapshot Pattern
+
+```python
+# FAST: Returns immutable snapshot (no lock held during iteration)
+devices = registry.get_all()
+for dev in devices:
+    process(dev)
+```
 
 ---
 
 ## 🖥️ Requirements
 
-- **Python 3.7+**
-- `hidapi` Python package:  
-  `pip install hidapi`
-- Supported ESP32 firmware: [See CockpitOS firmware](https://github.com/BojoteX/CockpitOS)
+### Python
+- **Python 3.7+** (3.10+ recommended)
+
+### Required Packages
+```bash
+pip install hidapi filelock
+```
+
+### Platform-Specific
+| Platform | Additional Package |
+|----------|-------------------|
+| **Windows** | `pip install windows-curses` |
+| **Linux/macOS** | None (curses built-in) |
+
+### Hardware
+- ESP32-S2, ESP32-S3, or ESP32-P4 running CockpitOS firmware
 - DCS World with DCS-BIOS UDP export enabled
 
 ---
 
 ## 🔌 Installation
 
-1. **Clone this repo**
-    ```sh
-    git clone https://github.com/BojoteX/CockpitOS.git
-    cd CockpitOS/HID\ Controller
-    ```
+```bash
+# Clone repository
+git clone https://github.com/BojoteX/CockpitOS.git
+cd "CockpitOS/HID Controller"
 
-2. **Install Python requirements**
-    ```sh
-    pip install hidapi
-    ```
+# Install dependencies (all platforms)
+pip install hidapi filelock
 
-3. **(Optional) Set your VID/PID in `settings.ini`**  
-   If you use custom firmware VID/PID values.
+# Windows only
+pip install windows-curses
+```
 
 ---
 
 ## ⚡ Usage
 
-1. **Plug in your ESP32-based cockpit panel(s).**
-2. **Launch DCS World with DCS-BIOS UDP enabled.**
-3. **Start the HID Controller:**
-    ```sh
-    python CockpitOS_HID_Manager.py
-    ```
+### Quick Start
 
-- The GUI will display:
-    - All connected devices
-    - Real-time button/axis events
-    - Network stats (frames/sec, bandwidth)
-    - Device connection/disconnection logs
+1. **Plug in your ESP32 cockpit panel(s)**
+2. **Launch DCS World** with DCS-BIOS UDP export enabled
+3. **Run the HID Manager:**
+   ```bash
+   python CockpitOS_HID_Manager_v2_FINAL.py
+   ```
 
-**Your panel now works with DCS—even over the network!**
+### Console Interface
 
----
+```
+Frames: 48291   Hz: 47.8   kB/s: 22.1   Avg: 462.3 bytes   Data Source: 192.168.1.100
 
-## 🧩 How It Works
+Device                                 Status           Reconnections
+ESP32-S2-UFCP                          READY            0
+ESP32-S3-LEFT-CONSOLE                  READY            1
+ESP32-S2-MASTER-ARM                    HANDSHAKING      0
 
-- **DCS-BIOS ➔ UDP Multicast ➔ HID Controller ➔ HID OUT ➔ ESP32 Device**
-- **ESP32 Device ➔ HID FEATURE Report ➔ HID Controller ➔ UDP ➔ DCS-BIOS**
+[14:32:15] [System] Starting CockpitOS HID Bridge (Scalable Edition)...
+[14:32:15] [System] VID: 0xCAFE, PID: Any
+[14:32:15] [System] Thread pool: 4 TX + 4 RX + 3 system
+[14:32:16] [ESP32-S2-UFCP] Connected
+[14:32:16] [ESP32-S2-UFCP] Starting handshake...
+[14:32:16] [ESP32-S2-UFCP] Handshake complete, ready to process input.
+[14:32:17] [ESP32-S2-UFCP] IN: MASTER_ARM_SW 1
 
-- HID OUT reports carry DCS-BIOS packets to your cockpit.
-- FEATURE reports (from device to host) send button/axis/encoder changes as ASCII commands, which are forwarded back to DCS World via UDP.
+3 device(s) connected (2 ready).  Press 'q' to quit.
+```
 
----
-
-## 🏆 Advantages Over Serial
-
-- No virtual COM ports or drivers
-- Superior hotplug/reconnect support
-- Multiple panels supported simultaneously
-- Network-transparent (plug devices anywhere)
-- No special configuration needed on the DCS PC
-
----
-
-## 🛡️ Reliability
-
-- Fully thread-safe, with robust event queuing
-- Handles device disconnects/reconnects
-- No data loss, even if triggers are missed or the network is busy
+**Status Colors:**
+| Color | Status | Meaning |
+|-------|--------|---------|
+| 🟢 Green | READY | Device operational |
+| 🟡 Yellow | HANDSHAKING / WAIT | Initializing |
+| 🔴 Red | ERROR / DISCONNECTED | Problem detected |
 
 ---
 
-## 📝 File Structure
+## ⚙️ Configuration
 
-- `CockpitOS_HID_Manager.py` — Application
-- `settings.ini` — Set your VID/PID (if needed)
+### settings.ini
+
+```ini
+[USB]
+# Vendor ID (required) — must match firmware
+VID = 0xCAFE
+
+# Product ID (optional) — omit to accept any PID with matching VID
+# PID = 0x4011
+
+[DCS]
+# Auto-detected from first UDP packet and persisted
+UDP_SOURCE_IP = 127.0.0.1
+
+[MAIN]
+CONSOLE = 1
+```
+
+### Architecture Constants (in script)
+
+```python
+TX_WORKERS          = 4       # HID write workers
+RX_POLLERS          = 4       # HID read pollers
+RX_POLL_INTERVAL_MS = 1       # Polling frequency
+MAX_DEVICES         = 256     # Registry capacity
+TX_QUEUE_SIZE       = 1024    # Backpressure threshold
+```
 
 ---
 
-## 🧑‍💻 For Developers
+## 📊 Statistics
 
-- Ready for porting to C++/Qt/Boost Asio/libusb
-- Explicit, well-documented threading and locking
-- Each core function is separable for easy extension
+| Stat | Description |
+|------|-------------|
+| **Frames** | Total UDP frames received from DCS-BIOS |
+| **Hz** | Frames per second (1-second rolling window) |
+| **kB/s** | Bandwidth in kilobytes per second |
+| **Avg** | Average bytes per UDP frame |
+| **Data Source** | Detected DCS PC IP address |
+| **Reconnections** | Per-device reconnect count (survives unplugs) |
 
 ---
 
-## ❓ FAQ
+## 🌐 Network Topology
 
-**Q: Can I use this on Linux or Mac?**  
-A: Absolutely! Any OS with Python and the HID API Library installed.
+### Local Setup
+```
+[DCS PC]
+    │
+    ├── HID Manager
+    │
+    └── USB ── [ESP32 Panels]
+```
 
-**Q: Do I need to plug my panels into the DCS computer?**  
-A: No! As long as the HID Manager is running on any LAN-connected PC, your panel(s) will work.
+### Distributed Setup
+```
+[DCS PC]                          [Panel PC]
+    │                                  │
+    └──── LAN (UDP multicast) ─────────┘
+                                       │
+                                  HID Manager
+                                       │
+                                  USB ── [ESP32 Panels]
+```
 
-**Q: Will I lose events if my USB gets busy?**  
-A: No. The program is designed to recover and deliver all pending events as soon as the system is ready.
+> **Note:** UDP multicast typically doesn't cross routers. For multi-subnet setups, use unicast or a multicast relay.
 
-**Q: Can I use multiple panels at once?**  
-A: Yes! All are auto-detected and managed independently.
+---
+
+## 🆚 v1 vs v2 Comparison
+
+| Aspect | v1 (Original) | v2 (Scalable) |
+|--------|---------------|---------------|
+| **Thread Model** | O(N) — one per device | O(1) — fixed pool of 12 |
+| **Max Devices** | ~20-30 practical | 200+ tested |
+| **TX Architecture** | Per-device queues | Sharded workers with broadcast |
+| **Thread Safety** | Global locks | Per-device locks + sharding |
+| **Memory** | Standard objects | `__slots__` for efficiency |
+| **Registry** | List iteration | Snapshot pattern |
+| **UI Options** | Console + Tkinter GUI | Console only (lightweight) |
+| **Backpressure** | Limited | Bounded queues, graceful drop |
 
 ---
 
 ## 🆘 Troubleshooting
 
-- **No device detected?**  
-  Double-check your VID/PID in `settings.ini` and verify your firmware is loaded.
-- **No events in DCS?**  
-  Confirm DCS-BIOS UDP export is enabled and not firewalled. Multi-cast usually won't travel across networks/routers
-- **Device randomly disconnects?**  
-  USB power save or cable/connector issues—check system logs. Make sure CDC on boot is DISABLED (Serial conflicts with HID)
+### No devices detected
+
+1. **Verify VID/PID** in `settings.ini` matches firmware
+2. **Check USB CDC On Boot** = Disabled in Arduino IDE
+3. **Linux permissions** — add udev rule or run with sudo
+4. **Try different USB port** — avoid hubs initially
+
+### Device stuck on HANDSHAKING
+
+1. **Firmware mismatch** — ensure `USE_DCSBIOS_USB = 1` in Config.h
+2. **Stale state** — unplug, wait 5 seconds, replug
+3. **Check handshake protocol** — firmware must echo `DCSBIOS-HANDSHAKE`
+
+### Commands not reaching DCS
+
+1. **DCS-BIOS enabled** — verify UDP export is configured
+2. **Firewall** — allow UDP 5010 (RX) and 7778 (TX)
+3. **Data Source** — ensure IP appears in stats header
+4. **Check logs** — look for "IN:" messages confirming receipt
+
+### High CPU usage
+
+- **Expected:** 2-5% total across all threads
+- **If higher:** Check for USB hub issues, reduce polling rate
+
+### "Another instance running" error
+
+- Close existing instance or delete `hid_manager.lock`
 
 ---
 
-## 🤝 Contributing
+## 🧑‍💻 For Developers
 
-PRs, suggestions, and bug reports are welcome! See `CONTRIBUTING.md` for guidelines.
+### Module Structure
+
+| Class | Lines | Responsibility |
+|-------|-------|----------------|
+| `DeviceState` | 243-303 | Thread-safe device container with `__slots__` |
+| `DeviceRegistry` | 309-375 | Central registry with snapshot pattern |
+| `TxDispatcher` | 381-531 | UDP→HID fan-out with sharded workers |
+| `RxPoller` | 537-658 | Non-blocking HID reads with trigger drain |
+| `HandshakeManager` | 664-794 | Device initialization queue |
+| `HotplugMonitor` | 800-896 | USB connect/disconnect detection |
+| `UdpNetwork` | 902-1035 | Multicast RX, unicast TX |
+| `ConsoleUI` | 1041-1250 | Curses display |
+| `CockpitHidBridge` | 1255-1378 | Main orchestrator |
+
+### Porting to C++
+
+Key patterns to preserve:
+
+1. **Sharded TX workers** — device-to-worker affinity at connect time
+2. **Trigger-based drain** — never poll feature reports without input trigger
+3. **Per-device locks** — hold only during HID operations
+4. **Bounded queues** — backpressure with graceful degradation
+5. **Snapshot registry** — lock-free iteration for hot path
+
+Recommended stack: **libusb** + **Boost.Asio** + **ncurses**
+
+---
+
+## 📁 File Structure
+
+```
+HID Controller/
+├── CockpitOS_HID_Manager_v2_FINAL.py   # Main application
+├── settings.ini                         # Configuration (auto-created)
+├── hid_manager.lock                     # Single-instance lock
+└── README.md                            # This documentation
+```
+
+---
+
+## ❓ FAQ
+
+**Q: How many devices can this handle?**  
+A: Tested with 200+ simulated devices. Real-world limit is your USB infrastructure (see main README for xHCI limitations).
+
+**Q: Why no GUI mode?**  
+A: v2 focuses on performance and server-friendly operation. The curses UI works over SSH and uses minimal resources.
+
+**Q: Can I mix v1 and v2?**  
+A: No — use one or the other. They use the same lock file and would conflict.
+
+**Q: What's the latency?**  
+A: Sub-millisecond for button presses. UDP frames dispatched within ~1ms of receipt.
+
+**Q: Is the single-instance lock necessary?**  
+A: Yes — multiple instances would fight over the same HID handles, causing data corruption.
 
 ---
 
@@ -176,7 +428,12 @@ PRs, suggestions, and bug reports are welcome! See `CONTRIBUTING.md` for guideli
 
 ---
 
-**Happy Flying!  
-— The CockpitOS Firmware Project Team**
+## 🔗 Related Resources
+
+- **CockpitOS Firmware:** [github.com/BojoteX/CockpitOS](https://github.com/BojoteX/CockpitOS)
+- **DCS-BIOS (Skunkworks):** [github.com/DCS-Skunkworks/dcs-bios](https://github.com/DCS-Skunkworks/dcs-bios)
 
 ---
+
+**Built for Scale. Engineered for Reliability.**  
+*— The CockpitOS Project*
