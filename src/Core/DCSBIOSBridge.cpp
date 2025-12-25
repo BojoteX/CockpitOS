@@ -446,6 +446,7 @@ void onAircraftName(const char* str) {
     else if (isBlank) {
         if (alreadyStarted) {
             debugPrintln("[MISSION STOP]");
+            HIDManager_saveCalibration();
             alreadyStarted = false;
         }
         lastMissionStart = 0;

@@ -75,9 +75,121 @@
 #include "../BLEManager.h"
 #endif
 
+// === NVS Calibration Persistence ===
+#include <Preferences.h>
+
+static Preferences calPrefs;
+static uint16_t axMinSaved[HID_AXIS_COUNT];
+static uint16_t axMaxSaved[HID_AXIS_COUNT];
+static bool     axCalibLoaded = false;
+
 // === Self-learning axis calibration ===
 static uint16_t axMin[HID_AXIS_COUNT];
 static uint16_t axMax[HID_AXIS_COUNT];
+
+// Called once at boot (from HIDManager_setup)
+static void axCalibLoad() {
+    calPrefs.begin("axcal", true);  // read-only
+
+    bool hasData = calPrefs.isKey("min") && calPrefs.isKey("max");
+
+    if (hasData) {
+        calPrefs.getBytes("min", axMinSaved, sizeof(axMinSaved));
+        calPrefs.getBytes("max", axMaxSaved, sizeof(axMaxSaved));
+
+        // Copy saved values to working arrays
+        memcpy(axMin, axMinSaved, sizeof(axMin));
+        memcpy(axMax, axMaxSaved, sizeof(axMax));
+
+        debugPrintln("[CAL] Loaded calibration from NVS:");
+        for (uint8_t i = 0; i < HID_AXIS_COUNT; i++) {
+            if (axMin[i] < 4095 || axMax[i] > 0) {  // Only log axes with real data
+                debugPrintf("[CAL]   Axis %u: min=%u, max=%u, span=%u\n",
+                    i, axMin[i], axMax[i], axMax[i] - axMin[i]);
+            }
+        }
+    }
+    else {
+        // No saved data — initialize saved arrays to "nothing learned"
+        for (uint8_t i = 0; i < HID_AXIS_COUNT; i++) {
+            axMinSaved[i] = 4095;
+            axMaxSaved[i] = 0;
+        }
+        debugPrintln("[CAL] No saved calibration found — starting fresh");
+    }
+
+    calPrefs.end();
+    axCalibLoaded = true;
+}
+
+// Called on mission stop
+static void axCalibSave() {
+    if (!axCalibLoaded) return;  // Safety: don't save if we never loaded
+
+    // Check each axis: only save if we EXPANDED the range
+    bool anyChanged = false;
+    uint16_t toSaveMin[HID_AXIS_COUNT];
+    uint16_t toSaveMax[HID_AXIS_COUNT];
+
+    for (uint8_t i = 0; i < HID_AXIS_COUNT; i++) {
+        // Start with saved values (preserve existing calibration)
+        toSaveMin[i] = axMinSaved[i];
+        toSaveMax[i] = axMaxSaved[i];
+
+        // Only update if we found a LOWER min (axis was moved further down)
+        if (axMin[i] < axMinSaved[i]) {
+            toSaveMin[i] = axMin[i];
+            anyChanged = true;
+            debugPrintf("[CAL] Axis %u: min expanded %u → %u\n", i, axMinSaved[i], axMin[i]);
+        }
+
+        // Only update if we found a HIGHER max (axis was moved further up)
+        if (axMax[i] > axMaxSaved[i]) {
+            toSaveMax[i] = axMax[i];
+            anyChanged = true;
+            debugPrintf("[CAL] Axis %u: max expanded %u → %u\n", i, axMaxSaved[i], axMax[i]);
+        }
+    }
+
+    if (!anyChanged) {
+        debugPrintln("[CAL] No calibration changes to save");
+        return;
+    }
+
+    // Write to NVS
+    calPrefs.begin("axcal", false);  // read-write
+    calPrefs.putBytes("min", toSaveMin, sizeof(toSaveMin));
+    calPrefs.putBytes("max", toSaveMax, sizeof(toSaveMax));
+    calPrefs.end();
+
+    // Update saved tracking arrays
+    memcpy(axMinSaved, toSaveMin, sizeof(axMinSaved));
+    memcpy(axMaxSaved, toSaveMax, sizeof(axMaxSaved));
+
+    debugPrintln("[CAL] Calibration saved to NVS");
+}
+
+// Called on factory reset / bond wipe (optional)
+static void axCalibWipe() {
+    calPrefs.begin("axcal", false);
+    calPrefs.clear();
+    calPrefs.end();
+
+    // Reset all arrays
+    for (uint8_t i = 0; i < HID_AXIS_COUNT; i++) {
+        axMin[i] = 4095;
+        axMax[i] = 0;
+        axMinSaved[i] = 4095;
+        axMaxSaved[i] = 0;
+    }
+
+    debugPrintln("[CAL] Calibration wiped");
+}
+
+// Public wrapper (non-static)
+void HIDManager_saveCalibration() {
+    axCalibSave();
+}
 
 static void axCalibInit() {
     for (uint8_t i = 0; i < HID_AXIS_COUNT; i++) {
@@ -749,8 +861,9 @@ void HIDManager_startUSB() {
 
 void HIDManager_setup() {
 
-	// Initialize axis calibration
-    axCalibInit();
+    // Initialize axis calibration
+    axCalibInit();   // Reset working arrays to default
+    axCalibLoad();   // Load NVS (overwrites defaults if data exists)
 
     // Load our Group
     buildHIDGroupBitmasks();

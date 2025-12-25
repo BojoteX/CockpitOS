@@ -109,8 +109,12 @@ void setup() {
     if (loadUSBevents || loadCDCevents)
         HIDManager_startUSB();
 
-    // Let USB enumerate and Serial start
-    delay(3000);
+    // Fast start when using BLE and no Serial debug, otherwise wait 3 full seconds 
+    #if USE_DCSBIOS_BLUETOOTH && (!VERBOSE_MODE_SERIAL_ONLY && !VERBOSE_MODE) 
+      delay(100); // Instant BLE Wake-up 
+    #else 
+      delay(3000); 
+    #endif
 
     // WiFi needs to load AFTER HIDManager and DCSBIOSBridge setup. If you need to debug messages during that stage, enable WIFI_DEBUG_USE_RINGBUFFER in Config.h 
     #if DEBUG_USE_WIFI || USE_DCSBIOS_WIFI

@@ -4,6 +4,7 @@
 
 #include "CoverGate.h"
 
+void HIDManager_saveCalibration();
 void HIDManager_startUSB();
 void HIDManager_setup();
 void HIDManager_loop();

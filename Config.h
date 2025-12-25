@@ -24,9 +24,9 @@
 #define ENABLE_TFT_GAUGES                           0 // Enable TFT Gauges (should always be 1, except for testing or debugging)
 #define ENABLE_PCA9555                              0 // 0 = skip PCA logic & autodetection, 1 = enable PCA Expanders. Enable only if PCA expanders are present in your hardware/PCB 
 #define SEND_HID_AXES_IN_DCS_MODE                   0 // Sends HID Axes even if DCS Mode is active
-#define MIDDLE_AXIS_THRESHOLD                      64 // Adjust if your Middle Axis won't stick to center (optimal should be 32-64) but noisy axes require 128-256
-#define UPPER_AXIS_THRESHOLD                       64 // Adjust if your Upper Axis won't stick to max (optimal should be 32-64) but noisy axes require 128-256
-#define LOWER_AXIS_THRESHOLD                       64 // Adjust if your Lower Axis won't stick to min (optimal should be 32-64) but noisy axes require 128-256
+#define MIDDLE_AXIS_THRESHOLD                     128 // Adjust if your Middle Axis won't stick to center (optimal should be 32-64) but noisy axes require 128-256
+#define UPPER_AXIS_THRESHOLD                      128 // Adjust if your Upper Axis won't stick to max (optimal should be 32-64) but noisy axes require 128-256
+#define LOWER_AXIS_THRESHOLD                      128 // Adjust if your Lower Axis won't stick to min (optimal should be 32-64) but noisy axes require 128-256
 
 // Wi-Fi network credentials (used for WiFi remote Debug Console and DCSBIOS WiFi mode if selected)
 #define WIFI_SSID                                  "MyHotspotNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
