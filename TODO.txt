@@ -1,5 +1,9 @@
 TODO:
 
+- Test HID Manager with Raspberry and tons of devices
+
+- test BLE PIN power gating (for battery save power)
+
 - Better documentation
 
 - Youtube Video tutorials

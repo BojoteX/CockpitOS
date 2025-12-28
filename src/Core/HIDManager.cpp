@@ -87,6 +87,9 @@ static bool     axCalibLoaded = false;
 static uint16_t axMin[HID_AXIS_COUNT];
 static uint16_t axMax[HID_AXIS_COUNT];
 
+// === Center deadzone state (inner/outer hysteresis) ===
+static bool axInDeadzone[HID_AXIS_COUNT] = { false };
+
 // Called once at boot (from HIDManager_setup)
 static void axCalibLoad() {
     calPrefs.begin("axcal", true);  // read-only
@@ -215,6 +218,30 @@ static inline int axScale(int v, HIDAxis ax) {
     // Sticky zones at extremes (latching for noisy axes)
     if (out > 0 && out <= LOWER_AXIS_THRESHOLD) out = 0;
     if (out < 4095 && out >= (4095 - UPPER_AXIS_THRESHOLD)) out = 4095;
+
+    // ─── Center deadzone with inner/outer hysteresis ───
+    constexpr int HID_CENTER = 2048;
+    const bool inInner = (out >= (HID_CENTER - CENTER_DEADZONE_INNER))
+        && (out <= (HID_CENTER + CENTER_DEADZONE_INNER));
+    const bool inOuter = (out >= (HID_CENTER - CENTER_DEADZONE_OUTER))
+        && (out <= (HID_CENTER + CENTER_DEADZONE_OUTER));
+
+    if (axInDeadzone[ax]) {
+        // Currently captured — must exit outer boundary to escape
+        if (!inOuter) {
+            axInDeadzone[ax] = false;
+        }
+        else {
+            return HID_CENTER;  // Stay locked at center
+        }
+    }
+    else {
+        // Currently free — enter if we hit inner boundary
+        if (inInner) {
+            axInDeadzone[ax] = true;
+            return HID_CENTER;
+        }
+    }
 
     return out;
 }
