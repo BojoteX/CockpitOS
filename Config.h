@@ -155,6 +155,10 @@
 #define USB_MANUFACTURER                     "CockpitOS"
 #define USB_LANG_ID                          0x0409  // English (US)
 
+#if USE_DCSBIOS_WIFI && !DCS_USE_RINGBUFFER
+#error "Invalid config: DCS_USE_RINGBUFFER must be 1 when USE_DCSBIOS_WIFI is enabled."
+#endif
+
 // Automatically enables what we'll be using, no need to edit.
 #if (ARDUINO_USB_CDC_ON_BOOT == 1)
   #define CONFIG_TINYUSB_CDC_ENABLED                1

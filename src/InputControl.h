@@ -1,5 +1,7 @@
 // InputControl.h - Centralized management for GPIO/PCA/HC165 inputs
 
+#pragma once
+
 #include "HIDManager.h" // for HIDAxis enum, or forward declare if needed
 
 namespace AnalogAcq {

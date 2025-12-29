@@ -12,6 +12,9 @@
 #include "Mappings.h"
 #include "src/HIDManager.h"
 
+// Recently added
+#include "src/InputControl.h"
+
 #if DEBUG_USE_WIFI || USE_DCSBIOS_WIFI
 #include "src/WiFiDebug.h"
 #endif
@@ -65,6 +68,89 @@ const char* getPanelName(uint8_t addr) {
 }
 
 void initMappings() {
+    // ================================================================
+    // Mapping sanity checks (fail fast on invalid or out-of-range data)
+    // ================================================================
+    bool ok = true;
+
+    for (size_t i = 0; i < InputMappingSize; ++i) {
+        const auto& m = InputMappings[i];
+        if (!m.label || !m.source) continue;
+
+        if (m.group >= MAX_GROUPS) {
+            debugPrintf("❌ [MAPPING] %s has group=%u >= MAX_GROUPS (%u)\n",
+                m.label, (unsigned)m.group, (unsigned)MAX_GROUPS);
+            ok = false;
+        }
+
+        if ((strcmp(m.controlType, "selector") == 0) && m.group >= MAX_SELECTOR_GROUPS) {
+            debugPrintf("❌ [MAPPING] %s selector group=%u >= MAX_SELECTOR_GROUPS (%u)\n",
+                m.label, (unsigned)m.group, (unsigned)MAX_SELECTOR_GROUPS);
+            ok = false;
+        }
+
+        if (strcmp(m.source, "GPIO") == 0 && m.port >= 48) {
+            debugPrintf("❌ [MAPPING] %s uses GPIO port=%d >= 48 (unsupported)\n",
+                m.label, (int)m.port);
+            ok = false;
+        }
+    }
+
+    // TM1637 mapping caps
+    {
+        uint8_t tmKeyCount = 0;
+        for (size_t i = 0; i < InputMappingSize; ++i) {
+            const auto& m = InputMappings[i];
+            if (!m.source) continue;
+            if (strcmp(m.source, "TM1637") != 0) continue;
+            if (m.port < 0 || m.bit < 0) continue;
+            ++tmKeyCount;
+        }
+        if (tmKeyCount > MAX_TM1637_KEYS) {
+            debugPrintf("❌ [MAPPING] TM1637 keys=%u exceeds MAX_TM1637_KEYS=%u\n",
+                (unsigned)tmKeyCount, (unsigned)MAX_TM1637_KEYS);
+            ok = false;
+        }
+    }
+
+    // WS2812 mapping caps (per-strip LED count and strip count)
+    {
+        uint8_t stripPins[WS2812_MAX_STRIPS] = { 0 };
+        uint8_t stripCount = 0;
+        for (size_t i = 0; i < panelLEDsCount; ++i) {
+            const auto& led = panelLEDs[i];
+            if (led.deviceType != DEVICE_WS2812) continue;
+
+            if (led.info.ws2812Info.index >= WS2812_MAX_LEDS) {
+                debugPrintf("❌ [MAPPING] WS2812 %s index=%u >= WS2812_MAX_LEDS=%u\n",
+                    led.label,
+                    (unsigned)led.info.ws2812Info.index,
+                    (unsigned)WS2812_MAX_LEDS);
+                ok = false;
+            }
+
+            const uint8_t pin = led.info.ws2812Info.pin;
+            bool seen = false;
+            for (uint8_t s = 0; s < stripCount; ++s) {
+                if (stripPins[s] == pin) { seen = true; break; }
+            }
+            if (!seen) {
+                if (stripCount >= WS2812_MAX_STRIPS) {
+                    debugPrintf("❌ [MAPPING] WS2812 pin=%u exceeds WS2812_MAX_STRIPS=%u\n",
+                        (unsigned)pin, (unsigned)WS2812_MAX_STRIPS);
+                    ok = false;
+                }
+                else {
+                    stripPins[stripCount++] = pin;
+                }
+            }
+        }
+    }
+
+    if (!ok) {
+        debugPrintln("❌ [MAPPING] Invalid configuration detected. Halting.");
+        while (true) { delay(1000); }
+    }
 
     // ================================================================
     // TM1637 sanity check: TM1637 inputs require at least ONE LEDMapping
