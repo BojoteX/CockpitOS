@@ -59,6 +59,8 @@ IS_WINDOWS = (os.name == 'nt') or sys.platform.startswith('win')
 IS_LINUX = sys.platform.startswith('linux')
 IS_MACOS = sys.platform == 'darwin'
 
+# Logging
+LOG_ENABLED            = False  # Set True to enable file logging
 
 def _detect_raspberry_pi() -> bool:
     """Detect if running on Raspberry Pi hardware."""
@@ -250,19 +252,21 @@ def get_logger() -> logging.Logger:
         _logger = logger
         return _logger
 
-
 def log_event(uiq: Optional[queue.Queue], name: str, msg: str, level: str = "info") -> None:
     """Log to file and enqueue for UI display."""
-    logger = get_logger()
-    log_fn = getattr(logger, level, logger.info)
-    log_fn(f"[{name}] {msg}")
     
+    # File logging (skip if disabled)
+    if LOG_ENABLED:
+        logger = get_logger()
+        log_fn = getattr(logger, level, logger.info)
+        log_fn(f"[{name}] {msg}")
+    
+    # UI queue (always, so console still shows events)
     if uiq is not None:
         try:
             uiq.put_nowait(('log', name, msg))
         except queue.Full:
-            pass  # Drop UI updates under extreme load
-
+            pass
 
 def read_settings() -> Tuple[int, Optional[int], Optional[str], int]:
     """Read settings from INI file."""
