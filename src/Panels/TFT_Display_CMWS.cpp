@@ -35,7 +35,7 @@
 // CONFIGURATION
 // =============================================================================
 #define CMWS_DISPLAY_REFRESH_RATE_MS    33      // ~30 FPS max
-#define RUN_CMWS_DISPLAY_AS_TASK        0
+#define RUN_CMWS_DISPLAY_AS_TASK        1
 #define CMWS_TASK_STACK_SIZE            4096
 #define CMWS_TASK_PRIORITY              2
 #define CMWS_CPU_CORE                   0
@@ -129,7 +129,7 @@ public:
             auto cfg = _bus.config();
             cfg.spi_host    = spi_host;
             cfg.spi_mode    = 0;
-            cfg.freq_write  = 60000000;
+            cfg.freq_write  = 80000000;
             cfg.freq_read   = 16000000;
             cfg.spi_3wire   = false;
             cfg.use_lock    = false;
