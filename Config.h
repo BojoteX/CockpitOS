@@ -15,8 +15,8 @@
 
 // Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. 
 // Bluetooth BLE, Pure Native USB, WIFI or Serial (CDC/Socat). Only ONE can be active 
-#define USE_DCSBIOS_BLUETOOTH                       1 // *INTERNAL USE ONLY* (Not included) Completely bypasses socat and uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (All ESP32 that support BLE Bluetooth).
-#define USE_DCSBIOS_WIFI                            0 // Completely bypasses socat and uses WiFi to connect to DCS. (ALL ESP32 Devices except H2) 
+#define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included) Completely bypasses socat and uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (All ESP32 that support BLE Bluetooth).
+#define USE_DCSBIOS_WIFI                            1 // Completely bypasses socat and uses WiFi to connect to DCS. (ALL ESP32 Devices except H2) 
 #define USE_DCSBIOS_USB                             0 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (S2, S3 & P4 Only). S3 & P4 require USB Mode set to USB-OTG (TinyUSB) in Tools Menu
 #define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 
@@ -34,11 +34,11 @@
 #define WIFI_SSID                                  "MyHotspotNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
 #define WIFI_PASS                                  "TestingOnly"
 
-// For production, ALL THESE should be set to 0. Use for debugging only. Most commonly used together are DEBUG_USE_WIFI + VERBOSE_MODE_WIFI_ONLY + DEBUG_PERFORMANCE
-#define DEBUG_ENABLED                               0  // Use it ONLY when identifying issues or troubleshooting
+// For production, ALL THESE should be set to 0. Use for debugging only.
+#define DEBUG_ENABLED                               1  // Use it ONLY when identifying issues or troubleshooting
 #define VERBOSE_MODE                                0  // Logs INFO messages to both Serial and UDP (very useful).
 #define VERBOSE_MODE_SERIAL_ONLY                    0  // Verbose will only output to Serial. 
-#define VERBOSE_MODE_WIFI_ONLY                      0  // Verbose will only output to WiFi so Serial port is clean. Requires DEBUG_USE_WIFI
+#define VERBOSE_MODE_WIFI_ONLY                      1  // Verbose will only output to WiFi so Serial port is clean.
 #define VERBOSE_PERFORMANCE_ONLY                    0  // Requires DEBUG_PERFORMANCE as well, this will only output perf snapshots, make sure you pick WIFI or SERIAL above and DEBUG_ENABLED is 0
 #define DEBUG_PERFORMANCE                           0  // Shows a performance snapshot every x seconds (interval can be configured below)
 #define DEBUG_PERFORMANCE_SHOW_TASKS                0  // Includes the current task list with the snapshot. Not really needed.
@@ -100,7 +100,7 @@
 #endif
 
 // WiFi Debug Ring Buffer 
-#define WIFI_DEBUG_USE_RINGBUFFER                   0 // Should be use a ring buffer for WiFi Debug messages? helps when using WiFi DCS Mode. If WiFi is not used, this value is ignored anyway. Also, if using CDC + WiFi Debug, this is REQUIRED to avoid CDC stalls
+#define WIFI_DEBUG_USE_RINGBUFFER                   1 // Should be use a ring buffer for WiFi Debug messages? helps when using WiFi DCS Mode. If WiFi is not used, this value is ignored anyway. Also, if using CDC + WiFi Debug, this is REQUIRED to avoid CDC stalls
 #if WIFI_DEBUG_USE_RINGBUFFER
   #define WIFI_DBG_SEND_RINGBUF_SIZE               64 // How many slots in our buffer
   #define WIFI_DBG_MSG_MAXLEN                      64 // Max size for each slot
@@ -207,7 +207,7 @@
   #define DEVICE_HAS_HWSERIAL 1
 #elif defined(CONFIG_IDF_TARGET_ESP32S2)
   #define ESP_FAMILY_S2 1
-  #define DEVICE_HAS_HWSERIAL 0 // No JTAG / HW CDC
+  #define DEVICE_HAS_HWSERIAL 0 // No HW CDC
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
   #define ESP_FAMILY_S3 1
   #define DEVICE_HAS_HWSERIAL 1
@@ -219,7 +219,7 @@
   #define DEVICE_HAS_HWSERIAL 1
 #elif defined(CONFIG_IDF_TARGET_ESP32)
   #define ESP_FAMILY_CLASSIC 1
-  #define DEVICE_HAS_HWSERIAL 1
+  #define DEVICE_HAS_HWSERIAL 0
 #else
   #define ESP_FAMILY_UNKNOWN 1
   #define DEVICE_HAS_HWSERIAL 0
@@ -254,6 +254,10 @@
 #endif
 
 // Define the Built-in LED if compiling with a board that does not define it. Only if you get errors about LED_BUILTIN not defined.
-// #ifndef LED_BUILTIN
-// #define LED_BUILTIN 15 // Default LED pin
-// #endif
+#ifndef LED_BUILTIN
+  #if ESP_FAMILY_CLASSIC
+    #define LED_BUILTIN  5 // Default LED pin
+  #else
+    #define LED_BUILTIN -1 // Default LED pin
+  #endif
+#endif

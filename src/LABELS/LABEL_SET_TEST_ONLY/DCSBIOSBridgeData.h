@@ -151,7 +151,7 @@ inline const AddressEntry* findDcsOutputEntries(uint16_t addr) {
   for (uint16_t i = 0; i < 53; ++i) {
     uint16_t idx = (startH + i >= 53) ? (startH + i - 53) : (startH + i);
     const auto& entry = dcsAddressHashTable[idx];
-    if (entry.addr == 0xFFFF) continue;
+    if (entry.addr == 0xFFFF) return nullptr;
     if (entry.addr == addr) return entry.entry;
   }
   return nullptr;

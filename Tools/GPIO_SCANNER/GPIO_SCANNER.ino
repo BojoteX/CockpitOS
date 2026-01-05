@@ -3,7 +3,7 @@
 // --------- CONFIGURATION ---------
 #define ANALOG_PROBE_ONLY   0   // <-- SET TO 1 for pots, 0 for switches
 
-const int pinsToScan[] = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 21, 33, 34, 35, 36, 37, 38, 39, 40};
+const int pinsToScan[] = {0, 2, 4, 15, 18, 23, 32};
 const int NUM_PINS = sizeof(pinsToScan) / sizeof(pinsToScan[0]);
 
 // --- ANALOG scan state ---

@@ -508,7 +508,10 @@ with open(OUTPUT_HEADER, 'w', encoding='utf-8') as f:
     f.write(f"  for (uint16_t i = 0; i < {ADDR_TABLE_SIZE}; ++i) {{\n")
     f.write(f"    uint16_t idx = (startH + i >= {ADDR_TABLE_SIZE}) ? (startH + i - {ADDR_TABLE_SIZE}) : (startH + i);\n")
     f.write("    const auto& entry = dcsAddressHashTable[idx];\n")
-    f.write("    if (entry.addr == 0xFFFF) continue;\n")
+
+    # f.write("    if (entry.addr == 0xFFFF) continue;\n") // Removed as per suggestion
+
+    f.write("    if (entry.addr == 0xFFFF) return nullptr;\n")
     f.write("    if (entry.addr == addr) return entry.entry;\n")
     f.write("  }\n")
     f.write("  return nullptr;\n")

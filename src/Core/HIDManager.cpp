@@ -5,39 +5,44 @@
 #include "../DCSBIOSBridge.h"
 
 // DCSBIOS serial handling
-#if !defined(ARDUINO_USB_CDC_ON_BOOT) || ARDUINO_USB_CDC_ON_BOOT == 0 // if CDC is off on boot
-    #if (ARDUINO_USB_MODE == 0) // and we are in TinyUSB mode
-        #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) // And some form of serial was enabled, then
-            #include "USB.h"
-            USBCDC USBSerial;
-            #define LOADED_CDC_STACK 1 // Mark that we have a real HID stack loaded
-        #else // No serial needed, but we still need to define the HWCDC object to compile (and close HWCDCSerial if opened by default)
-            #if DEVICE_HAS_HWSERIAL == 1
+#if defined(ARDUINO_USB_MODE)
+    #if !defined(ARDUINO_USB_CDC_ON_BOOT) || ARDUINO_USB_CDC_ON_BOOT == 0 // if CDC is off on boot
+        #if (ARDUINO_USB_MODE == 0) // and we are in TinyUSB mode
+            #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) // And some form of serial was enabled, then
+                #include "USB.h"
+                USBCDC USBSerial;
+                #define LOADED_CDC_STACK 1 // Mark that we have a real HID stack loaded
+            #else // No serial needed, but we still need to define the HWCDC object to compile (and close HWCDCSerial if opened by default)
+                #if DEVICE_HAS_HWSERIAL == 1
+                    #include "HWCDC.h"
+                    #define CLOSE_HWCDC_SERIAL 1 // Mark that we need to close the HWserial port
+                #endif
+            #endif
+        #elif (ARDUINO_USB_MODE == 1)
+            #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) // Enable only if Serial is needed
                 #include "HWCDC.h"
+                HWCDC HWCDCSerial;  // not aliased to Serial when OFF_ON_BOOT
+            #else
+                #include "HWCDC.h"
+                // HWCDC HWCDCSerial;  // not aliased to Serial when OFF_ON_BOOT
                 #define CLOSE_HWCDC_SERIAL 1 // Mark that we need to close the HWserial port
             #endif
         #endif
-    #elif (ARDUINO_USB_MODE == 1)
-        #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) // Enable only if Serial is needed
-            #include "HWCDC.h"
-            HWCDC HWCDCSerial;  // not aliased to Serial when OFF_ON_BOOT
-        #else
-            #include "HWCDC.h"
-            // HWCDC HWCDCSerial;  // not aliased to Serial when OFF_ON_BOOT
-            #define CLOSE_HWCDC_SERIAL 1 // Mark that we need to close the HWserial port
+    #else // CDC is ON on boot, so Serial is already aliased to CDC
+        #if (!USE_DCSBIOS_SERIAL && !VERBOSE_MODE_SERIAL_ONLY && !VERBOSE_MODE) // If serial is NOT needed, mark to close it later
+            #if ARDUINO_USB_MODE == 1
+                // HWCDC Serial;
+                #define CLOSE_HWCDC_SERIAL 1 // Mark that we need to close the HW serial port
+            #else   
+                // USBCDC Serial;
+                #define CLOSE_CDC_SERIAL 1 // Mark that we need to close the CDC serial port
+            #endif
         #endif
     #endif
-#else // CDC is ON on boot, so Serial is already aliased to CDC
-    #if (!USE_DCSBIOS_SERIAL && !VERBOSE_MODE_SERIAL_ONLY && !VERBOSE_MODE) // If serial is NOT needed, mark to close it later
-        #if ARDUINO_USB_MODE == 1
-            // HWCDC Serial;
-            #define CLOSE_HWCDC_SERIAL 1 // Mark that we need to close the HW serial port
-        #else   
-            // USBCDC Serial;
-            #define CLOSE_CDC_SERIAL 1 // Mark that we need to close the CDC serial port
-        #endif
-    #endif
+#else
+	// Do nothing, no USB mode defined
 #endif
+
 
 // ----- USB build: real stack for S2 and S3 only -----
 #if !USE_DCSBIOS_WIFI && !USE_DCSBIOS_BLUETOOTH // No WiFi or Bluetooth, so either USB or Serial only selected
@@ -882,8 +887,11 @@ void HID_keepAlive() {
 }
 
 void HIDManager_startUSB() {
-    // THis will load only after loadUSBevents = true
+#if defined(ARDUINO_USB_MODE)
+    // Only chips with native USB need USB.begin()
     USB.begin();
+#endif
+    // Original ESP32: nothing to do — Serial works via external bridge
 }
 
 void HIDManager_setup() {

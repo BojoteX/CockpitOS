@@ -1,6 +1,6 @@
 TODO:
 
-- Test HID Manager with Raspberry and tons of devices
+- Simplify PanelKind
 
 - test BLE PIN power gating (for battery save power)
 

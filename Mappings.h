@@ -30,6 +30,7 @@ enum class PanelKind : uint8_t {
   TFTBrake, 
   TFTHyd, 
   TFTRadarAlt,
+  TFTCmws,
   RightPanelCtl, 
   LeftPanelCtl, 
   FrontLeft, 

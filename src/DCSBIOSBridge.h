@@ -26,6 +26,16 @@ static MetadataSubscription metadataSubscriptions[MAX_METADATA_SUBSCRIPTIONS];
 static size_t metadataSubscriptionCount = 0;
 bool subscribeToMetadataChange(const char* label, void (*callback)(const char* label, uint16_t value));
 
+// ───── Subscribe to display changes ─────
+#define MAX_DISPLAY_SUBSCRIPTIONS 32
+struct DisplaySubscription {
+    const char* label;
+    void (*callback)(const char* label, const char* value);
+};
+static DisplaySubscription displaySubscriptions[MAX_DISPLAY_SUBSCRIPTIONS];
+static size_t displaySubscriptionCount = 0;
+bool subscribeToDisplayChange(const char* label, void (*callback)(const char* label, const char* value));
+
 // ───── Subscribe to selector changes ─────
 #define MAX_SELECTOR_SUBSCRIPTIONS 32
 struct SelectorSubscription {

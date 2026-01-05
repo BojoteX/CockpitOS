@@ -230,11 +230,16 @@ void setup() {
       debugPrintln("[Serial] Serial CDC enabled. Run 'connect-serial-port.cmd' (socat) to connect.");
     #endif
 
+#if defined(ARDUINO_USB_MODE)
     #if ARDUINO_USB_MODE
       debugPrintf("CDC Mode is 'Hardware CDC / JTAG' | ARDUINO_USB_MODE=%d, ARDUINO_USB_CDC_ON_BOOT=%d\n", ARDUINO_USB_MODE, ARDUINO_USB_CDC_ON_BOOT);
     #else
       debugPrintf("CDC Mode is 'USB-OTG (TinyUSB)' | ARDUINO_USB_MODE=%d, ARDUINO_USB_CDC_ON_BOOT=%d\n", ARDUINO_USB_MODE, ARDUINO_USB_CDC_ON_BOOT);
     #endif
+#else
+      debugPrint("Device is NOT native USB capable\n");
+#endif
+
 }
 
 void loop() {

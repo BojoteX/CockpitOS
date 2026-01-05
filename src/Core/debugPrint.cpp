@@ -271,18 +271,20 @@ void writeToConsole(const char* data, size_t len) {
 
     #if ARDUINO_USB_CDC_ON_BOOT == 1
         Serial.write(data + offset, toWrite);
-        Serial.flush();   // Optional: remove if you want, or leave for extra safety
-        // yield();
+        Serial.flush();
+    #elif !defined(ARDUINO_USB_MODE)
+        // Original ESP32 / C2: plain Serial via external USB-UART bridge
+        Serial.write(data + offset, toWrite);
+        Serial.flush();
     #else
+        // Native USB chips (S2/S3/C3/C6/H2/P4)
         #if USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE
             #if ARDUINO_USB_MODE == 1
-		        HWCDCSerial.write(data + offset, toWrite);
-                HWCDCSerial.flush();   // Optional: remove if you want, or leave for extra safety
-                // yield();
+                    HWCDCSerial.write(data + offset, toWrite);
+                    HWCDCSerial.flush();
             #else
-                USBSerial.write(data + offset, toWrite);
-                USBSerial.flush();   // Optional: remove if you want, or leave for extra safety
-                // yield();
+                    USBSerial.write(data + offset, toWrite);
+                    USBSerial.flush();
             #endif
         #endif
     #endif

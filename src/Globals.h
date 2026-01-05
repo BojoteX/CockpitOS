@@ -36,17 +36,19 @@
 // Extern declarations								  /
 ///////////////////////////////////////////////////////////////////////////////////
 
-#if ARDUINO_USB_CDC_ON_BOOT == 1 
-    // Do nothing...
-#else
-    #if ARDUINO_USB_MODE == 1
-        extern HWCDC HWCDCSerial;
-    #else
-        extern USBCDC USBSerial;
-        #if DEVICE_HAS_HWSERIAL == 1
-            extern HWCDC HWCDCSerial; // We load it anyway (even in TinyUSB mode) so we can close it if HWCDCSerial/JTAG is not needed
-        #endif
-    #endif
+#if defined(ARDUINO_USB_MODE)
+   #if ARDUINO_USB_CDC_ON_BOOT == 1 
+       // Do nothing...
+   #else
+       #if ARDUINO_USB_MODE == 1
+           extern HWCDC HWCDCSerial;
+       #else
+           extern USBCDC USBSerial;
+           #if DEVICE_HAS_HWSERIAL == 1
+               extern HWCDC HWCDCSerial; // We load it anyway (even in TinyUSB mode) so we can close it if HWCDCSerial/JTAG is not needed
+           #endif
+       #endif
+   #endif
 #endif
 
 // For edge cases
