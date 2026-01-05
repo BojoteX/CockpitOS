@@ -31,11 +31,15 @@
 #define CENTER_DEADZONE_OUTER                     384 // Exit threshold — must move further to escape
 
 // Wi-Fi network credentials (used for WiFi remote Debug Console and DCSBIOS WiFi mode if selected)
-#define WIFI_SSID                                  "TestNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
-#define WIFI_PASS                                  "TestingOnly"
+// #define WIFI_SSID                                  "TestNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
+// #define WIFI_PASS                                  "TestingOnly"
+
+#define WIFI_SSID                                  "MRI" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
+#define WIFI_PASS                                  "4458e8c3c2"
+
 
 // For production, ALL THESE should be set to 0. Use for debugging only.
-#define DEBUG_ENABLED                               0  // Use it ONLY when identifying issues or troubleshooting
+#define DEBUG_ENABLED                               1  // Use it ONLY when identifying issues or troubleshooting
 #define VERBOSE_MODE                                0  // Logs INFO messages to both Serial and UDP (very useful).
 #define VERBOSE_MODE_SERIAL_ONLY                    0  // Verbose will only output to Serial. 
 #define VERBOSE_MODE_WIFI_ONLY                      1  // Verbose will only output to WiFi so Serial port is clean.

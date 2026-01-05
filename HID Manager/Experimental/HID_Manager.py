@@ -357,7 +357,7 @@ def device_reader(entry: DeviceEntry, uiq: queue.Queue, udp_send) -> None:
         # Clear backlog (bounded)
         cleared = False
         attempt = 0
-        while not cleared and not entry.disconnected and attempt < 100:
+        while not cleared and not entry.disconnected and attempt < 500:
             try:
                 resp = dev.get_feature_report(FEATURE_REPORT_ID, DEFAULT_REPORT_SIZE + 1)
                 d = bytes(resp[1:]) if len(resp) > DEFAULT_REPORT_SIZE else bytes(resp)

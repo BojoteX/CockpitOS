@@ -1,0 +1,48 @@
+// TFT_Display_CMWS.h — CockpitOS CMWS Threat Ring Display Header
+// AH-64D Apache Countermeasures Warning System
+
+#pragma once
+
+// =============================================================================
+// API FUNCTIONS
+// =============================================================================
+
+/**
+ * @brief Initialize the CMWS display
+ * 
+ * - Pre-computes all arrow and tick geometry
+ * - Creates frame and background sprite buffers
+ * - Renders static background (ticks + small arrows)
+ * - Subscribes to all DCS-BIOS callbacks
+ * - Runs initial BIT test
+ */
+void CMWSDisplay_init();
+
+/**
+ * @brief Main loop handler - call from loop() if not running as task
+ */
+void CMWSDisplay_loop();
+
+/**
+ * @brief Notify display that mission has started
+ * Forces full redraw on next frame
+ */
+void CMWSDisplay_notifyMissionStart();
+
+/**
+ * @brief Clean up resources
+ * Deletes sprites, stops task if running, blanks display
+ */
+void CMWSDisplay_deinit();
+
+/**
+ * @brief Run Built-In Test sequence
+ * 
+ * Sequence:
+ * 1. All elements bright (500ms)
+ * 2. All elements dim (500ms)
+ * 3. All elements off (500ms)
+ * 4. Rotate through each arrow bright (300ms each)
+ * 5. Restore previous state
+ */
+void CMWSDisplay_bitTest();

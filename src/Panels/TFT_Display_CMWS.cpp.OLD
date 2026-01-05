@@ -1,0 +1,919 @@
+// TFT_Display_CMWS.cpp — CockpitOS CMWS Threat Ring Display (LovyanGFX, ST7789 @ 320×170)
+// AH-64D Apache Countermeasures Warning System Display
+//
+// Refactor goals:
+//  - Deterministic rendering (snapshot state + bounded work per frame)
+//  - Partial redraws (no full-screen redraw unless required)
+//  - Precompute static geometry (ticks, arrow basis vectors, arrow centers)
+//  - Avoid metadata readback ordering hazards (cache BRT/DIM bits locally)
+//  - Keep complexity moderate (fixed dirty regions, no PSRAM/DMA stripe system needed)
+//
+// Hardware: IdeasPark ST7789 170×320 TFT
+// CRITICAL: TFT_RST must be GPIO 4 (not -1) for this display!
+
+#include "../Globals.h"
+
+#if defined(HAS_CMWS_DISPLAY) && defined(ENABLE_TFT_GAUGES) && (ENABLE_TFT_GAUGES == 1)
+
+#include "../HIDManager.h"
+#include "../DCSBIOSBridge.h"
+#include "includes/TFT_Display_CMWS.h"
+
+// =============================================================================
+// LIBRARY CHECK
+// =============================================================================
+#if !__has_include(<LovyanGFX.hpp>)
+#error "❌ Missing LovyanGFX.hpp — Please install LovyanGFX library"
+#endif
+
+#include <LovyanGFX.hpp>
+#include <lgfx/v1/LGFX_Sprite.hpp>
+#include <cstring>
+#include <cmath>
+
+// =============================================================================
+// PANEL REGISTRATION
+// =============================================================================
+#if defined(HAS_CMWS_DISPLAY)
+REGISTER_PANEL(TFTCmws, nullptr, nullptr, CMWSDisplay_init, CMWSDisplay_loop, nullptr, 100);
+#endif
+
+// =============================================================================
+// CONFIGURATION
+// =============================================================================
+#define CMWS_DISPLAY_REFRESH_RATE_MS    33      // ~30 FPS max
+#define RUN_CMWS_DISPLAY_AS_TASK        0
+#define CMWS_TASK_STACK_SIZE            4096
+#define CMWS_TASK_PRIORITY              2
+#define CMWS_CPU_CORE                   0
+
+// Optional: disable blocking BIT test during init (recommended for always-on unattended server rigs)
+#define CMWS_ENABLE_BLOCKING_BIT_TEST   1
+
+// =============================================================================
+// PIN DEFINITIONS — ADJUST FOR YOUR WIRING
+// =============================================================================
+#if defined(HAS_CMWS_DISPLAY) && defined(ESP_FAMILY_CLASSIC)
+    #define CMWS_TFT_MOSI   PIN(23)
+    #define CMWS_TFT_SCLK   PIN(18)
+    #define CMWS_TFT_CS     PIN(15)
+    #define CMWS_TFT_DC     PIN(2)
+    #define CMWS_TFT_RST    PIN(4)      // MUST BE 4 for IdeasPark ST7789!
+    #define CMWS_TFT_BLK    PIN(32)
+#else
+    #define CMWS_TFT_MOSI   -1
+    #define CMWS_TFT_SCLK   -1
+    #define CMWS_TFT_CS     -1
+    #define CMWS_TFT_DC     -1
+    #define CMWS_TFT_RST    -1
+    #define CMWS_TFT_BLK    -1
+#endif
+
+// =============================================================================
+// DISPLAY GEOMETRY
+// =============================================================================
+static constexpr int16_t SCREEN_WIDTH   = 320;
+static constexpr int16_t SCREEN_HEIGHT  = 170;
+
+static constexpr int16_t RING_CENTER_X      = 235;
+static constexpr int16_t RING_CENTER_Y      = 85;
+static constexpr int16_t TICK_INNER_RADIUS  = 66;
+static constexpr int16_t TICK_OUTER_RADIUS  = 76;
+
+static constexpr int     TICK_COUNT     = 24;
+static constexpr float   TICK_STEP_DEG  = 360.0f / static_cast<float>(TICK_COUNT);
+
+static constexpr int16_t INVENTORY_MARGIN_X     = 5;
+static constexpr int16_t INVENTORY_MARGIN_LINE1 = 40;
+static constexpr int16_t INVENTORY_MARGIN_LINE2 = 95;
+
+static constexpr int16_t DR_OFFSET = 25;
+
+// Fixed redraw regions (simple + safe)
+static constexpr int16_t INV_RECT_X = 0;
+static constexpr int16_t INV_RECT_Y = 0;
+static constexpr int16_t INV_RECT_W = 140;
+static constexpr int16_t INV_RECT_H = SCREEN_HEIGHT;
+
+static constexpr int16_t RING_RECT_X = 140;
+static constexpr int16_t RING_RECT_Y = 0;
+static constexpr int16_t RING_RECT_W = SCREEN_WIDTH - 140;
+static constexpr int16_t RING_RECT_H = SCREEN_HEIGHT;
+
+// =============================================================================
+// ARROW GEOMETRY
+// =============================================================================
+static constexpr float LARGE_TIP_Y        = 30.0f;
+static constexpr float LARGE_TIP_BASE_Y   = 11.0f;
+static constexpr float LARGE_BODY_BASE_Y  = 0.0f;
+static constexpr float LARGE_TIP_HALF_W   = 16.0f;
+static constexpr float LARGE_BODY_HALF_W  = 8.5f;
+static constexpr float ARROW_GLOBAL_SCALE = 1.0f;
+
+// =============================================================================
+// COLORS (RGB565)
+// =============================================================================
+static constexpr uint16_t COLOR_BLACK       = 0x0000;
+static constexpr uint16_t COLOR_AMBER_BRT   = 0xFDE0;
+static constexpr uint16_t COLOR_AMBER_DIM   = 0x8400;
+static constexpr uint16_t COLOR_GREEN       = 0x07E0;
+
+// =============================================================================
+// ELEMENT STATE
+// =============================================================================
+enum class ElementState : uint8_t { OFF = 0, DIM = 1, BRT = 2 };
+
+// =============================================================================
+// SPI CONFIGURATION
+// =============================================================================
+#if defined(ESP_FAMILY_CLASSIC)
+static constexpr spi_host_device_t spi_host = VSPI_HOST;
+#else
+static constexpr spi_host_device_t spi_host = SPI2_HOST;
+#endif
+
+// =============================================================================
+// LOVYANGFX PANEL CONFIG
+// =============================================================================
+class LGFX_CMWS final : public lgfx::LGFX_Device {
+    lgfx::Bus_SPI       _bus;
+    lgfx::Panel_ST7789  _panel;
+    lgfx::Light_PWM     _light;
+
+public:
+    LGFX_CMWS() {
+        {
+            auto cfg = _bus.config();
+            cfg.spi_host    = spi_host;
+            cfg.spi_mode    = 0;
+            cfg.freq_write  = 80000000;   // if corruption appears, drop to 40000000–60000000
+            cfg.freq_read   = 16000000;
+            cfg.spi_3wire   = false;
+            cfg.use_lock    = false;
+            cfg.dma_channel = SPI_DMA_CH_AUTO;
+            cfg.pin_mosi    = CMWS_TFT_MOSI;
+            cfg.pin_miso    = -1;
+            cfg.pin_sclk    = CMWS_TFT_SCLK;
+            cfg.pin_dc      = CMWS_TFT_DC;
+            _bus.config(cfg);
+            _panel.setBus(&_bus);
+        }
+        {
+            auto cfg = _panel.config();
+            cfg.pin_cs          = CMWS_TFT_CS;
+            cfg.pin_rst         = CMWS_TFT_RST;
+            cfg.pin_busy        = -1;
+
+            // ST7789 panel is physically 170×320, but controller memory is 240×320.
+            cfg.memory_width    = 240;
+            cfg.memory_height   = 320;
+            cfg.panel_width     = 170;
+            cfg.panel_height    = 320;
+            cfg.offset_x        = 35;
+            cfg.offset_y        = 0;
+            cfg.offset_rotation = 0;
+
+            cfg.readable        = false;
+            cfg.bus_shared      = false;
+            cfg.invert          = true;
+            cfg.rgb_order       = false;
+            cfg.dlen_16bit      = false;
+            _panel.config(cfg);
+        }
+        {
+            auto cfg = _light.config();
+            cfg.pin_bl      = CMWS_TFT_BLK;
+            cfg.invert      = false;
+            cfg.freq        = 12000;
+            cfg.pwm_channel = 7;
+            _light.config(cfg);
+            _panel.setLight(&_light);
+        }
+        setPanel(&_panel);
+    }
+};
+
+// =============================================================================
+// RENDERING: SPRITE BACKING (STATIC BG + FRAME COMPOSE)
+// =============================================================================
+static LGFX_CMWS tft;
+static lgfx::LGFX_Sprite bgSpr(&tft);
+static lgfx::LGFX_Sprite frameSpr(&tft);
+static uint16_t* bgBuf    = nullptr;
+static uint16_t* frameBuf = nullptr;
+
+// =============================================================================
+// PRECOMPUTED GEOMETRY
+// =============================================================================
+struct TickLine { int16_t x1,y1,x2,y2; };
+static TickLine g_ticks[TICK_COUNT];
+static bool g_tickIsDiagonal[TICK_COUNT];
+
+struct Basis { float fwdX, fwdY, rightX, rightY; };
+static constexpr float ARROW_ANGLES[4] = { 45.0f, 135.0f, 225.0f, 315.0f };
+static Basis g_arrowBasis[4];
+static int16_t g_arrowCenterX[4];
+static int16_t g_arrowCenterY[4];
+static int16_t g_largeArrowRadius = 0;
+
+// =============================================================================
+// CONCURRENCY: SNAPSHOT STATE
+// =============================================================================
+static portMUX_TYPE g_stateMux = portMUX_INITIALIZER_UNLOCKED;
+
+struct CmwsState {
+    uint8_t      page; // 0=NONE, 1=MAIN, 2=TEST
+    ElementState arrows[4];
+    ElementState dispense;
+    ElementState ready;
+    char flareCount[3];   // "00".."99" (2 chars + null)
+    char chaffCount[3];
+    char flareLetter[2];  // "F" (1 + null)
+    char chaffLetter[2];  // "C"
+};
+
+static volatile uint8_t  g_backlightLevel = 255;
+
+// Metadata bit caches (avoid getMetadataValue ordering hazards)
+static volatile bool g_brtBit[6] = {false,false,false,false,false,false}; // 4 arrows + D + R
+static volatile bool g_dimBit[6] = {false,false,false,false,false,false};
+
+// Two-stage state (callbacks write pending, renderer snapshots)
+static CmwsState g_pendingState;
+static CmwsState          g_lastDrawnState;
+
+// Dirty flags (fixed-region partial redraw)
+enum : uint8_t {
+    DIRTY_NONE  = 0,
+    DIRTY_INV   = 1u << 0,
+    DIRTY_RING  = 1u << 1,
+    DIRTY_PAGE  = 1u << 2,
+    DIRTY_FULL  = 1u << 3
+};
+static volatile uint8_t g_dirtyMask = DIRTY_FULL;
+
+static uint32_t g_lastDrawTime = 0;
+static TaskHandle_t cmwsTaskHandle = nullptr;
+
+// =============================================================================
+// MATH HELPERS
+// =============================================================================
+static inline void unitForward(float angleDeg, float& fx, float& fy) {
+    const float rad = angleDeg * DEG_TO_RAD;
+    fx = sinf(rad);
+    fy = -cosf(rad);
+}
+
+static inline ElementState decodeState(bool brt, bool dim) {
+    if (brt) return ElementState::BRT;
+    if (dim) return ElementState::DIM;
+    return ElementState::OFF;
+}
+
+static inline uint16_t colorForState(ElementState s) {
+    return (s == ElementState::BRT) ? COLOR_AMBER_BRT : COLOR_AMBER_DIM;
+}
+
+// =============================================================================
+// ARROW RADIUS CALCULATION (STATIC)
+// =============================================================================
+static float maxCenterRadiusForTipOnScreen(float angleDeg) {
+    float fx, fy;
+    unitForward(angleDeg, fx, fy);
+    const float tipOffset = LARGE_TIP_Y * ARROW_GLOBAL_SCALE;
+
+    float tMaxX = 1e9f;
+    if (fx > 0.0001f) {
+        tMaxX = (static_cast<float>(SCREEN_WIDTH - 1 - RING_CENTER_X) / fx) - tipOffset;
+    } else if (fx < -0.0001f) {
+        tMaxX = (static_cast<float>(0 - RING_CENTER_X) / fx) - tipOffset;
+    }
+
+    float tMaxY = 1e9f;
+    if (fy > 0.0001f) {
+        tMaxY = (static_cast<float>(SCREEN_HEIGHT - 1 - RING_CENTER_Y) / fy) - tipOffset;
+    } else if (fy < -0.0001f) {
+        tMaxY = (static_cast<float>(0 - RING_CENTER_Y) / fy) - tipOffset;
+    }
+
+    const float tMax = (tMaxX < tMaxY) ? tMaxX : tMaxY;
+    return (tMax > 0.0f) ? tMax : 0.0f;
+}
+
+static int computeLargeArrowRadiusSymmetric() {
+    float r = 1e9f;
+    for (int i = 0; i < 4; ++i) {
+        const float ri = maxCenterRadiusForTipOnScreen(ARROW_ANGLES[i]);
+        if (ri < r) r = ri;
+    }
+    return (r > 0) ? static_cast<int>(r) : 0;
+}
+
+// =============================================================================
+// SPRITE UTIL: RESTORE BG REGION -> FRAME REGION
+// =============================================================================
+static inline void restoreRegionFromBG(int16_t x, int16_t y, int16_t w, int16_t h) {
+    if (!bgBuf || !frameBuf) return;
+    if (x < 0) { w += x; x = 0; }
+    if (y < 0) { h += y; y = 0; }
+    if (x + w > SCREEN_WIDTH)  w = SCREEN_WIDTH  - x;
+    if (y + h > SCREEN_HEIGHT) h = SCREEN_HEIGHT - y;
+    if (w <= 0 || h <= 0) return;
+
+    const int stride = SCREEN_WIDTH;
+    uint16_t* dst = frameBuf + (y * stride) + x;
+    const uint16_t* src = bgBuf + (y * stride) + x;
+    const size_t rowBytes = static_cast<size_t>(w) * sizeof(uint16_t);
+
+    for (int16_t row = 0; row < h; ++row) {
+        memcpy(dst, src, rowBytes);
+        dst += stride;
+        src += stride;
+    }
+}
+
+// =============================================================================
+// DRAWING: PENTAGON ARROW (onto sprite)
+// =============================================================================
+static void drawPentagonArrow(lgfx::LGFX_Sprite& spr, int16_t cx, int16_t cy, const Basis& b, float scale, uint16_t color) {
+    const float tipY      = LARGE_TIP_Y * scale;
+    const float tipBaseY  = LARGE_TIP_BASE_Y * scale;
+    const float bodyBaseY = LARGE_BODY_BASE_Y * scale;
+    const float tipHalfW  = LARGE_TIP_HALF_W * scale;
+    const float bodyHalfW = LARGE_BODY_HALF_W * scale;
+
+    // Local points (arrow points "up" along +Y local axis)
+    const float lx0 = 0.0f,      ly0 = tipY;
+    const float lx1 = -tipHalfW, ly1 = tipBaseY;
+    const float lx2 = +tipHalfW, ly2 = tipBaseY;
+
+    const float lx3 = -bodyHalfW, ly3 = bodyBaseY;
+    const float lx4 = +bodyHalfW, ly4 = bodyBaseY;
+
+    // Transform helper
+    auto tx = [&](float lx, float ly) -> int16_t {
+        const float wx = (lx * b.rightX) + (ly * b.fwdX);
+        const float v  = static_cast<float>(cx) + wx;
+        return static_cast<int16_t>(v >= 0 ? (v + 0.5f) : (v - 0.5f));
+    };
+    auto ty = [&](float lx, float ly) -> int16_t {
+        const float wy = (lx * b.rightY) + (ly * b.fwdY);
+        const float v  = static_cast<float>(cy) + wy;
+        return static_cast<int16_t>(v >= 0 ? (v + 0.5f) : (v - 0.5f));
+    };
+
+    const int16_t x0 = tx(lx0, ly0), y0 = ty(lx0, ly0);
+    const int16_t x1 = tx(lx1, ly1), y1 = ty(lx1, ly1);
+    const int16_t x2 = tx(lx2, ly2), y2 = ty(lx2, ly2);
+
+    // Tip
+    spr.fillTriangle(x0, y0, x1, y1, x2, y2, color);
+
+    // Body (two triangles)
+    if (bodyBaseY < tipBaseY) {
+        const int16_t x3 = tx(lx3, ly3), y3 = ty(lx3, ly3);
+        const int16_t x4 = tx(lx4, ly4), y4 = ty(lx4, ly4);
+
+        // left half quad split + right half quad split
+        spr.fillTriangle(x1, y1, x2, y2, x4, y4, color);
+        spr.fillTriangle(x1, y1, x4, y4, x3, y3, color);
+    }
+}
+
+// =============================================================================
+// BACKGROUND BUILD (STATIC)
+// =============================================================================
+static void buildStaticBackground() {
+    bgSpr.fillScreen(COLOR_BLACK);
+
+    // Tick marks (all but the 4 diagonals)
+    for (int i = 0; i < TICK_COUNT; ++i) {
+        if (g_tickIsDiagonal[i]) continue;
+        const TickLine& t = g_ticks[i];
+        bgSpr.drawLine(t.x1, t.y1, t.x2, t.y2, COLOR_AMBER_DIM);
+    }
+
+    // Copy bg -> frame as baseline (full)
+    if (bgBuf && frameBuf) {
+        memcpy(frameBuf, bgBuf, static_cast<size_t>(SCREEN_WIDTH) * SCREEN_HEIGHT * sizeof(uint16_t));
+    }
+}
+
+// =============================================================================
+// SNAPSHOT STATE
+// =============================================================================
+static inline void snapshotState(CmwsState& out) {
+    portENTER_CRITICAL(&g_stateMux);
+    out = g_pendingState; // struct copy
+    portEXIT_CRITICAL(&g_stateMux);
+}
+
+// =============================================================================
+// DRAW DYNAMIC OVERLAYS (CLIPPED TO DIRTY RECT)
+// =============================================================================
+static void drawInventory(const CmwsState& s) {
+    frameSpr.setFont(&fonts::Orbitron_Light_32);
+    frameSpr.setTextColor(COLOR_GREEN);
+    frameSpr.setTextDatum(textdatum_t::top_left);
+
+    frameSpr.setCursor(INVENTORY_MARGIN_X, INVENTORY_MARGIN_LINE1);
+    frameSpr.printf("%s    %s", s.flareLetter, s.flareCount);
+
+    frameSpr.setCursor(INVENTORY_MARGIN_X, INVENTORY_MARGIN_LINE2);
+    frameSpr.printf("%s    %s", s.chaffLetter, s.chaffCount);
+}
+
+static void drawRingDynamics(const CmwsState& s) {
+    // Large arrows
+    for (int i = 0; i < 4; ++i) {
+        const ElementState st = s.arrows[i];
+        if (st == ElementState::OFF) continue;
+        drawPentagonArrow(frameSpr, g_arrowCenterX[i], g_arrowCenterY[i], g_arrowBasis[i], ARROW_GLOBAL_SCALE, colorForState(st));
+    }
+
+    // D/R
+    frameSpr.setFont(&fonts::DejaVu24);
+    frameSpr.setTextDatum(textdatum_t::middle_center);
+
+    if (s.dispense != ElementState::OFF) {
+        frameSpr.setTextColor(colorForState(s.dispense));
+        frameSpr.drawString("D", RING_CENTER_X, RING_CENTER_Y - DR_OFFSET);
+    }
+    if (s.ready != ElementState::OFF) {
+        frameSpr.setTextColor(colorForState(s.ready));
+        frameSpr.drawString("R", RING_CENTER_X, RING_CENTER_Y + DR_OFFSET);
+    }
+}
+
+// =============================================================================
+// RENDER CORE
+// =============================================================================
+static void CMWSDisplay_render(bool force) {
+    if (!force && !isMissionRunning()) return;
+
+    const uint8_t dirty = g_dirtyMask;
+    if (!force && (dirty == DIRTY_NONE)) return;
+
+    const uint32_t now = millis();
+    if (!force && (now - g_lastDrawTime < CMWS_DISPLAY_REFRESH_RATE_MS)) return;
+    g_lastDrawTime = now;
+
+    CmwsState s;
+    snapshotState(s);
+
+    // Determine redraw region
+    int16_t rx = 0, ry = 0, rw = SCREEN_WIDTH, rh = SCREEN_HEIGHT;
+    bool full = (dirty & (DIRTY_FULL | DIRTY_PAGE)) != 0;
+
+    if (!full) {
+        bool inv  = (dirty & DIRTY_INV)  != 0;
+        bool ring = (dirty & DIRTY_RING) != 0;
+
+        if (inv && !ring) {
+            rx = INV_RECT_X; ry = INV_RECT_Y; rw = INV_RECT_W; rh = INV_RECT_H;
+        } else if (!inv && ring) {
+            rx = RING_RECT_X; ry = RING_RECT_Y; rw = RING_RECT_W; rh = RING_RECT_H;
+        } else if (inv && ring) {
+            // union of INV + RING => full height, full width
+            rx = 0; ry = 0; rw = SCREEN_WIDTH; rh = SCREEN_HEIGHT;
+        } else {
+            // defensive
+            rx = 0; ry = 0; rw = SCREEN_WIDTH; rh = SCREEN_HEIGHT;
+        }
+    }
+
+    // Clear dirty mask now (so callbacks can re-set while we render)
+    g_dirtyMask = DIRTY_NONE;
+
+    // Page NONE => blank
+    if (s.page == 0) {
+        frameSpr.fillScreen(COLOR_BLACK);
+        tft.startWrite();
+        tft.pushImage(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, frameBuf);
+        tft.endWrite();
+        g_lastDrawnState = s;
+        return;
+    }
+
+    // Restore region from BG into frame
+    if (full) {
+        memcpy(frameBuf, bgBuf, static_cast<size_t>(SCREEN_WIDTH) * SCREEN_HEIGHT * sizeof(uint16_t));
+    } else {
+        restoreRegionFromBG(rx, ry, rw, rh);
+    }
+
+    // Clip & draw only what intersects
+    frameSpr.setClipRect(rx, ry, rw, rh);
+
+    // Inventory is entirely left region. Only draw if region intersects.
+    if (full || ((rx < (INV_RECT_X + INV_RECT_W)) && ((rx + rw) > INV_RECT_X))) {
+        drawInventory(s);
+    }
+
+    // Ring area
+    if (full || ((rx < (RING_RECT_X + RING_RECT_W)) && ((rx + rw) > RING_RECT_X))) {
+        drawRingDynamics(s);
+    }
+
+    frameSpr.clearClipRect();
+
+    // Push only region
+    tft.startWrite();
+    if (full) {
+        tft.pushImage(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, frameBuf);
+    } else {
+        const uint16_t* ptr = frameBuf + (static_cast<int32_t>(ry) * SCREEN_WIDTH) + rx;
+        tft.pushImage(rx, ry, rw, rh, ptr);
+    }
+    tft.endWrite();
+
+    g_lastDrawnState = s;
+}
+
+// =============================================================================
+// DIRTY SET HELPERS
+// =============================================================================
+static inline void setDirty(uint8_t mask) {
+    g_dirtyMask |= mask;
+}
+
+static inline void setPendingArrowFromBits(int idx, bool brt, bool dim) {
+    CmwsState tmp;
+    portENTER_CRITICAL(&g_stateMux);
+    tmp = g_pendingState;
+    tmp.arrows[idx] = decodeState(brt, dim);
+    g_pendingState = tmp;
+    portEXIT_CRITICAL(&g_stateMux);
+}
+
+static inline void setPendingDRFromBits(bool isDispense, bool brt, bool dim) {
+    CmwsState tmp;
+    portENTER_CRITICAL(&g_stateMux);
+    tmp = g_pendingState;
+    if (isDispense) tmp.dispense = decodeState(brt, dim);
+    else           tmp.ready    = decodeState(brt, dim);
+    g_pendingState = tmp;
+    portEXIT_CRITICAL(&g_stateMux);
+}
+
+// =============================================================================
+// DCS-BIOS CALLBACKS — METADATA (BRT/DIM bits)
+// =============================================================================
+// Index map:
+//  0 FWD_RIGHT, 1 AFT_RIGHT, 2 AFT_LEFT, 3 FWD_LEFT, 4 DISPENSE(D), 5 READY(R)
+static void onFwdRightBrt(const char*, uint16_t v) { g_brtBit[0] = (v != 0); setPendingArrowFromBits(0, g_brtBit[0], g_dimBit[0]); setDirty(DIRTY_RING); }
+static void onFwdRightDim(const char*, uint16_t v) { g_dimBit[0] = (v != 0); setPendingArrowFromBits(0, g_brtBit[0], g_dimBit[0]); setDirty(DIRTY_RING); }
+
+static void onAftRightBrt(const char*, uint16_t v) { g_brtBit[1] = (v != 0); setPendingArrowFromBits(1, g_brtBit[1], g_dimBit[1]); setDirty(DIRTY_RING); }
+static void onAftRightDim(const char*, uint16_t v) { g_dimBit[1] = (v != 0); setPendingArrowFromBits(1, g_brtBit[1], g_dimBit[1]); setDirty(DIRTY_RING); }
+
+static void onAftLeftBrt(const char*, uint16_t v)  { g_brtBit[2] = (v != 0); setPendingArrowFromBits(2, g_brtBit[2], g_dimBit[2]); setDirty(DIRTY_RING); }
+static void onAftLeftDim(const char*, uint16_t v)  { g_dimBit[2] = (v != 0); setPendingArrowFromBits(2, g_brtBit[2], g_dimBit[2]); setDirty(DIRTY_RING); }
+
+static void onFwdLeftBrt(const char*, uint16_t v)  { g_brtBit[3] = (v != 0); setPendingArrowFromBits(3, g_brtBit[3], g_dimBit[3]); setDirty(DIRTY_RING); }
+static void onFwdLeftDim(const char*, uint16_t v)  { g_dimBit[3] = (v != 0); setPendingArrowFromBits(3, g_brtBit[3], g_dimBit[3]); setDirty(DIRTY_RING); }
+
+static void onDispenseBrt(const char*, uint16_t v) { g_brtBit[4] = (v != 0); setPendingDRFromBits(true,  g_brtBit[4], g_dimBit[4]); setDirty(DIRTY_RING); }
+static void onDispenseDim(const char*, uint16_t v) { g_dimBit[4] = (v != 0); setPendingDRFromBits(true,  g_brtBit[4], g_dimBit[4]); setDirty(DIRTY_RING); }
+
+static void onReadyBrt(const char*, uint16_t v)    { g_brtBit[5] = (v != 0); setPendingDRFromBits(false, g_brtBit[5], g_dimBit[5]); setDirty(DIRTY_RING); }
+static void onReadyDim(const char*, uint16_t v)    { g_dimBit[5] = (v != 0); setPendingDRFromBits(false, g_brtBit[5], g_dimBit[5]); setDirty(DIRTY_RING); }
+
+// =============================================================================
+// DCS-BIOS CALLBACKS — DISPLAY STRINGS
+// =============================================================================
+static void onFlareCount(const char*, const char* value) {
+    if (!value) return;
+    // Expect 2 chars. Copy bounded.
+    CmwsState tmp;
+    portENTER_CRITICAL(&g_stateMux);
+    tmp = g_pendingState;
+    if (strncmp(tmp.flareCount, value, 2) != 0) {
+        tmp.flareCount[0] = value[0];
+        tmp.flareCount[1] = value[1];
+        tmp.flareCount[2] = '\0';
+        g_pendingState = tmp;
+        portEXIT_CRITICAL(&g_stateMux);
+        setDirty(DIRTY_INV);
+        return;
+    }
+    portEXIT_CRITICAL(&g_stateMux);
+}
+static void onChaffCount(const char*, const char* value) {
+    if (!value) return;
+    CmwsState tmp;
+    portENTER_CRITICAL(&g_stateMux);
+    tmp = g_pendingState;
+    if (strncmp(tmp.chaffCount, value, 2) != 0) {
+        tmp.chaffCount[0] = value[0];
+        tmp.chaffCount[1] = value[1];
+        tmp.chaffCount[2] = '\0';
+        g_pendingState = tmp;
+        portEXIT_CRITICAL(&g_stateMux);
+        setDirty(DIRTY_INV);
+        return;
+    }
+    portEXIT_CRITICAL(&g_stateMux);
+}
+static void onFlareLetter(const char*, const char* value) {
+    if (!value) return;
+    CmwsState tmp;
+    portENTER_CRITICAL(&g_stateMux);
+    tmp = g_pendingState;
+    if (tmp.flareLetter[0] != value[0]) {
+        tmp.flareLetter[0] = value[0];
+        tmp.flareLetter[1] = '\0';
+        g_pendingState = tmp;
+        portEXIT_CRITICAL(&g_stateMux);
+        setDirty(DIRTY_INV);
+        return;
+    }
+    portEXIT_CRITICAL(&g_stateMux);
+}
+static void onChaffLetter(const char*, const char* value) {
+    if (!value) return;
+    CmwsState tmp;
+    portENTER_CRITICAL(&g_stateMux);
+    tmp = g_pendingState;
+    if (tmp.chaffLetter[0] != value[0]) {
+        tmp.chaffLetter[0] = value[0];
+        tmp.chaffLetter[1] = '\0';
+        g_pendingState = tmp;
+        portEXIT_CRITICAL(&g_stateMux);
+        setDirty(DIRTY_INV);
+        return;
+    }
+    portEXIT_CRITICAL(&g_stateMux);
+}
+static void onPage(const char*, const char* value) {
+    uint8_t newPage = 1;
+    if (value) {
+        if (strcmp(value, "NONE") == 0) newPage = 0;
+        else if (strcmp(value, "TEST") == 0) newPage = 2;
+    }
+
+    CmwsState tmp;
+    portENTER_CRITICAL(&g_stateMux);
+    tmp = g_pendingState;
+    if (tmp.page != newPage) {
+        tmp.page = newPage;
+        g_pendingState = tmp;
+        portEXIT_CRITICAL(&g_stateMux);
+        setDirty(DIRTY_PAGE | DIRTY_FULL);
+        return;
+    }
+    portEXIT_CRITICAL(&g_stateMux);
+}
+
+// =============================================================================
+// DCS-BIOS CALLBACK — LAMP BRIGHTNESS
+// =============================================================================
+static void onLampChange(const char*, uint16_t value, uint16_t maxValue) {
+    if (maxValue == 0) return;
+    const uint8_t newLevel = static_cast<uint8_t>((static_cast<uint32_t>(value) * 255UL) / maxValue);
+    if (newLevel != g_backlightLevel) {
+        g_backlightLevel = newLevel;
+        tft.setBrightness(g_backlightLevel);
+    }
+}
+
+// =============================================================================
+// TASK
+// =============================================================================
+#if RUN_CMWS_DISPLAY_AS_TASK
+static void CMWSDisplay_task(void*) {
+    for (;;) {
+        CMWSDisplay_render(false);
+        vTaskDelay(pdMS_TO_TICKS(5));
+    }
+}
+#endif
+
+// =============================================================================
+// API: INIT
+// =============================================================================
+void CMWSDisplay_init() {
+    // Init default pending state (deterministic)
+    {
+        CmwsState init{};
+        init.page = 1;
+        for (int i = 0; i < 4; ++i) init.arrows[i] = ElementState::DIM;
+        init.dispense = ElementState::DIM;
+        init.ready    = ElementState::DIM;
+        init.flareCount[0] = '0'; init.flareCount[1] = '0'; init.flareCount[2] = '\0';
+        init.chaffCount[0] = '0'; init.chaffCount[1] = '0'; init.chaffCount[2] = '\0';
+        init.flareLetter[0] = 'F'; init.flareLetter[1] = '\0';
+        init.chaffLetter[0] = 'C'; init.chaffLetter[1] = '\0';
+
+        portENTER_CRITICAL(&g_stateMux);
+        g_pendingState = init;
+        portEXIT_CRITICAL(&g_stateMux);
+
+        g_lastDrawnState = init;
+    }
+
+    // Init display
+    tft.init();
+    tft.setRotation(3);
+    tft.setColorDepth(16);
+    tft.setSwapBytes(true);
+    tft.setBrightness(255);
+
+    // Create sprites (one-time heap usage like other gauges; no allocations in loop)
+    bgSpr.setColorDepth(16);
+    frameSpr.setColorDepth(16);
+    bgSpr.createSprite(SCREEN_WIDTH, SCREEN_HEIGHT);
+    frameSpr.createSprite(SCREEN_WIDTH, SCREEN_HEIGHT);
+    bgSpr.setSwapBytes(true);
+    frameSpr.setSwapBytes(true);
+
+    bgBuf    = static_cast<uint16_t*>(bgSpr.getBuffer());
+    frameBuf = static_cast<uint16_t*>(frameSpr.getBuffer());
+
+    // Precompute tick geometry
+    for (int i = 0; i < TICK_COUNT; ++i) {
+        const float angle = static_cast<float>(i) * TICK_STEP_DEG;
+        float fx, fy;
+        unitForward(angle, fx, fy);
+
+        const int16_t x1 = static_cast<int16_t>(RING_CENTER_X + fx * TICK_INNER_RADIUS);
+        const int16_t y1 = static_cast<int16_t>(RING_CENTER_Y + fy * TICK_INNER_RADIUS);
+        const int16_t x2 = static_cast<int16_t>(RING_CENTER_X + fx * TICK_OUTER_RADIUS);
+        const int16_t y2 = static_cast<int16_t>(RING_CENTER_Y + fy * TICK_OUTER_RADIUS);
+
+        g_ticks[i] = { x1, y1, x2, y2 };
+
+        const int ai = static_cast<int>(angle + 0.5f);
+        g_tickIsDiagonal[i] = (ai == 45 || ai == 135 || ai == 225 || ai == 315);
+    }
+
+    // Precompute arrow basis + centers
+    g_largeArrowRadius = static_cast<int16_t>(computeLargeArrowRadiusSymmetric());
+    for (int i = 0; i < 4; ++i) {
+        float fx, fy;
+        unitForward(ARROW_ANGLES[i], fx, fy);
+        g_arrowBasis[i].fwdX = fx;
+        g_arrowBasis[i].fwdY = fy;
+        g_arrowBasis[i].rightX = fy;
+        g_arrowBasis[i].rightY = -fx;
+
+        g_arrowCenterX[i] = static_cast<int16_t>(RING_CENTER_X + fx * static_cast<float>(g_largeArrowRadius));
+        g_arrowCenterY[i] = static_cast<int16_t>(RING_CENTER_Y + fy * static_cast<float>(g_largeArrowRadius));
+    }
+
+    // Build static background once
+    buildStaticBackground();
+
+    // Subscribe to metadata (BRT/DIM bits)
+    subscribeToMetadataChange("PLT_CMWS_FWD_RIGHT_BRT_L", onFwdRightBrt);
+    subscribeToMetadataChange("PLT_CMWS_FWD_RIGHT_DIM_L", onFwdRightDim);
+    subscribeToMetadataChange("PLT_CMWS_AFT_RIGHT_BRT_L", onAftRightBrt);
+    subscribeToMetadataChange("PLT_CMWS_AFT_RIGHT_DIM_L", onAftRightDim);
+    subscribeToMetadataChange("PLT_CMWS_AFT_LEFT_BRT_L", onAftLeftBrt);
+    subscribeToMetadataChange("PLT_CMWS_AFT_LEFT_DIM_L", onAftLeftDim);
+    subscribeToMetadataChange("PLT_CMWS_FWD_LEFT_BRT_L", onFwdLeftBrt);
+    subscribeToMetadataChange("PLT_CMWS_FWD_LEFT_DIM_L", onFwdLeftDim);
+    subscribeToMetadataChange("PLT_CMWS_D_BRT_L", onDispenseBrt);
+    subscribeToMetadataChange("PLT_CMWS_D_DIM_L", onDispenseDim);
+    subscribeToMetadataChange("PLT_CMWS_R_BRT_L", onReadyBrt);
+    subscribeToMetadataChange("PLT_CMWS_R_DIM_L", onReadyDim);
+
+    // Subscribe to display strings
+    subscribeToDisplayChange("PLT_CMWS_FLARE_COUNT", onFlareCount);
+    subscribeToDisplayChange("PLT_CMWS_CHAFF_COUNT", onChaffCount);
+    subscribeToDisplayChange("PLT_CMWS_FLARE_LETTER", onFlareLetter);
+    subscribeToDisplayChange("PLT_CMWS_CHAFF_LETTER", onChaffLetter);
+    subscribeToDisplayChange("PLT_CMWS_PAGE", onPage);
+
+    // Subscribe to lamp brightness
+    subscribeToLedChange("PLT_CMWS_LAMP", onLampChange);
+
+    // Force initial full draw
+    setDirty(DIRTY_FULL | DIRTY_PAGE);
+    CMWSDisplay_render(true);
+
+#if CMWS_ENABLE_BLOCKING_BIT_TEST
+    CMWSDisplay_bitTest();
+#endif
+
+#if RUN_CMWS_DISPLAY_AS_TASK
+    xTaskCreatePinnedToCore(CMWSDisplay_task, "CMWSDisplayTask", CMWS_TASK_STACK_SIZE, nullptr, CMWS_TASK_PRIORITY, &cmwsTaskHandle, CMWS_CPU_CORE);
+#endif
+
+    debugPrintf("✅ CMWS Display initialized: MOSI=%d, SCLK=%d, CS=%d, DC=%d, RST=%d, BLK=%d\n",
+        CMWS_TFT_MOSI, CMWS_TFT_SCLK, CMWS_TFT_CS, CMWS_TFT_DC, CMWS_TFT_RST, CMWS_TFT_BLK);
+}
+
+// =============================================================================
+// API: LOOP
+// =============================================================================
+void CMWSDisplay_loop() {
+#if !RUN_CMWS_DISPLAY_AS_TASK
+    CMWSDisplay_render(false);
+#endif
+}
+
+// =============================================================================
+// API: MISSION START
+// =============================================================================
+void CMWSDisplay_notifyMissionStart() {
+    setDirty(DIRTY_FULL | DIRTY_PAGE);
+}
+
+// =============================================================================
+// API: DEINIT
+// =============================================================================
+void CMWSDisplay_deinit() {
+#if RUN_CMWS_DISPLAY_AS_TASK
+    if (cmwsTaskHandle) {
+        vTaskDelete(cmwsTaskHandle);
+        cmwsTaskHandle = nullptr;
+    }
+#endif
+    if (frameBuf) {
+        frameSpr.fillScreen(COLOR_BLACK);
+        tft.startWrite();
+        tft.pushImage(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, frameBuf);
+        tft.endWrite();
+    } else {
+        tft.fillScreen(COLOR_BLACK);
+    }
+    tft.setBrightness(0);
+
+    // sprite delete to free memory if you reinit later
+    frameSpr.deleteSprite();
+    bgSpr.deleteSprite();
+    frameBuf = nullptr;
+    bgBuf = nullptr;
+}
+
+// =============================================================================
+// API: BIT TEST (blocking)
+// =============================================================================
+void CMWSDisplay_bitTest() {
+    CmwsState saved;
+    snapshotState(saved);
+    const uint8_t savedBacklight = g_backlightLevel;
+
+    // Helper to set state quickly
+    auto setAll = [&](ElementState a, ElementState d, ElementState r, const char* f, const char* c) {
+        CmwsState tmp = saved;
+        tmp.page = 1;
+        for (int i = 0; i < 4; ++i) tmp.arrows[i] = a;
+        tmp.dispense = d;
+        tmp.ready    = r;
+        tmp.flareCount[0] = f[0]; tmp.flareCount[1] = f[1]; tmp.flareCount[2] = '\0';
+        tmp.chaffCount[0] = c[0]; tmp.chaffCount[1] = c[1]; tmp.chaffCount[2] = '\0';
+        portENTER_CRITICAL(&g_stateMux);
+        g_pendingState = tmp;
+        portEXIT_CRITICAL(&g_stateMux);
+        setDirty(DIRTY_FULL | DIRTY_PAGE);
+        CMWSDisplay_render(true);
+    };
+
+    tft.setBrightness(255);
+
+    setAll(ElementState::BRT, ElementState::BRT, ElementState::BRT, "88", "88");
+    vTaskDelay(pdMS_TO_TICKS(500));
+
+    setAll(ElementState::DIM, ElementState::DIM, ElementState::DIM, "88", "88");
+    vTaskDelay(pdMS_TO_TICKS(500));
+
+    setAll(ElementState::OFF, ElementState::OFF, ElementState::OFF, "00", "00");
+    vTaskDelay(pdMS_TO_TICKS(500));
+
+    // Rotate arrows
+    for (int a = 0; a < 4; ++a) {
+        CmwsState tmp = saved;
+        tmp.page = 1;
+        for (int i = 0; i < 4; ++i) tmp.arrows[i] = ElementState::DIM;
+        tmp.arrows[a] = ElementState::BRT;
+        tmp.dispense = ElementState::DIM;
+        tmp.ready    = ElementState::DIM;
+        portENTER_CRITICAL(&g_stateMux);
+        g_pendingState = tmp;
+        portEXIT_CRITICAL(&g_stateMux);
+        setDirty(DIRTY_RING | DIRTY_PAGE);
+        CMWSDisplay_render(true);
+        vTaskDelay(pdMS_TO_TICKS(300));
+    }
+
+    // Restore
+    portENTER_CRITICAL(&g_stateMux);
+    g_pendingState = saved;
+    portEXIT_CRITICAL(&g_stateMux);
+
+    tft.setBrightness(savedBacklight);
+    setDirty(DIRTY_FULL | DIRTY_PAGE);
+    CMWSDisplay_render(true);
+}
+
+#else
+
+void CMWSDisplay_init() {}
+void CMWSDisplay_loop() {}
+void CMWSDisplay_deinit() {}
+void CMWSDisplay_notifyMissionStart() {}
+void CMWSDisplay_bitTest() {}
+
+#endif

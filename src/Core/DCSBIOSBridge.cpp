@@ -263,11 +263,31 @@ public:
                             unsigned int sb_index = entry->addr - field->base_addr;
                             if (sb_index < field->length)        bufEntry->buffer[sb_index] = value & 0xFF;
                             if (sb_index + 1 < field->length)    bufEntry->buffer[sb_index + 1] = (value >> 8) & 0xFF;
+
+                            // NASA-safe terminator enforcement for generated CT_Display buffers:
+                            // - bufEntry->length is payload length
+                            // - generator allocates payload+1 (confirmed by your CT_Display.cpp)
+                            bufEntry->buffer[bufEntry->length] = '\0';
+                        }
+                    }
+                    break;
+                }
+
+                /*
+                case CT_DISPLAY: {
+                    const DisplayBufferEntry* bufEntry = findDisplayBufferByLabel(entry->label);
+                    if (bufEntry) {
+                        const DisplayFieldDef* field = findDisplayFieldByLabel(entry->label);
+                        if (field) {
+                            unsigned int sb_index = entry->addr - field->base_addr;
+                            if (sb_index < field->length)        bufEntry->buffer[sb_index] = value & 0xFF;
+                            if (sb_index + 1 < field->length)    bufEntry->buffer[sb_index + 1] = (value >> 8) & 0xFF;
                             // if (bufEntry->dirty) *bufEntry->dirty = true;
                         }
                     }
                     break;
                 }
+                */
 
                 case CT_METADATA:
                     onMetaDataChange(entry->label, val);
