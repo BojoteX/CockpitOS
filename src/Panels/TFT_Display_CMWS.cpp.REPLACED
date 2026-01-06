@@ -4,6 +4,7 @@
 // AH-64D Apache Countermeasures Warning System Display
 //
 // Hardware: IdeasPark ST7789 170×320 TFT (320×170 in landscape after rotation)
+// CRITICAL: TFT_RST must be GPIO 4 (not -1) for this display!
 //
 // DESIGN GOALS (ESP32 Classic: no PSRAM, tight SRAM):
 //   1) No full-frame sprites.
@@ -85,23 +86,17 @@ static inline void buildInvLine4(char out[5], const char letter[2], const char c
 }
 
 // =============================================================================
-// FONTS - Converted from TTF to .h using https://rop.nl/truetype2gfx/
-// =============================================================================
- 
-// Doto Font 26pt
-#include "Assets/Fonts/Doto_Rounded_Black26pt7b.h"
-static const GFXfont* const FONT_DOTO = &Doto_Rounded_Black26pt7b;  
-
-// Milspec Font 10pt
-#include "Assets/Fonts/MilSpec3355810pt7b.h"
-static const GFXfont* const FONT_MILSPEC = &MilSpec3355810pt7b;
-
-// =============================================================================
 // PANEL REGISTRATION
 // =============================================================================
 #if defined(HAS_CMWS_DISPLAY)
     REGISTER_PANEL(TFTCmws, nullptr, nullptr, CMWSDisplay_init, CMWSDisplay_loop, nullptr, 100);
 #endif
+
+// =============================================================================
+// FONTS
+// =============================================================================
+#include "Assets/Fonts/Doto_Regular28pt7b.h"
+static const GFXfont* const FONT_DOTO_28 = &Doto_Regular28pt7b;
 
 // =============================================================================
 // CONFIG
@@ -149,16 +144,13 @@ static constexpr int16_t TICK_OUTER_R = 76;
 static constexpr int     TICK_COUNT = 24;    // 15° increments
 
 static constexpr int16_t TEXT_X       = 5;
+static constexpr int16_t TEXT_LINE1   = 40;
+static constexpr int16_t TEXT_LINE2   = 95;
+static constexpr int16_t TEXT_CLEAR_W = 150;
+static constexpr int16_t TEXT_CLEAR_H = 50;
+// static constexpr int16_t TEXT_CLEAR_H = 40; 
 
-// Y positions (baseline positions)
-static constexpr int16_t TEXT_LINE1 = 28;      // Line 1 baseline
-static constexpr int16_t TEXT_LINE2 = 100;     // Line 2 baseline 
-
-// Clear rectangle dimensions  
-static constexpr int16_t TEXT_CLEAR_H = 42;    // Glyph height 33 + 9px margin (safe)
-static constexpr int16_t TEXT_CLEAR_W = 135;   // 4 chars × 31px = 124 + 11px margin (safe)
-
-static constexpr int16_t DR_OFFSET = 35;
+static constexpr int16_t DR_OFFSET = 25;
 
 // =============================================================================
 // ARROW SHAPE
@@ -189,21 +181,12 @@ static constexpr int16_t SMALL_ARROW_RADIUS = TICK_OUTER_R - 10;
 static int16_t g_largeArrowRadius = 0;
 
 // =============================================================================
-// COLORS (pixel-matched to reference display)
+// COLORS
 // =============================================================================
-#define RGB565(r, g, b) (((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3))
-
-static constexpr uint16_t COL_BLACK = 0x0000;
-static constexpr uint16_t COL_GREEN = RGB565(115, 190, 100);  // punchy green
-static constexpr uint16_t COL_AMBER_BRT = RGB565(255, 200, 0);  // more golden
-static constexpr uint16_t COL_AMBER_DIM = RGB565(8, 4, 0);  // even darker
-
-/*
 static constexpr uint16_t COL_BLACK     = TFT_Colors::BLACK;
 static constexpr uint16_t COL_AMBER_BRT = TFT_Colors::AMBER_BRT;
 static constexpr uint16_t COL_AMBER_DIM = TFT_Colors::AMBER_DIM;
 static constexpr uint16_t COL_GREEN     = TFT_Colors::GREEN;
-*/
 
 // =============================================================================
 // STATE
@@ -337,12 +320,13 @@ struct CmwsState {
 
     uint8_t  backlight;
 
-    char flareLetter[4];
-    char chaffLetter[4];
-    char flareCount[8];
-    char chaffCount[8];
-    char bitLine1[8];
-    char bitLine2[8];
+    char flareLetter[2];  // "F" + '\0'
+    char chaffLetter[2];  // "C" + '\0'
+    char flareCount[3];   // "00" + '\0'
+    char chaffCount[3];   // "00" + '\0'
+    char bitLine1[5];     // 4 chars + '\0'
+    char bitLine2[5];     // 4 chars + '\0'
+
 };
 
 static CmwsState g_pending;     // written by callbacks under mux
@@ -545,7 +529,7 @@ static void drawArrowsIntersectingRect(const RectI16& r, const CmwsState& s) {
 }
 
 static void drawDRIntersectingRect(const RectI16& r, const CmwsState& s) {
-    tft.setFont(FONT_MILSPEC);
+    tft.setFont(&fonts::DejaVu24);
     tft.setTextDatum(textdatum_t::middle_center);
 
     if (rectIntersects(r, g_dRect)) {
@@ -611,23 +595,31 @@ static void fullRedraw(const CmwsState& s) {
     drawDRIntersectingRect(full, s);
 
     // Text
-    tft.setFont(FONT_DOTO);
+    // tft.setFont(&fonts::Orbitron_Light_32);
+    tft.setFont(FONT_DOTO_28);
+
     tft.setTextColor(COL_GREEN);
     tft.setTextDatum(textdatum_t::top_left);
 
     if (s.showInventory) {
+        char l1[5], l2[5];
+        buildInvLine4(l1, s.flareLetter, s.flareCount);
+        buildInvLine4(l2, s.chaffLetter, s.chaffCount);
+
         tft.setCursor(TEXT_X, TEXT_LINE1);
-        tft.printf("%s%s", s.flareLetter, s.flareCount);
+        tft.print(l1);
 
         tft.setCursor(TEXT_X, TEXT_LINE2);
-        tft.printf("%s%s", s.chaffLetter, s.chaffCount);
-    } else {
+        tft.print(l2);
+    }
+    else {
         tft.setCursor(TEXT_X, TEXT_LINE1);
         tft.print(s.bitLine1);
 
         tft.setCursor(TEXT_X, TEXT_LINE2);
         tft.print(s.bitLine2);
     }
+
 }
 
 // =============================================================================
@@ -644,16 +636,7 @@ static void redrawTextLine(int16_t x, int16_t y, const char* text) {
 // =============================================================================
 static void CMWSDisplay_draw(bool force = false) {
 
-    // If the device is OFF, blank once from the draw context only (never from callbacks).
-    if (g_deviceOff) {
-        if (g_dirty) {
-            tft.startWrite();
-            tft.fillScreen(COL_BLACK);
-            tft.endWrite();
-            g_dirty = false;
-        }
-        return;
-    }
+    if (g_deviceOff) return;
 
     if (!force && !isMissionRunning()) return;
 
@@ -719,50 +702,57 @@ static void CMWSDisplay_draw(bool force = false) {
     // 3) text mode or text content changed => redraw lines
     const bool modeChanged = (s.showInventory != g_lastDrawn.showInventory);
 
-    tft.setFont(FONT_DOTO);
+    // tft.setFont(&fonts::Orbitron_Light_32);
+    tft.setFont(FONT_DOTO_28);
+
     tft.setTextColor(COL_GREEN);
     tft.setTextDatum(textdatum_t::top_left);
 
-    char line1[24];
-    char line2[24];
+    char line1[5], line2[5], prev1[5], prev2[5];
 
     if (s.showInventory) {
-        snprintf(line1, sizeof(line1), "%s%s", s.flareLetter, s.flareCount);
-        snprintf(line2, sizeof(line2), "%s%s", s.chaffLetter, s.chaffCount);
-    } else {
-        strncpy(line1, s.bitLine1, sizeof(line1) - 1);
-        line1[sizeof(line1) - 1] = '\0';
-        strncpy(line2, s.bitLine2, sizeof(line2) - 1);
-        line2[sizeof(line2) - 1] = '\0';
+        buildInvLine4(line1, s.flareLetter, s.flareCount);
+        buildInvLine4(line2, s.chaffLetter, s.chaffCount);
+    }
+    else {
+        memcpy(line1, s.bitLine1, sizeof(line1));
+        memcpy(line2, s.bitLine2, sizeof(line2));
     }
 
-    char prev1[24];
-    char prev2[24];
     if (g_lastDrawn.showInventory) {
-        snprintf(prev1, sizeof(prev1), "%s%s", g_lastDrawn.flareLetter, g_lastDrawn.flareCount);
-        snprintf(prev2, sizeof(prev2), "%s%s", g_lastDrawn.chaffLetter, g_lastDrawn.chaffCount);
-    } else {
-        strncpy(prev1, g_lastDrawn.bitLine1, sizeof(prev1) - 1);
-        prev1[sizeof(prev1) - 1] = '\0';
-        strncpy(prev2, g_lastDrawn.bitLine2, sizeof(prev2) - 1);
-        prev2[sizeof(prev2) - 1] = '\0';
+        buildInvLine4(prev1, g_lastDrawn.flareLetter, g_lastDrawn.flareCount);
+        buildInvLine4(prev2, g_lastDrawn.chaffLetter, g_lastDrawn.chaffCount);
+    }
+    else {
+        memcpy(prev1, g_lastDrawn.bitLine1, sizeof(prev1));
+        memcpy(prev2, g_lastDrawn.bitLine2, sizeof(prev2));
     }
 
-    if (modeChanged || (strcmp(line1, prev1) != 0)) {
+    if (modeChanged || (memcmp(line1, prev1, 4) != 0)) {
         redrawTextLine(TEXT_X, TEXT_LINE1, line1);
     }
-    if (modeChanged || (strcmp(line2, prev2) != 0)) {
+    if (modeChanged || (memcmp(line2, prev2, 4) != 0)) {
         redrawTextLine(TEXT_X, TEXT_LINE2, line2);
     }
 
-    // Update last-drawn text fields
+    // Update last-drawn text fields (fixed-width, bounded)
     g_lastDrawn.showInventory = s.showInventory;
-    strncpy(g_lastDrawn.flareLetter, s.flareLetter, sizeof(g_lastDrawn.flareLetter));
-    strncpy(g_lastDrawn.chaffLetter, s.chaffLetter, sizeof(g_lastDrawn.chaffLetter));
-    strncpy(g_lastDrawn.flareCount,  s.flareCount,  sizeof(g_lastDrawn.flareCount));
-    strncpy(g_lastDrawn.chaffCount,  s.chaffCount,  sizeof(g_lastDrawn.chaffCount));
-    strncpy(g_lastDrawn.bitLine1,    s.bitLine1,    sizeof(g_lastDrawn.bitLine1));
-    strncpy(g_lastDrawn.bitLine2,    s.bitLine2,    sizeof(g_lastDrawn.bitLine2));
+
+    g_lastDrawn.flareLetter[0] = s.flareLetter[0];
+    g_lastDrawn.flareLetter[1] = '\0';
+    g_lastDrawn.chaffLetter[0] = s.chaffLetter[0];
+    g_lastDrawn.chaffLetter[1] = '\0';
+
+    g_lastDrawn.flareCount[0] = s.flareCount[0];
+    g_lastDrawn.flareCount[1] = s.flareCount[1];
+    g_lastDrawn.flareCount[2] = '\0';
+
+    g_lastDrawn.chaffCount[0] = s.chaffCount[0];
+    g_lastDrawn.chaffCount[1] = s.chaffCount[1];
+    g_lastDrawn.chaffCount[2] = '\0';
+
+    memcpy(g_lastDrawn.bitLine1, s.bitLine1, sizeof(g_lastDrawn.bitLine1));
+    memcpy(g_lastDrawn.bitLine2, s.bitLine2, sizeof(g_lastDrawn.bitLine2));
 
     g_dirty = false;
 
@@ -816,18 +806,14 @@ static void markDirty() { g_dirty = true; }
 static void setLargeStateFromBits(int idx) {
     const ElemState st = computeStateFromBits(g_largeBrt[idx], g_largeDim[idx]);
 
-    // Always update pending state (even OFF) under the mux.
-    portENTER_CRITICAL(&g_stateMux);
-    g_pending.large[idx] = st;
-    portEXIT_CRITICAL(&g_stateMux);
-
     if (st == ElemState::OFF) {
-        // IMPORTANT: never touch the TFT from callbacks (concurrency hazard).
-        // Signal the draw task to blank once and stop rendering until ON again.
-        if (!g_deviceOff) {
+        if (!g_deviceOff) {  // Only blank once
             g_deviceOff = true;
-            g_forceFull = true;   // ensure full redraw when device comes back
-            g_dirty = true;       // triggers a one-time blank in draw task
+            tft.startWrite();
+            tft.fillScreen(COL_BLACK);
+            tft.endWrite();
+            g_dirty = false;
+            g_forceFull = true;
         }
         return;
     }
@@ -836,9 +822,11 @@ static void setLargeStateFromBits(int idx) {
     if (g_deviceOff) {
         g_deviceOff = false;
         g_forceFull = true;
-        g_dirty = true;
     }
 
+    portENTER_CRITICAL(&g_stateMux);
+    g_pending.large[idx] = st;
+    portEXIT_CRITICAL(&g_stateMux);
     markDirty();
 }
 
@@ -887,13 +875,15 @@ static void onReadyDim(const char*, uint16_t v) {
     markDirty();
 }
 
-// Inventory / BIT strings
 static void onFlareCount(const char*, const char* value) {
-    if (!value) return;
+    char norm[3];
+    formatCount2(norm, value);
+
     portENTER_CRITICAL(&g_stateMux);
-    if (strncmp(g_pending.flareCount, value, 3) != 0) {
-        strncpy(g_pending.flareCount, value, 3);
-        g_pending.flareCount[3] = '\0';
+    if (memcmp(g_pending.flareCount, norm, 2) != 0) {
+        g_pending.flareCount[0] = norm[0];
+        g_pending.flareCount[1] = norm[1];
+        g_pending.flareCount[2] = '\0';
         g_pending.showInventory = true;
         portEXIT_CRITICAL(&g_stateMux);
         markDirty();
@@ -901,12 +891,16 @@ static void onFlareCount(const char*, const char* value) {
     }
     portEXIT_CRITICAL(&g_stateMux);
 }
+
 static void onChaffCount(const char*, const char* value) {
-    if (!value) return;
+    char norm[3];
+    formatCount2(norm, value);
+
     portENTER_CRITICAL(&g_stateMux);
-    if (strncmp(g_pending.chaffCount, value, 3) != 0) {
-        strncpy(g_pending.chaffCount, value, 3);
-        g_pending.chaffCount[3] = '\0';
+    if (memcmp(g_pending.chaffCount, norm, 2) != 0) {
+        g_pending.chaffCount[0] = norm[0];
+        g_pending.chaffCount[1] = norm[1];
+        g_pending.chaffCount[2] = '\0';
         g_pending.showInventory = true;
         portEXIT_CRITICAL(&g_stateMux);
         markDirty();
@@ -914,6 +908,7 @@ static void onChaffCount(const char*, const char* value) {
     }
     portEXIT_CRITICAL(&g_stateMux);
 }
+
 static void onFlareLetter(const char*, const char* value) {
     if (!value || value[0] == '\0') return;
     portENTER_CRITICAL(&g_stateMux);
@@ -981,19 +976,23 @@ static void onPage(const char*, const char* value) {
         if (strcmp(value, "NONE") == 0) newPage = 0;
         else if (strcmp(value, "TEST") == 0) newPage = 2;
     }
-
+    
     portENTER_CRITICAL(&g_stateMux);
     if (g_pending.page != newPage) {
         g_pending.page = newPage;
         portEXIT_CRITICAL(&g_stateMux);
-
-        // IMPORTANT: never touch the TFT from callbacks (concurrency hazard).
-        // Let the draw task handle blanking on page=0.
-        g_deviceOff = (newPage == 0);
-
+        
+        if (newPage == 0) {
+            g_deviceOff = true;
+            tft.startWrite();
+            tft.fillScreen(COL_BLACK);
+            tft.endWrite();
+        } else {
+            g_deviceOff = false;
+        }
         g_forceFull = true;
         g_dirty = true;
-        debugPrintf("[CMWS] Page changed to: %s", value ? value : "(null)");
+        debugPrintf("[CMWS] Page changed to: %s\n", value);
         return;
     }
     portEXIT_CRITICAL(&g_stateMux);
@@ -1054,8 +1053,8 @@ void CMWSDisplay_init() {
 
     strncpy(init.flareLetter, "F", sizeof(init.flareLetter));
     strncpy(init.chaffLetter, "C", sizeof(init.chaffLetter));
-    strncpy(init.flareCount,  " 00", sizeof(init.flareCount));
-    strncpy(init.chaffCount,  " 00", sizeof(init.chaffCount));
+    strncpy(init.flareCount,  "00", sizeof(init.flareCount));
+    strncpy(init.chaffCount,  "00", sizeof(init.chaffCount));
     init.bitLine1[0] = '\0';
     init.bitLine2[0] = '\0';
 
@@ -1143,8 +1142,8 @@ void CMWSDisplay_bitTest() {
     tmp.page = 1;
     tmp.backlight = 255;
     tmp.showInventory = true;
-    strncpy(tmp.flareCount, " 88", sizeof(tmp.flareCount));
-    strncpy(tmp.chaffCount, " 88", sizeof(tmp.chaffCount));
+    strncpy(tmp.flareCount, "88", sizeof(tmp.flareCount));
+    strncpy(tmp.chaffCount, "88", sizeof(tmp.chaffCount));
 
     // Phase 1: all bright
     for (int i = 0; i < LARGE_ARROW_COUNT; ++i) tmp.large[i] = ElemState::BRT;
