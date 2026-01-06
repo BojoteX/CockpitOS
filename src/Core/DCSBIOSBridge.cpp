@@ -198,8 +198,8 @@ static void DCSBIOS_bustDisplayBuffers() {
 class DcsBiosSniffer : public DcsBios::ExportStreamListener {
 public:
     DcsBiosSniffer(): 
-        // DcsBios::ExportStreamListener(0x0000, 0x77FF), // Old version
-        DcsBios::ExportStreamListener(0x0000, 0xFFFE),
+        // DcsBios::ExportStreamListener(0x0000, 0x77FF), // Old version (Hornet Only)
+        DcsBios::ExportStreamListener(0x0000, 0xFFFD),
         pendingUpdateCount(0),
         pendingUpdateOverflow(0),
         _lastWriteMs(0),
@@ -452,6 +452,25 @@ void initPanels() {
 }
 
 void onAircraftName(const char* str) {
+
+
+    // ═══════════════════════════════════════════════════════════════
+    // DIAGNOSTIC: Is onAircraftName being called?
+    // ═══════════════════════════════════════════════════════════════
+    static uint32_t callCount = 0;
+    static uint32_t lastPrintMs = 0;
+    callCount++;
+
+    uint32_t now = millis();
+    if (now - lastPrintMs >= 2000) {
+        debugPrintf("[ACFT-DIAG] onAircraftName called %u times, str=\"%.24s\", DCSBIOS_ACFT_NAME=\"%s\"\n",
+            callCount, str ? str : "(null)", DCSBIOS_ACFT_NAME);
+        callCount = 0;
+        lastPrintMs = now;
+    }
+    // ═══════════════════════════════════════════════════════════════
+
+
     // 1. Check for blank (all spaces or nulls) == mission stop
     bool isBlank = true;
     for (int i = 0; i < 24; ++i) {
@@ -678,6 +697,22 @@ void parseDcsBiosUdpPacket(const uint8_t* data, size_t len) {
 
 #if USE_DCSBIOS_WIFI || USE_DCSBIOS_USB || USE_DCSBIOS_BLUETOOTH
 void onDcsBiosUdpPacket() {
+
+    // ═══════════════════════════════════════════════════════════════
+    // DIAGNOSTIC #3: Ring buffer drain health
+    // ═══════════════════════════════════════════════════════════════
+    static uint32_t drainCalls = 0;
+    static uint32_t framesPopped = 0;
+    static uint32_t bytesPopped = 0;
+    static uint32_t emptyPolls = 0;
+    static uint32_t lastPrintMs = 0;
+
+    drainCalls++;
+
+    uint32_t framesThisCall = 0;
+    // ═══════════════════════════════════════════════════════════════
+
+
     static struct {
         uint8_t  data[DCS_UDP_MAX_REASSEMBLED];
         size_t   len;
@@ -689,6 +724,9 @@ void onDcsBiosUdpPacket() {
 
     // Phase 1: Drain as many complete UDP frames as possible
     while (dcsUdpRingbufPop(&pkt)) {
+        framesThisCall++;  // DIAG-3
+        bytesPopped += pkt.len;  // DIAG-3
+
         if (reassemblyLen + pkt.len > sizeof(frames[0].data)) {
             reassemblyLen = 0;
             debugPrintln("❌ [RING BUFFER] Overflow! increase DCS_UDP_MAX_REASSEMBLED");
@@ -1431,7 +1469,8 @@ void DCSBIOSBridge_setup() {
 
 #if !defined(ARDUINO_USB_MODE)
     // Original ESP32: plain Serial via external USB-UART bridge
-    Serial.begin(115200);
+    // Serial.begin(115200);
+    Serial.begin(250000);
     Serial.setDebugOutput(false);
     Serial.setRxBufferSize(SERIAL_RX_BUFFER_SIZE);
     Serial.setTimeout(SERIAL_TX_TIMEOUT);

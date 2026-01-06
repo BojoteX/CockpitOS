@@ -14,14 +14,18 @@
 
 #if DEBUG_PERFORMANCE
 
-#if (ARDUINO_USB_MODE == 0)
-    #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) // Enable only if Serial is needed
-        #include "tusb.h"
+#if defined(ARDUINO_USB_MODE)
+    #if (ARDUINO_USB_MODE == 0)
+        #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) // Enable only if Serial is needed
+            #include "tusb.h"
+        #endif
+    #elif (ARDUINO_USB_MODE == 1)
+        #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) // Enable only if Serial is needed
+		    // Do nothing
+        #endif
     #endif
-#elif (ARDUINO_USB_MODE == 1)
-    #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE) // Enable only if Serial is needed
-		// Do nothing
-    #endif
+#else
+	// Do nothing, no USB mode defined
 #endif
 
 #if DEBUG_USE_WIFI || USE_DCSBIOS_WIFI
@@ -439,15 +443,18 @@ void perfMonitorUpdate() {
     appendOnly_perfDebugPrintln("+----------------------------------------------------------------+");
 
     #if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE)
-        #if ARDUINO_USB_CDC_ON_BOOT == 1
+        #if defined(ARDUINO_USB_CDC_ON_BOOT) && ARDUINO_USB_CDC_ON_BOOT == 1
             int rxWaiting = Serial.available();
             int txAvail   = tud_cdc_write_available();  // NOT Serial.availableForWrite()
-        #elif (ARDUINO_USB_MODE == 1)
+        #elif defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 1
             int rxWaiting = HWCDCSerial.available();
 	        int txAvail = HWCDCSerial.availableForWrite();
-        #elif (ARDUINO_USB_MODE == 0)
+        #elif defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0
             int rxWaiting = USBSerial.available();
 			int txAvail = tud_cdc_write_available();
+        #else
+	        int rxWaiting = Serial.available();
+			int txAvail = Serial.availableForWrite();
         #endif
     #else
         int rxWaiting = 0;

@@ -146,7 +146,7 @@ static const uint8_t seg7_ascii[128] = {
 };
 
 // Custom order is 0=c, 1=g2, 2=b, 3=m, 4=l, 5=j, 6=a, 7=d, 8=k, 9=i, 10=h, 11=e, 12=g1, 13=f
-uint16_t seg14_ascii[128] = {
+uint16_t const seg14_ascii[128] = {
     0x0000, //   0
     0x0000, //   1
     0x0000, //   2
@@ -354,7 +354,7 @@ static inline bool isBlankN(const char* s, uint8_t n) {
 
 static inline void copyN(char* dst, const char* src, uint8_t n) {
     for (uint8_t i = 0; i < n; ++i) { char c = src[i]; dst[i] = c ? c : 0; if (!c) { for (++i; i < n; ++i) dst[i] = 0; break; } }
-    dst[n - 1] = dst[n - 1]; // keep as-is; arrays already zeroed
+    // dst[n - 1] = dst[n - 1]; // keep as-is; arrays already zeroed
 }
 
 // ---- Backlight control ----
@@ -546,7 +546,6 @@ void IFEI_loop() {
 void IFEIDisplay_init() {
 
     // delay(50);  // Small delay to ensure when init is called DCS has settled
-
     ifei.buildCommitRegions();  // Automatically builds per-field update regions
 
     // Initialize hardware driver(s)
