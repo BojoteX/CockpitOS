@@ -51,6 +51,13 @@
     REGISTER_PANEL(TFTCmws, nullptr, nullptr, CMWSDisplay_init, CMWSDisplay_loop, nullptr, 100);
 #endif
 
+
+// =============================================================================
+// FONTS
+// =============================================================================
+#include "Assets/Fonts/Doto_Regular28pt7b.h"
+static const GFXfont* const FONT_DOTO_32 = &Doto_Regular28pt7b;
+
 // =============================================================================
 // CONFIG
 // =============================================================================
@@ -100,7 +107,8 @@ static constexpr int16_t TEXT_X       = 5;
 static constexpr int16_t TEXT_LINE1   = 40;
 static constexpr int16_t TEXT_LINE2   = 95;
 static constexpr int16_t TEXT_CLEAR_W = 150;
-static constexpr int16_t TEXT_CLEAR_H = 40;
+// static constexpr int16_t TEXT_CLEAR_H = 50;
+static constexpr int16_t TEXT_CLEAR_H = 40; 
 
 static constexpr int16_t DR_OFFSET = 25;
 
@@ -546,16 +554,18 @@ static void fullRedraw(const CmwsState& s) {
     drawDRIntersectingRect(full, s);
 
     // Text
-    tft.setFont(&fonts::Orbitron_Light_32);
+    // tft.setFont(&fonts::Orbitron_Light_32);
+    tft.setFont(FONT_DOTO_32);
+
     tft.setTextColor(COL_GREEN);
     tft.setTextDatum(textdatum_t::top_left);
 
     if (s.showInventory) {
         tft.setCursor(TEXT_X, TEXT_LINE1);
-        tft.printf("%s    %s", s.flareLetter, s.flareCount);
+        tft.printf("%s %s", s.flareLetter, s.flareCount);
 
         tft.setCursor(TEXT_X, TEXT_LINE2);
-        tft.printf("%s    %s", s.chaffLetter, s.chaffCount);
+        tft.printf("%s %s", s.chaffLetter, s.chaffCount);
     } else {
         tft.setCursor(TEXT_X, TEXT_LINE1);
         tft.print(s.bitLine1);
@@ -645,7 +655,9 @@ static void CMWSDisplay_draw(bool force = false) {
     // 3) text mode or text content changed => redraw lines
     const bool modeChanged = (s.showInventory != g_lastDrawn.showInventory);
 
-    tft.setFont(&fonts::Orbitron_Light_32);
+    // tft.setFont(&fonts::Orbitron_Light_32);
+    tft.setFont(FONT_DOTO_32);
+
     tft.setTextColor(COL_GREEN);
     tft.setTextDatum(textdatum_t::top_left);
 
@@ -653,8 +665,8 @@ static void CMWSDisplay_draw(bool force = false) {
     char line2[24];
 
     if (s.showInventory) {
-        snprintf(line1, sizeof(line1), "%s    %s", s.flareLetter, s.flareCount);
-        snprintf(line2, sizeof(line2), "%s    %s", s.chaffLetter, s.chaffCount);
+        snprintf(line1, sizeof(line1), "%s %s", s.flareLetter, s.flareCount);
+        snprintf(line2, sizeof(line2), "%s %s", s.chaffLetter, s.chaffCount);
     } else {
         strncpy(line1, s.bitLine1, sizeof(line1) - 1);
         line1[sizeof(line1) - 1] = '\0';
@@ -665,8 +677,8 @@ static void CMWSDisplay_draw(bool force = false) {
     char prev1[24];
     char prev2[24];
     if (g_lastDrawn.showInventory) {
-        snprintf(prev1, sizeof(prev1), "%s    %s", g_lastDrawn.flareLetter, g_lastDrawn.flareCount);
-        snprintf(prev2, sizeof(prev2), "%s    %s", g_lastDrawn.chaffLetter, g_lastDrawn.chaffCount);
+        snprintf(prev1, sizeof(prev1), "%s %s", g_lastDrawn.flareLetter, g_lastDrawn.flareCount);
+        snprintf(prev2, sizeof(prev2), "%s %s", g_lastDrawn.chaffLetter, g_lastDrawn.chaffCount);
     } else {
         strncpy(prev1, g_lastDrawn.bitLine1, sizeof(prev1) - 1);
         prev1[sizeof(prev1) - 1] = '\0';
