@@ -35,6 +35,13 @@
 #include "../DCSBIOSBridge.h"
 #include "includes/TFT_Display_CMWS.h"
 
+// =============================================================================
+// PANEL REGISTRATION
+// =============================================================================
+#if defined(HAS_CMWS_DISPLAY)
+    REGISTER_PANEL(TFTCmws, nullptr, nullptr, CMWSDisplay_init, CMWSDisplay_loop, nullptr, 100);
+#endif
+
 #if !__has_include(<LovyanGFX.hpp>)
 #error "❌ Missing LovyanGFX.hpp — Please install LovyanGFX library"
 #endif
@@ -97,18 +104,11 @@ static const GFXfont* const FONT_DOTO = &Doto_Rounded_Black26pt7b;
 static const GFXfont* const FONT_MILSPEC = &MilSpec3355810pt7b;
 
 // =============================================================================
-// PANEL REGISTRATION
-// =============================================================================
-#if defined(HAS_CMWS_DISPLAY)
-    REGISTER_PANEL(TFTCmws, nullptr, nullptr, CMWSDisplay_init, CMWSDisplay_loop, nullptr, 100);
-#endif
-
-// =============================================================================
 // CONFIG
 // =============================================================================
 static constexpr uint32_t CMWS_REFRESH_INTERVAL_MS = 33;   // ~30 FPS max
 
-static constexpr bool     RUN_AS_TASK     = true;
+static constexpr bool     RUN_AS_TASK     = false;
 static constexpr uint16_t TASK_STACK_SIZE = 4096;
 static constexpr uint8_t  TASK_PRIORITY   = 2;
 static constexpr uint8_t  CPU_CORE        = 0;
@@ -148,8 +148,6 @@ static constexpr int16_t TICK_OUTER_R = 76;
 
 static constexpr int     TICK_COUNT = 24;    // 15° increments
 
-static constexpr int16_t TEXT_X       = 5;
-
 // Y positions (baseline positions)
 static constexpr int16_t TEXT_LINE1 = 28;      // Line 1 baseline
 static constexpr int16_t TEXT_LINE2 = 100;     // Line 2 baseline 
@@ -158,7 +156,12 @@ static constexpr int16_t TEXT_LINE2 = 100;     // Line 2 baseline
 static constexpr int16_t TEXT_CLEAR_H = 42;    // Glyph height 33 + 9px margin (safe)
 static constexpr int16_t TEXT_CLEAR_W = 135;   // 4 chars × 31px = 124 + 11px margin (safe)
 
-static constexpr int16_t DR_OFFSET = 35;
+// D/R letter offsets
+static constexpr int16_t DR_OFFSET = 40;
+static constexpr int16_t DR_X_OFFSET = 3;  // Shift D/R right by this many pixels
+
+// Text X position
+static constexpr int16_t TEXT_X = 10;
 
 // =============================================================================
 // ARROW SHAPE
@@ -168,7 +171,6 @@ static constexpr float LARGE_TIP_BASE_Y  = 11.0f;
 static constexpr float LARGE_BODY_BASE_Y = 0.0f;
 static constexpr float LARGE_TIP_HALF_W  = 16.0f;
 static constexpr float LARGE_BODY_HALF_W = 8.5f;
-
 static constexpr float SMALL_ARROW_SCALE = 0.5f;
 
 // =============================================================================
@@ -197,13 +199,6 @@ static constexpr uint16_t COL_BLACK = 0x0000;
 static constexpr uint16_t COL_GREEN = RGB565(115, 190, 100);  // punchy green
 static constexpr uint16_t COL_AMBER_BRT = RGB565(255, 200, 0);  // more golden
 static constexpr uint16_t COL_AMBER_DIM = RGB565(8, 4, 0);  // even darker
-
-/*
-static constexpr uint16_t COL_BLACK     = TFT_Colors::BLACK;
-static constexpr uint16_t COL_AMBER_BRT = TFT_Colors::AMBER_BRT;
-static constexpr uint16_t COL_AMBER_DIM = TFT_Colors::AMBER_DIM;
-static constexpr uint16_t COL_GREEN     = TFT_Colors::GREEN;
-*/
 
 // =============================================================================
 // STATE
@@ -552,13 +547,13 @@ static void drawDRIntersectingRect(const RectI16& r, const CmwsState& s) {
         // Clear already happened; redraw if needed
         if (s.dispense != ElemState::OFF) {
             tft.setTextColor(colorFor(s.dispense));
-            tft.drawString("D", RING_CX, RING_CY - DR_OFFSET);
+            tft.drawString("D", RING_CX + DR_X_OFFSET, RING_CY - DR_OFFSET);
         }
     }
     if (rectIntersects(r, g_rRect)) {
         if (s.ready != ElemState::OFF) {
             tft.setTextColor(colorFor(s.ready));
-            tft.drawString("R", RING_CX, RING_CY + DR_OFFSET);
+            tft.drawString("R", RING_CX + DR_X_OFFSET, RING_CY + DR_OFFSET);
         }
     }
 }
@@ -804,8 +799,8 @@ static void precomputeGeometry() {
     }
 
     // D/R rects (conservative 30x30 like your previous)
-    g_dRect = RectI16{ static_cast<int16_t>(RING_CX - 15), static_cast<int16_t>(RING_CY - DR_OFFSET - 15), 30, 30 };
-    g_rRect = RectI16{ static_cast<int16_t>(RING_CX - 15), static_cast<int16_t>(RING_CY + DR_OFFSET - 15), 30, 30 };
+    g_dRect = RectI16{ static_cast<int16_t>(RING_CX + DR_X_OFFSET - 15), static_cast<int16_t>(RING_CY - DR_OFFSET - 15), 30, 30 };
+    g_rRect = RectI16{ static_cast<int16_t>(RING_CX + DR_X_OFFSET - 15), static_cast<int16_t>(RING_CY + DR_OFFSET - 15), 30, 30 };
 }
 
 // =============================================================================
