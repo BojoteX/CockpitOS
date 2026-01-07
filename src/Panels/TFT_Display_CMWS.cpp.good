@@ -25,17 +25,6 @@
 //     - redraw D/R if region intersects their fixed rects
 //   Inventory/BIT text uses dedicated rect clears.
 //
-// DEVICE ON/OFF RULES:
-//   - Device is OFF only when ALL 4 large arrows have BOTH BRT=0 AND DIM=0
-//   - When OFF: LAMP=0%, small arrows=OFF, ticks=OFF, nothing drawn
-//   - When ON: small arrows and ticks are always DIM
-//
-// PAGE MODE RULES:
-//   - Only accept exact full strings: "MAIN" or "TEST" (ignore partials)
-//   - MAIN: show FLARE_LETTER/FLARE_COUNT and CHAFF_LETTER/CHAFF_COUNT
-//   - TEST: show BIT_LINE_1 and BIT_LINE_2
-//   - Field updates only accepted when valid for current page mode
-//
 // =============================================================================
 
 #include "../Globals.h"
@@ -195,6 +184,7 @@ static constexpr int SMALL_ARROW_COUNT = 8;
 static constexpr int SMALL_ARROW_ANGLES[SMALL_ARROW_COUNT] = { 0, 45, 90, 135, 180, 225, 270, 315 };
 
 // Small arrows sit inside the same boundary band as ticks
+// static constexpr int16_t SMALL_ARROW_RADIUS = (TICK_INNER_R + TICK_OUTER_R) / 2;
 static constexpr int16_t SMALL_ARROW_RADIUS = TICK_OUTER_R - 10;
 
 // Large radius computed at init
@@ -215,8 +205,7 @@ static constexpr uint16_t COL_AMBER_DIM = RGB565(8, 4, 0);  // even darker
 // =============================================================================
 enum class ElemState : uint8_t { OFF = 0, DIM = 1, BRT = 2 };
 
-// Page mode enum for clarity
-enum class PageMode : uint8_t { MAIN = 0, TEST = 1 };
+static volatile bool g_deviceOff = false;
 
 static inline ElemState computeStateFromBits(bool brt, bool dim) {
     if (brt) return ElemState::BRT;
@@ -333,15 +322,15 @@ static TaskHandle_t taskHandle = nullptr;
 static portMUX_TYPE g_stateMux = portMUX_INITIALIZER_UNLOCKED;
 
 struct CmwsState {
-    PageMode pageMode;        // MAIN or TEST
-    bool     deviceOn;        // true when at least one large arrow has DIM or BRT set
+    uint8_t  page;            // 0=NONE/OFF, 1=MAIN, 2=TEST
+    bool     showInventory;   // true: F/C inventory, false: BIT lines
 
     ElemState large[LARGE_ARROW_COUNT];
     ElemState small[SMALL_ARROW_COUNT];
     ElemState dispense;
     ElemState ready;
 
-    uint8_t  backlight;       // user-requested backlight (only applied when deviceOn)
+    uint8_t  backlight;
 
     char flareLetter[4];
     char chaffLetter[4];
@@ -359,26 +348,13 @@ static volatile bool g_forceFull = true;
 static uint32_t g_lastDrawMs = 0;
 
 // Cached brt/dim bits for large arrows + D/R (no getMetadataValue() readback)
-static volatile bool g_largeBrt[LARGE_ARROW_COUNT] = { false, false, false, false };
-static volatile bool g_largeDim[LARGE_ARROW_COUNT] = { false, false, false, false };
+static volatile bool g_largeBrt[LARGE_ARROW_COUNT] = { false,false,false,false };
+static volatile bool g_largeDim[LARGE_ARROW_COUNT] = { true,true,true,true };
 
 static volatile bool g_dispBrt = false;
-static volatile bool g_dispDim = false;
+static volatile bool g_dispDim = true;
 static volatile bool g_readyBrt = false;
-static volatile bool g_readyDim = false;
-
-// =============================================================================
-// DEVICE ON/OFF LOGIC
-// =============================================================================
-// Device is OFF only when ALL 4 large arrows have BOTH BRT=0 AND DIM=0
-static inline bool computeDeviceOn() {
-    for (int i = 0; i < LARGE_ARROW_COUNT; ++i) {
-        if (g_largeBrt[i] || g_largeDim[i]) {
-            return true;  // At least one arrow has signal → device is ON
-        }
-    }
-    return false;  // All arrows have no signal → device is OFF
-}
+static volatile bool g_readyDim = true;
 
 // =============================================================================
 // SMALL HELPERS
@@ -525,10 +501,7 @@ static bool angleIsSmallArrow(int angleDeg) {
     return false;
 }
 
-// Draw ticks intersecting rect - only when device is ON
-static void drawTicksIntersectingRect(const RectI16& r, bool deviceOn) {
-    if (!deviceOn) return;  // Device OFF: no ticks drawn
-
+static void drawTicksIntersectingRect(const RectI16& r) {
     // ticks are at 15° increments
     for (int i = 0; i < TICK_COUNT; ++i) {
         const int angle = (i * 360) / TICK_COUNT;
@@ -552,16 +525,12 @@ static void drawTicksIntersectingRect(const RectI16& r, bool deviceOn) {
 
 // Redraw dynamic arrows that intersect the region
 static void drawArrowsIntersectingRect(const RectI16& r, const CmwsState& s) {
-    // Small arrows: only draw when device is ON (always DIM when ON)
-    if (s.deviceOn) {
-        for (int i = 0; i < SMALL_ARROW_COUNT; ++i) {
-            if (!rectIntersects(r, g_smallAabb[i])) continue;
-            // Small arrows are always DIM when device is ON
-            drawArrowDirect(g_smallArrows[i], COL_AMBER_DIM);
-        }
+    for (int i = 0; i < SMALL_ARROW_COUNT; ++i) {
+        if (!rectIntersects(r, g_smallAabb[i])) continue;
+        const ElemState st = s.small[i];
+        if (st == ElemState::OFF) continue;
+        drawArrowDirect(g_smallArrows[i], colorFor(st));
     }
-
-    // Large arrows: draw based on their individual state
     for (int i = 0; i < LARGE_ARROW_COUNT; ++i) {
         if (!rectIntersects(r, g_largeAabb[i])) continue;
         const ElemState st = s.large[i];
@@ -571,12 +540,11 @@ static void drawArrowsIntersectingRect(const RectI16& r, const CmwsState& s) {
 }
 
 static void drawDRIntersectingRect(const RectI16& r, const CmwsState& s) {
-    if (!s.deviceOn) return;  // Device OFF: no D/R drawn
-
     tft.setFont(FONT_MILSPEC);
     tft.setTextDatum(textdatum_t::middle_center);
 
     if (rectIntersects(r, g_dRect)) {
+        // Clear already happened; redraw if needed
         if (s.dispense != ElemState::OFF) {
             tft.setTextColor(colorFor(s.dispense));
             tft.drawString("D", RING_CX + DR_X_OFFSET, RING_CY - DR_OFFSET);
@@ -590,7 +558,7 @@ static void drawDRIntersectingRect(const RectI16& r, const CmwsState& s) {
     }
 }
 
-// One "correct" region restore + recompose for ring areas.
+// One “correct” region restore + recompose for ring areas.
 static void redrawRegion(const RectI16& r, const CmwsState& s) {
     // clamp
     RectI16 rr = r;
@@ -603,8 +571,8 @@ static void redrawRegion(const RectI16& r, const CmwsState& s) {
     // 1) clear
     tft.fillRect(rr.x, rr.y, rr.w, rr.h, COL_BLACK);
 
-    // 2) base layer (ticks - only if device ON)
-    drawTicksIntersectingRect(rr, s.deviceOn);
+    // 2) base layer
+    drawTicksIntersectingRect(rr);
 
     // 3) dynamic layers that overlap
     drawArrowsIntersectingRect(rr, s);
@@ -626,14 +594,10 @@ static inline void snapshotState(CmwsState& out) {
 static void fullRedraw(const CmwsState& s) {
     tft.fillScreen(COL_BLACK);
 
-    // If device is OFF, just black screen (LAMP already set to 0)
-    if (!s.deviceOn) {
-        return;
-    }
-
     // Base layer: all ticks not replaced by small arrows
-    RectI16 full { 0, 0, SCREEN_W, SCREEN_H };
-    drawTicksIntersectingRect(full, s.deviceOn);
+    // (draw all ticks first; cheap)
+    RectI16 full { 0,0, SCREEN_W, SCREEN_H };
+    drawTicksIntersectingRect(full);
 
     // Dynamic: small arrows + large arrows
     drawArrowsIntersectingRect(full, s);
@@ -646,14 +610,13 @@ static void fullRedraw(const CmwsState& s) {
     tft.setTextColor(COL_GREEN);
     tft.setTextDatum(textdatum_t::top_left);
 
-    if (s.pageMode == PageMode::MAIN) {
+    if (s.showInventory) {
         tft.setCursor(TEXT_X, TEXT_LINE1);
         tft.printf("%s%s", s.flareLetter, s.flareCount);
 
         tft.setCursor(TEXT_X, TEXT_LINE2);
         tft.printf("%s%s", s.chaffLetter, s.chaffCount);
     } else {
-        // TEST mode
         tft.setCursor(TEXT_X, TEXT_LINE1);
         tft.print(s.bitLine1);
 
@@ -676,6 +639,17 @@ static void redrawTextLine(int16_t x, int16_t y, const char* text) {
 // =============================================================================
 static void CMWSDisplay_draw(bool force = false) {
 
+    // If the device is OFF, blank once from the draw context only (never from callbacks).
+    if (g_deviceOff) {
+        if (g_dirty) {
+            tft.startWrite();
+            tft.fillScreen(COL_BLACK);
+            tft.endWrite();
+            g_dirty = false;
+        }
+        return;
+    }
+
     if (!force && !isMissionRunning()) return;
 
     // quick check to avoid snapshot work
@@ -688,17 +662,13 @@ static void CMWSDisplay_draw(bool force = false) {
     CmwsState s;
     snapshotState(s);
 
-    // Backlight: 0% when device OFF, user-requested when ON
-    const uint8_t effectiveBacklight = s.deviceOn ? s.backlight : 0;
-    tft.setBrightness(effectiveBacklight);
+    // Backlight
+    // (do outside startWrite, safe)
+    tft.setBrightness(s.backlight);
 
-    // Device OFF => blank screen
-    if (!s.deviceOn) {
-        if (g_forceFull || g_lastDrawn.deviceOn) {
-            tft.startWrite();
-            tft.fillScreen(COL_BLACK);
-            tft.endWrite();
-        }
+    // OFF page => blank
+    if (s.page == 0) {
+        tft.fillScreen(COL_BLACK);
         g_forceFull = false;
         g_dirty = false;
         g_lastDrawn = s;
@@ -707,8 +677,7 @@ static void CMWSDisplay_draw(bool force = false) {
 
     tft.startWrite();
 
-    // Full redraw if forced or device just came ON
-    if (g_forceFull || !g_lastDrawn.deviceOn || (s.pageMode != g_lastDrawn.pageMode)) {
+    if (g_forceFull || (s.page != g_lastDrawn.page)) {
         fullRedraw(s);
         g_forceFull = false;
         g_dirty = false;
@@ -718,7 +687,13 @@ static void CMWSDisplay_draw(bool force = false) {
     }
 
     // Incremental:
-    // 1) Large arrows that changed => redraw their AABB region
+    // 1) arrows that changed => redraw their AABB region
+    for (int i = 0; i < SMALL_ARROW_COUNT; ++i) {
+        if (s.small[i] != g_lastDrawn.small[i]) {
+            redrawRegion(g_smallAabb[i], s);
+            g_lastDrawn.small[i] = s.small[i];
+        }
+    }
     for (int i = 0; i < LARGE_ARROW_COUNT; ++i) {
         if (s.large[i] != g_lastDrawn.large[i]) {
             redrawRegion(g_largeAabb[i], s);
@@ -736,7 +711,9 @@ static void CMWSDisplay_draw(bool force = false) {
         g_lastDrawn.ready = s.ready;
     }
 
-    // 3) text content changed => redraw lines
+    // 3) text mode or text content changed => redraw lines
+    const bool modeChanged = (s.showInventory != g_lastDrawn.showInventory);
+
     tft.setFont(FONT_DOTO);
     tft.setTextColor(COL_GREEN);
     tft.setTextDatum(textdatum_t::top_left);
@@ -744,7 +721,7 @@ static void CMWSDisplay_draw(bool force = false) {
     char line1[24];
     char line2[24];
 
-    if (s.pageMode == PageMode::MAIN) {
+    if (s.showInventory) {
         snprintf(line1, sizeof(line1), "%s%s", s.flareLetter, s.flareCount);
         snprintf(line2, sizeof(line2), "%s%s", s.chaffLetter, s.chaffCount);
     } else {
@@ -756,7 +733,7 @@ static void CMWSDisplay_draw(bool force = false) {
 
     char prev1[24];
     char prev2[24];
-    if (g_lastDrawn.pageMode == PageMode::MAIN) {
+    if (g_lastDrawn.showInventory) {
         snprintf(prev1, sizeof(prev1), "%s%s", g_lastDrawn.flareLetter, g_lastDrawn.flareCount);
         snprintf(prev2, sizeof(prev2), "%s%s", g_lastDrawn.chaffLetter, g_lastDrawn.chaffCount);
     } else {
@@ -766,15 +743,15 @@ static void CMWSDisplay_draw(bool force = false) {
         prev2[sizeof(prev2) - 1] = '\0';
     }
 
-    if (strcmp(line1, prev1) != 0) {
+    if (modeChanged || (strcmp(line1, prev1) != 0)) {
         redrawTextLine(TEXT_X, TEXT_LINE1, line1);
     }
-    if (strcmp(line2, prev2) != 0) {
+    if (modeChanged || (strcmp(line2, prev2) != 0)) {
         redrawTextLine(TEXT_X, TEXT_LINE2, line2);
     }
 
     // Update last-drawn text fields
-    g_lastDrawn.pageMode = s.pageMode;
+    g_lastDrawn.showInventory = s.showInventory;
     strncpy(g_lastDrawn.flareLetter, s.flareLetter, sizeof(g_lastDrawn.flareLetter));
     strncpy(g_lastDrawn.chaffLetter, s.chaffLetter, sizeof(g_lastDrawn.chaffLetter));
     strncpy(g_lastDrawn.flareCount,  s.flareCount,  sizeof(g_lastDrawn.flareCount));
@@ -831,118 +808,127 @@ static void precomputeGeometry() {
 // =============================================================================
 static void markDirty() { g_dirty = true; }
 
-// Recompute device ON state and update all dependent states
-static void updateDeviceState() {
-    const bool wasOn = g_pending.deviceOn;
-    const bool nowOn = computeDeviceOn();
+static void setLargeStateFromBits(int idx) {
+    const ElemState st = computeStateFromBits(g_largeBrt[idx], g_largeDim[idx]);
 
+    // Always update pending state (even OFF) under the mux.
     portENTER_CRITICAL(&g_stateMux);
-
-    g_pending.deviceOn = nowOn;
-
-    // Update all 4 large arrow states
-    for (int i = 0; i < LARGE_ARROW_COUNT; ++i) {
-        g_pending.large[i] = computeStateFromBits(g_largeBrt[i], g_largeDim[i]);
-    }
-
-    // Update D/R states
-    g_pending.dispense = computeStateFromBits(g_dispBrt, g_dispDim);
-    g_pending.ready = computeStateFromBits(g_readyBrt, g_readyDim);
-
+    g_pending.large[idx] = st;
     portEXIT_CRITICAL(&g_stateMux);
 
-    // Force full redraw on ON/OFF transitions
-    if (wasOn != nowOn) {
+    if (st == ElemState::OFF) {
+        // IMPORTANT: never touch the TFT from callbacks (concurrency hazard).
+        // Signal the draw task to blank once and stop rendering until ON again.
+        if (!g_deviceOff) {
+            g_deviceOff = true;
+            g_forceFull = true;   // ensure full redraw when device comes back
+            g_dirty = true;       // triggers a one-time blank in draw task
+        }
+        return;
+    }
+
+    // Device coming back on
+    if (g_deviceOff) {
+        g_deviceOff = false;
         g_forceFull = true;
+        g_dirty = true;
     }
 
     markDirty();
 }
 
-// Large arrow callbacks
-static void onFwdRightBrt(const char*, uint16_t v) { g_largeBrt[0] = (v != 0); updateDeviceState(); }
-static void onFwdRightDim(const char*, uint16_t v) { g_largeDim[0] = (v != 0); updateDeviceState(); }
+static void onFwdRightBrt(const char*, uint16_t v) { g_largeBrt[0] = (v != 0); setLargeStateFromBits(0); }
+static void onFwdRightDim(const char*, uint16_t v) { g_largeDim[0] = (v != 0); setLargeStateFromBits(0); }
 
-static void onAftRightBrt(const char*, uint16_t v) { g_largeBrt[1] = (v != 0); updateDeviceState(); }
-static void onAftRightDim(const char*, uint16_t v) { g_largeDim[1] = (v != 0); updateDeviceState(); }
+static void onAftRightBrt(const char*, uint16_t v) { g_largeBrt[1] = (v != 0); setLargeStateFromBits(1); }
+static void onAftRightDim(const char*, uint16_t v) { g_largeDim[1] = (v != 0); setLargeStateFromBits(1); }
 
-static void onAftLeftBrt(const char*, uint16_t v)  { g_largeBrt[2] = (v != 0); updateDeviceState(); }
-static void onAftLeftDim(const char*, uint16_t v)  { g_largeDim[2] = (v != 0); updateDeviceState(); }
+static void onAftLeftBrt(const char*, uint16_t v)  { g_largeBrt[2] = (v != 0); setLargeStateFromBits(2); }
+static void onAftLeftDim(const char*, uint16_t v)  { g_largeDim[2] = (v != 0); setLargeStateFromBits(2); }
 
-static void onFwdLeftBrt(const char*, uint16_t v)  { g_largeBrt[3] = (v != 0); updateDeviceState(); }
-static void onFwdLeftDim(const char*, uint16_t v)  { g_largeDim[3] = (v != 0); updateDeviceState(); }
+static void onFwdLeftBrt(const char*, uint16_t v)  { g_largeBrt[3] = (v != 0); setLargeStateFromBits(3); }
+static void onFwdLeftDim(const char*, uint16_t v)  { g_largeDim[3] = (v != 0); setLargeStateFromBits(3); }
 
-// D/R callbacks
 static void onDispenseBrt(const char*, uint16_t v) {
     g_dispBrt = (v != 0);
-    updateDeviceState();
+    const ElemState st = computeStateFromBits(g_dispBrt, g_dispDim);
+    portENTER_CRITICAL(&g_stateMux);
+    g_pending.dispense = st;
+    portEXIT_CRITICAL(&g_stateMux);
+    markDirty();
 }
 static void onDispenseDim(const char*, uint16_t v) {
     g_dispDim = (v != 0);
-    updateDeviceState();
+    const ElemState st = computeStateFromBits(g_dispBrt, g_dispDim);
+    portENTER_CRITICAL(&g_stateMux);
+    g_pending.dispense = st;
+    portEXIT_CRITICAL(&g_stateMux);
+    markDirty();
 }
 static void onReadyBrt(const char*, uint16_t v) {
     g_readyBrt = (v != 0);
-    updateDeviceState();
+    const ElemState st = computeStateFromBits(g_readyBrt, g_readyDim);
+    portENTER_CRITICAL(&g_stateMux);
+    g_pending.ready = st;
+    portEXIT_CRITICAL(&g_stateMux);
+    markDirty();
 }
 static void onReadyDim(const char*, uint16_t v) {
     g_readyDim = (v != 0);
-    updateDeviceState();
+    const ElemState st = computeStateFromBits(g_readyBrt, g_readyDim);
+    portENTER_CRITICAL(&g_stateMux);
+    g_pending.ready = st;
+    portEXIT_CRITICAL(&g_stateMux);
+    markDirty();
 }
 
-// Inventory / BIT strings - simple validation, no page mode gating
-// If DCS-BIOS sends valid data, we store it. Period.
+// Inventory / BIT strings
 static void onFlareCount(const char*, const char* value) {
     if (!value) return;
-    if (strlen(value) < 2) return;  // Need 2+ chars for count
-
     portENTER_CRITICAL(&g_stateMux);
     if (strncmp(g_pending.flareCount, value, 3) != 0) {
         strncpy(g_pending.flareCount, value, 3);
         g_pending.flareCount[3] = '\0';
+        g_pending.showInventory = true;
         portEXIT_CRITICAL(&g_stateMux);
         markDirty();
         return;
     }
     portEXIT_CRITICAL(&g_stateMux);
 }
-
 static void onChaffCount(const char*, const char* value) {
     if (!value) return;
-    if (strlen(value) < 2) return;  // Need 2+ chars for count
-
     portENTER_CRITICAL(&g_stateMux);
     if (strncmp(g_pending.chaffCount, value, 3) != 0) {
         strncpy(g_pending.chaffCount, value, 3);
         g_pending.chaffCount[3] = '\0';
+        g_pending.showInventory = true;
         portEXIT_CRITICAL(&g_stateMux);
         markDirty();
         return;
     }
     portEXIT_CRITICAL(&g_stateMux);
 }
-
 static void onFlareLetter(const char*, const char* value) {
-    if (!value || value[0] == '\0') return;  // Need 1+ char for letter
-
+    if (!value || value[0] == '\0') return;
     portENTER_CRITICAL(&g_stateMux);
     if (g_pending.flareLetter[0] != value[0]) {
         g_pending.flareLetter[0] = value[0];
         g_pending.flareLetter[1] = '\0';
+        g_pending.showInventory = true;
         portEXIT_CRITICAL(&g_stateMux);
         markDirty();
         return;
     }
     portEXIT_CRITICAL(&g_stateMux);
 }
-
 static void onChaffLetter(const char*, const char* value) {
-    if (!value || value[0] == '\0') return;  // Need 1+ char for letter
-
+    if (!value || value[0] == '\0') return;
     portENTER_CRITICAL(&g_stateMux);
     if (g_pending.chaffLetter[0] != value[0]) {
         g_pending.chaffLetter[0] = value[0];
         g_pending.chaffLetter[1] = '\0';
+        g_pending.showInventory = true;
         portEXIT_CRITICAL(&g_stateMux);
         markDirty();
         return;
@@ -951,8 +937,7 @@ static void onChaffLetter(const char*, const char* value) {
 }
 
 static void onBitLine1(const char*, const char* value) {
-    if (!value) return;
-    if (strlen(value) < 3) return;  // Need 3+ chars to be considered non-empty
+    if (!value || value[0] == '\0') return;
 
     char norm[5];
     formatField4(norm, value);
@@ -960,6 +945,7 @@ static void onBitLine1(const char*, const char* value) {
     portENTER_CRITICAL(&g_stateMux);
     if (memcmp(g_pending.bitLine1, norm, 4) != 0) {
         memcpy(g_pending.bitLine1, norm, 5);
+        g_pending.showInventory = false;
         portEXIT_CRITICAL(&g_stateMux);
         markDirty();
         return;
@@ -968,8 +954,7 @@ static void onBitLine1(const char*, const char* value) {
 }
 
 static void onBitLine2(const char*, const char* value) {
-    if (!value) return;
-    if (strlen(value) < 3) return;  // Need 3+ chars to be considered non-empty
+    if (!value || value[0] == '\0') return;
 
     char norm[5];
     formatField4(norm, value);
@@ -977,6 +962,7 @@ static void onBitLine2(const char*, const char* value) {
     portENTER_CRITICAL(&g_stateMux);
     if (memcmp(g_pending.bitLine2, norm, 4) != 0) {
         memcpy(g_pending.bitLine2, norm, 5);
+        g_pending.showInventory = false;
         portEXIT_CRITICAL(&g_stateMux);
         markDirty();
         return;
@@ -985,29 +971,24 @@ static void onBitLine2(const char*, const char* value) {
 }
 
 static void onPage(const char*, const char* value) {
-    // Only accept exact full strings: "MAIN" or "TEST"
-    // Ignore partials like "MA", "TE", etc.
-    if (!value) return;
-
-    PageMode newMode = g_pending.pageMode;  // Keep current if no match
-
-    if (strcmp(value, "MAIN") == 0) {
-        newMode = PageMode::MAIN;
-    } else if (strcmp(value, "TEST") == 0) {
-        newMode = PageMode::TEST;
-    } else {
-        // Ignore partial strings or unknown values
-        return;
+    uint8_t newPage = 1;
+    if (value) {
+        if (strcmp(value, "NONE") == 0) newPage = 0;
+        else if (strcmp(value, "TEST") == 0) newPage = 2;
     }
 
     portENTER_CRITICAL(&g_stateMux);
-    if (g_pending.pageMode != newMode) {
-        g_pending.pageMode = newMode;
+    if (g_pending.page != newPage) {
+        g_pending.page = newPage;
         portEXIT_CRITICAL(&g_stateMux);
+
+        // IMPORTANT: never touch the TFT from callbacks (concurrency hazard).
+        // Let the draw task handle blanking on page=0.
+        g_deviceOff = (newPage == 0);
 
         g_forceFull = true;
         g_dirty = true;
-        debugPrintf("[CMWS] Page changed to: %s\n", value);
+        debugPrintf("[CMWS] Page changed to: %s", value ? value : "(null)");
         return;
     }
     portEXIT_CRITICAL(&g_stateMux);
@@ -1017,14 +998,13 @@ static void onLampChange(const char*, uint16_t value, uint16_t maxValue) {
     if (maxValue == 0) return;
     const uint8_t newLevel = static_cast<uint8_t>((static_cast<uint32_t>(value) * 255UL) / maxValue);
 
+    // Update stored state
     portENTER_CRITICAL(&g_stateMux);
-    if (g_pending.backlight != newLevel) {
-        g_pending.backlight = newLevel;
-        portEXIT_CRITICAL(&g_stateMux);
-        markDirty();
-        return;
-    }
+    g_pending.backlight = newLevel;
     portEXIT_CRITICAL(&g_stateMux);
+
+    // Apply immediately (does NOT require a redraw)
+    tft.setBrightness(newLevel);
 }
 
 
@@ -1057,13 +1037,13 @@ void CMWSDisplay_init() {
 
     // Initialize pending state deterministically
     CmwsState init{};
-    init.pageMode = PageMode::MAIN;
-    init.deviceOn = false;  // Start OFF until DCS-BIOS tells us otherwise
+    init.page = 1;
+    init.showInventory = true;
 
-    for (int i = 0; i < LARGE_ARROW_COUNT; ++i) init.large[i] = ElemState::OFF;
-    for (int i = 0; i < SMALL_ARROW_COUNT; ++i) init.small[i] = ElemState::DIM;
-    init.dispense = ElemState::OFF;
-    init.ready    = ElemState::OFF;
+    for (int i = 0; i < LARGE_ARROW_COUNT; ++i) init.large[i] = ElemState::DIM;
+    for (int i = 0; i < SMALL_ARROW_COUNT; ++i) init.small[i] = ElemState::DIM; // dynamic in future
+    init.dispense = ElemState::DIM;
+    init.ready    = ElemState::DIM;
 
     init.backlight = 255;
 
@@ -1120,7 +1100,7 @@ void CMWSDisplay_init() {
 
     debugPrintf("✅ CMWS Display initialized: MOSI=%d SCLK=%d CS=%d DC=%d RST=%d BLK=%d\n",
         PIN_MOSI, PIN_SCLK, PIN_CS, PIN_DC, PIN_RST, PIN_BLK);
-    debugPrintf("   Large arrow radius=%d, small arrows=%d (always DIM when ON), ticks=%d\n",
+    debugPrintf("   Large arrow radius=%d, small arrows=%d (dynamic), ticks=%d\n",
         g_largeArrowRadius, SMALL_ARROW_COUNT, TICK_COUNT);
 }
 
@@ -1153,17 +1133,17 @@ void CMWSDisplay_bitTest() {
     CmwsState saved;
     snapshotState(saved);
 
-    // Force on + bright for test
+    // Force on + bright
     CmwsState tmp = saved;
-    tmp.pageMode = PageMode::MAIN;
-    tmp.deviceOn = true;
+    tmp.page = 1;
     tmp.backlight = 255;
+    tmp.showInventory = true;
     strncpy(tmp.flareCount, " 88", sizeof(tmp.flareCount));
     strncpy(tmp.chaffCount, " 88", sizeof(tmp.chaffCount));
 
     // Phase 1: all bright
     for (int i = 0; i < LARGE_ARROW_COUNT; ++i) tmp.large[i] = ElemState::BRT;
-    for (int i = 0; i < SMALL_ARROW_COUNT; ++i) tmp.small[i] = ElemState::DIM;  // Small always DIM
+    for (int i = 0; i < SMALL_ARROW_COUNT; ++i) tmp.small[i] = ElemState::BRT;
     tmp.dispense = ElemState::BRT;
     tmp.ready    = ElemState::BRT;
 
@@ -1176,6 +1156,7 @@ void CMWSDisplay_bitTest() {
 
     // Phase 2: all dim
     for (int i = 0; i < LARGE_ARROW_COUNT; ++i) tmp.large[i] = ElemState::DIM;
+    for (int i = 0; i < SMALL_ARROW_COUNT; ++i) tmp.small[i] = ElemState::DIM;
     tmp.dispense = ElemState::DIM;
     tmp.ready    = ElemState::DIM;
 
@@ -1186,9 +1167,9 @@ void CMWSDisplay_bitTest() {
     CMWSDisplay_draw(true);
     vTaskDelay(pdMS_TO_TICKS(500));
 
-    // Phase 3: device OFF (all arrows OFF, lamp 0%)
-    tmp.deviceOn = false;
+    // Phase 3: all off
     for (int i = 0; i < LARGE_ARROW_COUNT; ++i) tmp.large[i] = ElemState::OFF;
+    for (int i = 0; i < SMALL_ARROW_COUNT; ++i) tmp.small[i] = ElemState::OFF;
     tmp.dispense = ElemState::OFF;
     tmp.ready    = ElemState::OFF;
 
@@ -1199,8 +1180,7 @@ void CMWSDisplay_bitTest() {
     CMWSDisplay_draw(true);
     vTaskDelay(pdMS_TO_TICKS(500));
 
-    // Phase 4: device back ON, rotate large arrows bright
-    tmp.deviceOn = true;
+    // Phase 4: rotate large arrows bright
     for (int a = 0; a < LARGE_ARROW_COUNT; ++a) {
         for (int i = 0; i < LARGE_ARROW_COUNT; ++i) tmp.large[i] = ElemState::DIM;
         tmp.large[a] = ElemState::BRT;

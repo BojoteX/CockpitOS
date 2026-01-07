@@ -16,12 +16,12 @@
 // Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. 
 // Bluetooth BLE, Pure Native USB, WIFI or Serial (CDC/Socat). Only ONE can be active 
 #define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included) Completely bypasses socat and uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (All ESP32 that support BLE Bluetooth).
-#define USE_DCSBIOS_WIFI                            0 // Completely bypasses socat and uses WiFi to connect to DCS. (ALL ESP32 Devices except H2) 
-#define USE_DCSBIOS_USB                             1 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (S2, S3 & P4 Only). S3 & P4 require USB Mode set to USB-OTG (TinyUSB) in Tools Menu
+#define USE_DCSBIOS_WIFI                            1 // Completely bypasses socat and uses WiFi to connect to DCS. (ALL ESP32 Devices except H2) 
+#define USE_DCSBIOS_USB                             0 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (S2, S3 & P4 Only). S3 & P4 require USB Mode set to USB-OTG (TinyUSB) in Tools Menu
 #define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 
 // Panel specific features like: Does your panel have TFT gauges? is a PCA Expander present? want HID Axes even in DCS Mode?
-#define ENABLE_TFT_GAUGES                           0 // Enable TFT Gauges (should always be 1, except for testing or debugging)
+#define ENABLE_TFT_GAUGES                           1 // Enable TFT Gauges (should always be 1, except for testing or debugging)
 #define ENABLE_PCA9555                              0 // 0 = skip PCA logic & autodetection, 1 = enable PCA Expanders. Enable only if PCA expanders are present in your hardware/PCB 
 #define SEND_HID_AXES_IN_DCS_MODE                   0 // Sends HID Axes even if DCS Mode is active
 #define MIDDLE_AXIS_THRESHOLD                      64 // Adjust if your Middle Axis won't stick to center (optimal should be 32-64) but noisy axes require 128-256
@@ -35,12 +35,12 @@
 #define WIFI_PASS                                  "TestingOnly"
 
 // For production, ALL THESE should be set to 0. Use for debugging only.
-#define DEBUG_ENABLED                               0  // Use it ONLY when identifying issues or troubleshooting
+#define DEBUG_ENABLED                               1  // Use it ONLY when identifying issues or troubleshooting
 #define VERBOSE_MODE                                0  // Logs INFO messages to both Serial and UDP (very useful).
 #define VERBOSE_MODE_SERIAL_ONLY                    0  // Verbose will only output to Serial. 
-#define VERBOSE_MODE_WIFI_ONLY                      0  // Verbose will only output to WiFi so Serial port is clean.
+#define VERBOSE_MODE_WIFI_ONLY                      1  // Verbose will only output to WiFi so Serial port is clean.
 #define VERBOSE_PERFORMANCE_ONLY                    0  // Requires DEBUG_PERFORMANCE as well, this will only output perf snapshots, make sure you pick WIFI or SERIAL above and DEBUG_ENABLED is 0
-#define DEBUG_PERFORMANCE                           0  // Shows a performance snapshot every x seconds (interval can be configured below)
+#define DEBUG_PERFORMANCE                           1  // Shows a performance snapshot every x seconds (interval can be configured below)
 #define DEBUG_PERFORMANCE_SHOW_TASKS                0  // Includes the current task list with the snapshot. Not really needed.
 #define PERFORMANCE_SNAPSHOT_INTERVAL_SECONDS       60 // Interval between snapshots (in seconds)
 
@@ -156,7 +156,7 @@
 #define USB_LANG_ID                          0x0409  // English (US)
 
 #if USE_DCSBIOS_WIFI && !DCS_USE_RINGBUFFER
-#error "Invalid config: DCS_USE_RINGBUFFER must be 1 when USE_DCSBIOS_WIFI is enabled."
+  #error "Invalid config: DCS_USE_RINGBUFFER must be 1 when USE_DCSBIOS_WIFI is enabled."
 #endif
 
 // Automatically enables what we'll be using, no need to edit.
