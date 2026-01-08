@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
-  DEVICE_PCA9555,
   DEVICE_GAUGE,
-  DEVICE_NONE,
-  DEVICE_TM1637,
+  DEVICE_GPIO,
   DEVICE_GN1640T,
   DEVICE_WS2812,
-  DEVICE_GPIO,
+  DEVICE_TM1637,
+  DEVICE_NONE,
+  DEVICE_PCA9555,
 };
 
 struct LEDMapping {
@@ -29,8 +29,8 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
-  { "PLT_CMWS_LAMP", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "PLT_CMWS_VOL" , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
+  { "PLT_CMWS_LAMP", DEVICE_NONE    , {.gpioInfo = {0}}, true, false }, // No Info,
+  { "PLT_CMWS_VOL" , DEVICE_NONE    , {.gpioInfo = {0}}, true, false }, // No Info
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);

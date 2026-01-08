@@ -15,13 +15,13 @@
 
 // Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. 
 // Bluetooth BLE, Pure Native USB, WIFI or Serial (CDC/Socat). Only ONE can be active 
-#define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included) Completely bypasses socat and uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (All ESP32 that support BLE Bluetooth).
+#define USE_DCSBIOS_BLUETOOTH                       1 // *INTERNAL USE ONLY* (Not included) Completely bypasses socat and uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (All ESP32 that support BLE Bluetooth).
 #define USE_DCSBIOS_WIFI                            0 // Completely bypasses socat and uses WiFi to connect to DCS. (ALL ESP32 Devices except H2) 
 #define USE_DCSBIOS_USB                             0 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (S2, S3 & P4 Only). S3 & P4 require USB Mode set to USB-OTG (TinyUSB) in Tools Menu
-#define USE_DCSBIOS_SERIAL                          1 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
+#define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 
 // Panel specific features like: Does your panel have TFT gauges? is a PCA Expander present? want HID Axes even in DCS Mode?
-#define ENABLE_TFT_GAUGES                           0 // Enable TFT Gauges (should always be 1, except for testing or debugging)
+#define ENABLE_TFT_GAUGES                           1 // Enable TFT Gauges (should always be 1, except for testing or debugging)
 #define ENABLE_PCA9555                              0 // 0 = skip PCA logic & autodetection, 1 = enable PCA Expanders. Enable only if PCA expanders are present in your hardware/PCB 
 #define SEND_HID_AXES_IN_DCS_MODE                   0 // Sends HID Axes even if DCS Mode is active
 #define MIDDLE_AXIS_THRESHOLD                      64 // Adjust if your Middle Axis won't stick to center (optimal should be 32-64) but noisy axes require 128-256
@@ -35,7 +35,7 @@
 #define WIFI_PASS                                  "TestingOnly"
 
 // For production, ALL THESE should be set to 0. Use for debugging only.
-#define DEBUG_ENABLED                               1  // Use it ONLY when identifying issues or troubleshooting
+#define DEBUG_ENABLED                               0  // Use it ONLY when identifying issues or troubleshooting
 #define VERBOSE_MODE                                0  // Logs INFO messages to both Serial and UDP (very useful).
 #define VERBOSE_MODE_SERIAL_ONLY                    0  // Verbose will only output to Serial. 
 #define VERBOSE_MODE_WIFI_ONLY                      1  // Verbose will only output to WiFi so Serial port is clean.
@@ -100,7 +100,7 @@
 #endif
 
 // WiFi Debug Ring Buffer 
-#define WIFI_DEBUG_USE_RINGBUFFER                   1 // Should be use a ring buffer for WiFi Debug messages? helps when using WiFi DCS Mode. If WiFi is not used, this value is ignored anyway. Also, if using CDC + WiFi Debug, this is REQUIRED to avoid CDC stalls
+#define WIFI_DEBUG_USE_RINGBUFFER                   0 // Should be use a ring buffer for WiFi Debug messages? helps when using WiFi DCS Mode. If WiFi is not used, this value is ignored anyway. Also, if using CDC + WiFi Debug, this is REQUIRED to avoid CDC stalls
 #if WIFI_DEBUG_USE_RINGBUFFER
   #define WIFI_DBG_SEND_RINGBUF_SIZE               64 // How many slots in our buffer
   #define WIFI_DBG_MSG_MAXLEN                      64 // Max size for each slot
@@ -120,10 +120,21 @@
   #define DCS_UDP_RINGBUF_SIZE                   64  // Number of USB packets buffered (tune as needed) 64 is optimal
   #define DCS_UDP_PACKET_MAXLEN                  64  // Should ALWAYS be 64 when USE_DCSBIOS_USB 
 #else // Used for incoming DCS stream via WiFi UDP (if enabled) 
-  #define DCS_USE_RINGBUFFER                      1  // OPTIONAL. Should WiFi UDP use a ring buffer for the incoming DCS Stream data?
+
+  #if USE_DCSBIOS_WIFI || USE_DCSBIOS_BLUETOOTH
+    #define DCS_USE_RINGBUFFER                      1  // Enforces WiFi/BLE use of a ring buffer for the incoming DCS Stream data (otherwise it will crash)
+  #else 
+    #define DCS_USE_RINGBUFFER                      0  // No need for it as Wi-Fi/BLE for DCS-BIOS is not active.
+  #endif
+
   #if DCS_USE_RINGBUFFER
-    #define DCS_UDP_RINGBUF_SIZE                 64  // Number of UDP packets buffered (tune as needed)
-    #define DCS_UDP_PACKET_MAXLEN                64  // Max UDP packet size (safe for Incoming UDP from DCS-BIOS)
+    #if USE_DCSBIOS_WIFI
+      #define DCS_UDP_RINGBUF_SIZE                 64  // Number of UDP packets buffered (tune as needed)
+      #define DCS_UDP_PACKET_MAXLEN                64  // Max UDP packet size (safe for Incoming UDP from DCS-BIOS)
+    #else
+      #define DCS_UDP_RINGBUF_SIZE                 64  // Number of BLE packets buffered (tune as needed)
+      #define DCS_UDP_PACKET_MAXLEN                64  // Max BLE packet size (safe for Incoming BLE from DCS-BIOS)
+    #endif
   #else
     #define DCS_UDP_RINGBUF_SIZE                  0  // Number of packets buffered (tune as needed)
     #define DCS_UDP_PACKET_MAXLEN              1472  // Max UDP packet size (safe for DCS-BIOS)
