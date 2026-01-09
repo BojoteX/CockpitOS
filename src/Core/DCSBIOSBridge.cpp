@@ -199,8 +199,8 @@ class DcsBiosSniffer : public DcsBios::ExportStreamListener {
 public:
     DcsBiosSniffer(): 
         // DcsBios::ExportStreamListener(0x0000, 0x77FF), // Old version (Hornet Only)
-        DcsBios::ExportStreamListener(0x0000, 0xFFFD),
-        // DcsBios::ExportStreamListener(0x0000, 0xFFFE),
+        // DcsBios::ExportStreamListener(0x0000, 0xFFFD),
+        DcsBios::ExportStreamListener(0x0000, 0xFFFE),
         pendingUpdateCount(0),
         pendingUpdateOverflow(0),
         _lastWriteMs(0),

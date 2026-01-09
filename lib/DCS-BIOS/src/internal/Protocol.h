@@ -12,18 +12,19 @@
 #include "ExportStreamListener.h"
 
 namespace DcsBios {
-	class ProtocolParser {
-	private:
-		volatile unsigned char state;
-		volatile unsigned int address;
-		volatile unsigned int count;
-		volatile unsigned int data;
-		volatile unsigned char sync_byte_count;
-		ExportStreamListener* startESL;
-		volatile bool processingData;
-	public:
-		void processChar(unsigned char c);
-		ProtocolParser();
-	};
+    class ProtocolParser {
+    private:
+        volatile unsigned char state;
+        volatile unsigned int address;
+        volatile unsigned int count;
+        volatile unsigned int data;
+        volatile unsigned char sync_byte_count;
+        ExportStreamListener* startESL;
+        volatile bool processingData;
+        bool inDataBlock;  // ADD THIS
+    public:
+        void processChar(unsigned char c);
+        ProtocolParser();
+    };
 }
 #endif
