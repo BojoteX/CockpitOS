@@ -15,13 +15,13 @@
 
 // Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. 
 // Bluetooth BLE, Pure Native USB, WIFI or Serial (CDC/Socat). Only ONE can be active 
-#define USE_DCSBIOS_BLUETOOTH                       1 // *INTERNAL USE ONLY* (Not included) Completely bypasses socat and uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (All ESP32 that support BLE Bluetooth).
+#define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included) Completely bypasses socat and uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (All ESP32 that support BLE Bluetooth).
 #define USE_DCSBIOS_WIFI                            0 // Completely bypasses socat and uses WiFi to connect to DCS. (ALL ESP32 Devices except H2) 
-#define USE_DCSBIOS_USB                             0 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (S2, S3 & P4 Only). S3 & P4 require USB Mode set to USB-OTG (TinyUSB) in Tools Menu
+#define USE_DCSBIOS_USB                             1 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (S2, S3 & P4 Only). S3 & P4 require USB Mode set to USB-OTG (TinyUSB) in Tools Menu
 #define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 
 // Panel specific features like: Does your panel have TFT gauges? is a PCA Expander present? want HID Axes even in DCS Mode?
-#define ENABLE_TFT_GAUGES                           1 // Enable TFT Gauges (should always be 1, except for testing or debugging)
+#define ENABLE_TFT_GAUGES                           0 // Enable TFT Gauges (should always be 1, except for testing or debugging)
 #define ENABLE_PCA9555                              0 // 0 = skip PCA logic & autodetection, 1 = enable PCA Expanders. Enable only if PCA expanders are present in your hardware/PCB 
 #define SEND_HID_AXES_IN_DCS_MODE                   0 // Sends HID Axes even if DCS Mode is active
 #define MIDDLE_AXIS_THRESHOLD                      64 // Adjust if your Middle Axis won't stick to center (optimal should be 32-64) but noisy axes require 128-256
@@ -36,6 +36,7 @@
 
 // For production, ALL THESE should be set to 0. Use for debugging only.
 #define DEBUG_ENABLED                               0  // Use it ONLY when identifying issues or troubleshooting
+#define DEBUG_LISTENERS_AT_STARTUP                  0  // Debug Listeners for ADVANCED troubleshooting! usually not needed.
 #define VERBOSE_MODE                                0  // Logs INFO messages to both Serial and UDP (very useful).
 #define VERBOSE_MODE_SERIAL_ONLY                    0  // Verbose will only output to Serial. 
 #define VERBOSE_MODE_WIFI_ONLY                      1  // Verbose will only output to WiFi so Serial port is clean.
@@ -117,7 +118,7 @@
 #define MAX_UDP_FRAMES_PER_DRAIN                  1  // Max number to hold in buffer before parsing (increase for bursty processing) 1 is deterministic, best.
 #if USE_DCSBIOS_USB
   #define DCS_USE_RINGBUFFER                      1  // Should ALWAYS be 1 when USE_DCSBIOS_USB. DO NOT CHANGE 
-  #define DCS_UDP_RINGBUF_SIZE                   64  // Number of USB packets buffered (tune as needed) 64 is optimal
+  #define DCS_UDP_RINGBUF_SIZE                   32  // Number of USB packets buffered (tune as needed) 64 is optimal
   #define DCS_UDP_PACKET_MAXLEN                  64  // Should ALWAYS be 64 when USE_DCSBIOS_USB 
 #else // Used for incoming DCS stream via WiFi UDP (if enabled) 
 
@@ -149,6 +150,7 @@
 #define UDP_TMPBUF_SIZE                        1472 // UDP Out Temp buffer
 #define PERF_TMPBUF_SIZE                       1024 // Temp Buffer size for Performance Append logic
 #define SERIAL_DEBUG_FLUSH_BUFFER_SIZE         2048 // Big enough for your largest full message (tune as needed)
+
 #define SERIAL_DEBUG_OUTPUT_CHUNK_SIZE           64 // Final Serial.write will use this value to chunk writes
 #define DCS_UDP_MAX_REASSEMBLED                1472 // Or whatever max UDP/Frame size you want
 

@@ -200,6 +200,7 @@ public:
     DcsBiosSniffer(): 
         // DcsBios::ExportStreamListener(0x0000, 0x77FF), // Old version (Hornet Only)
         DcsBios::ExportStreamListener(0x0000, 0xFFFD),
+        // DcsBios::ExportStreamListener(0x0000, 0xFFFE),
         pendingUpdateCount(0),
         pendingUpdateOverflow(0),
         _lastWriteMs(0),
@@ -207,6 +208,19 @@ public:
     {}
 
     void onDcsBiosWrite(unsigned int addr, unsigned int value) override {
+
+    #if DEBUG_LISTENERS_AT_STARTUP
+        // === DISPATCH DEBUG ===
+        static uint32_t dispatchCount = 0;
+        static uint32_t lastDispatchPrintMs = 0;
+        dispatchCount++;
+        uint32_t dbgNow = millis();
+        if (dbgNow - lastDispatchPrintMs >= 3000) {
+            debugPrintf("[DISPATCH] count=%u lastAddr=0x%04X\n", dispatchCount, addr);
+            lastDispatchPrintMs = dbgNow;
+        }
+        // === END DEBUG ===
+    #endif
 
         // This is used for debugging and testing
         if(TEMP_DISABLE_LISTENER) return;
@@ -297,6 +311,14 @@ public:
     }
 
     void onConsistentData() override {
+
+    #if DEBUG_LISTENERS_AT_STARTUP
+        // === FRAME DEBUG ===
+        static uint32_t frameCount = 0;
+        frameCount++;
+        // debugPrintf("[FRAME] #%u\n", frameCount);  // prints every frame
+        // === END DEBUG ===
+    #endif
 
         if (TEMP_DISABLE_LISTENER) return;
 
@@ -689,6 +711,20 @@ void validateSelectorSync() {
 
 // Works for both UDP and HID incoming pipes
 void parseDcsBiosUdpPacket(const uint8_t* data, size_t len) {
+
+#if DEBUG_LISTENERS_AT_STARTUP
+    // === RAW BYTE DEBUG ===
+    static uint32_t totalBytes = 0;
+    static uint32_t lastPrintMs = 0;
+    totalBytes += len;
+    uint32_t now = millis();
+    if (now - lastPrintMs >= 3000) {
+        debugPrintf("[RAW] totalBytes=%u\n", totalBytes);
+        lastPrintMs = now;
+    }
+    // === END DEBUG ===
+#endif
+
     for (size_t i = 0; i < len; ++i) {
         DcsBios::parser.processChar(data[i]);
     }
@@ -1445,6 +1481,22 @@ void forceResync() {
 }
 
 void DCSBIOSBridge_postSetup() {
+
+#if DEBUG_LISTENERS_AT_STARTUP
+    // === LISTENER DEBUG ===
+    debugPrintf("=== LISTENER LIST AT STARTUP ===\n");
+    debugPrintf("firstExportStreamListener: %p\n", DcsBios::ExportStreamListener::firstExportStreamListener);
+    DcsBios::ExportStreamListener* el = DcsBios::ExportStreamListener::firstExportStreamListener;
+    int i = 0;
+    while (el) {
+        debugPrintf("  [%d] %p: first=0x%04X, last=0x%04X, next=%p\n",
+            i++, el, el->getFirstAddressOfInterest(),
+            el->getLastAddressOfInterest(), el->nextExportStreamListener);
+        el = el->nextExportStreamListener;
+    }
+    if (i == 0) debugPrintf("  (empty list!)\n");
+    // === END DEBUG ===
+#endif
 
     // Register our Display buffers automatically (the ones starting with IFEI_)
     for (size_t i = 0; i < numCTDisplayBuffers; ++i) {

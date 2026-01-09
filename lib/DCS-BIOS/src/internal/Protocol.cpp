@@ -78,7 +78,10 @@ namespace DcsBios {
 				}
 
 				address += 2;
-				if (count == 0) state = DCSBIOS_STATE_ADDRESS_LOW;
+				if (count == 0) {
+					state = DCSBIOS_STATE_ADDRESS_LOW;
+					// sync_byte_count = 0;  // Reset sync detection after data block
+				}
 				else state = DCSBIOS_STATE_DATA_LOW;
 				break;
 		}
@@ -88,6 +91,7 @@ namespace DcsBios {
 		else sync_byte_count = 0;
 
 		if (sync_byte_count == 4) {
+
 			// End-of-frame boundary:
 			// Flush any listeners that did not get flushed via address progression.
 			if (processingData) {

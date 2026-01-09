@@ -1216,19 +1216,6 @@ static void CMWSDisplay_draw(bool force = false) {
 // =============================================================================
 // DCS-BIOS CALLBACKS (DEFERRED STATE RECOMPUTATION)
 // =============================================================================
-//
-// IMPORTANT: CALLBACK EXECUTION CONTEXT
-// These callbacks are invoked by DCS-BIOS from the main loop / task context,
-// NOT from a hardware ISR. This means:
-//   - portENTER_CRITICAL (not _ISR variant) is correct
-//   - strlen/strcmp/debugPrintf are safe to use
-//   - No ISR-specific timing constraints apply
-//
-// The term "burst updates" refers to multiple callbacks firing in quick 
-// succession during a single loop() iteration when DCS-BIOS processes
-// incoming serial data — not interrupt-driven callbacks.
-//
-// =============================================================================
 
 static inline void markDirty() { g_dirty = true; }
 
@@ -1496,11 +1483,8 @@ void CMWSDisplay_init() {
 #endif
 
 #if RUN_AS_TASK
-    // Create task using temp handle, then store to volatile (avoids const_cast)
-    TaskHandle_t tempHandle = nullptr;
     xTaskCreatePinnedToCore(CMWSDisplay_task, "CMWSTask", TASK_STACK_SIZE, nullptr, TASK_PRIORITY, 
-                            &tempHandle, CPU_CORE);
-    taskHandle = tempHandle;  // Atomic store to volatile
+                            const_cast<TaskHandle_t*>(&taskHandle), CPU_CORE);
 #endif
 
 #if defined(CMWS_USE_SPI_INTERFACE)
