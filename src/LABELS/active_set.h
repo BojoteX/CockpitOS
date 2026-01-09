@@ -1,5 +1,5 @@
-// PID:0x522B 
+// PID:0xC1E5 
 
 #pragma once
 
-#define LABEL_SET CUSTOM_RIGHT
+#define LABEL_SET CMWS_DISPLAY

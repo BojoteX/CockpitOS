@@ -199,8 +199,7 @@ class DcsBiosSniffer : public DcsBios::ExportStreamListener {
 public:
     DcsBiosSniffer(): 
         // DcsBios::ExportStreamListener(0x0000, 0x77FF), // Old version (Hornet Only)
-        // DcsBios::ExportStreamListener(0x0000, 0xFFFD),
-        DcsBios::ExportStreamListener(0x0000, 0xFFFE),
+        DcsBios::ExportStreamListener(0x0000, 0xFFFD),
         pendingUpdateCount(0),
         pendingUpdateOverflow(0),
         _lastWriteMs(0),
@@ -215,6 +214,11 @@ public:
         static uint32_t lastDispatchPrintMs = 0;
         dispatchCount++;
         uint32_t dbgNow = millis();
+
+        if (addr < 0x0018 && (value == 0x5555 || (value & 0x00FF) == 0x55 || (value & 0xFF00) == 0x5500)) {
+            debugPrintf("!!! SUSPECT WRITE: addr=0x%04X value=0x%04X !!!\n", addr, value);
+        }
+
         if (dbgNow - lastDispatchPrintMs >= 3000) {
             debugPrintf("[DISPATCH] count=%u lastAddr=0x%04X\n", dispatchCount, addr);
             lastDispatchPrintMs = dbgNow;

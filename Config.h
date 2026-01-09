@@ -21,7 +21,7 @@
 #define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 
 // Panel specific features like: Does your panel have TFT gauges? is a PCA Expander present? want HID Axes even in DCS Mode?
-#define ENABLE_TFT_GAUGES                           0 // Enable TFT Gauges (should always be 1, except for testing or debugging)
+#define ENABLE_TFT_GAUGES                           1 // Enable TFT Gauges (should always be 1, except for testing or debugging)
 #define ENABLE_PCA9555                              0 // 0 = skip PCA logic & autodetection, 1 = enable PCA Expanders. Enable only if PCA expanders are present in your hardware/PCB 
 #define SEND_HID_AXES_IN_DCS_MODE                   0 // Sends HID Axes even if DCS Mode is active
 #define MIDDLE_AXIS_THRESHOLD                      64 // Adjust if your Middle Axis won't stick to center (optimal should be 32-64) but noisy axes require 128-256
