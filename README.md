@@ -67,12 +67,12 @@ For USB mode, run `HID Manager/HID_Manager.py` on your PC to bridge to DCS-BIOS.
 
 | Guide | Description |
 |-------|-------------|
-| [Getting Started](docs/GETTING_STARTED.md) | First-time setup, compile, upload |
-| [Creating Label Sets](docs/CREATING_LABEL_SETS.md) | Configure for your aircraft and hardware |
-| [Hardware Wiring](docs/HARDWARE_WIRING.md) | Wiring diagrams for all input/output types |
-| [Transport Modes](docs/TRANSPORT_MODES.md) | USB, WiFi, Serial configuration |
-| [Advanced Displays](docs/ADVANCED_DISPLAYS.md) | HT1622 segment displays, TFT gauges |
-| [FAQ](docs/FAQ.md) | Common questions and answers |
+| [Getting Started](Docs/GETTING_STARTED.md) | First-time setup, compile, upload |
+| [Creating Label Sets](Docs/CREATING_LABEL_SETS.md) | Configure for your aircraft and hardware |
+| [Hardware Wiring](Docs/HARDWARE_WIRING.md) | Wiring diagrams for all input/output types |
+| [Transport Modes](Docs/TRANSPORT_MODES.md) | USB, WiFi, Serial configuration |
+| [Advanced Displays](Docs/ADVANCED_DISPLAYS.md) | HT1622 segment displays, TFT gauges |
+| [FAQ](Docs/FAQ.md) | Common questions and answers |
 
 ---
 
@@ -88,7 +88,7 @@ CockpitOS/
 │   └── CUtils/            # Hardware drivers (GPIO, I²C, displays)
 ├── HID Manager/           # PC-side USB bridge application
 ├── Tools/                 # RAM walker, test utilities
-└── docs/                  # Documentation
+└── Docs/                  # Documentation
 ```
 
 ---
