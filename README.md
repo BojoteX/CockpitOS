@@ -4,7 +4,8 @@
 
 ![CockpitOS Logo](./CockpitOS_logo.png)
 
-CockpitOS connects physical cockpit hardware to DCS World using the [DCS-BIOS protocol](https://github.com/DCS-Skunkworks/dcs-bios). It runs on ESP32 microcontrollers and handles buttons, switches, encoders, LEDs, and segment displays.
+
+CockpitOS bridges physical cockpit hardware to DCS World via the [DCS-BIOS protocol](https://github.com/DCS-Skunkworks/dcs-bios). It runs natively across the entire ESP32 family—Classic, C3, C5, C6, P4, S2, and S3—supporting buttons, switches, encoders, LEDs, TFT displays, and segment displays out of the box. With transport options spanning legacy Serial (socat), Wi-Fi, and native USB, CockpitOS delivers the flexibility modern cockpit builders demand. Think of it as the [DCS-BIOS Arduino Library](https://github.com/DCS-Skunkworks/dcs-bios-arduino-library)—reimagined for performance and scale on ESP32 devices.
 
 ---
 
@@ -27,7 +28,7 @@ CockpitOS connects physical cockpit hardware to DCS World using the [DCS-BIOS pr
 **Connectivity**
 - USB HID (recommended) — works with included HID Manager
 - WiFi UDP — for wireless panels
-- Serial — legacy support
+- Serial — legacy support (socat)
 
 **Architecture**
 - Static memory allocation — no heap fragmentation
@@ -45,9 +46,9 @@ CockpitOS connects physical cockpit hardware to DCS World using the [DCS-BIOS pr
 | ESP32-S2 | ✅ Recommended (native USB) |
 | ESP32-S3 | ✅ Recommended (native USB) |
 | ESP32 (original) | ✅ Works (Serial/WiFi only) |
-| ESP32-C3, C6, H2 | ✅ Works |
+| ESP32-C3 and C6  | ✅ Works (Serial/WiFi only) |
 
-Popular boards: LOLIN S2 Mini, LOLIN S3 Mini
+Popular boards: LOLIN S2 Mini, LOLIN S3 Mini (or any other Classic, S2 or S3 dev board from Amazon)
 
 ---
 
@@ -114,14 +115,12 @@ Label Sets define your panel's configuration:
 
 - **InputMapping.h** — Buttons, switches, encoders, their GPIO pins, and DCS-BIOS commands
 - **LEDMapping.h** — LEDs, their hardware type, and which DCS-BIOS indicators they represent
-- **Aircraft JSON** — Exported from DCS-BIOS, defines available controls
 
 Run `python generate_data.py` in your label set folder to generate the runtime data files.
 
 Included label sets:
 - `LABEL_SET_TEST_ONLY` — Minimal test configuration
 - `LABEL_SET_IFEI` — F/A-18C IFEI display panel
-- `LABEL_SET_FULL_PIT` — Full cockpit example
 
 ---
 
@@ -150,17 +149,6 @@ This isn't certified avionics software, but it's built with reliability in mind 
 
 ---
 
-## Contributing
-
-Contributions welcome. Please:
-
-1. Follow the existing code style
-2. Avoid heap allocation in core code
-3. Test with actual hardware before submitting
-4. Update documentation for new features
-
----
-
 ## License
 
 MIT — See [LICENSE](LICENSE)
@@ -172,9 +160,9 @@ Free for personal and commercial use. Not certified for actual aircraft.
 ## Acknowledgments
 
 - [DCS-BIOS Skunkworks](https://github.com/DCS-Skunkworks/dcs-bios) — The protocol that makes this possible
-- [Open Hornet Project](https://github.com/jrsteensen/OpenHornet) — Community and inspiration
-- ESP32 Arduino Core maintainers
+- [LovyanGFX](https://github.com/lovyan03/LovyanGFX) — The TFT library that powers our displays
+- [DCS-BIOS Arduino Library](https://github.com/DCS-Skunkworks/dcs-bios-arduino-library) — The library that inspired our project
 
 ---
 
-*Built for flight sim enthusiasts who want physical cockpit controls.*
+*Built by the CockpitOS Project Dev Team.*
