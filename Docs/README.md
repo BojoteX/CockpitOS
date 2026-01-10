@@ -2,7 +2,7 @@
 
 **ESP32 firmware for DCS World cockpit panels**
 
-![CockpitOS Logo](./CockpitOS_logo.png)
+![CockpitOS Logo](../CockpitOS_logo.png)
 
 CockpitOS connects physical cockpit hardware to DCS World using the [DCS-BIOS protocol](https://github.com/DCS-Skunkworks/dcs-bios). It runs on ESP32 microcontrollers and handles buttons, switches, encoders, LEDs, and segment displays.
 
