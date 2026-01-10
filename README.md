@@ -1,203 +1,179 @@
-# 🛩️ CockpitOS — High‑Performance Firmware for ESP32 Cockpit Panels
-**Supported MCUs:** ESP32, ESP32‑S2, ESP32‑S3, ESP32‑C3, ESP32‑C6, ESP32‑H2, ESP32‑P4  
-**Protocol:** [DCS‑BIOS — Skunkworks fork](https://github.com/DCS-Skunkworks/dcs-bios)
+# CockpitOS
+
+**ESP32 firmware for DCS World cockpit panels**
 
 ![CockpitOS Logo](./CockpitOS_logo.png)
 
----
-
-## Table of Contents
-- [Overview](#overview)
-- [Why CockpitOS](#why-cockpitos)
-- [Key Features](#key-features)
-- [Architecture](#architecture)
-- [Hardware Support](#hardware-support)
-- [Requirements](#requirements)
-- [Quick Start](#quick-start)
-- [Configuration](#configuration)
-- [Data Generation Pipeline](#data-generation-pipeline)
-- [DCS‑BIOS Integration](#dcs-bios-integration)
-- [Display Subsystems](#display-subsystems)
-  - [HT1622 LCD Driver](#ht1622-lcd-driver)
-  - [SPI TFT Gauges: Dirty‑Rect Compose + Region DMA Flush](#spi-tft-gauges-dirty-rect-compose--region-dma-flush)
-- [Performance & Determinism](#performance--determinism)
-- [Safety‑Critical Discipline](#safety-critical-discipline)
-- [Directory Structure](#directory-structure)
-- [Examples](#examples)
-- [Troubleshooting](#troubleshooting)
-- [FAQ](#faq)
-- [Contributing](#contributing)
-- [License](#license)
+CockpitOS connects physical cockpit hardware to DCS World using the [DCS-BIOS protocol](https://github.com/DCS-Skunkworks/dcs-bios). It runs on ESP32 microcontrollers and handles buttons, switches, encoders, LEDs, and segment displays.
 
 ---
 
-## Overview
-CockpitOS is a high‑performance firmware platform for building **DCS‑BIOS‑compatible** cockpit panels, indicators, and displays on the **ESP32** family. It is designed for **deterministic execution**, **static memory**, and **fault‑tolerant** operation while keeping code clean, modular, and maintainable.
+## Features
 
-**Core goals:** zero heap, no blocking, predictable timing, and scalable performance from a handful of switches to thousands of LEDs and multi‑display panels.
+**Inputs**
+- Buttons, toggle switches, rotary encoders, multi-position selectors
+- Analog axes with self-calibration
+- I²C expanders (PCA9555) and shift registers (74HC165) for high pin counts
+- Matrix scanning for rotary switches
+- Debouncing and edge detection built-in
 
----
+**Outputs**
+- GPIO LEDs with PWM dimming
+- WS2812 addressable RGB LEDs
+- TM1637 and GN1640T LED drivers
+- HT1622 segment LCD displays (IFEI, UFC, etc.)
+- SPI TFT gauges via LovyanGFX
 
-## Key Features
-- **Static lookup tables** for inputs, LEDs, and displays — auto‑generated per aircraft or panel set.
-- **Group‑aware selectors** with exclusivity enforcement, debouncing, and dwell‑time control.
-- **Mission & aircraft sync** — clean state handling on mission start/stop.
-- **Multi‑transport DCS‑BIOS** — USB, Serial or Wi‑Fi selectable in `Config.h`.
-- **Headless debugging** — UDP console for remote logs without disturbing USB CDC.
-- **Profiling hooks** — monitor loop time, CPU headroom, CDC/HID readiness.
-- **High‑rate operation** — typical 250 Hz panel polling, 60 Hz display refresh.
-- **TFT gauge support** — SPI only, with dirty‑rectangle composition and DMA region flush for extreme speed.
-- **No heap, no exceptions, no RTTI** — predictable memory and control flow.
-- **Perfect‑hash dispatch** — constant‑time label→index mapping without `std::unordered_map`.
+**Connectivity**
+- USB HID (recommended) — works with included HID Manager
+- WiFi UDP — for wireless panels
+- Serial — legacy support
 
----
-
-## Architecture
-Modules are designed for **static data**, **non‑blocking I/O**, and **O(1)** lookups.
-
-- **DCSBIOSBridge**  
-  Parses the binary stream, surfaces state changes, and handles ASCII command TX.
-- **InputMapping[] (auto‑generated)**  
-  Single authoritative table for all inputs: selectors, buttons, rotaries, analogs. Includes group IDs and DCS command metadata.
-- **LEDMapping[] / panelLEDs[] (auto‑generated)**  
-  Routing for GPIO, PCA9555, WS2812, TM1637, GN1640T, HT1622 segments, etc.
-- **LEDControl**  
-  `setLED(label, state, intensity)` with perfect‑hash index + zero‑heap fan‑out.
-- **HIDManager**  
-  Centralized Input Mapping (HID or DCS Commands) with non‑blocking completion callback tracking.
-- **USB CDC**  
-  Non‑blocking ring buffer. Robust under RX flood.
-- **Display Subsystems**  
-  - HT1622 driver with timing‑accurate GPIO protocol, dirty‑only nibble commits.  
-  - SPI TFT pipeline with dirty‑rect compose + DMA region flush.
+**Architecture**
+- Static memory allocation — no heap fragmentation
+- Non-blocking I/O throughout
+- O(1) label lookups via perfect hashing
+- 250 Hz input polling, 30-60 Hz display refresh
+- Per-aircraft configuration via Label Sets
 
 ---
 
-## Hardware Support
-**MCUs:** ESP32, S2, S3, C3, C6, H2, P4 (native USB strongly recommended).  
-**I/O & Displays:**  
-- **Inputs:** PCA9555 (I²C GPIO expander), 74HC165 (parallel‑in shift), matrix rotary scanning.  
-- **LED/Segment:** GPIO PWM, PCA9555, TM1637, GN1640T, WS2812.  
-- **LCD/TFT:** HT1622 segment LCDs; SPI TFTs (e.g., GC9A01, ST77xx) via compatible libraries.  
+## Supported Hardware
 
----
+| MCU | Status |
+|-----|--------|
+| ESP32-S2 | ✅ Recommended (native USB) |
+| ESP32-S3 | ✅ Recommended (native USB) |
+| ESP32 (original) | ✅ Works (Serial/WiFi only) |
+| ESP32-C3, C6, H2 | ✅ Works |
 
-## Requirements
-- **IDE:** Arduino IDE ≥ 2.3.6
-- **ESP32 Arduino Core:** ≥ 3.2.x
-- **Boards validated by users:** LOLIN S2 Mini, LOLIN S3 Mini (All ESP32 boards likely compatible)
-- **Libraries:**
-  - **LovyanGFX** for advanced TFT gauges (required for TFT path)
-  - **DCS‑BIOS Skunkworks** (optional, a lite parser is included)
-
-> Not tested: STM32, Teensy, ESP8266, MicroPython, ESP‑IDF, PlatformIO.
+Popular boards: LOLIN S2 Mini, LOLIN S3 Mini
 
 ---
 
 ## Quick Start
-1. **Open in Arduino IDE**  
-   Make sure "esp32 by Espressif Systems" is installed (check Boards Manager) ensure ESP32 core ≥ 3.3.x is selected. Once installed, go into boards manager and select your board (e.g., LOLIN S2 Mini).
-2. **Choose labels / aircraft**  
-   Select an existing label set under `LABELS/` for your aircraft or panel subset. Preferably, use LABEL_SET_TEST_ONLY so you familiarize yourself with how this works.
-3. **Generate data**  
-   ```bash
-   cd LABELS/<YOUR_LABEL_SET>
-   Check InputMapping.h and LEDMapping.h, notice the GPIO assignments. Check tutorial on LABELS directory to understand how to modify the files.
-   After you modify the files, run "python generate_data.py" to make this LABEL SET default.
-   ```
-4. **Configure transport**  
-   Now go back to Arduino IDE, Select the Config.h tab and choose either USB, Serial or Wi‑Fi mode.
-5. **Build & upload**  
-   Compile and Upload. Power‑cycle the board
 
-> Tip: BEFORE YOU COMPILE make sure the "USB CDC On Boot" option is set to Disabled (otherwise you'll get a compile error). Also, if using an S3 device, make sure the USB Mode in the Tools menu is set to USB-OTG (TinyUSB), otherwise USB Mode will not work (In the S2 its the default, so there is no need to select it)
+1. **Install Arduino IDE 2.x** with ESP32 Arduino Core ≥ 3.3.0
+2. **Open CockpitOS** in the IDE
+3. **Select a label set** in `src/LABELS/` (start with `LABEL_SET_TEST_ONLY`)
+4. **Configure transport** in `Config.h` (USB, WiFi, or Serial)
+5. **Compile and upload** to your ESP32
 
-6. **Test**  
-   Wire a simple button or LED to any of your board available GPIOs. Make sure they match what you selected in InputMapping.h (Buttons & Switches) and LEDMappings (LEDs) 
-7. **Expand**  
-   Now repeat all the above steps, starting in #3, this time, check selected_panels.txt. That file is what tells the auto-generator what panels to include in InputMapping.h and LEDMapping.h
-8. **Ask our Custom trained GPT if having issues**  
-   Check the link on our Github page. A Custom GPT has been trained with the entire codebase, it will answer any question and help you step by step if confused.
-
-> Tip: Check the README.md inside the LABELS directory, including the quick guides for InputMapping.h and LEDMapping.h editing.
+For USB mode, run `HID Manager/HID_Manager.py` on your PC to bridge to DCS-BIOS.
 
 ---
 
-## Data Generation Pipeline
-The generator ingests Skunkworks DCS‑BIOS definitions (JSON/Lua) and emits static, compile‑time artifacts:
+## Documentation
 
-- **`InputMapping.h/.cpp`** — one row per control with: label, source, port/bit, group ID, DCS command, max value, HID ID, flags.  
-- **`LEDMapping.h/.cpp`** — per‑LED routing and device type.  
-
-**Design choices:**  
-- No dynamic memory.  
-- Provide a minimal perfect hash for O(1) label→index mapping with no collisions.
-
----
-
-## DCS‑BIOS Integration
-**RX (binary):** Protocol parser processes address/mask/shift records → triggers IntegerBuffer/StringBuffer callbacks.  
-**TX (ASCII):** Commands like `"HMD_OFF_BRT 35500\n"` are queued in a non‑blocking ring buffer.
+| Guide | Description |
+|-------|-------------|
+| [Getting Started](docs/GETTING_STARTED.md) | First-time setup, compile, upload |
+| [Creating Label Sets](docs/CREATING_LABEL_SETS.md) | Configure for your aircraft and hardware |
+| [Hardware Wiring](docs/HARDWARE_WIRING.md) | Wiring diagrams for all input/output types |
+| [Transport Modes](docs/TRANSPORT_MODES.md) | USB, WiFi, Serial configuration |
+| [Advanced Displays](docs/ADVANCED_DISPLAYS.md) | HT1622 segment displays, TFT gauges |
+| [FAQ](docs/FAQ.md) | Common questions and answers |
 
 ---
 
-### SPI TFT Gauges: Dirty‑Rect Compose + Region DMA Flush
-A high‑performance SPI pipeline that updates only the pixels that changed.
+## Project Structure
 
-**Pipeline:**  
-1) **Detect change** vs `lastValue` with thresholds to avoid micro‑jitter.  
-2) **Compute dirty rectangles** and merge when area permits.  
-3) **Compose** sprites/primitives into a scratch buffer (integer/fixed‑point only).  
-4) **DMA flush** each rect to the TFT window.  
-5) **Bookkeeping** updates `lastValue` and history for rate limiting.
-
----
-
-## Performance & Determinism
-- **Lookup speed:** perfect‑hash label routing, modulo‑free arithmetic, O(1) dispatch.  
-- **I/O:** cached I²C reads; single‑edge decoding for 74HC165; matrix rotaries with deterministic scan windows.  
-
----
-
-## Safety‑Critical Discipline we followed
-- Treat every code path as mission‑critical.  
-- No unbounded loops without iteration caps.  
-- Always check buffer bounds and return codes.  
-- Prefer tables and bit‑wise ops over floating point.  
-- Use `constexpr` and `static_assert` to lock invariants at compile time.
-
----
-
-## Directory Structure
 ```
-/LABELS/                 # Aircraft/panel label sets, generators, selector comments
-/src/                    # Core firmware, panels, drivers, static tables
-/Debug Tools/            # UDP console, DCS-BIOS replay scripts, log utilities
-/HID Manager/            # Host-side tools for HID bridging (optional)
-/README.md               # This file
-/LICENSE                 # MIT
+CockpitOS/
+├── src/
+│   ├── Core/              # Protocol handling, LED control, HID management
+│   ├── Panels/            # Panel implementations (IFEI, ECM, etc.)
+│   └── LABELS/            # Aircraft/panel configurations
+├── lib/
+│   └── CUtils/            # Hardware drivers (GPIO, I²C, displays)
+├── HID Manager/           # PC-side USB bridge application
+├── Tools/                 # RAM walker, test utilities
+└── docs/                  # Documentation
 ```
 
 ---
 
-## FAQ
+## How It Works
 
-**Q: Which ESP32 board is best?**  
-A: ESP32‑S2/S3 with native USB simplifies integration and testing.
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  DCS World  │────▶│  DCS-BIOS   │────▶│  CockpitOS  │────▶│  Hardware   │
+│             │◀────│  (LUA)      │◀────│  (ESP32)    │◀────│  (Panel)    │
+└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+     Sim              Export/Import       Firmware           Physical I/O
+```
 
-**Q: Can I run Wi‑Fi and USB simultaneously?**  
-A: Yes, but only if your board has the memory to spare AND WiFi is used for logs/debug only.
+DCS-BIOS exports cockpit state from the simulator. CockpitOS receives this data and drives your physical hardware. When you flip a switch, CockpitOS sends the command back through DCS-BIOS to the simulator.
 
-**Q: How do I map a new panel?**  
-A: Add rows to your label set, run the generator, wire inputs/outputs, compile, and test with DCS or replay logs. Check the README.md inside LABELS
+---
+
+## Label Sets
+
+Label Sets define your panel's configuration:
+
+- **InputMapping.h** — Buttons, switches, encoders, their GPIO pins, and DCS-BIOS commands
+- **LEDMapping.h** — LEDs, their hardware type, and which DCS-BIOS indicators they represent
+- **Aircraft JSON** — Exported from DCS-BIOS, defines available controls
+
+Run `python generate_data.py` in your label set folder to generate the runtime data files.
+
+Included label sets:
+- `LABEL_SET_TEST_ONLY` — Minimal test configuration
+- `LABEL_SET_IFEI` — F/A-18C IFEI display panel
+- `LABEL_SET_FULL_PIT` — Full cockpit example
+
+---
+
+## Requirements
+
+- Arduino IDE ≥ 2.3.6
+- ESP32 Arduino Core ≥ 3.3.0
+- Python 3.x (for generators and HID Manager)
+- DCS World with DCS-BIOS installed
+
+Optional:
+- LovyanGFX (for TFT displays)
+
+---
+
+## Design Principles
+
+CockpitOS follows embedded best practices:
+
+- **No dynamic memory** — All buffers statically allocated
+- **No blocking calls** — State machines and interrupts instead of delays
+- **Bounded execution** — All loops have iteration limits
+- **Fail-safe defaults** — Graceful handling of disconnections and errors
+
+This isn't certified avionics software, but it's built with reliability in mind for long simulation sessions.
+
+---
+
+## Contributing
+
+Contributions welcome. Please:
+
+1. Follow the existing code style
+2. Avoid heap allocation in core code
+3. Test with actual hardware before submitting
+4. Update documentation for new features
 
 ---
 
 ## License
-MIT — see `LICENSE`.
 
-> CockpitOS targets hobby simulation use. Rigor is applied, but this is **not** certified avionics software. You can use and distribute free of charge even for commercial products, just ensure you read our LICENSE
+MIT — See [LICENSE](LICENSE)
+
+Free for personal and commercial use. Not certified for actual aircraft.
 
 ---
 
-Developed by the CockpitOS Firmware Project.
+## Acknowledgments
+
+- [DCS-BIOS Skunkworks](https://github.com/DCS-Skunkworks/dcs-bios) — The protocol that makes this possible
+- [Open Hornet Project](https://github.com/jrsteensen/OpenHornet) — Community and inspiration
+- ESP32 Arduino Core maintainers
+
+---
+
+*Built for flight sim enthusiasts who want physical cockpit controls.*
