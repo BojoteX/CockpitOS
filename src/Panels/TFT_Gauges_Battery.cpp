@@ -1,6 +1,8 @@
 // CockpitOS — Battery Gauge (LovyanGFX, GC9A01 @ 240×240)
 // Dirty-rect compose + region DMA flush (PSRAM sprites, DMA-safe)
 
+// PANEL_KIND: TFTBatt
+
 #include "../Globals.h"
 
 #if defined(HAS_RIGHT_PANEL_CONTROLLER) && (defined(ESP_FAMILY_S3) || defined(ESP_FAMILY_S2)) && (defined(ENABLE_TFT_GAUGES) && (ENABLE_TFT_GAUGES == 1))

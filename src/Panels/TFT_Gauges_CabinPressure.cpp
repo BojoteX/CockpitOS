@@ -1,6 +1,8 @@
 // TFT_Gauges_CabPress.cpp — CockpitOS Cabin Pressure Gauge (LovyanGFX, ST77916/61 @ 360×360)
 // Dirty-rect compose + region DMA flush (PSRAM sprites, DMA-safe)
 
+// PANEL_KIND: TFTCabPress
+
 #include "../Globals.h"
 
 #if defined(HAS_ALR67) && (defined(ESP_FAMILY_S3) || defined(ESP_FAMILY_S2)) && (defined(ENABLE_TFT_GAUGES) && (ENABLE_TFT_GAUGES == 1))

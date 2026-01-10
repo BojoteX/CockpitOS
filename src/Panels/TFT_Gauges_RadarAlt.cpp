@@ -1,6 +1,8 @@
 // TFT_Gauges_RadarAlt.cpp - CockpitOS Radar Altimeter (LovyanGFX, ST77916/61 @ 360×360)
 // Dirty-rect compose + region DMA flush (PSRAM sprites, DMA-safe)
 
+// PANEL_KIND: TFTRadarAlt
+
 #include "../Globals.h"
 
 #if defined(HAS_CUSTOM_RIGHT) && (defined(ESP_FAMILY_S3) || defined(ESP_FAMILY_S2)) && (defined(ENABLE_TFT_GAUGES) && (ENABLE_TFT_GAUGES == 1))

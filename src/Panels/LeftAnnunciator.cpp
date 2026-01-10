@@ -1,5 +1,7 @@
 // LeftAnnunciator.cpp - Any custom logic for the Left Annunciator should go here
 
+// PANEL_KIND: LA
+
 // ---------- Includes ----------
 #include "../Globals.h"
 #include "../HIDManager.h"

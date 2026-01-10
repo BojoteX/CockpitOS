@@ -1,5 +1,7 @@
 // RightAnnunciator.cpp - Any custom logic for the Right Annunciator should go here
 
+// PANEL_KIND: RA
+
 // ---------- Includes ----------
 #include "../Globals.h"
 #include "../HIDManager.h"

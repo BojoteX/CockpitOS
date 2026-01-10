@@ -1,6 +1,8 @@
 // CockpitOS — Hydraulic Pressure Gauge (LovyanGFX, GC9A01 @ 240×240)
 // Dirty-rect compose + region DMA flush (PSRAM sprites, DMA-safe)
 
+// PANEL_KIND: TFTHyd
+
 #include "../Globals.h"
 
 #if defined(HAS_CUSTOM_RIGHT) && (defined(ESP_FAMILY_S3) || defined(ESP_FAMILY_S2)) && (defined(ENABLE_TFT_GAUGES) && (ENABLE_TFT_GAUGES == 1))

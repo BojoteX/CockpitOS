@@ -1,5 +1,7 @@
 // IFEIPanel.cpp
 
+// PANEL_KIND: IFEI
+
 #include "../Globals.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"

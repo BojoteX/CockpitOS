@@ -126,63 +126,100 @@ REGISTER_PANEL(LA, nullptr, nullptr, nullptr, nullptr, tm1637_tick, 100);
 
 ## 3. PanelKind and Auto-Generation
 
-### 3.1 The Problem
+### 3.1 How It Works
 
-Currently, `PanelKind` is a hardcoded enum in `Mappings.h`:
+PanelKind is now **auto-generated** from panel `.cpp` files. The generator scans `src/Panels/*.cpp` and creates `src/Generated/PanelKind.h`.
+
+**The identifier is determined by:**
+1. If the file contains `// PANEL_KIND: XXX` in the first 30 lines → use `XXX`
+2. Otherwise → use the filename without `.cpp`
+
+### 3.2 Adding PANEL_KIND Metadata
+
+For existing panels that need a specific identifier different from the filename:
 
 ```cpp
-enum class PanelKind : uint8_t {
-  Brain, ECM, MasterARM, IFEI, ALR67, CA, LA, RA, /* ... */
-  COUNT
-};
+// CautionAdvisory.cpp - Caution Advisory panel
+// PANEL_KIND: CA
+
+#include "../Globals.h"
+// ...
 ```
 
-If you create `MyPanel.cpp` and use `REGISTER_PANEL(MyPanel, ...)`, you get a compile error because `PanelKind::MyPanel` doesn't exist.
+This ensures `CautionAdvisory.cpp` generates `PanelKind::CA` instead of `PanelKind::CautionAdvisory`.
 
-### 3.2 The Solution: Auto-Generate from Filenames
+### 3.3 Files That Need Metadata
 
-**Key insight:** Each `.cpp` file in `src/Panels/` corresponds to exactly one PanelKind entry.
+| File | Required Metadata | Result |
+|------|-------------------|--------|
+| `CautionAdvisory.cpp` | `// PANEL_KIND: CA` | `PanelKind::CA` |
+| `LeftAnnunciator.cpp` | `// PANEL_KIND: LA` | `PanelKind::LA` |
+| `RightAnnunciator.cpp` | `// PANEL_KIND: RA` | `PanelKind::RA` |
+| `IFEIPanel.cpp` | `// PANEL_KIND: IFEI` | `PanelKind::IFEI` |
+| `ECMPanel.cpp` | `// PANEL_KIND: ECM` | `PanelKind::ECM` |
+| `TFT_Display_CMWS.cpp` | `// PANEL_KIND: TFTCmws` | `PanelKind::TFTCmws` |
+| `TFT_Gauges_Battery.cpp` | `// PANEL_KIND: TFTBatt` | `PanelKind::TFTBatt` |
+| `Generic.cpp` | *(none needed)* | `PanelKind::Generic` |
+| `WingFold.cpp` | *(none needed)* | `PanelKind::WingFold` |
+| `LockShoot.cpp` | *(none needed)* | `PanelKind::LockShoot` |
 
-The generator will scan `src/Panels/*.cpp` and create `PanelKind.h`:
+### 3.4 Running the Generator
 
-```cpp
-// Auto-generated from src/Panels/*.cpp — DO NOT EDIT
-enum class PanelKind : uint8_t {
-  ALR67Panel,
-  CautionAdvisory,
-  ECMPanel,
-  Generic,
-  IFEIPanel,
-  LeftAnnunciator,
-  LockShoot,
-  MasterArmPanel,
-  MyPanel,           // ← Your new panel appears automatically!
-  RightAnnunciator,
-  WingFold,
-  COUNT
-};
+```bash
+cd CockpitOS
+python generate_panelkind.py
 ```
 
-### 3.3 Naming Convention
+Output:
+```
+Scanning 25 panel files...
+  CautionAdvisory.cpp                    → CA                   (from PANEL_KIND)
+  Generic.cpp                            → Generic              (from filename)
+  IFEIPanel.cpp                          → IFEI                 (from PANEL_KIND)
+  ...
 
-| Filename | PanelKind Entry |
-|----------|-----------------|
-| `MyPanel.cpp` | `PanelKind::MyPanel` |
-| `TFT_Display_CMWS.cpp` | `PanelKind::TFT_Display_CMWS` |
-| `LeftAnnunciator.cpp` | `PanelKind::LeftAnnunciator` |
+Generated: src/Generated/PanelKind.h
+  → 25 panel entries + COUNT
+```
 
-**Rule:** The PanelKind entry is the filename without the `.cpp` extension.
+### 3.5 Generated File Location
 
-### 3.4 Until Auto-Generation is Implemented
+```
+src/Generated/PanelKind.h
+```
 
-For now, manually add your panel to the enum in `Mappings.h`:
+This file is included by `Mappings.h`:
 
 ```cpp
-enum class PanelKind : uint8_t {
-  // ... existing panels ...
-  MyPanel,    // ← Add your panel here
-  COUNT       // ← Must always be last
-};
+// Mappings.h
+#pragma once
+#include "src/Generated/PanelKind.h"  // Auto-generated enum
+```
+
+### 3.6 Adding a New Panel (No Manual Enum Editing!)
+
+1. Create `src/Panels/MyPanel.cpp`
+2. Use `REGISTER_PANEL(MyPanel, ...)` — the identifier matches the filename
+3. Run `python generate_panelkind.py`
+4. Done! `PanelKind::MyPanel` is automatically created
+
+**Or with a custom identifier:**
+
+1. Create `src/Panels/MyAwesomePanel.cpp`
+2. Add `// PANEL_KIND: AwesomePanel` in the first 30 lines
+3. Use `REGISTER_PANEL(AwesomePanel, ...)`
+4. Run the generator
+5. Done! `PanelKind::AwesomePanel` is created
+
+### 3.7 Integration with Label Set Generator
+
+The PanelKind generator runs automatically at the end of `generate_data.py`:
+
+```python
+# End of generate_data.py
+import subprocess, sys, os
+root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+subprocess.run([sys.executable, os.path.join(root, "generate_panelkind.py"), root])
 ```
 
 ---

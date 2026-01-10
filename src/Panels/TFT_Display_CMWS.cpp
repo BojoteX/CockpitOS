@@ -1,6 +1,9 @@
 // =============================================================================
 // TFT_Display_CMWS.cpp — CockpitOS CMWS Threat Ring Display (LOW-MEM, DIRECT-DRAW)
 // =============================================================================
+
+// PANEL_KIND: TFTCmws
+
 // AH-64D Apache Countermeasures Warning System Display
 //
 // Hardware Support:

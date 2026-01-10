@@ -1,5 +1,7 @@
 // JettisonSelect.cpp - Any custom logic for Jettison Select should go here
 
+// PANEL_KIND: JETTSEL
+
 // ---------- Includes ----------
 #include "../Globals.h"
 #include "../HIDManager.h"

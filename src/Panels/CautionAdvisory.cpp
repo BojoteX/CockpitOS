@@ -1,5 +1,7 @@
 // CautionAdvisory.cpp - Any custom logic for the CA (Caution Advisory) should go here
 
+// PANEL_KIND: CA
+ 
 // ---------- Includes ----------
 #include "../Globals.h"
 #include "../HIDManager.h"
