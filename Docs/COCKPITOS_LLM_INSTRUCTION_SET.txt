@@ -15,12 +15,12 @@ SECTION 0: LLM PROCESSING DIRECTIVES (READ FIRST - MANDATORY)
 ==============================================================================
 
 0.1 DOCUMENT PURPOSE
---------------------
+----------------------------------------
 This document enables accurate code generation and technical guidance for
 CockpitOS firmware development. Follow directives exactly. Do not improvise.
 
 0.2 PROCESSING PRIORITY ORDER
------------------------------
+----------------------------------------
 When responding to ANY CockpitOS question:
 1. Check Section 0.3 (CRITICAL ISSUES) - prevents catastrophic errors
 2. Check Section 0.4 (ABSOLUTE CONSTRAINTS) - never violate these
@@ -29,7 +29,7 @@ When responding to ANY CockpitOS question:
 5. When generating code, verify against Section 19 (ANTI-PATTERNS)
 
 0.3 CRITICAL ISSUES - CHECK BEFORE ANY CODE GENERATION
-------------------------------------------------------
+----------------------------------------
 ISSUE-001: ADDRESS RANGE BUG
   WRONG: ExportStreamListener(0x0000, 0xFFFE)
   RIGHT: ExportStreamListener(0x0000, 0xFFFD)
@@ -92,7 +92,7 @@ CONSTRAINT-IO-02: NO DIRECT SERIAL OUTPUT
   Required: debugPrint(), debugPrintln(), debugPrintf()
 
 0.5 DECISION ROUTER - FIND CORRECT SECTION FAST
------------------------------------------------
+----------------------------------------
 Question about ESP32 variants/capabilities?     --> Section 2
 Question about DCS-BIOS protocol/parsing?       --> Section 3
 Question about project file structure?          --> Section 4
@@ -121,7 +121,7 @@ Question about multi-aircraft support?          --> Section 26
 Need ready-to-use code templates?               --> Section 27
 
 0.6 KEY RELATIONSHIPS
----------------------
+----------------------------------------
 DCS-BIOS: LUA scripts running INSIDE DCS World on PC (not on ESP32)
 CockpitOS: Firmware running ON ESP32 microcontroller
 Communication: UDP (WiFi) or USB HID or Serial between them
@@ -132,24 +132,66 @@ Repositories:
   CockpitOS: https://github.com/BojoteX/CockpitOS
   DCS-BIOS:  https://github.com/DCS-Skunkworks/dcs-bios
 
+0.7 MANDATORY QUESTIONS (ASK BEFORE GENERATING CODE)
+----------------------------------------
+Ask these before coding changes:
+  1) Which label set folder is active (active_set.h)?
+  2) Which transport mode is selected (USB/WiFi/Serial/BLE)?
+  3) What hardware source is used (GPIO, HC165, PCA_0xNN, TM1637, MATRIX)?
+  4) What is the target ESP32 variant (S2/S3/P4/Classic/C3/C6/H2)?
+  5) Is the control momentary, selector, analog, variable_step, or fixed_step?
+  6) Do you need DCS mode, HID mode, or both?
+  7) Is there existing mapping for the label (InputMapping/LEDMapping)?
+
+0.8 KEY FILE LOCATIONS (ABSOLUTE PATHS IN REPO)
+----------------------------------------
+/workspace/CockpitOS/CockpitOS.ino
+/workspace/CockpitOS/Config.h
+/workspace/CockpitOS/Pins.h
+/workspace/CockpitOS/Mappings.h
+/workspace/CockpitOS/Mappings.cpp
+/workspace/CockpitOS/src/Globals.h
+/workspace/CockpitOS/src/Core/DCSBIOSBridge.cpp
+/workspace/CockpitOS/src/Core/HIDManager.cpp
+/workspace/CockpitOS/src/Core/InputControl.cpp
+/workspace/CockpitOS/src/Core/LEDControl.cpp
+/workspace/CockpitOS/src/Core/CoverGate.cpp
+/workspace/CockpitOS/src/Core/RingBuffer.cpp
+/workspace/CockpitOS/lib/CUtils/src/CUtils.h
+/workspace/CockpitOS/src/LABELS/active_set.h
+/workspace/CockpitOS/src/LABELS/LABEL_SET_*/generate_data.py
+/workspace/CockpitOS/src/LABELS/LABEL_SET_*/InputMapping.h
+/workspace/CockpitOS/src/LABELS/LABEL_SET_*/LEDMapping.h
+/workspace/CockpitOS/src/Generated/PanelKind.h
+
+0.9 OUT OF SCOPE
+----------------------------------------
+This document does NOT cover:
+  - DCS-BIOS Lua scripts installation
+  - PCB design or electrical safety
+  - 3D printing / mechanical assemblies
+  - Non-ESP32 microcontrollers
+  - Non-DCS simulators
+
 ==============================================================================
 SECTION 1: SYSTEM ARCHITECTURE
 ==============================================================================
 
 1.1 WHAT IS COCKPITOS
----------------------
+----------------------------------------
 Firmware for ESP32 MCUs interfacing physical cockpit panels with DCS World
 flight simulator via DCS-BIOS protocol.
 
 Capabilities:
   INPUTS:  Buttons, switches, rotary encoders, potentiometers, matrix rotaries
-  OUTPUTS: LEDs (GPIO/WS2812/TM1637/GN1640T/PCA9555), displays (HT1622/TFT), servos
+  OUTPUTS: LEDs (GPIO/WS2812/TM1637/GN1640T/PCA9555), displays
+           (HT1622/TFT), servos
   COMMS:   USB HID, WiFi UDP, Serial/CDC, Bluetooth BLE
 
 Primary aircraft: F/A-18C Hornet (any DCS-BIOS aircraft JSON supported)
 
 1.2 FOUR-LAYER ARCHITECTURE
----------------------------
+----------------------------------------
 LAYER 4: PANEL LOGIC          Location: src/Panels/*.cpp
   - Custom panel implementations (IFEI, WingFold, TFT gauges)
   - Subscribes to DCS-BIOS data via callbacks
@@ -174,7 +216,7 @@ LAYER 1: HARDWARE             Physical ESP32 + peripherals
   - External ICs: PCA9555, TM1637, GN1640T, HT1622, WS2812, 74HC165
 
 1.3 DATA FLOW TIMING
---------------------
+----------------------------------------
 Export (DCS -> Panel): ~30 Hz (33ms frames)
 Input polling:         250 Hz (4ms interval)
 HID reports:           250 Hz (4ms interval)
@@ -186,7 +228,7 @@ SECTION 2: HARDWARE REQUIREMENTS
 ==============================================================================
 
 2.1 ESP32 VARIANT SUPPORT
--------------------------
+----------------------------------------
 VARIANT         NATIVE USB    WIFI    BLE     NOTES
 ESP32-S2        Yes           Yes     No      RECOMMENDED. LOLIN S2 Mini.
 ESP32-S3        Yes           Yes     Yes     RECOMMENDED. Dual-core, more RAM.
@@ -197,7 +239,7 @@ ESP32-C6        No            Yes     Yes     WiFi 6. Serial/WiFi only.
 ESP32-H2        No            No      Yes     Thread/Zigbee. BLE only.
 
 2.2 USB HID REQUIREMENTS
-------------------------
+----------------------------------------
 For USE_DCSBIOS_USB = 1:
   - ESP32-S2/S3/P4 required (native USB peripheral)
   - ESP32-S3/P4: Tools -> USB Mode -> "USB-OTG (TinyUSB)" [CRITICAL]
@@ -205,7 +247,7 @@ For USE_DCSBIOS_USB = 1:
   - HID_Manager.py must run on host PC
 
 2.3 INPUT HARDWARE SUPPORT
---------------------------
+----------------------------------------
 TYPE                MAX COUNT   NOTES
 Direct GPIO         ~20 pins    Board-dependent available pins
 74HC165 chain       64 bits     Daisy-chainable shift registers
@@ -215,7 +257,7 @@ Matrix rotary       N/A         Strobe-based position detection
 Analog (ADC)        ~6 inputs   12-bit resolution (0-4095)
 
 2.4 OUTPUT HARDWARE SUPPORT
----------------------------
+----------------------------------------
 TYPE                MAX COUNT   NOTES
 GPIO LEDs           ~20         Digital or PWM-dimmable
 WS2812/NeoPixel     256         Custom RMT driver (zero-copy)
@@ -227,7 +269,7 @@ TFT displays        1           SPI via LovyanGFX
 Servo gauges        varies      PWM 50Hz (1000-2000us)
 
 2.5 DEVELOPMENT ENVIRONMENT
----------------------------
+----------------------------------------
 REQUIRED:
   - Arduino IDE 2.x (NOT PlatformIO, NOT ESP-IDF directly)
   - ESP32 Arduino Core 3.3.0+ (by Espressif Systems)
@@ -237,23 +279,25 @@ OPTIONAL:
   - LovyanGFX library (for TFT displays)
 
 BOARD MANAGER URL:
-  https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+  https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/
+  package_esp32_index.json
 
 ==============================================================================
 SECTION 3: DCS-BIOS PROTOCOL SPECIFICATION
 ==============================================================================
 
 3.1 EXPORT PROTOCOL (DCS -> Panel)
-----------------------------------
+----------------------------------------
 Binary stream format. CockpitOS parses to update LEDs/displays/state.
 
 FRAME STRUCTURE:
-  [SYNC: 0x55 0x55 0x55 0x55] [ADDR_LO] [ADDR_HI] [COUNT_LO] [COUNT_HI] [DATA...]
+  [SYNC: 0x55 0x55 0x55 0x55] [ADDR_LO] [ADDR_HI] [COUNT_LO] [COUNT_HI]
+  [DATA...]
 
 SYNC DETECTION:
   - Four consecutive 0x55 bytes signal frame boundary
   - Address 0x5555 is reserved (rejected as invalid)
-  - Address 0xFFFE is MetadataEnd (update complete signal)
+  - Use listener range 0x0000..0xFFFD (0xFFFE is reserved)
 
 DATA FORMAT:
   - All addresses are WORD-aligned (16-bit)
@@ -275,7 +319,7 @@ LISTENER REGISTRATION:
   CRITICAL: Use 0xFFFD, NOT 0xFFFE! (See ISSUE-001)
 
 3.2 IMPORT PROTOCOL (Panel -> DCS)
-----------------------------------
+----------------------------------------
 Plain text commands to UDP port 7778.
 
 FORMAT: <CONTROL_NAME> <VALUE>\n
@@ -293,7 +337,7 @@ THROTTLING DEFAULTS:
   SELECTOR_DWELL_MS     = 250   (selector stabilization)
 
 3.3 NETWORK CONFIGURATION
--------------------------
+----------------------------------------
 EXPORT (DCS -> World):
   Protocol: UDP Multicast
   Address:  239.255.50.10:5010
@@ -304,22 +348,20 @@ IMPORT (World -> DCS):
   Address:  127.0.0.1:7778
   Format:   Plain text, newline-terminated
 
-3.4 METADATA ADDRESSES
-----------------------
-0x0000-0x0010  MetadataStart (aircraft name, sync info)
-0xFFFE         MetadataEnd (_UPDATE_COUNTER, _UPDATE_SKIP_COUNTER)
-
-Frame completion signal at 0xFFFE indicates:
-  1. All string values are consistent
-  2. Safe to trigger graphical updates
-  3. Safe to run time-consuming operations
+3.4 METADATA SEMANTICS
+----------------------------------------
+Metadata values are generated from the aircraft JSON and merged metadata
+overlays. They appear as CT_METADATA entries in DCSBIOSBridgeData.h.
+Do not hardcode metadata addresses. Always access metadata by label using:
+  - subscribeToMetadataChange()
+  - getMetadataValue()
 
 ==============================================================================
 SECTION 4: PROJECT STRUCTURE
 ==============================================================================
 
 4.1 DIRECTORY LAYOUT
---------------------
+----------------------------------------
 CockpitOS/
   CockpitOS.ino              - Main sketch entry point
   Config.h                   - Master configuration
@@ -371,7 +413,7 @@ CockpitOS/
     settings.ini
 
 4.2 FILE EDITING RULES
-----------------------
+----------------------------------------
 USER MAY EDIT:
   Config.h                   - Transport, features configuration
   Pins.h                     - Only if adding new hardware
@@ -392,7 +434,7 @@ SECTION 5: LABEL SETS - CONFIGURATION SYSTEM
 ==============================================================================
 
 5.1 DEFINITION
---------------
+----------------------------------------
 A Label Set is a self-contained configuration folder defining:
   - Target aircraft (via JSON file from DCS-BIOS)
   - Included panels (selected_panels.txt)
@@ -402,7 +444,7 @@ Location: src/LABELS/LABEL_SET_XXXX/
 Rule: Each ESP32 compiles with exactly ONE label set active.
 
 5.2 LABEL SET CONTENTS
-----------------------
+----------------------------------------
 LABEL_SET_MYPANEL/
   FA-18C_hornet.json       - Aircraft JSON from DCS-BIOS (ONLY ONE!)
   selected_panels.txt      - Panels to include (user edits)
@@ -421,7 +463,7 @@ LABEL_SET_MYPANEL/
   LabelSetConfig.h         - Metadata, USB PID
 
 5.3 CREATING A NEW LABEL SET
-----------------------------
+----------------------------------------
 Step 1: Copy existing
   cd src/LABELS/
   cp -r LABEL_SET_IFEI LABEL_SET_MYPANEL
@@ -446,14 +488,14 @@ Step 6: Edit InputMapping.h and LEDMapping.h
 Step 7: Compile in Arduino IDE
 
 5.4 SWITCHING LABEL SETS
-------------------------
+----------------------------------------
 Run: python generate_data.py in desired label set folder
 Auto-actions:
   - Sets that label set as active (updates active_set.h)
   - Disables other label sets' .cpp files (renames to .cpp.disabled)
 
 5.5 GENERATOR BEHAVIOR
-----------------------
+----------------------------------------
 REQUIRES: Python 3.x (standard library only)
 
 ACTIONS:
@@ -475,48 +517,50 @@ SECTION 6: INPUTMAPPING.H - INPUT CONFIGURATION
 ==============================================================================
 
 6.1 STRUCT DEFINITION
----------------------
-struct InputMapping {
-  const char* label;       // Unique name (case-sensitive)
-  const char* source;      // "GPIO", "HC165", "PCA_0xNN", "TM1637", "MATRIX", "NONE"
-  int8_t      port;        // Source-specific (GPIO pin, PCA port 0/1, etc.)
-  int8_t      bit;         // Bit index, or -1 for special cases
-  int8_t      hidId;       // HID button ID (1-32), or -1 to disable
-  const char* oride_label; // DCS-BIOS command name
-  uint16_t    oride_value; // Command value (65535 = analog passthrough)
-  const char* controlType; // "momentary", "selector", "analog", "variable_step", "fixed_step"
-  uint16_t    group;       // Selector group ID (0 = no group)
-};
+----------------------------------------
+  struct InputMapping {
+    const char* label;       // Unique name (case-sensitive)
+    const char* source;      // "GPIO", "HC165", "PCA_0xNN", "TM1637",
+                             // "MATRIX", "NONE"
+    int8_t      port;        // Source-specific (GPIO pin, PCA port 0/1, etc.)
+    int8_t      bit;         // Bit index, or -1 for special cases
+    int8_t      hidId;       // HID button ID (1-32), or -1 to disable
+    const char* oride_label; // DCS-BIOS command name
+    uint16_t    oride_value; // Command value (65535 = analog passthrough)
+    const char* controlType; // "momentary", "selector", "analog",
+                             // "variable_step", "fixed_step"
+    uint16_t    group;       // Selector group ID (0 = no group)
+  };
 
 6.2 SOURCE TYPES
-----------------
+----------------------------------------
 SOURCE       PORT                    BIT                         NOTES
-"GPIO"       PIN(x) macro            0=active LOW, 1=active HIGH Direct ESP32 pin
+"GPIO"       PIN(x) macro            0=active LOW, 1=active HIGH
                                      -1=one-hot selector
-"HC165"      0 (unused)              0-63 (chain position)       Shift register chain
-"PCA_0xNN"   0 or 1 (port)           0-7 (bit in port)           I2C expander
+"HC165"      0 (unused)              0-63 (chain position)
+"PCA_0xNN"   0 or 1 (port)           0-7 (bit in port)
                                      -1=fallback position
-"TM1637"     PIN(x) for CLK          0-7 (key index)             Key scanning
-"MATRIX"     strobe GPIO pin         pattern value (decimal)     Matrix rotary
-"NONE"       0                       0                           Disabled/placeholder
+"TM1637"     PIN(x) for CLK          0-7 (key index)
+"MATRIX"     strobe GPIO pin         pattern value (decimal)
+"NONE"       0                       0
 
 6.3 CONTROL TYPES
------------------
-TYPE            BEHAVIOR                                    ORIDE_VALUE USE
-"momentary"     Press=value, Release=0                      Command value (usually 1)
-"selector"      Multi-position, mutual exclusivity          Position value (0,1,2...)
-"analog"        Continuous pot/axis                         65535 = raw passthrough
-"variable_step" Rotary encoder                              0=CCW, 1=CW (sends +/-3200)
-"fixed_step"    Fixed increment pulses                      0=DEC, 1=INC (sends INC/DEC)
+----------------------------------------
+TYPE            BEHAVIOR
+"momentary"     Press=value, Release=0
+"selector"      Multi-position, mutual exclusivity
+"analog"        Continuous pot/axis
+"variable_step" Rotary encoder (0=CCW, 1=CW, sends +/-3200)
+"fixed_step"    Fixed increment (0=DEC, 1=INC, sends INC/DEC)
 
 6.4 PIN(x) MACRO
-----------------
+----------------------------------------
 Use PIN(x) for ALL GPIO assignments in InputMapping.h
 Handles board-specific pin mapping defined in Pins.h
 Example: PIN(4) stays 4 on S2, may become 5 on S3
 
 6.5 SELECTOR GROUPS
--------------------
+----------------------------------------
 All positions of SAME physical switch MUST share non-zero group ID.
 
 RULES:
@@ -530,75 +574,85 @@ EXAMPLE (3-position with neutral):
   { "SW_RIGHT", "HC165", 0, 12, -1, "SW", 0, "selector", 4 },
 
 6.6 COMPLETE EXAMPLES
----------------------
+----------------------------------------
 // Momentary button on GPIO (active LOW)
-{ "FIRE_BTN", "GPIO", PIN(5), 0, -1, "FIRE_BTN", 1, "momentary", 0 },
+  { "FIRE_BTN", "GPIO", PIN(5), 0, -1, "FIRE_BTN", 1, "momentary", 0 },
 
 // Momentary button on GPIO (active HIGH)
-{ "FIRE_BTN", "GPIO", PIN(5), 1, -1, "FIRE_BTN", 1, "momentary", 0 },
+  { "FIRE_BTN", "GPIO", PIN(5), 1, -1, "FIRE_BTN", 1, "momentary", 0 },
 
 // Three-position selector on HC165 with neutral
-{ "ENGINE_CRANK_SW_LEFT",  "HC165", 0, 11, -1, "ENGINE_CRANK_SW", 2, "selector", 4 },
-{ "ENGINE_CRANK_SW_OFF",   "HC165", 0, -1, -1, "ENGINE_CRANK_SW", 1, "selector", 4 },
-{ "ENGINE_CRANK_SW_RIGHT", "HC165", 0, 12, -1, "ENGINE_CRANK_SW", 0, "selector", 4 },
+  { "ENGINE_CRANK_SW_LEFT",  "HC165", 0, 11, -1, "ENGINE_CRANK_SW", 2,
+    "selector", 4 },
+  { "ENGINE_CRANK_SW_OFF",   "HC165", 0, -1, -1, "ENGINE_CRANK_SW", 1,
+    "selector", 4 },
+  { "ENGINE_CRANK_SW_RIGHT", "HC165", 0, 12, -1, "ENGINE_CRANK_SW", 0,
+    "selector", 4 },
 
 // One-hot GPIO selector (each position unique GPIO)
-{ "MODE_SW_POS0", "GPIO", PIN(33), -1, -1, "MODE_SW", 0, "selector", 21 },
-{ "MODE_SW_POS1", "GPIO", PIN(21), -1, -1, "MODE_SW", 1, "selector", 21 },
+  { "MODE_SW_POS0", "GPIO", PIN(33), -1, -1, "MODE_SW", 0,
+    "selector", 21 },
+  { "MODE_SW_POS1", "GPIO", PIN(21), -1, -1, "MODE_SW", 1,
+    "selector", 21 },
 
 // Analog potentiometer
-{ "VOL_KNOB", "GPIO", PIN(4), 0, -1, "VOL", 65535, "analog", 0 },
+  { "VOL_KNOB", "GPIO", PIN(4), 0, -1, "VOL", 65535, "analog", 0 },
 
 // Rotary encoder (variable step)
-{ "VOL_DEC", "GPIO", PIN(12), 0, -1, "VOL", 0, "variable_step", 0 },
-{ "VOL_INC", "GPIO", PIN(13), 0, -1, "VOL", 1, "variable_step", 0 },
+  { "VOL_DEC", "GPIO", PIN(12), 0, -1, "VOL", 0, "variable_step", 0 },
+  { "VOL_INC", "GPIO", PIN(13), 0, -1, "VOL", 1, "variable_step", 0 },
 
 // PCA9555 momentary button with HID
-{ "MASTER_ARM", "PCA_0x5B", 0, 2, 16, "MASTER_ARM", 1, "momentary", 0 },
+  { "MASTER_ARM", "PCA_0x5B", 0, 2, 16, "MASTER_ARM", 1,
+    "momentary", 0 },
 
 // TM1637 key input
-{ "LEFT_FIRE_BTN", "TM1637", PIN(39), 3, -1, "LEFT_FIRE_BTN", 1, "momentary", 0 },
+  { "LEFT_FIRE_BTN", "TM1637", PIN(39), 3, -1, "LEFT_FIRE_BTN", 1,
+    "momentary", 0 },
 
 // Disabled placeholder
-{ "UNUSED", "NONE", 0, 0, -1, "UNUSED", 0, "momentary", 0 },
+  { "UNUSED", "NONE", 0, 0, -1, "UNUSED", 0, "momentary", 0 },
 
 ==============================================================================
 SECTION 7: LEDMAPPING.H - OUTPUT CONFIGURATION
 ==============================================================================
 
 7.1 STRUCT DEFINITIONS
-----------------------
-enum LEDDeviceType {
-  DEVICE_GPIO,      // Direct GPIO LED
-  DEVICE_TM1637,    // TM1637 7-segment/LED
-  DEVICE_PCA9555,   // I2C expander output
-  DEVICE_WS2812,    // Addressable RGB LED
-  DEVICE_GN1640T,   // LED matrix driver
-  DEVICE_GAUGE,     // Servo motor gauge
-  DEVICE_NONE       // Placeholder/disabled
-};
+----------------------------------------
+  enum LEDDeviceType {
+    DEVICE_GAUGE,     // Servo motor gauge
+    DEVICE_GN1640T,   // LED matrix driver
+    DEVICE_TM1637,    // TM1637 7-segment/LED
+    DEVICE_GPIO,      // Direct GPIO LED
+    DEVICE_PCA9555,   // I2C expander output
+    DEVICE_NONE,      // Placeholder/disabled
+    DEVICE_WS2812     // Addressable RGB LED
+  };
 
-struct LEDMapping {
-  const char*    label;      // Unique name (case-sensitive)
-  LEDDeviceType  deviceType; // From enum above
-  LEDDeviceInfo  info;       // Union with device-specific data
-  bool           dimmable;   // true = PWM/intensity control
-  bool           activeLow;  // true = ON when output LOW
-};
+  struct LEDMapping {
+    const char*    label;      // Unique name (case-sensitive)
+    LEDDeviceType  deviceType; // From enum above
+    LEDDeviceInfo  info;       // Union with device-specific data
+    bool           dimmable;   // true = PWM/intensity control
+    bool           activeLow;  // true = ON when output LOW
+  };
 
 7.2 DEVICE INFO UNION
----------------------
-union LEDDeviceInfo {
-  struct { uint8_t pin; }                                    gpioInfo;
-  struct { uint8_t idx; uint8_t defR,defG,defB,defBright; }  ws2812Info;
-  struct { uint8_t clkPin,dioPin,segment,bit; }              tm1637Info;
-  struct { uint8_t address,port,bit; }                       pcaInfo;
-  struct { uint8_t address,column,row; }                     gn1640Info;
-  struct { uint8_t gpio; int minPulse,maxPulse,period; }     gaugeInfo;
-};
+----------------------------------------
+  union LEDDeviceInfo {
+    struct { uint8_t gpio; }                                       gpioInfo;
+    struct { uint8_t index; uint8_t pin; uint8_t defR; uint8_t defG;
+             uint8_t defB; uint8_t defBright; }                   ws2812Info;
+    struct { uint8_t clkPin; uint8_t dioPin; uint8_t segment;
+             uint8_t bit; }                                       tm1637Info;
+    struct { uint8_t address; uint8_t port; uint8_t bit; }        pcaInfo;
+    struct { uint8_t address; uint8_t column; uint8_t row; }      gn1640Info;
+    struct { uint8_t gpio; uint16_t minPulse; uint16_t maxPulse;
+             uint16_t period; }                                   gaugeInfo;
+  };
 
 7.3 DEVICE CONFIGURATIONS
--------------------------
+----------------------------------------
 DEVICE_GPIO:
   .gpioInfo = { pin }
   dimmable=false -> digital on/off
@@ -636,40 +690,45 @@ DEVICE_NONE:
   Placeholder, no hardware connection
 
 7.4 COMPLETE EXAMPLES
----------------------
+----------------------------------------
 // Simple GPIO LED (active HIGH)
-{ "SPIN_LT", DEVICE_GPIO, { .gpioInfo = { PIN(34) } }, false, false },
+  { "SPIN_LT", DEVICE_GPIO, { .gpioInfo = { PIN(34) } }, false, false },
 
 // Dimmable GPIO LED (PWM)
-{ "BACKLIGHT", DEVICE_GPIO, { .gpioInfo = { PIN(6) } }, true, false },
+  { "BACKLIGHT", DEVICE_GPIO, { .gpioInfo = { PIN(6) } }, true, false },
 
 // Active-LOW GPIO LED
-{ "STATUS_LED", DEVICE_GPIO, { .gpioInfo = { PIN(15) } }, false, true },
+  { "STATUS_LED", DEVICE_GPIO, { .gpioInfo = { PIN(15) } }, false, true },
 
 // WS2812 RGB LED
-{ "MASTER_ARM_LT", DEVICE_WS2812, { .ws2812Info = { 0, 0, 255, 0, 200 } }, true, false },
+  { "MASTER_ARM_LT", DEVICE_WS2812,
+    { .ws2812Info = { 0, 0, 255, 0, 200 } }, true, false },
 
 // TM1637 segment
-{ "DIGIT_SEG_A", DEVICE_TM1637, { .tm1637Info = { PIN(39), PIN(40), 0, 0 } }, false, false },
+  { "DIGIT_SEG_A", DEVICE_TM1637,
+    { .tm1637Info = { PIN(39), PIN(40), 0, 0 } }, false, false },
 
 // PCA9555 output
-{ "ECM_STBY_LT", DEVICE_PCA9555, { .pcaInfo = { 0x5B, 0, 3 } }, false, true },
+  { "ECM_STBY_LT", DEVICE_PCA9555, { .pcaInfo = { 0x5B, 0, 3 } },
+    false, true },
 
 // GN1640T matrix LED
-{ "CAUTION_01", DEVICE_GN1640T, { .gn1640Info = { 0, 0, 0 } }, false, false },
+  { "CAUTION_01", DEVICE_GN1640T, { .gn1640Info = { 0, 0, 0 } },
+    false, false },
 
 // Servo gauge
-{ "FUEL_GAUGE", DEVICE_GAUGE, { .gaugeInfo = { PIN(18), 1000, 2000, 20000 } }, true, false },
+  { "FUEL_GAUGE", DEVICE_GAUGE,
+    { .gaugeInfo = { PIN(18), 1000, 2000, 20000 } }, true, false },
 
 // Disabled placeholder
-{ "UNUSED_LED", DEVICE_NONE, {}, false, false },
+  { "UNUSED_LED", DEVICE_NONE, {}, false, false },
 
 ==============================================================================
 SECTION 8: PANEL SYSTEM
 ==============================================================================
 
 8.1 PANELKIND ENUM
-------------------
+----------------------------------------
 Auto-generated by generate_panelkind.py from src/Panels/*.cpp files.
 
 Two categories:
@@ -677,7 +736,7 @@ Two categories:
   COMPILED:  Panels with REGISTER_PANEL macro (compiled based on HAS_* defines)
 
 8.2 REGISTER_PANEL MACRO
-------------------------
+----------------------------------------
 REGISTER_PANEL(KIND, INIT, LOOP, DISP_INIT, DISP_LOOP, TICK, PRIORITY);
 
 Parameters:
@@ -690,14 +749,14 @@ Parameters:
   PRIORITY:  uint8_t - lower runs first (default 100)
 
 8.3 PANEL_KIND COMMENT
-----------------------
+----------------------------------------
 To give panel specific PanelKind identifier:
   // PANEL_KIND: CA
 Place in first 30 lines of .cpp file.
 If absent, filename (minus .cpp) is used.
 
 8.4 PANEL LIFECYCLE
--------------------
+----------------------------------------
 STARTUP:
   setup()
     initMappings()           - Validate InputMapping/LEDMapping
@@ -716,15 +775,22 @@ MISSION START (aircraft name change detected):
   initializePanels(false)    - Re-sync all panels to simulator state
 
 8.5 PANELREGISTRY API
----------------------
-void PanelRegistry_register(const PanelHooks& h);  // Auto-called by macro
-bool PanelRegistry_has(PanelKind k);               // Check if compiled in
-bool PanelRegistry_isActive(PanelKind k);          // Check if running
-void PanelRegistry_setActive(PanelKind k, bool);   // Enable/disable runtime
-void PanelRegistry_setPresent(PanelKind k, bool);  // For auto-detected panels
+----------------------------------------
+  void PanelRegistry_register(const PanelHooks& h);  // Auto-called by macro
+  bool PanelRegistry_has(PanelKind k);               // Check if compiled in
+  bool PanelRegistry_isActive(PanelKind k);          // Check if running
+  void PanelRegistry_setActive(PanelKind k, bool);   // Enable/disable runtime
+  bool PanelRegistry_registered(const char* label);  // Debug: lookup by label
+  int  PanelRegistry_count();                        // Registered count
+  const char* PanelRegistry_labelAt(int idx);        // Label by index
+  void PanelRegistry_forEachInit();
+  void PanelRegistry_forEachLoop();
+  void PanelRegistry_forEachDisplayInit();
+  void PanelRegistry_forEachDisplayLoop();
+  void PanelRegistry_forEachTick();
 
 8.6 WHEN TO CREATE CUSTOM PANEL
--------------------------------
+----------------------------------------
 SCENARIO                          APPROACH
 Standard buttons/switches         InputMapping.h + Generic.cpp (automatic)
 Standard LEDs                     LEDMapping.h + auto LED tick (automatic)
@@ -738,12 +804,12 @@ SECTION 9: COVERGATE SYSTEM - GUARDED CONTROLS
 ==============================================================================
 
 9.1 PURPOSE
------------
+----------------------------------------
 Handles physically guarded controls - buttons/switches with protective covers
 that must open before control can activate.
 
 9.2 BEHAVIOR SEQUENCE
----------------------
+----------------------------------------
 1. User presses guarded button
 2. CoverGate opens cover (COVER_LABEL = 1 to DCS)
 3. Wait delay_ms (for DCS animation)
@@ -752,23 +818,25 @@ that must open before control can activate.
 6. Close cover (COVER_LABEL = 0 to DCS)
 
 9.3 CONFIGURATION (Mappings.cpp)
---------------------------------
+----------------------------------------
 const CoverGateDef kCoverGates[] = {
     // Selector: { action, release, cover, kind, open_delay, close_delay }
-    { "ACTION_LABEL", "RELEASE_LABEL", "COVER_LABEL", CoverGateKind::Selector, 500, 500 },
+    { "ACTION_LABEL", "RELEASE_LABEL", "COVER_LABEL",
+      CoverGateKind::Selector, 500, 500 },
     
     // Button (no release needed)
-    { "FIRE_BTN", nullptr, "FIRE_COVER", CoverGateKind::ButtonMomentary, 350, 300 },
+    { "FIRE_BTN", nullptr, "FIRE_COVER",
+      CoverGateKind::ButtonMomentary, 350, 300 },
 };
 
 9.4 COVERGATEKIND TYPES
------------------------
+----------------------------------------
 Selector:        2-position guarded switch (e.g., HOOK BYPASS)
 ButtonMomentary: Fire buttons, emergency buttons
 ButtonLatched:   Reserved for future use
 
 9.5 TIMING GUIDELINES
----------------------
+----------------------------------------
 Fire buttons:       open=300-400ms, close=250-350ms
 Emergency switches: open=400-600ms, close=400-600ms
 Selector switches:  open=500ms, close=500ms
@@ -778,24 +846,24 @@ SECTION 10: LATCHED BUTTONS
 ==============================================================================
 
 10.1 PURPOSE
-------------
+----------------------------------------
 Some DCS buttons toggle state (press=ON, press again=OFF) rather than
 momentary. CockpitOS tracks these to maintain sync.
 
 10.2 CONFIGURATION (Mappings.cpp)
----------------------------------
-const char* kLatchedButtons[] = {
-    "APU_FIRE_BTN",
-    "CMSD_JET_SEL_BTN",
-    "RWR_POWER_BTN",
-};
+----------------------------------------
+  const char* kLatchedButtons[] = {
+      "APU_FIRE_BTN",
+      "CMSD_JET_SEL_BTN",
+      "RWR_POWER_BTN",
+  };
 
 10.3 STATE CHECKING API
------------------------
-bool isToggleOn(const char* label);       // Check latched button state
-bool isCoverOpen(const char* label);      // Check cover state
-void setToggleState(const char* label, bool value);
-void setCoverState(const char* label, bool value);
+----------------------------------------
+  bool isToggleOn(const char* label);       // Check latched button state
+  bool isCoverOpen(const char* label);      // Check cover state
+  void setToggleState(const char* label, bool value);
+  void setCoverState(const char* label, bool value);
 
 ==============================================================================
 SECTION 11: CUTILS - HARDWARE ABSTRACTION LAYER API
@@ -805,64 +873,807 @@ ALL hardware access MUST go through CUtils.h.
 Panel code NEVER accesses hardware directly.
 
 11.1 GPIO API
--------------
-void GPIO_setAllLEDs(bool state);
-void GPIO_setDigital(uint8_t pin, bool activeHigh, bool state);
-void GPIO_setAnalog(uint8_t pin, bool activeLow, uint8_t intensity);  // PWM 0-255
-void GPIO_offAnalog(uint8_t pin, bool activeLow);
-void preconfigureGPIO();  // Called during setup()
+----------------------------------------
+  void GPIO_setAllLEDs(bool state);
+  void GPIO_setDigital(uint8_t pin, bool activeHigh, bool state);
+  void GPIO_setAnalog(uint8_t pin, bool activeLow, uint8_t intensity);
+    // PWM 0-255
+  void GPIO_offAnalog(uint8_t pin, bool activeLow);
+  void preconfigureGPIO();  // Called during setup()
 
 11.2 WS2812 API
----------------
-void WS2812_init();
-void WS2812_setLEDColor(uint8_t idx, CRGB color);
-void WS2812_allOn(CRGB color);
-void WS2812_allOff();
-void WS2812_tick();  // MUST call every frame to commit changes
+----------------------------------------
+  void WS2812_init();
+  void WS2812_setLEDColor(uint8_t idx, CRGB color);
+  void WS2812_allOn(CRGB color);
+  void WS2812_allOff();
+  void WS2812_tick();  // MUST call every frame to commit changes
 
 11.3 TM1637 API
----------------
-void tm1637_init(TM1637Device& dev, uint8_t clk, uint8_t dio);
-uint8_t tm1637_readKeys(TM1637Device& dev);  // Returns key bitmap
-void tm1637_displaySingleLED(TM1637Device& dev, uint8_t grid, uint8_t seg, bool on);
-void tm1637_tick();   // Commits all changes
-void tm1637_allOn();
-void tm1637_allOff();
+----------------------------------------
+  void tm1637_init(TM1637Device& dev, uint8_t clk, uint8_t dio);
+  uint8_t tm1637_readKeys(TM1637Device& dev);  // Returns key bitmap
+  void tm1637_displaySingleLED(TM1637Device& dev, uint8_t grid,
+                               uint8_t seg, bool on);
+  void tm1637_tick();   // Commits all changes
+  void tm1637_allOn();
+  void tm1637_allOff();
 
 11.4 GN1640T API
-----------------
-void GN1640_init(uint8_t clkPin, uint8_t dioPin);
-void GN1640_setLED(uint8_t row, uint8_t col, bool state);
-void GN1640_allOn();
-void GN1640_allOff();
-void GN1640_tick();  // Commits all changes
+----------------------------------------
+  void GN1640_init(uint8_t clkPin, uint8_t dioPin);
+  void GN1640_setLED(uint8_t row, uint8_t col, bool state);
+  void GN1640_allOn();
+  void GN1640_allOff();
+  void GN1640_tick();  // Commits all changes
 
 11.5 PCA9555 API
-----------------
-void PCA9555_scanConnectedPanels();  // Detects connected expanders
-bool readPCA9555(uint8_t addr, byte& p0, byte& p1);  // Read both ports
-void PCA9555_write(uint8_t addr, uint8_t port, uint8_t bit, bool state);
-void PCA9555_autoInitFromLEDMap(uint8_t addr);  // Configure from LEDMapping
-void PCA9555_allOn(uint8_t addr);
-void PCA9555_allOff(uint8_t addr);
+----------------------------------------
+  void PCA9555_scanConnectedPanels();  // Detects connected expanders
+  bool readPCA9555(uint8_t addr, byte& p0, byte& p1);  // Read both ports
+  void PCA9555_write(uint8_t addr, uint8_t port, uint8_t bit, bool state);
+  void PCA9555_autoInitFromLEDMap(uint8_t addr);  // Configure from LEDMapping
+  void PCA9555_allOn(uint8_t addr);
+  void PCA9555_allOff(uint8_t addr);
 
 11.6 HC165 API
---------------
-void HC165_init(uint8_t pinPL, uint8_t pinCP, uint8_t pinQH, uint8_t numBits);
-uint64_t HC165_read();  // Returns all bits (up to 64)
+----------------------------------------
+  void HC165_init(uint8_t pinPL, uint8_t pinCP,
+                  uint8_t pinQH, uint8_t numBits);
+  uint64_t HC165_read();  // Returns all bits (up to 64)
 
 11.7 ANALOG GAUGE API
----------------------
-void AnalogG_registerGauge(uint8_t pin, int minPulseUs, int maxPulseUs);
-void AnalogG_set(uint8_t pin, uint16_t value);  // 0-65535 -> minPulse-maxPulse
-void AnalogG_tick();  // Call every 20ms for PWM generation
+----------------------------------------
+  void AnalogG_registerGauge(uint8_t pin, int minPulseUs, int maxPulseUs);
+  void AnalogG_set(uint8_t pin, uint16_t value);
+    // 0-65535 -> minPulse-maxPulse
+  void AnalogG_tick();  // Call every 20ms for PWM generation
 
 11.8 HT1622 API
----------------
-void HT1622_init(uint8_t csPin, uint8_t wrPin, uint8_t dataPin);
-void HT1622_writeRaw(uint8_t addr, uint8_t data);
-void HT1622_clear();
-// Segment mapping via SegmentMap headers from RAM Walker tool
+----------------------------------------
+  void HT1622_init(uint8_t csPin, uint8_t wrPin, uint8_t dataPin);
+  void HT1622_writeRaw(uint8_t addr, uint8_t data);
+  void HT1622_clear();
+  // Segment mapping via SegmentMap headers from RAM Walker tool
+
+11.9 FULL CUTILS FUNCTION REFERENCE (SIGNATURE/PARAMS/RET/EXAMPLE)
+----------------------------------------
+Format:
+  Signature: <function signature>
+  Params: <name>=<meaning>
+  Returns: <type/meaning>
+  Example:
+    <code>
+
+Signature: void dump_usb_descriptors();
+Params: none
+Returns: void
+Example:
+  dump_usb_descriptors();
+
+Signature: void sendPendingSerial();
+Params: none
+Returns: void
+Example:
+  sendPendingSerial();
+
+Signature: constexpr uint16_t labelHash(const char* s);
+Params: s=zero-terminated label string
+Returns: uint16_t hash value
+Example:
+  uint16_t h = labelHash("MASTER_ARM_SW");
+
+Signature: void scanConnectedPanels();
+Params: none
+Returns: void
+Example:
+  scanConnectedPanels();
+
+Signature: void printDiscoveredPanels();
+Params: none
+Returns: void
+Example:
+  printDiscoveredPanels();
+
+Signature: bool panelExists(uint8_t targetAddr);
+Params: targetAddr=I2C address
+Returns: true if device discovered
+Example:
+  if (panelExists(0x26)) { /* ... */ }
+
+Signature: void GPIO_setAllLEDs(bool state);
+Params: state=true for on
+Returns: void
+Example:
+  GPIO_setAllLEDs(true);
+
+Signature: void GPIO_setDigital(uint8_t pin, bool activeHigh, bool state);
+Params: pin=GPIO, activeHigh=on when HIGH, state=on/off
+Returns: void
+Example:
+  GPIO_setDigital(PIN(5), true, true);
+
+Signature: void GPIO_setAnalog(uint8_t pin, bool activeLow, uint8_t intensity);
+Params: pin=GPIO, activeLow=on when LOW, intensity=0-255
+Returns: void
+Example:
+  GPIO_setAnalog(PIN(6), false, 128);
+
+Signature: void GPIO_offAnalog(uint8_t pin, bool activeLow);
+Params: pin=GPIO, activeLow=on when LOW
+Returns: void
+Example:
+  GPIO_offAnalog(PIN(6), false);
+
+Signature: void resetAllGauges();
+Params: none
+Returns: void
+Example:
+  resetAllGauges();
+
+Signature: void preconfigureGPIO();
+Params: none
+Returns: void
+Example:
+  preconfigureGPIO();
+
+Signature: uint8_t TM1637_getDeviceCount();
+Params: none
+Returns: number of registered TM1637 devices
+Example:
+  uint8_t n = TM1637_getDeviceCount();
+
+Signature: TM1637Device* TM1637_getDeviceAt(uint8_t index);
+Params: index=0..count-1
+Returns: pointer or nullptr
+Example:
+  TM1637Device* d = TM1637_getDeviceAt(0);
+
+Signature: uint8_t tm1637_readKeys(TM1637Device& dev);
+Params: dev=TM1637 device
+Returns: key bitmask
+Example:
+  uint8_t keys = tm1637_readKeys(*dev);
+
+Signature: void tm1637_start(TM1637Device& dev);
+Params: dev=TM1637 device
+Returns: void
+Example:
+  tm1637_start(*dev);
+
+Signature: void tm1637_stop(TM1637Device& dev);
+Params: dev=TM1637 device
+Returns: void
+Example:
+  tm1637_stop(*dev);
+
+Signature: bool tm1637_writeByte(TM1637Device& dev, uint8_t b);
+Params: dev=TM1637 device, b=data byte
+Returns: true if ACK received
+Example:
+  tm1637_writeByte(*dev, 0x40);
+
+Signature: void tm1637_updateDisplay(TM1637Device& dev);
+Params: dev=TM1637 device
+Returns: void
+Example:
+  tm1637_updateDisplay(*dev);
+
+Signature: void tm1637_init(TM1637Device& dev, uint8_t clk, uint8_t dio);
+Params: dev=TM1637 device, clk=CLK pin, dio=DIO pin
+Returns: void
+Example:
+  tm1637_init(*dev, PIN(39), PIN(40));
+
+Signature: void tm1637_displaySingleLED(TM1637Device& dev,
+                                        uint8_t grid, uint8_t seg, bool on);
+Params: grid=digit index, seg=segment bit, on=state
+Returns: void
+Example:
+  tm1637_displaySingleLED(*dev, 0, 0, true);
+
+Signature: void tm1637_clearDisplay(TM1637Device& dev);
+Params: dev=TM1637 device
+Returns: void
+Example:
+  tm1637_clearDisplay(*dev);
+
+Signature: void tm1637_allOn();
+Params: none
+Returns: void
+Example:
+  tm1637_allOn();
+
+Signature: void tm1637_allOff();
+Params: none
+Returns: void
+Example:
+  tm1637_allOff();
+
+Signature: void tm1637_tick();
+Params: none
+Returns: void
+Example:
+  tm1637_tick();
+
+Signature: TM1637Device* TM1637_getOrCreate(uint8_t clk, uint8_t dio);
+Params: clk=CLK pin, dio=DIO pin
+Returns: pointer to device
+Example:
+  TM1637_getOrCreate(PIN(39), PIN(40));
+
+Signature: TM1637Device* TM1637_findByPins(uint8_t clk, uint8_t dio);
+Params: clk=CLK pin, dio=DIO pin
+Returns: pointer or nullptr
+Example:
+  TM1637_findByPins(PIN(39), PIN(40));
+
+Signature: TM1637Device* TM1637_findByDIO(uint8_t dio);
+Params: dio=DIO pin
+Returns: pointer or nullptr
+Example:
+  TM1637_findByDIO(PIN(40));
+
+Signature: void GN1640_startCondition();
+Params: none
+Returns: void
+Example:
+  GN1640_startCondition();
+
+Signature: void GN1640_stopCondition();
+Params: none
+Returns: void
+Example:
+  GN1640_stopCondition();
+
+Signature: void GN1640_sendByte(uint8_t data);
+Params: data=byte to transmit
+Returns: void
+Example:
+  GN1640_sendByte(0xAA);
+
+Signature: void GN1640_command(uint8_t cmd);
+Params: cmd=command byte
+Returns: void
+Example:
+  GN1640_command(0x88);
+
+Signature: void GN1640_init(uint8_t clkPin, uint8_t dioPin);
+Params: clkPin=CLK, dioPin=DIO
+Returns: void
+Example:
+  GN1640_init(CA_CLK_PIN, CA_DIO_PIN);
+
+Signature: void GN1640_setLED(uint8_t row, uint8_t col, bool state);
+Params: row=0..7, col=0..7, state=on/off
+Returns: void
+Example:
+  GN1640_setLED(0, 0, true);
+
+Signature: void GN1640_write(uint8_t column, uint8_t value);
+Params: column=column index, value=bitmask
+Returns: void
+Example:
+  GN1640_write(0, 0xFF);
+
+Signature: void GN1640_clearAll();
+Params: none
+Returns: void
+Example:
+  GN1640_clearAll();
+
+Signature: void GN1640_allOff();
+Params: none
+Returns: void
+Example:
+  GN1640_allOff();
+
+Signature: void GN1640_allOn();
+Params: none
+Returns: void
+Example:
+  GN1640_allOn();
+
+Signature: void GN1640_sweepPanel();
+Params: none
+Returns: void
+Example:
+  GN1640_sweepPanel();
+
+Signature: void GN1640_testPattern();
+Params: none
+Returns: void
+Example:
+  GN1640_testPattern();
+
+Signature: void GN1640_setAllLEDs(bool state);
+Params: state=on/off
+Returns: void
+Example:
+  GN1640_setAllLEDs(true);
+
+Signature: bool GN1640_detect(uint8_t clkPin, uint8_t dioPin);
+Params: clkPin=CLK, dioPin=DIO
+Returns: true if device responds
+Example:
+  if (GN1640_detect(CA_CLK_PIN, CA_DIO_PIN)) { }
+
+Signature: void GN1640_tick();
+Params: none
+Returns: void
+Example:
+  GN1640_tick();
+
+Signature: void PCA9555_setAllLEDs(bool state);
+Params: state=on/off
+Returns: void
+Example:
+  PCA9555_setAllLEDs(true);
+
+Signature: void PCA9555_allLEDsByAddress(uint8_t addr, bool state);
+Params: addr=I2C address, state=on/off
+Returns: void
+Example:
+  PCA9555_allLEDsByAddress(0x26, false);
+
+Signature: void PCA9555_allOn(uint8_t addr);
+Params: addr=I2C address
+Returns: void
+Example:
+  PCA9555_allOn(0x26);
+
+Signature: void PCA9555_allOff(uint8_t addr);
+Params: addr=I2C address
+Returns: void
+Example:
+  PCA9555_allOff(0x26);
+
+Signature: void PCA9555_sweep(uint8_t addr);
+Params: addr=I2C address
+Returns: void
+Example:
+  PCA9555_sweep(0x26);
+
+Signature: void PCA9555_patternTesting(uint8_t addr);
+Params: addr=I2C address
+Returns: void
+Example:
+  PCA9555_patternTesting(0x26);
+
+Signature: void PCA9555_autoInitFromLEDMap(uint8_t addr);
+Params: addr=I2C address
+Returns: void
+Example:
+  PCA9555_autoInitFromLEDMap(0x26);
+
+Signature: void PCA9555_initAsOutput(uint8_t addr,
+                                    uint8_t mask0, uint8_t mask1);
+Params: addr=I2C address, mask0/1=direction masks
+Returns: void
+Example:
+  PCA9555_initAsOutput(0x26, 0x00, 0x00);
+
+Signature: void initPCA9555AsInput(uint8_t addr);
+Params: addr=I2C address
+Returns: void
+Example:
+  initPCA9555AsInput(0x26);
+
+Signature: bool readPCA9555(uint8_t addr, byte& p0, byte& p1);
+Params: addr=I2C address, p0/p1=output ports
+Returns: true on success
+Example:
+  byte p0, p1; readPCA9555(0x26, p0, p1);
+
+Signature: void PCA9555_write(uint8_t addr, uint8_t port,
+                              uint8_t bit, bool state);
+Params: addr=I2C address, port=0/1, bit=0..7, state=on/off
+Returns: void
+Example:
+  PCA9555_write(0x26, 0, 3, true);
+
+Signature: bool isPCA9555LoggingEnabled();
+Params: none
+Returns: true if logging enabled
+Example:
+  if (isPCA9555LoggingEnabled()) { }
+
+Signature: void enablePCA9555Logging(bool on);
+Params: on=true to enable
+Returns: void
+Example:
+  enablePCA9555Logging(true);
+
+Signature: void logExpanderState(uint8_t p0, uint8_t p1);
+Params: p0/p1=port states
+Returns: void
+Example:
+  logExpanderState(p0, p1);
+
+Signature: void logPCA9555State(uint8_t addr, byte p0, byte p1);
+Params: addr=I2C address, p0/p1=ports
+Returns: void
+Example:
+  logPCA9555State(0x26, p0, p1);
+
+Signature: void PCA9555_initCache();
+Params: none
+Returns: void
+Example:
+  PCA9555_initCache();
+
+Signature: void measureI2Cspeed(uint8_t deviceAddr);
+Params: deviceAddr=I2C address
+Returns: void
+Example:
+  measureI2Cspeed(0x26);
+
+Signature: bool shouldLogChange(uint8_t address, byte port0, byte port1);
+Params: address=I2C address, port0/1=current ports
+Returns: true if change should be logged
+Example:
+  if (shouldLogChange(0x26, p0, p1)) { }
+
+Signature: void PCA9555_scanConnectedPanels();
+Params: none
+Returns: void
+Example:
+  PCA9555_scanConnectedPanels();
+
+Signature: uint8_t MatrixRotary_readPattern(const int* strobes, int count,
+                                            int dataPin);
+Params: strobes=array of GPIO pins, count=strobe count, dataPin=data GPIO
+Returns: pattern value
+Example:
+  uint8_t v = MatrixRotary_readPattern(strobes, n, PIN(36));
+
+Signature: void HC165_init(uint8_t pinPL, uint8_t pinCP,
+                           uint8_t pinQH, uint8_t numBits);
+Params: pinPL=load, pinCP=clock, pinQH=data, numBits=bit count
+Returns: void
+Example:
+  HC165_init(HC165_CONTROLLER_PL, HC165_CONTROLLER_CP,
+             HC165_CONTROLLER_QH, HC165_BITS);
+
+Signature: uint64_t HC165_read();
+Params: none
+Returns: 64-bit read value
+Example:
+  uint64_t bits = HC165_read();
+
+Signature: void HC165_printBits(const char* prefix, uint64_t value,
+                                uint8_t numBits);
+Params: prefix=text, value=bits, numBits=bits to print
+Returns: void
+Example:
+  HC165_printBits("HC165", bits, 16);
+
+Signature: void HC165_printBitChanges(uint64_t prev, uint64_t curr,
+                                      uint8_t numBits);
+Params: prev=previous, curr=current, numBits=bits to print
+Returns: void
+Example:
+  HC165_printBitChanges(prevBits, bits, 16);
+
+Signature: void AnalogG_initPin(uint8_t pin);
+Params: pin=servo GPIO
+Returns: void
+Example:
+  AnalogG_initPin(PIN(18));
+
+Signature: void AnalogG_pulseUs(uint8_t pin, int minPulseUs,
+                                int maxPulseUs, uint16_t value);
+Params: pin=servo GPIO, minPulseUs/min, maxPulseUs/max, value=0-65535
+Returns: void
+Example:
+  AnalogG_pulseUs(PIN(18), 1000, 2000, 32768);
+
+Signature: void AnalogG_registerGauge(uint8_t pin, int minPulseUs,
+                                      int maxPulseUs);
+Params: pin=servo GPIO, minPulseUs/min, maxPulseUs/max
+Returns: void
+Example:
+  AnalogG_registerGauge(PIN(18), 1000, 2000);
+
+Signature: void AnalogG_set(uint8_t pin, uint16_t value);
+Params: pin=servo GPIO, value=0-65535
+Returns: void
+Example:
+  AnalogG_set(PIN(18), 40000);
+
+Signature: void AnalogG_tick();
+Params: none
+Returns: void
+Example:
+  AnalogG_tick();
+
+Signature: void setPanelAllLEDs(const char* panelPrefix, bool state);
+Params: panelPrefix=label prefix, state=on/off
+Returns: void
+Example:
+  setPanelAllLEDs("CA_", true);
+
+Signature: void setAllPanelsLEDs(bool state);
+Params: state=on/off
+Returns: void
+Example:
+  setAllPanelsLEDs(false);
+
+Signature: void detectAllPanels(bool& hasLockShoot, bool& hasCA, bool& hasLA,
+                                bool& hasRA, bool& hasIR,
+                                bool& hasECM, bool& hasMasterARM);
+Params: output refs for panel presence
+Returns: void
+Example:
+  detectAllPanels(a,b,c,d,e,f,g);
+
+Signature: void printLEDMenu();
+Params: none
+Returns: void
+Example:
+  printLEDMenu();
+
+Signature: void handleLEDSelection();
+Params: none
+Returns: void
+Example:
+  handleLEDSelection();
+
+Signature: void runReplayWithPrompt();
+Params: none
+Returns: void
+Example:
+  runReplayWithPrompt();
+
+Signature: bool startsWith(const char* s, const char* pfx);
+Params: s=string, pfx=prefix
+Returns: true if prefix matches
+Example:
+  if (startsWith(label, "PCA_0x")) { }
+
+Signature: uint8_t hexNib(char c);
+Params: c=hex char
+Returns: nibble value
+Example:
+  uint8_t v = hexNib('A');
+
+Signature: uint8_t parseHexByte(const char* s);
+Params: s=2-char hex string
+Returns: byte value
+Example:
+  uint8_t v = parseHexByte("FF");
+
+Signature: HT1622::HT1622(uint8_t cs, uint8_t wr, uint8_t data);
+Params: cs=CS pin, wr=WR pin, data=DATA pin
+Returns: object instance
+Example:
+  HT1622 lcd(CS0_PIN, WR0_PIN, DATA0_PIN);
+
+Signature: void HT1622::init();
+Params: none
+Returns: void
+Example:
+  lcd.init();
+
+Signature: void HT1622::sendCmd(uint8_t cmd);
+Params: cmd=command byte
+Returns: void
+Example:
+  lcd.sendCmd(0x52);
+
+Signature: void HT1622::writeNibble(uint8_t addr, uint8_t nibble);
+Params: addr=RAM address, nibble=4-bit value
+Returns: void
+Example:
+  lcd.writeNibble(0x00, 0x0F);
+
+Signature: void HT1622::commitBurstRMT(const uint8_t* shadow);
+Params: shadow=RAM buffer
+Returns: void
+Example:
+  lcd.commitBurstRMT(shadow);
+
+Signature: void HT1622::commitBurst(const uint8_t* shadow);
+Params: shadow=RAM buffer
+Returns: void
+Example:
+  lcd.commitBurst(shadow);
+
+Signature: void HT1622::commit(const uint8_t* shadow, uint8_t* lastShadow,
+                               int shadowLen);
+Params: shadow=current buffer, lastShadow=previous, shadowLen=bytes
+Returns: void
+Example:
+  lcd.commit(shadow, lastShadow, HT1622_RAM_SIZE);
+
+Signature: void HT1622::commitPartial(const uint8_t* shadow,
+                                      uint8_t* lastShadow,
+                                      uint8_t addrStart, uint8_t addrEnd);
+Params: shadow=current, lastShadow=previous, addrStart/end=range
+Returns: void
+Example:
+  lcd.commitPartial(shadow, lastShadow, 0, 16);
+
+Signature: void HT1622::clear();
+Params: none
+Returns: void
+Example:
+  lcd.clear();
+
+Signature: void HT1622::allSegmentsOn();
+Params: none
+Returns: void
+Example:
+  lcd.allSegmentsOn();
+
+Signature: void HT1622::allSegmentsOff();
+Params: none
+Returns: void
+Example:
+  lcd.allSegmentsOff();
+
+Signature: void HT1622::invalidateLastShadow(uint8_t* lastShadow,
+                                             int shadowLen);
+Params: lastShadow=previous buffer, shadowLen=bytes
+Returns: void
+Example:
+  lcd.invalidateLastShadow(lastShadow, HT1622_RAM_SIZE);
+
+11.10 WS2812 FUNCTION REFERENCE (GLOBAL API)
+----------------------------------------
+Signature: void WS2812_registerStrip(uint8_t pin, uint16_t count);
+Params: pin=GPIO, count=LED count
+Returns: void
+Example:
+  WS2812_registerStrip(PIN(35), 6);
+
+Signature: void WS2812_setLEDColor(uint8_t pin, uint16_t i,
+                                   uint8_t r, uint8_t g, uint8_t b);
+Params: pin=GPIO, i=index, r/g/b=0-255
+Returns: void
+Example:
+  WS2812_setLEDColor(PIN(35), 0, 0, 255, 0);
+
+Signature: void WS2812_setLEDColor(uint8_t pin, uint16_t i,
+                                   const CRGB& c);
+Params: pin=GPIO, i=index, c=color
+Returns: void
+Example:
+  WS2812_setLEDColor(PIN(35), 1, CRGB(255, 0, 0));
+
+Signature: void WS2812_setBrightness(uint8_t pin, uint8_t b);
+Params: pin=GPIO, b=0-255
+Returns: void
+Example:
+  WS2812_setBrightness(PIN(35), 200);
+
+Signature: void WS2812_showAll();
+Params: none
+Returns: void
+Example:
+  WS2812_showAll();
+
+Signature: void WS2812_clearAllStrips();
+Params: none
+Returns: void
+Example:
+  WS2812_clearAllStrips();
+
+Signature: void WS2812_init(int gpio, uint16_t count);
+Params: gpio=GPIO, count=LED count
+Returns: void
+Example:
+  WS2812_init(PIN(35), 6);
+
+Signature: void WS2812_setLEDColor(uint16_t i,
+                                   uint8_t r, uint8_t g, uint8_t b);
+Params: i=index, r/g/b=0-255
+Returns: void
+Example:
+  WS2812_setLEDColor(0, 0, 255, 0);
+
+Signature: void WS2812_setLEDColor(uint16_t i, const CRGB& c);
+Params: i=index, c=color
+Returns: void
+Example:
+  WS2812_setLEDColor(1, CRGB(0, 0, 255));
+
+Signature: void WS2812_clearAll();
+Params: none
+Returns: void
+Example:
+  WS2812_clearAll();
+
+Signature: void WS2812_show();
+Params: none
+Returns: void
+Example:
+  WS2812_show();
+
+Signature: void WS2812_setBrightness(uint8_t b);
+Params: b=0-255
+Returns: void
+Example:
+  WS2812_setBrightness(128);
+
+Signature: uint16_t WS2812_count();
+Params: none
+Returns: LED count for default strip
+Example:
+  uint16_t n = WS2812_count();
+
+Signature: void WS2812_init();
+Params: none (uses WS2812B_PIN, NUM_LEDS)
+Returns: void
+Example:
+  WS2812_init();
+
+Signature: void initWS2812FromMap();
+Params: none
+Returns: void
+Example:
+  initWS2812FromMap();
+
+Signature: void WS2812_setLEDColor_unsafe(uint16_t i,
+                                          uint8_t r, uint8_t g, uint8_t b);
+Params: i=index, r/g/b=0-255
+Returns: void
+Example:
+  WS2812_setLEDColor_unsafe(0, 255, 255, 255);
+
+Signature: void WS2812_allOn(const CRGB& color);
+Params: color=RGB
+Returns: void
+Example:
+  WS2812_allOn(CRGB(0, 255, 0));
+
+Signature: void WS2812_allOff();
+Params: none
+Returns: void
+Example:
+  WS2812_allOff();
+
+Signature: void WS2812_setAllLEDs(bool state);
+Params: state=true for on
+Returns: void
+Example:
+  WS2812_setAllLEDs(true);
+
+Signature: void WS2812_sweep(const CRGB* colors, uint8_t count);
+Params: colors=array, count=length
+Returns: void
+Example:
+  WS2812_sweep(pattern, 4);
+
+Signature: void testAOALevels();
+Params: none
+Returns: void
+Example:
+  testAOALevels();
+
+Signature: void WS2812_testPattern();
+Params: none
+Returns: void
+Example:
+  WS2812_testPattern();
+
+Signature: void WS2812_tick();
+Params: none
+Returns: void
+Example:
+  WS2812_tick();
+
+Signature: void WS2812_allOnFromMap();
+Params: none
+Returns: void
+Example:
+  WS2812_allOnFromMap();
+
+Signature: void WS2812_allOffAll();
+Params: none
+Returns: void
+Example:
+  WS2812_allOffAll();
 
 ==============================================================================
 SECTION 12: HIDMANAGER - INPUT LOGIC LAYER API
@@ -872,57 +1683,191 @@ Handles all high-level input logic: button actions, selector groups,
 throttling, HID report construction, DCS/HID mode switching.
 
 12.1 BUTTON/SELECTOR API
-------------------------
-void HIDManager_setNamedButton(const char* label, bool deferSend, bool pressed);
+----------------------------------------
+  void HIDManager_setNamedButton(const char* label, bool deferSend,
+                                 bool pressed);
   // Main entry for button/selector actions
   // deferSend=true -> buffer for later commit (during init)
   // pressed=true -> button down, false -> button up
 
-void HIDManager_toggleIfPressed(bool isPressed, const char* label, bool deferSend);
+  void HIDManager_toggleIfPressed(bool isPressed, const char* label,
+                                  bool deferSend);
   // For latched buttons - toggles state on rising edge only
 
-void HIDManager_commitDeferredReport(const char* reason);
+  void HIDManager_commitDeferredReport(const char* reason);
   // Flushes buffered HID reports
 
-void HIDManager_dispatchReport(bool force);
+  void HIDManager_dispatchReport(bool force);
   // Sends HID report (respects rate limiting unless force=true)
 
 12.2 AXIS API
--------------
-void HIDManager_moveAxis(const char* dcsId, uint8_t pin, HIDAxis axis,
-                         bool force, bool defer);
+----------------------------------------
+  void HIDManager_moveAxis(const char* dcsId, uint8_t pin, HIDAxis axis,
+                           bool force, bool defer);
   // Reads analog pin, applies smoothing, sends to DCS and/or HID
 
-enum HIDAxis {
-    AXIS_X = 0, AXIS_Y, AXIS_Z,
-    AXIS_RX, AXIS_RY, AXIS_RZ,
-    AXIS_DIAL, AXIS_SLIDER,
-    // ... up to 16 axes total
-    HID_AXIS_COUNT
-};
+  enum HIDAxis {
+      AXIS_X = 0, AXIS_Y, AXIS_Z,
+      AXIS_RX, AXIS_RY, AXIS_RZ,
+      AXIS_DIAL, AXIS_SLIDER,
+      // ... up to 16 axes total
+      HID_AXIS_COUNT
+  };
 
 12.3 DCS COMMAND API
---------------------
-void sendDCSBIOSCommand(const char* label, uint16_t value, bool force);
+----------------------------------------
+  void sendDCSBIOSCommand(const char* label, uint16_t value, bool force);
   // Queues command, force=true bypasses throttling
 
-bool tryToSendDcsBiosMessage(const char* msg, const char* arg);
+  bool tryToSendDcsBiosMessage(const char* msg, const char* arg);
   // Low-level send with string argument
   // Used for variable_step (+3200/-3200), fixed_step (INC/DEC)
 
 12.4 MODE API
--------------
-bool isModeSelectorDCS();
+----------------------------------------
+  bool isModeSelectorDCS();
   // Returns true if DCS mode, false if HID-only mode
 
 12.5 AXIS CALIBRATION CONFIG
-----------------------------
+----------------------------------------
 Self-learning calibration. Thresholds in Config.h:
   MIDDLE_AXIS_THRESHOLD    = 64   // Center deadzone
   UPPER_AXIS_THRESHOLD     = 128  // Upper deadzone
   LOWER_AXIS_THRESHOLD     = 128  // Lower deadzone
   CENTER_DEADZONE_INNER    = 256  // Entry threshold
   CENTER_DEADZONE_OUTER    = 384  // Exit threshold
+
+12.6 FULL HIDMANAGER FUNCTION REFERENCE
+----------------------------------------
+Signature: void HIDManager_saveCalibration();
+Params: none
+Returns: void
+Example:
+  HIDManager_saveCalibration();
+
+Signature: void HIDManager_startUSB();
+Params: none
+Returns: void
+Example:
+  HIDManager_startUSB();
+
+Signature: void HIDManager_setup();
+Params: none
+Returns: void
+Example:
+  HIDManager_setup();
+
+Signature: void HIDManager_loop();
+Params: none
+Returns: void
+Example:
+  HIDManager_loop();
+
+Signature: void HIDSenderTask(void* param);
+Params: param=task parameter (unused)
+Returns: void
+Example:
+  xTaskCreatePinnedToCore(HIDSenderTask, "HID", 4096, nullptr, 1, 0, 0);
+
+Signature: size_t getMaxUsedGroup();
+Params: none
+Returns: highest selector group used
+Example:
+  size_t g = getMaxUsedGroup();
+
+Signature: void HIDManager_resetAllAxes();
+Params: none
+Returns: void
+Example:
+  HIDManager_resetAllAxes();
+
+Signature: void HIDManager_moveAxis(const char* dcsIdentifier,
+                                    uint8_t pin, HIDAxis axis,
+                                    bool forceSend, bool deferredSend);
+Params: dcsIdentifier=label, pin=GPIO, axis=HIDAxis value
+Returns: void
+Example:
+  HIDManager_moveAxis("COM_AUX", PIN(4), AXIS_X, false, false);
+
+Signature: void HIDManager_setNamedButton(const char* name,
+                                          bool deferSend, bool pressed);
+Params: name=label, deferSend=buffer report, pressed=state
+Returns: void
+Example:
+  HIDManager_setNamedButton("MASTER_ARM_SW_ARM", false, true);
+
+Signature: void HIDManager_setToggleNamedButton(const char* name,
+                                                bool deferSend);
+Params: name=label, deferSend=buffer report
+Returns: void
+Example:
+  HIDManager_setToggleNamedButton("APU_FIRE_BTN", false);
+
+Signature: void HIDManager_toggleIfPressed(bool isPressed,
+                                           const char* label,
+                                           bool deferSend);
+Params: isPressed=edge input, label=button label, deferSend=buffer
+Returns: void
+Example:
+  HIDManager_toggleIfPressed(pressed, "APU_FIRE_BTN", false);
+
+Signature: void HIDManager_handleGuardedToggleIfPressed(bool isPressed,
+                                           const char* buttonLabel,
+                                           const char* coverLabel,
+                                           bool deferSend);
+Params: isPressed=edge, buttonLabel=control, coverLabel=cover label
+Returns: void
+Example:
+  HIDManager_handleGuardedToggleIfPressed(pressed,
+    "LEFT_FIRE_BTN", "LEFT_FIRE_BTN_COVER", false);
+
+Signature: void HIDManager_commitDeferredReport(const char* deviceName);
+Params: deviceName=label for debug
+Returns: void
+Example:
+  HIDManager_commitDeferredReport("InitSync");
+
+Signature: bool shouldPollMs(unsigned long& lastPoll);
+Params: lastPoll=timestamp reference
+Returns: true if poll interval elapsed
+Example:
+  if (shouldPollMs(lastPoll)) { pollGPIO(); }
+
+Signature: bool shouldPollDisplayRefreshMs(unsigned long& lastPoll);
+Params: lastPoll=timestamp reference
+Returns: true if refresh interval elapsed
+Example:
+  if (shouldPollDisplayRefreshMs(lastDisplay)) { draw(); }
+
+Signature: void HIDManager_keepAlive();
+Params: none
+Returns: void
+Example:
+  HIDManager_keepAlive();
+
+Signature: void HIDManager_sendReport(const char* label, int32_t value);
+Params: label=origin label, value=optional value
+Returns: void
+Example:
+  HIDManager_sendReport("MASTER_ARM_SW", 1);
+
+Signature: void flushBufferedHidCommands();
+Params: none
+Returns: void
+Example:
+  flushBufferedHidCommands();
+
+Signature: void HIDManager_dispatchReport(bool force);
+Params: force=true to bypass throttling
+Returns: void
+Example:
+  HIDManager_dispatchReport(true);
+
+Signature: void HID_keepAlive();
+Params: none
+Returns: void
+Example:
+  HID_keepAlive();
 
 ==============================================================================
 SECTION 13: DCSBIOSBRIDGE - PROTOCOL LAYER API
@@ -931,77 +1876,357 @@ SECTION 13: DCSBIOSBRIDGE - PROTOCOL LAYER API
 Handles DCS-BIOS protocol: parsing, subscription dispatch, command history.
 
 13.1 SUBSCRIPTION API
----------------------
+----------------------------------------
 // String data (display fields)
-bool subscribeToDisplayChange(const char* label,
-    void (*callback)(const char* label, const char* value));
+  bool subscribeToDisplayChange(const char* label,
+      void (*callback)(const char* label, const char* value));
 
 // Switch positions
-bool subscribeToSelectorChange(const char* label,
-    void (*callback)(const char* label, uint16_t value));
+  bool subscribeToSelectorChange(const char* label,
+      void (*callback)(const char* label, uint16_t value));
 
 // LED states
-bool subscribeToLedChange(const char* label,
-    void (*callback)(const char* label, uint16_t value, uint16_t max_value));
+  bool subscribeToLedChange(const char* label,
+      void (*callback)(const char* label, uint16_t value, uint16_t max_value));
 
 // Metadata values
-bool subscribeToMetadataChange(const char* label,
-    void (*callback)(const char* label, uint16_t value));
+  bool subscribeToMetadataChange(const char* label,
+      void (*callback)(const char* label, uint16_t value));
 
 13.2 DATA ACCESS API
---------------------
-bool isCoverOpen(const char* label);
-bool isToggleOn(const char* label);
-void setCoverState(const char* label, bool value);
-void setToggleState(const char* label, bool value);
-const char* getLastValueForDisplayLabel(const char* label);
-uint16_t getMetadataValue(const char* label);
-uint16_t getLastKnownState(const char* label);
+----------------------------------------
+  bool isCoverOpen(const char* label);
+  bool isToggleOn(const char* label);
+  void setCoverState(const char* label, bool value);
+  void setToggleState(const char* label, bool value);
+  const char* getLastValueForDisplayLabel(const char* label);
+  uint16_t getMetadataValue(const char* label);
+  uint16_t getLastKnownState(const char* label);
 
 13.3 DISPLAY BUFFER API
------------------------
-bool registerDisplayBuffer(const char* label, char* buf, uint8_t len,
-                          bool* dirtyFlag, char* lastBuf);
+----------------------------------------
+  bool registerDisplayBuffer(const char* label, char* buf, uint8_t len,
+                             bool* dirtyFlag, char* lastBuf);
   // Registers buffer to receive string updates
   // dirtyFlag set true when data changes
   // lastBuf used for change detection
 
 13.4 MISSION API
-----------------
-bool isMissionRunning();
-uint32_t msSinceMissionStart();
-bool isPanelsSyncedThisMission();
+----------------------------------------
+  bool isMissionRunning();
+  uint32_t msSinceMissionStart();
+  bool isPanelsSyncedThisMission();
 
 13.5 COMMAND HISTORY
---------------------
-CommandHistoryEntry* findCmdEntry(const char* label);
+----------------------------------------
+  CommandHistoryEntry* findCmdEntry(const char* label);
 
-struct CommandHistoryEntry {
-    const char* label;
-    uint16_t lastValue;
-    uint16_t pendingValue;
-    unsigned long lastSendTime;
-    unsigned long lastChangeTime;
-    uint16_t group;
-    bool isSelector;
-    bool hasPending;
-};
+  struct CommandHistoryEntry {
+      const char* label;
+      uint16_t lastValue;
+      uint16_t pendingValue;
+      unsigned long lastSendTime;
+      unsigned long lastChangeTime;
+      uint16_t group;
+      bool isSelector;
+      bool hasPending;
+  };
+
+13.6 FULL DCSBIOSBRIDGE FUNCTION REFERENCE
+----------------------------------------
+Signature: void DCSBIOSBridge_postSetup();
+Params: none
+Returns: void
+Example:
+  DCSBIOSBridge_postSetup();
+
+Signature: void initPanels();
+Params: none
+Returns: void
+Example:
+  initPanels();
+
+Signature: void DCSBIOS_forceMissionStop();
+Params: none
+Returns: void
+Example:
+  DCSBIOS_forceMissionStop();
+
+Signature: void forceResync();
+Params: none
+Returns: void
+Example:
+  forceResync();
+
+Signature: bool simReady();
+Params: none
+Returns: true when DCS stream is ready
+Example:
+  if (simReady()) { }
+
+Signature: void validateSelectorSync();
+Params: none
+Returns: void
+Example:
+  validateSelectorSync();
+
+Signature: void initializeSelectorValidation();
+Params: none
+Returns: void
+Example:
+  initializeSelectorValidation();
+
+Signature: bool subscribeToMetadataChange(const char* label,
+    void (*callback)(const char* label, uint16_t value));
+Params: label=metadata label, callback=handler
+Returns: true if subscribed
+Example:
+  subscribeToMetadataChange("AIRCRAFT_NAME", onMeta);
+
+Signature: bool subscribeToDisplayChange(const char* label,
+    void (*callback)(const char* label, const char* value));
+Params: label=display label, callback=handler
+Returns: true if subscribed
+Example:
+  subscribeToDisplayChange("UFC_COMM1_DISPLAY", onDisp);
+
+Signature: bool subscribeToSelectorChange(const char* label,
+    void (*callback)(const char* label, uint16_t value));
+Params: label=selector label, callback=handler
+Returns: true if subscribed
+Example:
+  subscribeToSelectorChange("MASTER_ARM_SW", onSel);
+
+Signature: bool subscribeToLedChange(const char* label,
+    void (*callback)(const char* label, uint16_t value,
+                     uint16_t max_value));
+Params: label=LED label, callback=handler
+Returns: true if subscribed
+Example:
+  subscribeToLedChange("MASTER_CAUTION_LT", onLed);
+
+Signature: uint16_t getMetadataValue(const char* label);
+Params: label=metadata label
+Returns: value or 0 if missing
+Example:
+  uint16_t v = getMetadataValue("AIRCRAFT_NAME_LEN");
+
+Signature: uint16_t getLastKnownState(const char* label);
+Params: label=control label
+Returns: last known value
+Example:
+  uint16_t v = getLastKnownState("MASTER_ARM_SW");
+
+Signature: const char* getLastValueForDisplayLabel(const char* label);
+Params: label=display label
+Returns: pointer to last value buffer
+Example:
+  const char* s = getLastValueForDisplayLabel("UFC_COMM1_DISPLAY");
+
+Signature: CommandHistoryEntry* dcsbios_getCommandHistory();
+Params: none
+Returns: pointer to history table
+Example:
+  CommandHistoryEntry* h = dcsbios_getCommandHistory();
+
+Signature: size_t dcsbios_getCommandHistorySize();
+Params: none
+Returns: number of entries
+Example:
+  size_t n = dcsbios_getCommandHistorySize();
+
+Signature: bool throttleIdenticalValue(const char* label,
+    CommandHistoryEntry& e, uint16_t value, bool force);
+Params: label=control label, e=history entry, value=new value
+Returns: true if throttled
+Example:
+  if (throttleIdenticalValue("MASTER_ARM_SW", *e, 1, false)) { }
+
+Signature: CommandHistoryEntry* findCmdEntry(const char* label);
+Params: label=control label
+Returns: pointer or nullptr
+Example:
+  CommandHistoryEntry* e = findCmdEntry("MASTER_ARM_SW");
+
+Signature: bool applyThrottle(CommandHistoryEntry& e,
+    const char* label, uint16_t value, bool force);
+Params: e=history entry, label=control label, value=new value
+Returns: true if throttled
+Example:
+  if (applyThrottle(*e, "MASTER_ARM_SW", 1, false)) { }
+
+Signature: void DcsbiosProtocolReplay();
+Params: none
+Returns: void
+Example:
+  DcsbiosProtocolReplay();
+
+Signature: void sendDCSBIOSCommand(const char* label,
+                                  uint16_t value, bool force);
+Params: label=command label, value=payload, force=skip throttle
+Returns: void
+Example:
+  sendDCSBIOSCommand("MASTER_ARM_SW", 1, false);
+
+Signature: void sendCommand(const char* label, const char* value,
+                            bool silent);
+Params: label=command label, value=string, silent=suppress log
+Returns: void
+Example:
+  sendCommand("UFC_COMM1_CHANNEL_SELECT", "INC", false);
+
+Signature: void onAircraftName(const char* str);
+Params: str=aircraft name string
+Returns: void
+Example:
+  onAircraftName("FA-18C_hornet");
+
+Signature: void onLedChange(const char* label,
+                            uint16_t value, uint16_t max_value);
+Params: label=LED label, value=raw value, max_value=max
+Returns: void
+Example:
+  onLedChange("MASTER_CAUTION_LT", 1, 1);
+
+Signature: void onSelectorChange(const char* label,
+                                 unsigned int newValue);
+Params: label=selector label, newValue=new position
+Returns: void
+Example:
+  onSelectorChange("MASTER_ARM_SW", 1);
+
+Signature: void onMetaDataChange(const char* label, unsigned int value);
+Params: label=metadata label, value=new value
+Returns: void
+Example:
+  onMetaDataChange("AIRCRAFT_NAME_LEN", 12);
+
+Signature: void onDisplayChange(const char* label, const char* value);
+Params: label=display label, value=string
+Returns: void
+Example:
+  onDisplayChange("UFC_COMM1_DISPLAY", "12345");
+
+Signature: void dumpAllMetadata();
+Params: none
+Returns: void
+Example:
+  dumpAllMetadata();
+
+Signature: void HID_sendRawReport(bool force);
+Params: force=true to bypass throttling
+Returns: void
+Example:
+  HID_sendRawReport(true);
+
+Signature: bool tryToSendDcsBiosMessage(const char* msg, const char* arg);
+Params: msg=command label, arg=value string
+Returns: true if queued/sent
+Example:
+  tryToSendDcsBiosMessage("UFC_COMM1_CHANNEL_SELECT", "INC");
+
+Signature: bool isSerialConnected();
+Params: none
+Returns: true if serial transport active
+Example:
+  if (isSerialConnected()) { }
+
+Signature: bool replayData();
+Params: none
+Returns: true if replay is active
+Example:
+  if (replayData()) { }
+
+Signature: void DCSBIOSBridge_setup();
+Params: none
+Returns: void
+Example:
+  DCSBIOSBridge_setup();
+
+Signature: void DCSBIOSBridge_loop();
+Params: none
+Returns: void
+Example:
+  DCSBIOSBridge_loop();
+
+Signature: void DCSBIOS_keepAlive();
+Params: none
+Returns: void
+Example:
+  DCSBIOS_keepAlive();
+
+Signature: void DcsBiosTask(void* param);
+Params: param=task parameter (unused)
+Returns: void
+Example:
+  xTaskCreatePinnedToCore(DcsBiosTask, "DCS", 4096, nullptr, 1, 0, 0);
+
+Signature: bool cdcEnsureRxReady(uint32_t timeoutMs);
+Params: timeoutMs=timeout in ms
+Returns: true if RX ready
+Example:
+  if (cdcEnsureRxReady(5)) { }
+
+Signature: bool cdcEnsureTxReady(uint32_t timeoutMs);
+Params: timeoutMs=timeout in ms
+Returns: true if TX ready
+Example:
+  if (cdcEnsureTxReady(5)) { }
+
+Signature: bool registerDisplayBuffer(const char* label, char* buf,
+                                     uint8_t len, bool* dirtyFlag,
+                                     char* last);
+Params: label=display label, buf=char buffer, len=buffer length
+Returns: true if registered
+Example:
+  registerDisplayBuffer("UFC_COMM1_DISPLAY", buf, 5, &dirty, last);
+
+Signature: void parseDcsBiosUdpPacket(const uint8_t* data, size_t len);
+Params: data=packet bytes, len=length
+Returns: void
+Example:
+  parseDcsBiosUdpPacket(packet, len);
+
+Signature: void onDcsBiosUdpPacket(const uint8_t* data, size_t len);
+Params: data=packet bytes, len=length
+Returns: void
+Example:
+  onDcsBiosUdpPacket(packet, len);
+
+Signature: void DCSBIOSBridge_feedBytes(const uint8_t* data, size_t len);
+Params: data=byte stream, len=length
+Returns: void
+Example:
+  DCSBIOSBridge_feedBytes(buf, n);
+
+Signature: void updateAnonymousStringField(AnonymousStringBuffer& field,
+                                          uint16_t addr, uint16_t value);
+Params: field=string buffer, addr=word address, value=word
+Returns: void
+Example:
+  updateAnonymousStringField(field, addr, value);
+
+Signature: void commitAnonymousStringField(AnonymousStringBuffer& field);
+Params: field=string buffer
+Returns: void
+Example:
+  commitAnonymousStringField(field);
 
 ==============================================================================
 SECTION 14: TRANSPORT MODES
 ==============================================================================
 
 14.1 SELECTION (Config.h)
--------------------------
+----------------------------------------
 Only ONE active at a time:
 
-#define USE_DCSBIOS_USB        1  // Native USB HID (S2/S3/P4 only)
-#define USE_DCSBIOS_WIFI       0  // WiFi UDP
-#define USE_DCSBIOS_SERIAL     0  // Legacy serial
-#define USE_DCSBIOS_BLUETOOTH  0  // BLE (see Section 24)
+  #define USE_DCSBIOS_USB        1  // Native USB HID (S2/S3/P4 only)
+  #define USE_DCSBIOS_WIFI       0  // WiFi UDP
+  #define USE_DCSBIOS_SERIAL     0  // Legacy serial
+  #define USE_DCSBIOS_BLUETOOTH  0  // BLE (see Section 24)
 
 14.2 USB HID MODE (RECOMMENDED)
--------------------------------
+----------------------------------------
 Advantages: Lowest latency, no network config, simplest setup
 Requirements:
   - ESP32-S2/S3/P4 (native USB)
@@ -1014,7 +2239,7 @@ Protocol:
   - VID/PID: 0xCAFE (configurable)
 
 14.3 WIFI MODE
---------------
+----------------------------------------
 Advantages: Wireless operation
 Requirements:
   - Configure WIFI_SSID and WIFI_PASS in Config.h
@@ -1025,7 +2250,7 @@ Protocol:
   - Unicast send: 127.0.0.1:7778 (import)
 
 14.4 SERIAL MODE
-----------------
+----------------------------------------
 Advantages: Works on all variants, useful for debugging
 Requirements:
   - socat bridge on host PC
@@ -1036,7 +2261,7 @@ Protocol:
   - 115200 baud typical
 
 14.5 TRANSPORT SELECTION GUIDE
-------------------------------
+----------------------------------------
 ESP32-S2/S3/P4 + want lowest latency?  -> USE_DCSBIOS_USB = 1
 Want wireless?                          -> USE_DCSBIOS_WIFI = 1
 ESP32 Classic or C3/C6?                 -> USE_DCSBIOS_SERIAL or WIFI
@@ -1047,20 +2272,20 @@ SECTION 15: CONFIG.H - MASTER CONFIGURATION
 ==============================================================================
 
 15.1 TRANSPORT
---------------
+----------------------------------------
 USE_DCSBIOS_BLUETOOTH    0  // BLE transport
 USE_DCSBIOS_WIFI         0  // WiFi UDP
 USE_DCSBIOS_USB          0  // Native USB HID (recommended)
 USE_DCSBIOS_SERIAL       1  // Legacy serial (default)
 
 15.2 HARDWARE FEATURES
-----------------------
+----------------------------------------
 ENABLE_TFT_GAUGES         0  // TFT display support
 ENABLE_PCA9555            0  // I2C expander support
 SEND_HID_AXES_IN_DCS_MODE 0  // Send HID axes in DCS mode
 
 15.3 AXIS CALIBRATION
----------------------
+----------------------------------------
 MIDDLE_AXIS_THRESHOLD     64   // Center deadzone
 UPPER_AXIS_THRESHOLD      128  // Upper deadzone
 LOWER_AXIS_THRESHOLD      128  // Lower deadzone
@@ -1068,12 +2293,12 @@ CENTER_DEADZONE_INNER     256  // Center lock entry
 CENTER_DEADZONE_OUTER     384  // Center lock exit
 
 15.4 WIFI
----------
+----------------------------------------
 WIFI_SSID                "TestNetwork"
 WIFI_PASS                "TestingOnly"
 
 15.5 DEBUG
-----------
+----------------------------------------
 DEBUG_ENABLED                      0  // Master debug switch
 DEBUG_LISTENERS_AT_STARTUP         0  // Protocol debug
 VERBOSE_MODE                       0  // Info to Serial+UDP
@@ -1089,7 +2314,7 @@ TEST_LEDS                          0  // Interactive LED test
 IS_REPLAY                          0  // Simulated DCS stream
 
 15.6 TIMING
------------
+----------------------------------------
 POLLING_RATE_HZ           250   // Input polling (4ms)
 DISPLAY_REFRESH_RATE_HZ   60    // Display update (16ms)
 DCS_UPDATE_RATE_HZ        30    // DCS-BIOS loop (33ms)
@@ -1098,12 +2323,134 @@ VALUE_THROTTLE_MS         50    // Same-value debounce
 ANY_VALUE_THROTTLE_MS     33    // Any-value rate limit
 SELECTOR_DWELL_MS         250   // Selector stabilization
 
+15.7 FULL CONFIG.H DEFINE REFERENCE (COMPLETE)
+----------------------------------------
+USE_DCSBIOS_BLUETOOTH: BLE transport (only one transport active)
+USE_DCSBIOS_WIFI: WiFi UDP transport (all ESP32 except H2)
+USE_DCSBIOS_USB: Native USB HID transport (S2/S3/P4 only)
+USE_DCSBIOS_SERIAL: CDC/serial transport (legacy)
+
+ENABLE_TFT_GAUGES: Enable TFT gauge panels
+ENABLE_PCA9555: Enable PCA9555 IO expander logic and scan
+SEND_HID_AXES_IN_DCS_MODE: Send HID axes while in DCS mode
+MIDDLE_AXIS_THRESHOLD: Mid axis threshold (center snap)
+UPPER_AXIS_THRESHOLD: Upper axis snap threshold
+LOWER_AXIS_THRESHOLD: Lower axis snap threshold
+CENTER_DEADZONE_INNER: Center lock entry (hysteresis)
+CENTER_DEADZONE_OUTER: Center lock exit (hysteresis)
+
+WIFI_SSID: WiFi SSID for debug/DCS WiFi
+WIFI_PASS: WiFi password
+
+DEBUG_ENABLED: Enable debug output (serial/UDP)
+DEBUG_LISTENERS_AT_STARTUP: Verbose listener debug at boot
+VERBOSE_MODE: Info logging to Serial and UDP
+VERBOSE_MODE_SERIAL_ONLY: Verbose to Serial only
+VERBOSE_MODE_WIFI_ONLY: Verbose to UDP only
+VERBOSE_PERFORMANCE_ONLY: Perf snapshots only (no debug)
+DEBUG_PERFORMANCE: Enable perf monitor
+DEBUG_PERFORMANCE_SHOW_TASKS: Include task list in perf output
+PERFORMANCE_SNAPSHOT_INTERVAL_SECONDS: Perf snapshot interval
+
+DEBUG_ENABLED_FOR_PCA_ONLY: PCA debug only
+DEBUG_ENABLED_FOR_HC165_ONLY: HC165 debug only
+DEBUG_ENABLED_FOR_TM1637_ONLY: TM1637 debug only
+
+TEST_LEDS: Interactive LED test menu
+IS_REPLAY: Use loopback replay stream
+DCSBIOS_USE_LITE_VERSION: Use bundled DCS-BIOS library
+SCAN_WIFI_NETWORKS: Print WiFi scan results
+USE_WIRE_FOR_I2C: Use Wire library instead of fast driver
+PCA_FAST_MODE: PCA9555 I2C fast mode (400 kHz)
+SERIAL_RX_BUFFER_SIZE: CDC/serial RX buffer size
+SERIAL_TX_TIMEOUT: CDC RX timeout in ms
+HID_SENDREPORT_TIMEOUT: HID send timeout in ms
+CDC_TIMEOUT_RX_TX: CDC RX/TX health timeout in ms
+DCS_UPDATE_RATE_HZ: DCS keepalive rate
+HID_REPORT_RATE_HZ: HID keepalive rate
+POLLING_RATE_HZ: Input polling rate
+DISPLAY_REFRESH_RATE_HZ: Display refresh rate
+DCS_KEEP_ALIVE_ENABLED: Enable DCS keepalives
+HID_KEEP_ALIVE_ENABLED: Enable HID keepalives
+MAX_TRACKED_RECORDS: Command history cap
+MAX_GROUPS: Selector group cap
+VALUE_THROTTLE_MS: Same-value throttle
+ANY_VALUE_THROTTLE_MS: Any-value throttle
+SELECTOR_DWELL_MS: Selector dwell time
+DCS_GROUP_MIN_INTERVAL_US: Min spacing for DCS selector sends
+HID_REPORT_MIN_INTERVAL_US: Min spacing for HID reports
+DCS_KEEP_ALIVE_MS: DCS keepalive period
+HID_KEEP_ALIVE_MS: HID keepalive period
+MAX_SELECTOR_GROUPS: Selector group max (GPIO)
+MAX_PCA_GROUPS: PCA selector group max
+MAX_PCA9555_INPUTS: PCA input mapping cap
+MAX_PCAS: Max PCA9555 devices
+MAX_PENDING_UPDATES: DCS pending update cap
+STREAM_TIMEOUT_MS: Stream timeout in ms
+MAX_REGISTERED_DISPLAY_BUFFERS: Display buffer cap
+MAX_VALIDATED_SELECTORS: Selector validation cap
+MISSION_START_DEBOUNCE: Mission start debounce ms
+GAMEPAD_REPORT_SIZE: HID report size (must match descriptor)
+SERVO_UPDATE_FREQ_MS: Servo update interval in ms
+SKIP_ANALOG_FILTERING: Disable analog filtering (HID only)
+ADVANCED_TM1637_INPUT_FILTERING: Enable TM1637 debouncing
+
+SERIAL_DEBUG_USE_RINGBUFFER: Enable Serial debug ring buffer
+SERIAL_RINGBUF_SIZE: Serial ring buffer slots (when enabled)
+SERIAL_MSG_MAXLEN: Serial ring buffer slot size
+WIFI_DEBUG_USE_RINGBUFFER: Enable WiFi debug ring buffer
+WIFI_DBG_SEND_RINGBUF_SIZE: WiFi ring buffer slots
+WIFI_DBG_MSG_MAXLEN: WiFi ring buffer slot size
+
+DCS_USB_RINGBUF_SIZE: USB TX ring buffer slots
+DCS_USB_PACKET_MAXLEN: USB packet size (64)
+MAX_UDP_FRAMES_PER_DRAIN: Max UDP frames per drain
+DCS_USE_RINGBUFFER: Use ring buffer for DCS RX
+DCS_UDP_RINGBUF_SIZE: DCS RX ring buffer slots
+DCS_UDP_PACKET_MAXLEN: DCS RX packet size
+
+TASKLIST_LINE_GENERAL_TMP_BUFFER: Perf task list buffer size
+DEBUGPRINTF_GENERAL_TMP_BUFFER: debugPrintf buffer size
+SERIAL_DEBUG_BUFFER_SIZE: serialDebugPrintf buffer size
+WIFI_DEBUG_BUFFER_SIZE: wifiDebugPrintf buffer size
+UDP_TMPBUF_SIZE: UDP temp buffer size
+PERF_TMPBUF_SIZE: Perf snapshot buffer size
+SERIAL_DEBUG_FLUSH_BUFFER_SIZE: Serial flush temp buffer
+SERIAL_DEBUG_OUTPUT_CHUNK_SIZE: Serial chunk write size
+DCS_UDP_MAX_REASSEMBLED: Max reassembled UDP frame size
+
+_STR/STR: Stringize helpers for macro values
+LABEL_SET_STR: String value of LABEL_SET
+
+USB_VID: USB vendor ID
+USB_PID: USB product ID (auto-generated)
+USB_SERIAL: USB serial string (label set)
+USB_PRODUCT: USB product string
+USB_MANUFACTURER: USB manufacturer string
+USB_LANG_ID: USB language ID
+
+CONFIG_TINYUSB_CDC_ENABLED: TinyUSB CDC enable
+CONFIG_TINYUSB_CDC_MAX_PORTS: TinyUSB CDC port count
+CFG_TUSB_DEBUG: TinyUSB debug level
+CONFIG_TINYUSB_CDC_RX_BUFSIZE: CDC RX buffer size
+CONFIG_TINYUSB_CDC_TX_BUFSIZE: CDC TX buffer size
+CONFIG_TINYUSB_HID_BUFSIZE: HID buffer size
+CONFIG_TINYUSB_MSC_ENABLED: MSC enable
+CONFIG_TINYUSB_HID_ENABLED: HID enable
+CONFIG_TINYUSB_MIDI_ENABLED: MIDI enable
+CONFIG_TINYUSB_VIDEO_ENABLED: Video enable
+CONFIG_TINYUSB_CUSTOM_CLASS_ENABLED: Custom class enable
+CONFIG_TINYUSB_DFU_RT_ENABLED: DFU runtime enable
+CONFIG_TINYUSB_DFU_ENABLED: DFU enable
+CONFIG_TINYUSB_VENDOR_ENABLED: Vendor class enable
+CONFIG_TINYUSB_NCM_ENABLED: NCM enable
+
 ==============================================================================
 SECTION 16: TFT DISPLAY SYSTEM
 ==============================================================================
 
 16.1 LIBRARY
-------------
+----------------------------------------
 All TFT displays use LovyanGFX: https://github.com/lovyan03/LovyanGFX
 
 EXCEPTION TO NO-HEAP RULE:
@@ -1111,7 +2458,7 @@ TFT sprites MAY use dynamic memory (PSRAM preferred).
 This is the ONLY exception to zero-heap constraint.
 
 16.2 IDEASPARK ST7789 CONFIGURATION
------------------------------------
+----------------------------------------
 CRITICAL SETTINGS (discovered through debugging):
 
   cfg.pin_rst       = 4;     // MUST be GPIO 4, NOT -1!
@@ -1126,12 +2473,12 @@ CRITICAL SETTINGS (discovered through debugging):
   setRotation(3);            // Landscape
 
 16.3 TFT TASK PATTERN
----------------------
+----------------------------------------
 TFT gauges typically run as FreeRTOS tasks for isolation.
 See Section 25 for FreeRTOS details.
 
 16.4 DESIGN PRINCIPLES
-----------------------
+----------------------------------------
 1. Precompute geometry once in init (ticks, arcs, etc.)
 2. Use dirty-rect tracking for incremental updates
 3. Snapshot state under critical section (portENTER_CRITICAL)
@@ -1139,7 +2486,7 @@ See Section 25 for FreeRTOS details.
 5. Cache backgrounds in PSRAM when available
 
 16.5 REFERENCE IMPLEMENTATIONS
-------------------------------
+----------------------------------------
 TFT_Display_CMWS.cpp       - Threat ring display
 TFT_Gauges_RadarAlt.cpp    - Analog gauge
 TFT_Gauges_CabinPressure.cpp - Circular gauge
@@ -1149,17 +2496,17 @@ SECTION 17: HT1622 SEGMENT DISPLAYS
 ==============================================================================
 
 17.1 PURPOSE
-------------
+----------------------------------------
 HT1622 drives segment LCD panels (IFEI, UFC displays).
 Segments mapped via SegmentMap headers created with RAM Walker tool.
 
 17.2 SEGMENT ORDER
-------------------
+----------------------------------------
 Font tables expect: [0]=TOP, [1]=TOP-RIGHT, [2]=BOT-RIGHT, [3]=BOTTOM,
                     [4]=BOT-LEFT, [5]=TOP-LEFT, [6]=MIDDLE
 
 17.3 RAM WALKER TOOL
---------------------
+----------------------------------------
 Location: Tools/RAM_Walker/
 Purpose: Discover which RAM address/bit controls each segment
 Output: SegmentMap header files for your specific LCD
@@ -1169,24 +2516,24 @@ SECTION 18: DEBUGGING & PERFORMANCE
 ==============================================================================
 
 18.1 DEBUG OUTPUT RULES
------------------------
+----------------------------------------
 NEVER: Serial.print(), Serial.println(), Serial.printf()
 ALWAYS: debugPrint(), debugPrintln(), debugPrintf()
 
 These route to Serial OR WiFi UDP based on config.
 
 18.2 WIFI DEBUG
----------------
+----------------------------------------
 Enable: DEBUG_USE_WIFI = 1 in Config.h
 Sends debug via UDP for remote monitoring.
 
 18.3 REPLAY MODE
-----------------
+----------------------------------------
 Enable: IS_REPLAY = 1
 Uses captured binary data for testing without DCS.
 
 18.4 PERFMONITOR
-----------------
+----------------------------------------
 PerfMonitor.h is the ONLY Core file users may edit.
 
 Add custom labels:
@@ -1208,7 +2555,7 @@ Usage in code:
 Enable: DEBUG_PERFORMANCE = 1
 
 18.5 DEBUG SCENARIO REFERENCE
------------------------------
+----------------------------------------
 SCENARIO                     CONFIG FLAG
 PCA9555 expander issues      DEBUG_ENABLED_FOR_PCA_ONLY = 1
 HC165 shift register issues  DEBUG_ENABLED_FOR_HC165_ONLY = 1
@@ -1222,7 +2569,7 @@ SECTION 19: ANTI-PATTERNS - WHAT NOT TO DO
 ==============================================================================
 
 19.1 MEMORY VIOLATIONS
-----------------------
+----------------------------------------
 WRONG: String myString = "hello";
 RIGHT: static const char myString[] = "hello";
 
@@ -1236,7 +2583,7 @@ WRONG: char* buf = (char*)malloc(64);
 RIGHT: static char buf[64];
 
 19.2 BLOCKING VIOLATIONS
-------------------------
+----------------------------------------
 WRONG: delay(100);
 RIGHT: Non-blocking state machine with millis()
 
@@ -1247,7 +2594,7 @@ WRONG: Wire.requestFrom(...); while (!Wire.available()) { }
 RIGHT: if (Wire.requestFrom(...) == expectedBytes) { }
 
 19.3 LOGGING VIOLATIONS
------------------------
+----------------------------------------
 WRONG: Serial.println("Debug");
 RIGHT: debugPrintln("Debug");
 
@@ -1255,7 +2602,7 @@ WRONG: Serial.printf("Value: %d\n", val);
 RIGHT: debugPrintf("Value: %d\n", val);
 
 19.4 HARDWARE ACCESS VIOLATIONS
--------------------------------
+----------------------------------------
 WRONG: digitalWrite(LED_PIN, HIGH);
 RIGHT: GPIO_setDigital(LED_PIN, true, true);
 
@@ -1263,7 +2610,7 @@ WRONG: analogRead(POT_PIN);
 RIGHT: HIDManager_moveAxis("LABEL", POT_PIN, AXIS_X, false, false);
 
 19.5 UNBOUNDED LOOP VIOLATIONS
-------------------------------
+----------------------------------------
 WRONG: while (searching) { /* no limit */ }
 RIGHT: for (int i = 0; i < MAX_ITER && searching; i++) { }
 
@@ -1271,7 +2618,7 @@ WRONG: for (;;) { /* forever */ }
 RIGHT: for (size_t i = 0; i < ARRAY_SIZE; i++) { }
 
 19.6 ADDRESS RANGE VIOLATIONS
------------------------------
+----------------------------------------
 WRONG: ExportStreamListener(0x0000, 0xFFFE)
 RIGHT: ExportStreamListener(0x0000, 0xFFFD)
 
@@ -1280,7 +2627,7 @@ SECTION 20: DECISION TREES
 ==============================================================================
 
 20.1 INPUT APPROACH
--------------------
+----------------------------------------
 Simple button?
   -> InputMapping.h + Generic.cpp (automatic)
 
@@ -1297,7 +2644,7 @@ Rotary encoder?
      CW:  controlType="variable_step", oride_value=1
 
 20.2 OUTPUT APPROACH
---------------------
+----------------------------------------
 Simple LED?
   -> LEDMapping.h + auto LED tick (automatic)
 
@@ -1310,7 +2657,7 @@ Custom state machine?
   -> Create src/Panels/XXX.cpp with REGISTER_PANEL
 
 20.3 TRANSPORT SELECTION
-------------------------
+----------------------------------------
 ESP32-S2/S3/P4 + lowest latency?
   -> USE_DCSBIOS_USB = 1
 
@@ -1324,7 +2671,7 @@ ESP32-H2?
   -> USE_DCSBIOS_BLUETOOTH = 1
 
 20.4 DEBUGGING APPROACH
------------------------
+----------------------------------------
 Debug without DCS?
   -> IS_REPLAY = 1
 
@@ -1342,7 +2689,7 @@ SECTION 21: TROUBLESHOOTING
 ==============================================================================
 
 21.1 COMPILATION ERRORS
------------------------
+----------------------------------------
 ERROR: "undefined reference to InputMappings"
 FIX:   Run python generate_data.py in label set folder
 
@@ -1356,7 +2703,7 @@ ERROR: "LABEL_SET not defined"
 FIX:   Run python generate_data.py to set active label set
 
 21.2 RUNTIME ISSUES
--------------------
+----------------------------------------
 ERROR: "LED label not found"
 FIX:   Labels are CASE-SENSITIVE, check LEDMapping.h exactly
 
@@ -1376,7 +2723,7 @@ FIX:   Check pullup/pulldown config
        Verify encoder common (GND or VCC)
 
 21.3 USB/CONNECTION ISSUES
---------------------------
+----------------------------------------
 ISSUE: Device not detected
 FIX:   Verify USB VID (0xCAFE default)
        Try different USB cable (must be data-capable!)
@@ -1395,7 +2742,7 @@ FIX:   pip install hidapi
        Check settings.ini VID
 
 21.4 DCS CONNECTION ISSUES
---------------------------
+----------------------------------------
 ISSUE: No response from DCS
 FIX:   Verify DCS-BIOS installed and enabled
        Check transport config matches setup
@@ -1412,7 +2759,7 @@ FIX:   Check command throttling (VALUE_THROTTLE_MS)
        WiFi: Verify UDP 7778 reaching DCS
 
 21.5 TFT DISPLAY ISSUES
------------------------
+----------------------------------------
 ISSUE: Display blank or corrupted
 FIX:   IdeasPark ST7789: TFT_RST MUST be GPIO 4!
        Check SPI pin assignments
@@ -1431,7 +2778,7 @@ SECTION 22: QUICK REFERENCE TABLES
 ==============================================================================
 
 22.1 FILE LOCATIONS
--------------------
+----------------------------------------
 Main sketch:       CockpitOS.ino
 Configuration:     Config.h
 Pin assignments:   Pins.h
@@ -1443,7 +2790,7 @@ Core modules:      src/Core/*.cpp
 HID Manager:       HID_Manager/HID_Manager.py
 
 22.2 CONTROL TYPES
-------------------
+----------------------------------------
 momentary       Button press/release
 selector        Multi-position switch (use group)
 analog          Continuous pot (oride_value=65535)
@@ -1451,7 +2798,7 @@ variable_step   Encoder (+3200/-3200)
 fixed_step      Fixed pulses (INC/DEC)
 
 22.3 DEVICE TYPES
------------------
+----------------------------------------
 DEVICE_GPIO     Direct GPIO (PWM if dimmable=true)
 DEVICE_WS2812   Addressable RGB
 DEVICE_TM1637   7-segment display/LED
@@ -1461,7 +2808,7 @@ DEVICE_GAUGE    Servo motor
 DEVICE_NONE     Placeholder/disabled
 
 22.4 HAS_* DEFINES
-------------------
+----------------------------------------
 (always):                    Generic
 HAS_MAIN:                    LA, RA, LockShoot
 HAS_CUSTOM_RIGHT:            CA, WingFold, TFTRadarAlt, TFTHyd
@@ -1470,14 +2817,14 @@ HAS_ALR67:                   TFTCabPress
 HAS_RIGHT_PANEL_CONTROLLER:  TFTBatt
 
 22.5 GENERATOR SCRIPTS
-----------------------
+----------------------------------------
 generate_data.py       Main generator (run from label set)
 display_gen.py         Display generation (called by main)
 reset_data.py          Clean auto-generated files
 generate_panelkind.py  Generate PanelKind.h (run from root)
 
 22.6 TIMING
------------
+----------------------------------------
 Input polling:    250 Hz (4ms)
 Display refresh:  30-60 Hz (16-33ms)
 DCS-BIOS loop:    30 Hz (33ms)
@@ -1490,12 +2837,12 @@ SECTION 23: HID_MANAGER.PY (PYTHON HOST APPLICATION)
 ==============================================================================
 
 23.1 PURPOSE
-------------
+----------------------------------------
 Python USB HID bridge between ESP32 panels and DCS-BIOS.
 Replaces legacy Serial/CDC + socat approach.
 
 23.2 FEATURES
--------------
+----------------------------------------
 - Near-zero CPU (~0% idle, <1% active)
 - Native USB HID (no serial drivers)
 - Multi-device support (up to 32 panels)
@@ -1503,24 +2850,24 @@ Replaces legacy Serial/CDC + socat approach.
 - Cross-platform (Windows, Linux, RPi)
 
 23.3 REQUIREMENTS
------------------
+----------------------------------------
 Python 3.8+
 pip install hidapi filelock
 Windows: pip install windows-curses
 
 23.4 CONFIGURATION (settings.ini)
----------------------------------
-[USB]
-VID = 0xCAFE
+----------------------------------------
+  [USB]
+  VID = 0xCAFE
 
-[DCS]
-UDP_SOURCE_IP = 127.0.0.1
+  [DCS]
+  UDP_SOURCE_IP = 127.0.0.1
 
-[MAIN]
-CONSOLE = 1
+  [MAIN]
+  CONSOLE = 1
 
 23.5 THREAD MODEL
------------------
+----------------------------------------
 UDP RX:       Receive DCS-BIOS frames (blocking recvfrom)
 Device RX:    Read input per device (blocking hid.read)
 Device TX:    Write HID reports per device (Condition.wait)
@@ -1533,12 +2880,12 @@ SECTION 24: BLE/BLUETOOTH TRANSPORT
 ==============================================================================
 
 24.1 OVERVIEW
--------------
+----------------------------------------
 BLE transport for ESP32 variants without WiFi (H2) or wireless without
 network infrastructure.
 
 24.2 BLEMANAGER CONFIGURATION
------------------------------
+----------------------------------------
 Version: 2.2 (finalized December 2024, multi-AI peer reviewed)
 
 Key compile-time settings:
@@ -1546,21 +2893,21 @@ Key compile-time settings:
   BLE_CONNECTION_INTERVAL - Response time vs power tradeoff
 
 24.3 SUPPORTED VARIANTS
------------------------
+----------------------------------------
 ESP32-H2:  BLE only (no WiFi) - primary use case
 ESP32-C3:  BLE available
 ESP32-S3:  BLE available (but USB/WiFi preferred)
 ESP32 Classic: BLE available
 
 24.4 POWER OPTIMIZATION
------------------------
+----------------------------------------
 For battery-operated devices:
   - BLE_SLAVE_LATENCY = 10-30 (higher saves power)
   - 25ms latency minimum provides negligible user benefit vs power cost
   - Deep sleep transitions require proper GPIO configuration
 
 24.5 BLE GAMEPAD MODE
----------------------
+----------------------------------------
 BLE_Gamepad_Standalone project derives from CockpitOS BLEManager v2.2.
 Features:
   - Self-learning axis calibration
@@ -1572,7 +2919,7 @@ SECTION 25: FREERTOS TASK MANAGEMENT
 ==============================================================================
 
 25.1 WHEN TO USE TASKS
-----------------------
+----------------------------------------
 USE TASKS FOR:
   - TFT gauge rendering (isolation from main loop)
   - Long-running operations that must not block
@@ -1583,73 +2930,72 @@ DO NOT USE TASKS FOR:
   - Operations that can complete in <1ms
 
 25.2 TASK CREATION PATTERN
---------------------------
-#define TASK_STACK_SIZE  4096   // Bytes (adjust based on needs)
-#define TASK_PRIORITY    1      // 0=idle, higher=more priority
-#define TASK_CORE        1      // 0 or 1 (1 preferred for user tasks)
+----------------------------------------
+  #define TASK_STACK_SIZE  4096   // Bytes (adjust based on needs)
+  #define TASK_PRIORITY    1      // 0=idle, higher=more priority
+  #define TASK_CORE        1      // 0 or 1 (1 preferred for user tasks)
 
-static TaskHandle_t s_taskHandle = nullptr;
-static volatile bool g_taskStopRequested = false;
+  static TaskHandle_t s_taskHandle = nullptr;
+  static volatile bool g_taskStopRequested = false;
 
-void createMyTask() {
-    xTaskCreatePinnedToCore(
-        myTaskFunction,         // Task function
-        "MyTask",              // Name (for debugging)
-        TASK_STACK_SIZE,
-        nullptr,               // Parameter
-        TASK_PRIORITY,
-        &s_taskHandle,
-        TASK_CORE
-    );
-}
+  void createMyTask() {
+      xTaskCreatePinnedToCore(
+          myTaskFunction,         // Task function
+          "MyTask",              // Name (for debugging)
+          TASK_STACK_SIZE,
+          nullptr,               // Parameter
+          TASK_PRIORITY,
+          &s_taskHandle,
+          TASK_CORE
+      );
+  }
 
 25.3 TASK FUNCTION PATTERN
---------------------------
-static void myTaskFunction(void* param) {
-    (void)param;
-    TickType_t lastWakeTime = xTaskGetTickCount();
-    const TickType_t interval = pdMS_TO_TICKS(33);  // ~30 FPS
-    
-    while (!g_taskStopRequested) {
-        // Do work here
-        myTask_update();
-        
-        // Wait for next interval
-        vTaskDelayUntil(&lastWakeTime, interval);
-    }
-    
-    vTaskDelete(nullptr);  // Clean exit
-}
+----------------------------------------
+  static void myTaskFunction(void* param) {
+      (void)param;
+      TickType_t lastWakeTime = xTaskGetTickCount();
+      const TickType_t interval = pdMS_TO_TICKS(33);  // ~30 FPS
+
+      while (!g_taskStopRequested) {
+          // Do work here
+          myTask_update();
+
+          // Wait for next interval
+          vTaskDelayUntil(&lastWakeTime, interval);
+      }
+
+      vTaskDelete(nullptr);  // Clean exit
+  }
 
 25.4 TASK CLEANUP PATTERN
--------------------------
-void stopMyTask() {
-    if (s_taskHandle != nullptr) {
-        g_taskStopRequested = true;
-        vTaskDelay(pdMS_TO_TICKS(100));  // Allow task to exit
-        s_taskHandle = nullptr;
-        g_taskStopRequested = false;
-    }
-}
+----------------------------------------
+  void stopMyTask() {
+      if (s_taskHandle != nullptr) {
+          g_taskStopRequested = true;
+          vTaskDelay(pdMS_TO_TICKS(100));  // Allow task to exit
+          s_taskHandle = nullptr;
+          g_taskStopRequested = false;
+      }
+  }
 
 25.5 CRITICAL SECTIONS
-----------------------
+----------------------------------------
 For shared data between task and main loop:
+  portMUX_TYPE myMux = portMUX_INITIALIZER_UNLOCKED;
 
-portMUX_TYPE myMux = portMUX_INITIALIZER_UNLOCKED;
+  // In task:
+  portENTER_CRITICAL(&myMux);
+  localCopy = sharedData;  // Snapshot
+  portEXIT_CRITICAL(&myMux);
 
-// In task:
-portENTER_CRITICAL(&myMux);
-localCopy = sharedData;  // Snapshot
-portEXIT_CRITICAL(&myMux);
-
-// In main loop:
-portENTER_CRITICAL(&myMux);
-sharedData = newValue;
-portEXIT_CRITICAL(&myMux);
+  // In main loop:
+  portENTER_CRITICAL(&myMux);
+  sharedData = newValue;
+  portEXIT_CRITICAL(&myMux);
 
 25.6 STACK SIZE GUIDELINES
---------------------------
+----------------------------------------
 Simple task (no large buffers):     2048 bytes
 TFT gauge task:                     4096 bytes
 Task with local arrays:             8192+ bytes
@@ -1658,7 +3004,7 @@ Check with: uxTaskGetStackHighWaterMark(s_taskHandle)
 If returns < 200, increase stack size.
 
 25.7 PRIORITY GUIDELINES
-------------------------
+----------------------------------------
 0:  Idle priority (not recommended)
 1:  Normal user tasks (default)
 2:  Time-sensitive user tasks
@@ -1669,14 +3015,14 @@ SECTION 26: MULTI-AIRCRAFT SUPPORT
 ==============================================================================
 
 26.1 HOW AIRCRAFT DETECTION WORKS
----------------------------------
-1. DCS-BIOS exports aircraft name at address 0x0000
-2. CockpitOS parses name from MetadataStart block
+----------------------------------------
+1. DCS-BIOS exports aircraft name in metadata string fields
+2. CockpitOS parses name via anonymous string buffers
 3. On name change, CockpitOS triggers panel re-initialization
 4. Panels re-sync their state to new aircraft values
 
 26.2 LABEL SET AND AIRCRAFT
----------------------------
+----------------------------------------
 Each Label Set contains ONE aircraft JSON.
 The JSON filename should match DCS-BIOS aircraft identifier.
 
@@ -1687,7 +3033,7 @@ Example aircraft identifiers:
   AV8BNA
 
 26.3 SWITCHING AIRCRAFT MID-SESSION
------------------------------------
+----------------------------------------
 When user loads different aircraft in DCS:
 1. DCS-BIOS sends new aircraft name
 2. CockpitOS detects name change in protocol parser
@@ -1695,14 +3041,14 @@ When user loads different aircraft in DCS:
 4. All subscriptions receive updated values
 
 26.4 MULTI-AIRCRAFT LABEL SETS
-------------------------------
+----------------------------------------
 For cockpit builds supporting multiple aircraft:
   - Create separate Label Sets for each aircraft
   - Recompile firmware when switching aircraft
   - OR use single Label Set with superset of controls
 
 26.5 CRITICAL BUG (ISSUE-001)
------------------------------
+----------------------------------------
 When implementing multi-aircraft support, use:
   ExportStreamListener(0x0000, 0xFFFD)
 NOT:
@@ -1716,275 +3062,282 @@ SECTION 27: CODE TEMPLATES (COPY-PASTE READY)
 ==============================================================================
 
 27.1 MINIMAL PANEL TEMPLATE
----------------------------
-// MyPanel.cpp
-// PANEL_KIND: MyPanel
+----------------------------------------
+  // MyPanel.cpp
+  // PANEL_KIND: MyPanel
 
-#include "../Globals.h"
-#include "../HIDManager.h"
-#include "../DCSBIOSBridge.h"
+  #include "../Globals.h"
+  #include "../HIDManager.h"
+  #include "../DCSBIOSBridge.h"
 
-#if defined(HAS_MY_PANEL)
+  #if defined(HAS_MY_PANEL)
 
-static void MyPanel_init() {
-    // Called on mission start
-    // Subscribe to DCS-BIOS data here
-}
+  static void MyPanel_init() {
+      // Called on mission start
+      // Subscribe to DCS-BIOS data here
+  }
 
-static void MyPanel_loop() {
-    // Called every frame (~250Hz)
-    // Keep this FAST (<1ms)
-}
+  static void MyPanel_loop() {
+      // Called every frame (~250Hz)
+      // Keep this FAST (<1ms)
+  }
 
-REGISTER_PANEL(MyPanel, MyPanel_init, MyPanel_loop, nullptr, nullptr, nullptr, 100);
+  REGISTER_PANEL(MyPanel, MyPanel_init, MyPanel_loop, nullptr, nullptr,
+                 nullptr, 100);
 
-#endif // HAS_MY_PANEL
+  #endif // HAS_MY_PANEL
 
 27.2 PANEL WITH DCS-BIOS SUBSCRIPTION
--------------------------------------
-// MyDisplay.cpp
-// PANEL_KIND: MyDisplay
+----------------------------------------
+  // MyDisplay.cpp
+  // PANEL_KIND: MyDisplay
 
-#include "../Globals.h"
-#include "../DCSBIOSBridge.h"
+  #include "../Globals.h"
+  #include "../DCSBIOSBridge.h"
 
-#if defined(HAS_MY_DISPLAY)
+  #if defined(HAS_MY_DISPLAY)
 
-static char s_displayBuf[8];
-static char s_lastBuf[8];
-static bool s_dirty = false;
+  static char s_displayBuf[8];
+  static char s_lastBuf[8];
+  static bool s_dirty = false;
 
-static void onDisplayChange(const char* label, const char* value) {
-    // Called when subscribed value changes
-    s_dirty = true;
-}
+  static void onDisplayChange(const char* label, const char* value) {
+      // Called when subscribed value changes
+      s_dirty = true;
+  }
 
-static void onSelectorChange(const char* label, uint16_t value) {
-    // Called when selector position changes
-}
+  static void onSelectorChange(const char* label, uint16_t value) {
+      // Called when selector position changes
+  }
 
-static void MyDisplay_init() {
-    subscribeToDisplayChange("UFC_COMM1_DISPLAY", onDisplayChange);
-    subscribeToSelectorChange("MASTER_ARM_SW", onSelectorChange);
-    registerDisplayBuffer("UFC_COMM1_DISPLAY", s_displayBuf, 
-                         sizeof(s_displayBuf), &s_dirty, s_lastBuf);
-}
+  static void MyDisplay_init() {
+      subscribeToDisplayChange("UFC_COMM1_DISPLAY", onDisplayChange);
+      subscribeToSelectorChange("MASTER_ARM_SW", onSelectorChange);
+      registerDisplayBuffer("UFC_COMM1_DISPLAY", s_displayBuf,
+                           sizeof(s_displayBuf), &s_dirty, s_lastBuf);
+  }
 
-static void MyDisplay_loop() {
-    if (s_dirty) {
-        s_dirty = false;
-        // Update display hardware with s_displayBuf
-    }
-}
+  static void MyDisplay_loop() {
+      if (s_dirty) {
+          s_dirty = false;
+          // Update display hardware with s_displayBuf
+      }
+  }
 
-REGISTER_PANEL(MyDisplay, MyDisplay_init, MyDisplay_loop, nullptr, nullptr, nullptr, 100);
+  REGISTER_PANEL(MyDisplay, MyDisplay_init, MyDisplay_loop, nullptr, nullptr,
+                 nullptr, 100);
 
-#endif // HAS_MY_DISPLAY
+  #endif // HAS_MY_DISPLAY
 
 27.3 TFT GAUGE TASK TEMPLATE
-----------------------------
-// TFT_Gauges_MyGauge.cpp
-// PANEL_KIND: TFTMyGauge
+----------------------------------------
+  // TFT_Gauges_MyGauge.cpp
+  // PANEL_KIND: TFTMyGauge
 
-#include "../Globals.h"
-#include "../DCSBIOSBridge.h"
-#include <LovyanGFX.hpp>
+  #include "../Globals.h"
+  #include "../DCSBIOSBridge.h"
+  #include <LovyanGFX.hpp>
 
-#if defined(HAS_TFT_MY_GAUGE) && ENABLE_TFT_GAUGES
+  #if defined(HAS_TFT_MY_GAUGE) && ENABLE_TFT_GAUGES
 
-#define REFRESH_INTERVAL_MS 33
-#define TASK_STACK_SIZE 4096
-#define TASK_PRIORITY 1
-#define TASK_CORE 1
+  #define REFRESH_INTERVAL_MS 33
+  #define TASK_STACK_SIZE 4096
+  #define TASK_PRIORITY 1
+  #define TASK_CORE 1
 
-class LGFX_MyGauge : public lgfx::LGFX_Device {
-    // LovyanGFX configuration here
-};
+  class LGFX_MyGauge : public lgfx::LGFX_Device {
+      // LovyanGFX configuration here
+  };
 
-static LGFX_MyGauge s_display;
-static LGFX_Sprite s_sprite(&s_display);
-static TaskHandle_t s_taskHandle = nullptr;
-static volatile bool g_taskStopRequested = false;
+  static LGFX_MyGauge s_display;
+  static LGFX_Sprite s_sprite(&s_display);
+  static TaskHandle_t s_taskHandle = nullptr;
+  static volatile bool g_taskStopRequested = false;
 
-static uint16_t s_currentValue = 0;
-static portMUX_TYPE s_mux = portMUX_INITIALIZER_UNLOCKED;
+  static uint16_t s_currentValue = 0;
+  static portMUX_TYPE s_mux = portMUX_INITIALIZER_UNLOCKED;
 
-static void onValueChange(const char* label, uint16_t value, uint16_t maxValue) {
-    portENTER_CRITICAL(&s_mux);
-    s_currentValue = value;
-    portEXIT_CRITICAL(&s_mux);
-}
+  static void onValueChange(const char* label, uint16_t value,
+                            uint16_t maxValue) {
+      portENTER_CRITICAL(&s_mux);
+      s_currentValue = value;
+      portEXIT_CRITICAL(&s_mux);
+  }
 
-static void TFTMyGauge_draw() {
-    uint16_t localValue;
-    portENTER_CRITICAL(&s_mux);
-    localValue = s_currentValue;
-    portEXIT_CRITICAL(&s_mux);
-    
-    // Draw gauge using localValue
-    s_sprite.fillScreen(TFT_BLACK);
-    // ... drawing code ...
-    s_sprite.pushSprite(0, 0);
-}
+  static void TFTMyGauge_draw() {
+      uint16_t localValue;
+      portENTER_CRITICAL(&s_mux);
+      localValue = s_currentValue;
+      portEXIT_CRITICAL(&s_mux);
 
-static void TFTMyGauge_task(void* param) {
-    (void)param;
-    TickType_t lastWakeTime = xTaskGetTickCount();
-    
-    while (!g_taskStopRequested) {
-        TFTMyGauge_draw();
-        vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(REFRESH_INTERVAL_MS));
-    }
-    
-    vTaskDelete(nullptr);
-}
+      // Draw gauge using localValue
+      s_sprite.fillScreen(TFT_BLACK);
+      // ... drawing code ...
+      s_sprite.pushSprite(0, 0);
+  }
 
-static void TFTMyGauge_displayInit() {
-    s_display.init();
-    s_display.setRotation(3);
-    s_sprite.createSprite(170, 320);  // Adjust for your display
-}
+  static void TFTMyGauge_task(void* param) {
+      (void)param;
+      TickType_t lastWakeTime = xTaskGetTickCount();
 
-static void TFTMyGauge_init() {
-    subscribeToLedChange("MY_GAUGE_VALUE", onValueChange);
-    
-    xTaskCreatePinnedToCore(
-        TFTMyGauge_task,
-        "TFTMyGauge",
-        TASK_STACK_SIZE,
-        nullptr,
-        TASK_PRIORITY,
-        &s_taskHandle,
-        TASK_CORE
-    );
-}
+      while (!g_taskStopRequested) {
+          TFTMyGauge_draw();
+          vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(REFRESH_INTERVAL_MS));
+      }
 
-static void TFTMyGauge_loop() {
-    // Main loop can be empty if task handles everything
-}
+      vTaskDelete(nullptr);
+  }
 
-REGISTER_PANEL(TFTMyGauge, TFTMyGauge_init, TFTMyGauge_loop, 
-               TFTMyGauge_displayInit, nullptr, nullptr, 100);
+  static void TFTMyGauge_displayInit() {
+      s_display.init();
+      s_display.setRotation(3);
+      s_sprite.createSprite(170, 320);  // Adjust for your display
+  }
 
-#endif // HAS_TFT_MY_GAUGE && ENABLE_TFT_GAUGES
+  static void TFTMyGauge_init() {
+      subscribeToLedChange("MY_GAUGE_VALUE", onValueChange);
+
+      xTaskCreatePinnedToCore(
+          TFTMyGauge_task,
+          "TFTMyGauge",
+          TASK_STACK_SIZE,
+          nullptr,
+          TASK_PRIORITY,
+          &s_taskHandle,
+          TASK_CORE
+      );
+  }
+
+  static void TFTMyGauge_loop() {
+      // Main loop can be empty if task handles everything
+  }
+
+  REGISTER_PANEL(TFTMyGauge, TFTMyGauge_init, TFTMyGauge_loop,
+                 TFTMyGauge_displayInit, nullptr, nullptr, 100);
+
+  #endif // HAS_TFT_MY_GAUGE && ENABLE_TFT_GAUGES
 
 27.4 INPUTMAPPING.H TEMPLATE
-----------------------------
-// Safe zone for user edits - generator preserves content between markers
+----------------------------------------
+  // Safe zone for user edits - generator preserves content between markers
 
-// === BEGIN USER INPUT MAPPINGS ===
+  // === BEGIN USER INPUT MAPPINGS ===
 
-// Momentary buttons
-{ "MY_BUTTON", "GPIO", PIN(5), 0, -1, "MY_BUTTON", 1, "momentary", 0 },
+  // Momentary buttons
+  { "MY_BUTTON", "GPIO", PIN(5), 0, -1, "MY_BUTTON", 1, "momentary", 0 },
 
-// Selector (3-position with neutral)
-{ "MY_SW_LEFT",  "GPIO", PIN(10), 0, -1, "MY_SW", 2, "selector", 1 },
-{ "MY_SW_OFF",   "NONE", 0,       -1, -1, "MY_SW", 1, "selector", 1 },
-{ "MY_SW_RIGHT", "GPIO", PIN(11), 0, -1, "MY_SW", 0, "selector", 1 },
+  // Selector (3-position with neutral)
+  { "MY_SW_LEFT",  "GPIO", PIN(10), 0, -1, "MY_SW", 2, "selector", 1 },
+  { "MY_SW_OFF",   "NONE", 0,       -1, -1, "MY_SW", 1, "selector", 1 },
+  { "MY_SW_RIGHT", "GPIO", PIN(11), 0, -1, "MY_SW", 0, "selector", 1 },
 
-// Analog axis
-{ "MY_POT", "GPIO", PIN(4), 0, -1, "MY_POT", 65535, "analog", 0 },
+  // Analog axis
+  { "MY_POT", "GPIO", PIN(4), 0, -1, "MY_POT", 65535, "analog", 0 },
 
-// Encoder
-{ "MY_ENC_CCW", "GPIO", PIN(12), 0, -1, "MY_ENC", 0, "variable_step", 0 },
-{ "MY_ENC_CW",  "GPIO", PIN(13), 0, -1, "MY_ENC", 1, "variable_step", 0 },
+  // Encoder
+  { "MY_ENC_CCW", "GPIO", PIN(12), 0, -1, "MY_ENC", 0,
+    "variable_step", 0 },
+  { "MY_ENC_CW",  "GPIO", PIN(13), 0, -1, "MY_ENC", 1,
+    "variable_step", 0 },
 
-// === END USER INPUT MAPPINGS ===
+  // === END USER INPUT MAPPINGS ===
 
 27.5 LEDMAPPING.H TEMPLATE
---------------------------
-// Safe zone for user edits - generator preserves content between markers
+----------------------------------------
+  // Safe zone for user edits - generator preserves content between markers
 
-// === BEGIN USER LED MAPPINGS ===
+  // === BEGIN USER LED MAPPINGS ===
 
-// GPIO LEDs
-{ "MY_LED", DEVICE_GPIO, { .gpioInfo = { PIN(15) } }, false, false },
-{ "MY_PWM_LED", DEVICE_GPIO, { .gpioInfo = { PIN(16) } }, true, false },
+  // GPIO LEDs
+  { "MY_LED", DEVICE_GPIO, { .gpioInfo = { PIN(15) } }, false, false },
+  { "MY_PWM_LED", DEVICE_GPIO, { .gpioInfo = { PIN(16) } }, true, false },
 
-// WS2812 RGB
-{ "MY_RGB", DEVICE_WS2812, { .ws2812Info = { 0, 0, 255, 0, 200 } }, true, false },
+  // WS2812 RGB
+  { "MY_RGB", DEVICE_WS2812, { .ws2812Info = { 0, 0, 255, 0, 200 } },
+    true, false },
 
-// PCA9555
-{ "MY_PCA_LED", DEVICE_PCA9555, { .pcaInfo = { 0x20, 0, 0 } }, false, true },
+  // PCA9555
+  { "MY_PCA_LED", DEVICE_PCA9555, { .pcaInfo = { 0x20, 0, 0 } },
+    false, true },
 
-// === END USER LED MAPPINGS ===
+  // === END USER LED MAPPINGS ===
 
 27.6 STATE MACHINE TEMPLATE
----------------------------
-// Non-blocking state machine pattern
+----------------------------------------
+  // Non-blocking state machine pattern
 
-enum class MyState { IDLE, OPENING, WAITING, CLOSING };
+  enum class MyState { IDLE, OPENING, WAITING, CLOSING };
 
-static MyState s_state = MyState::IDLE;
-static unsigned long s_stateEnterTime = 0;
+  static MyState s_state = MyState::IDLE;
+  static unsigned long s_stateEnterTime = 0;
 
-static void changeState(MyState newState) {
-    s_state = newState;
-    s_stateEnterTime = millis();
-}
+  static void changeState(MyState newState) {
+      s_state = newState;
+      s_stateEnterTime = millis();
+  }
 
-static unsigned long msInState() {
-    return millis() - s_stateEnterTime;
-}
+  static unsigned long msInState() {
+      return millis() - s_stateEnterTime;
+  }
 
-static void MyStateMachine_loop() {
-    switch (s_state) {
-        case MyState::IDLE:
-            if (shouldStart()) {
-                changeState(MyState::OPENING);
-            }
-            break;
-            
-        case MyState::OPENING:
-            if (msInState() >= 300) {
-                changeState(MyState::WAITING);
-            }
-            break;
-            
-        case MyState::WAITING:
-            if (msInState() >= 100) {
-                changeState(MyState::CLOSING);
-            }
-            break;
-            
-        case MyState::CLOSING:
-            if (msInState() >= 300) {
-                changeState(MyState::IDLE);
-            }
-            break;
-    }
-}
+  static void MyStateMachine_loop() {
+      switch (s_state) {
+          case MyState::IDLE:
+              if (shouldStart()) {
+                  changeState(MyState::OPENING);
+              }
+              break;
+
+          case MyState::OPENING:
+              if (msInState() >= 300) {
+                  changeState(MyState::WAITING);
+              }
+              break;
+
+          case MyState::WAITING:
+              if (msInState() >= 100) {
+                  changeState(MyState::CLOSING);
+              }
+              break;
+
+          case MyState::CLOSING:
+              if (msInState() >= 300) {
+                  changeState(MyState::IDLE);
+              }
+              break;
+      }
+  }
 
 27.7 BOUNDED LOOP TEMPLATE
---------------------------
-// Safe iteration patterns
+----------------------------------------
+  // Safe iteration patterns
 
-// Search with limit
-static int findIndex(const char* target) {
-    constexpr int MAX_ITER = 256;
-    for (int i = 0; i < MAX_ITER && i < arraySize; i++) {
-        if (strcmp(array[i].label, target) == 0) {
-            return i;
-        }
-    }
-    return -1;  // Not found
-}
+  // Search with limit
+  static int findIndex(const char* target) {
+      constexpr int MAX_ITER = 256;
+      for (int i = 0; i < MAX_ITER && i < arraySize; i++) {
+          if (strcmp(array[i].label, target) == 0) {
+              return i;
+          }
+      }
+      return -1;  // Not found
+  }
 
-// Process with limit
-static void processItems() {
-    constexpr int MAX_ITEMS = 64;
-    int processed = 0;
-    for (int i = 0; i < itemCount && processed < MAX_ITEMS; i++) {
-        if (items[i].needsProcessing) {
-            processItem(i);
-            processed++;
-        }
-    }
-}
+  // Process with limit
+  static void processItems() {
+      constexpr int MAX_ITEMS = 64;
+      int processed = 0;
+      for (int i = 0; i < itemCount && processed < MAX_ITEMS; i++) {
+          if (items[i].needsProcessing) {
+              processItem(i);
+              processed++;
+          }
+      }
+  }
 
-================================================================================
+==============================================================================
 END OF INSTRUCTION SET - VERSION 3.0
-================================================================================
+==============================================================================
 
 DOCUMENT STATISTICS:
   Sections: 27
@@ -2004,4 +3357,4 @@ For source code reference:
   CockpitOS: https://github.com/BojoteX/CockpitOS
   DCS-BIOS:  https://github.com/DCS-Skunkworks/dcs-bios
 
-================================================================================
+==============================================================================
