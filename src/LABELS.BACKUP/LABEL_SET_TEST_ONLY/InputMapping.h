@@ -1,0 +1,263 @@
+// THIS FILE IS AUTO-GENERATED; ONLY EDIT INDIVIDUAL RECORDS, DO NOT ADD OR DELETE THEM HERE
+// You can use a PIN(X) macro where X is an S2 PIN to AUTO-CONVERT to its equivalent position in an S3 device.
+// So, PIN(4) will always be PIN 4 if you compile with an S2 but will get automatically converted to 5 if you compile the firmware on an S3.
+// This is to easily use S2 or S3 devices on same backplane/hardware physically connected to specific PINs
+#pragma once
+
+struct InputMapping {
+    const char* label;        // Unique selector label, auto-generated.
+    const char* source;      // Hardware source identifier. (e.g PCA_0x26, HC165, GPIO, NONE etc)
+    int8_t     port;           // Port index (For PCA use port 0 or 1, HC165 does not use port. For GPIO use PIN and use -1 when sharing GPIOs to differentiate HIGH/LOW)
+    int8_t     bit;            // Bit position is used for PCA & HC165. GPIO also uses it but ONLY for one-hot selectors (GPIO assigned for each position) in such cases set as -1
+    int8_t      hidId;        // HID usage ID
+    const char* oride_label;  // Override command label (dcsCommand)
+    uint16_t    oride_value;  // Override command value (value)
+    const char* controlType;  // Control type, e.g., "selector"
+    uint16_t    group;        // Group ID for exclusive selectors
+};
+
+//  label                       source     port bit hidId  DCSCommand           value   Type        group
+static const InputMapping InputMappings[] = {
+    { "COM_AUX"                 , "NONE" ,  0 ,  0 ,  -1 , "COM_AUX"                , 65535 , "analog"       ,  0 },
+    { "COM_AUX_DEC"             , "NONE" ,  0 ,  0 ,  -1 , "COM_AUX"                ,     0 , "variable_step",  0 },
+    { "COM_AUX_INC"             , "NONE" ,  0 ,  0 ,  -1 , "COM_AUX"                ,     1 , "variable_step",  0 },
+    { "COM_COMM_G_XMT_SW_COMM_2", "NONE" ,  0 ,  0 ,  -1 , "COM_COMM_G_XMT_SW"      ,     0 , "selector"     ,  1 },
+    { "COM_COMM_G_XMT_SW_OFF"   , "NONE" ,  0 ,  0 ,  -1 , "COM_COMM_G_XMT_SW"      ,     1 , "selector"     ,  1 },
+    { "COM_COMM_G_XMT_SW_COMM_1", "NONE" ,  0 ,  0 ,  -1 , "COM_COMM_G_XMT_SW"      ,     2 , "selector"     ,  1 },
+    { "COM_COMM_RELAY_SW_PLAIN" , "NONE" ,  0 ,  0 ,  -1 , "COM_COMM_RELAY_SW"      ,     0 , "selector"     ,  2 },
+    { "COM_COMM_RELAY_SW_OFF"   , "NONE" ,  0 ,  0 ,  -1 , "COM_COMM_RELAY_SW"      ,     1 , "selector"     ,  2 },
+    { "COM_COMM_RELAY_SW_CIPHER", "NONE" ,  0 ,  0 ,  -1 , "COM_COMM_RELAY_SW"      ,     2 , "selector"     ,  2 },
+    { "COM_CRYPTO_SW_ZERO"      , "NONE" ,  0 ,  0 ,  -1 , "COM_CRYPTO_SW"          ,     0 , "selector"     ,  3 },
+    { "COM_CRYPTO_SW_NORM"      , "NONE" ,  0 ,  0 ,  -1 , "COM_CRYPTO_SW"          ,     1 , "selector"     ,  3 },
+    { "COM_CRYPTO_SW_HOLD"      , "NONE" ,  0 ,  0 ,  -1 , "COM_CRYPTO_SW"          ,     2 , "selector"     ,  3 },
+    { "COM_ICS"                 , "NONE" ,  0 ,  0 ,  -1 , "COM_ICS"                , 65535 , "analog"       ,  0 },
+    { "COM_ICS_DEC"             , "NONE" ,  0 ,  0 ,  -1 , "COM_ICS"                ,     0 , "variable_step",  0 },
+    { "COM_ICS_INC"             , "NONE" ,  0 ,  0 ,  -1 , "COM_ICS"                ,     1 , "variable_step",  0 },
+    { "COM_IFF_MASTER_SW_NORM"  , "NONE" ,  0 ,  0 ,  -1 , "COM_IFF_MASTER_SW"      ,     0 , "selector"     ,  4 },
+    { "COM_IFF_MASTER_SW_EMER"  , "NONE" ,  0 ,  0 ,  -1 , "COM_IFF_MASTER_SW"      ,     1 , "selector"     ,  4 },
+    { "COM_IFF_MODE4_SW_POS0"   , "NONE" ,  0 ,  0 ,  -1 , "COM_IFF_MODE4_SW"       ,     0 , "selector"     ,  5 },
+    { "COM_IFF_MODE4_SW_POS1"   , "NONE" ,  0 ,  0 ,  -1 , "COM_IFF_MODE4_SW"       ,     1 , "selector"     ,  5 },
+    { "COM_IFF_MODE4_SW_POS2"   , "NONE" ,  0 ,  0 ,  -1 , "COM_IFF_MODE4_SW"       ,     2 , "selector"     ,  5 },
+    { "COM_ILS_CHANNEL_SW_POS0" , "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,     0 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS1" , "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,     1 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS2" , "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,     2 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS3" , "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,     3 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS4" , "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,     4 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS5" , "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,     5 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS6" , "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,     6 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS7" , "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,     7 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS8" , "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,     8 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS9" , "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,     9 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS10", "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,    10 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS11", "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,    11 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS12", "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,    12 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS13", "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,    13 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS14", "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,    14 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS15", "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,    15 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS16", "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,    16 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS17", "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,    17 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS18", "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,    18 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_POS19", "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,    19 , "selector"     ,  6 },
+    { "COM_ILS_CHANNEL_SW_DEC"  , "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,     0 , "fixed_step"   ,  0 },
+    { "COM_ILS_CHANNEL_SW_INC"  , "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_CHANNEL_SW"     ,     1 , "fixed_step"   ,  0 },
+    { "COM_ILS_UFC_MAN_SW_MAN"  , "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_UFC_MAN_SW"     ,     0 , "selector"     ,  7 },
+    { "COM_ILS_UFC_MAN_SW_UFC"  , "NONE" ,  0 ,  0 ,  -1 , "COM_ILS_UFC_MAN_SW"     ,     1 , "selector"     ,  7 },
+    { "COM_MIDS_A"              , "NONE" ,  0 ,  0 ,  -1 , "COM_MIDS_A"             , 65535 , "analog"       ,  0 },
+    { "COM_MIDS_A_DEC"          , "NONE" ,  0 ,  0 ,  -1 , "COM_MIDS_A"             ,     0 , "variable_step",  0 },
+    { "COM_MIDS_A_INC"          , "NONE" ,  0 ,  0 ,  -1 , "COM_MIDS_A"             ,     1 , "variable_step",  0 },
+    { "COM_MIDS_B"              , "NONE" ,  0 ,  0 ,  -1 , "COM_MIDS_B"             , 65535 , "analog"       ,  0 },
+    { "COM_MIDS_B_DEC"          , "NONE" ,  0 ,  0 ,  -1 , "COM_MIDS_B"             ,     0 , "variable_step",  0 },
+    { "COM_MIDS_B_INC"          , "NONE" ,  0 ,  0 ,  -1 , "COM_MIDS_B"             ,     1 , "variable_step",  0 },
+    { "COM_RWR"                 , "NONE" ,  0 ,  0 ,  -1 , "COM_RWR"                , 65535 , "analog"       ,  0 },
+    { "COM_RWR_DEC"             , "NONE" ,  0 ,  0 ,  -1 , "COM_RWR"                ,     0 , "variable_step",  0 },
+    { "COM_RWR_INC"             , "NONE" ,  0 ,  0 ,  -1 , "COM_RWR"                ,     1 , "variable_step",  0 },
+    { "COM_TACAN"               , "NONE" ,  0 ,  0 ,  -1 , "COM_TACAN"              , 65535 , "analog"       ,  0 },
+    { "COM_TACAN_DEC"           , "NONE" ,  0 ,  0 ,  -1 , "COM_TACAN"              ,     0 , "variable_step",  0 },
+    { "COM_TACAN_INC"           , "NONE" ,  0 ,  0 ,  -1 , "COM_TACAN"              ,     1 , "variable_step",  0 },
+    { "COM_VOX"                 , "NONE" ,  0 ,  0 ,  -1 , "COM_VOX"                , 65535 , "analog"       ,  0 },
+    { "COM_VOX_DEC"             , "NONE" ,  0 ,  0 ,  -1 , "COM_VOX"                ,     0 , "variable_step",  0 },
+    { "COM_VOX_INC"             , "NONE" ,  0 ,  0 ,  -1 , "COM_VOX"                ,     1 , "variable_step",  0 },
+    { "COM_WPN"                 , "NONE" ,  0 ,  0 ,  -1 , "COM_WPN"                , 65535 , "analog"       ,  0 },
+    { "COM_WPN_DEC"             , "NONE" ,  0 ,  0 ,  -1 , "COM_WPN"                ,     0 , "variable_step",  0 },
+    { "COM_WPN_INC"             , "NONE" ,  0 ,  0 ,  -1 , "COM_WPN"                ,     1 , "variable_step",  0 },
+    { "MASTER_ARM_SW_SAFE"      , "GPIO" , -1 ,  0 ,   1 , "MASTER_ARM_SW"          ,     0 , "selector"     ,  8 },
+    { "MASTER_ARM_SW_ARM"       , "GPIO" ,  0 ,  0 ,   2 , "MASTER_ARM_SW"          ,     1 , "selector"     ,  8 },
+    { "MASTER_MODE_AA"          , "NONE" ,  0 ,  0 ,  -1 , "MASTER_MODE_AA"         ,     1 , "momentary"    ,  0 },
+    { "MASTER_MODE_AG"          , "NONE" ,  0 ,  0 ,  -1 , "MASTER_MODE_AG"         ,     1 , "momentary"    ,  0 },
+    { "MASTER_CAUTION_RESET_SW" , "NONE" ,  0 ,  0 ,  -1 , "MASTER_CAUTION_RESET_SW",     1 , "momentary"    ,  0 },
+};
+static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);
+
+// Auto-generated: selector DCS labels with group > 0 (panel sync)
+static const char* const TrackedSelectorLabels[] = {
+    "COM_COMM_G_XMT_SW",
+    "COM_COMM_RELAY_SW",
+    "COM_CRYPTO_SW",
+    "COM_IFF_MASTER_SW",
+    "COM_IFF_MODE4_SW",
+    "COM_ILS_CHANNEL_SW",
+    "COM_ILS_UFC_MAN_SW",
+    "MASTER_ARM_SW",
+};
+static const size_t TrackedSelectorLabelsCount = sizeof(TrackedSelectorLabels)/sizeof(TrackedSelectorLabels[0]);
+
+
+// Static hash lookup table for InputMappings[]
+struct InputHashEntry { const char* label; const InputMapping* mapping; };
+static const InputHashEntry inputHashTable[137] = {
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"COM_ICS_DEC", &InputMappings[13]},
+  {"COM_MIDS_A_DEC", &InputMappings[45]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"COM_RWR_INC", &InputMappings[52]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"COM_RWR_DEC", &InputMappings[51]},
+  {nullptr, nullptr},
+  {"COM_AUX_INC", &InputMappings[2]},
+  {nullptr, nullptr},
+  {"COM_COMM_G_XMT_SW_COMM_1", &InputMappings[5]},
+  {"COM_AUX", &InputMappings[0]},
+  {"COM_COMM_G_XMT_SW_COMM_2", &InputMappings[3]},
+  {"COM_COMM_RELAY_SW_OFF", &InputMappings[7]},
+  {nullptr, nullptr},
+  {"COM_TACAN_INC", &InputMappings[55]},
+  {"COM_ILS_UFC_MAN_SW_UFC", &InputMappings[43]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"COM_AUX_DEC", &InputMappings[1]},
+  {"COM_MIDS_B_INC", &InputMappings[49]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"COM_ILS_CHANNEL_SW_POS0", &InputMappings[20]},
+  {"COM_ILS_CHANNEL_SW_POS1", &InputMappings[21]},
+  {"COM_ILS_CHANNEL_SW_POS2", &InputMappings[22]},
+  {"COM_CRYPTO_SW_NORM", &InputMappings[10]},
+  {"COM_ILS_CHANNEL_SW_POS3", &InputMappings[23]},
+  {"COM_ILS_CHANNEL_SW_POS4", &InputMappings[24]},
+  {"COM_ILS_CHANNEL_SW_POS5", &InputMappings[25]},
+  {"COM_ILS_CHANNEL_SW_POS6", &InputMappings[26]},
+  {"COM_ILS_CHANNEL_SW_POS7", &InputMappings[27]},
+  {"COM_ILS_CHANNEL_SW_POS8", &InputMappings[28]},
+  {"COM_ILS_CHANNEL_SW_POS9", &InputMappings[29]},
+  {"COM_MIDS_B_DEC", &InputMappings[48]},
+  {"COM_TACAN_DEC", &InputMappings[54]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"COM_ICS", &InputMappings[12]},
+  {"COM_IFF_MASTER_SW_NORM", &InputMappings[15]},
+  {"COM_MIDS_A", &InputMappings[44]},
+  {"COM_MIDS_B", &InputMappings[47]},
+  {"MASTER_ARM_SW_SAFE", &InputMappings[62]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"COM_IFF_MODE4_SW_POS0", &InputMappings[17]},
+  {"COM_IFF_MODE4_SW_POS1", &InputMappings[18]},
+  {"COM_COMM_G_XMT_SW_OFF", &InputMappings[4]},
+  {"COM_IFF_MODE4_SW_POS2", &InputMappings[19]},
+  {"COM_WPN_INC", &InputMappings[61]},
+  {"COM_ILS_UFC_MAN_SW_MAN", &InputMappings[42]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"COM_ILS_CHANNEL_SW_POS10", &InputMappings[30]},
+  {"COM_ILS_CHANNEL_SW_POS11", &InputMappings[31]},
+  {"COM_ILS_CHANNEL_SW_POS12", &InputMappings[32]},
+  {"COM_ILS_CHANNEL_SW_POS13", &InputMappings[33]},
+  {"COM_ILS_CHANNEL_SW_POS14", &InputMappings[34]},
+  {"COM_IFF_MASTER_SW_EMER", &InputMappings[16]},
+  {"COM_CRYPTO_SW_ZERO", &InputMappings[9]},
+  {"COM_ILS_CHANNEL_SW_POS15", &InputMappings[35]},
+  {"COM_ILS_CHANNEL_SW_POS16", &InputMappings[36]},
+  {"COM_ILS_CHANNEL_SW_POS17", &InputMappings[37]},
+  {"COM_ILS_CHANNEL_SW_POS18", &InputMappings[38]},
+  {"COM_ILS_CHANNEL_SW_POS19", &InputMappings[39]},
+  {"COM_WPN_DEC", &InputMappings[60]},
+  {"COM_COMM_RELAY_SW_CIPHER", &InputMappings[8]},
+  {"MASTER_ARM_SW_ARM", &InputMappings[63]},
+  {"COM_VOX", &InputMappings[56]},
+  {"MASTER_MODE_AA", &InputMappings[64]},
+  {"COM_COMM_RELAY_SW_PLAIN", &InputMappings[6]},
+  {"MASTER_MODE_AG", &InputMappings[65]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"COM_ILS_CHANNEL_SW_INC", &InputMappings[41]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"COM_RWR", &InputMappings[50]},
+  {nullptr, nullptr},
+  {"COM_VOX_INC", &InputMappings[58]},
+  {nullptr, nullptr},
+  {"COM_WPN", &InputMappings[59]},
+  {"MASTER_CAUTION_RESET_SW", &InputMappings[66]},
+  {"COM_ILS_CHANNEL_SW_DEC", &InputMappings[40]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"COM_VOX_DEC", &InputMappings[57]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"COM_ICS_INC", &InputMappings[14]},
+  {"COM_MIDS_A_INC", &InputMappings[46]},
+  {"COM_TACAN", &InputMappings[53]},
+  {"COM_CRYPTO_SW_HOLD", &InputMappings[11]},
+};
+
+// Shared recursive hash implementation for display label lookup
+constexpr uint16_t labelHash(const char* s);
+
+
+// Preserve existing signature
+constexpr uint16_t inputHash(const char* s) { return labelHash(s); }
+
+inline const InputMapping* findInputByLabel(const char* label) {
+  uint16_t startH = inputHash(label) % 137;
+  for (uint16_t i = 0; i < 137; ++i) {
+    uint16_t idx = (startH + i >= 137) ? (startH + i - 137) : (startH + i);
+    const auto& entry = inputHashTable[idx];
+    if (!entry.label) continue;
+    if (strcmp(entry.label, label) == 0) return entry.mapping;
+  }
+  return nullptr;
+}
