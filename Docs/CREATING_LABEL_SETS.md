@@ -113,7 +113,7 @@ The **Aircraft JSON** is the source of truth for all cockpit controls. It comes 
 
 ### 3.1 Where to Find Aircraft JSON Files
 
-**Option A: From Your DCS-BIOS Installation**
+**Option A: From Your DCS-BIOS Installation in DCS World**
 
 If DCS-BIOS is installed, JSON files are located at:
 ```
@@ -134,19 +134,6 @@ You'll find files like:
 2. Download the latest release ZIP
 3. Extract and navigate to: `Scripts/DCS-BIOS/doc/json/`
 4. Copy your aircraft's JSON file
-
-**Option C: From CockpitOS (Pre-packaged)**
-
-CockpitOS includes common aircraft JSONs in:
-```
-src/LABELS/AIRCRAFT_JSON/
-```
-
-Available aircraft:
-- FA-18C_hornet.json (F/A-18C Hornet)
-- AH-64D.json (AH-64D Apache)
-- A-10C.json (A-10C Warthog)
-- F-16C_50.json (F-16C Viper)
 
 ### 3.2 What's Inside the JSON?
 
