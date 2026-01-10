@@ -141,15 +141,6 @@ Before configuring any transport mode, ensure you have:
 
 DCS-BIOS must be installed and running in DCS World. If you haven't done this yet, see **CREATING_LABEL_SETS.md** Section 2.1 for installation instructions.
 
-**Quick verification:**
-
-1. Start DCS World
-2. Load any mission with an aircraft
-3. Check that the file `control-reference.html` exists in:
-   ```
-   %USERPROFILE%\Saved Games\DCS\Scripts\DCS-BIOS\doc\control-reference.html
-   ```
-
 If DCS-BIOS is working, it exports data via UDP multicast to `239.255.50.10:5010` whenever a mission is running.
 
 ---
@@ -456,10 +447,6 @@ In most cases, WiFi Mode works automatically with no additional configuration. D
 | Export Port | 5010 | DCS-BIOS export stream |
 | Import Port | 7778 | Commands TO DCS-BIOS |
 
-If you need to verify or modify DCS-BIOS network settings, check:
-```
-%USERPROFILE%\Saved Games\DCS\Scripts\DCS-BIOS\BIOSConfig.lua
-```
 
 ### 5.5 Start DCS and Test
 
@@ -480,20 +467,10 @@ If WiFi Mode isn't working, enable debug output to diagnose:
 
 ```cpp
 // Config.h — Enable WiFi debugging
-#define DEBUG_USE_WIFI                              1  // Enable UDP debug console
-#define VERBOSE_MODE                                1  // Enable verbose logging
 #define VERBOSE_MODE_WIFI_ONLY                      1  // Send logs via UDP (not serial)
 ```
 
-Then use a UDP listener on your PC (port 5005 by default) to see debug messages:
-
-```bash
-# Linux/Mac
-nc -ul 5005
-
-# Windows (PowerShell)
-# Use a tool like Packet Sender or Wireshark
-```
+We have included a basic Wi-Fi console debugger inside the "Debug Tools" directory called UDP_console_debugger.py
 
 ---
 
@@ -545,7 +522,6 @@ Serial Mode is the original method used by DCS-BIOS with Arduino boards. It uses
 For Serial Mode, you may also want verbose output:
 
 ```cpp
-#define VERBOSE_MODE                                1  // See debug messages
 #define VERBOSE_MODE_SERIAL_ONLY                    1  // Output to serial console
 ```
 
@@ -564,7 +540,7 @@ socat is included with DCS-BIOS. Find `connect-serial-port.cmd` in:
 %USERPROFILE%\Saved Games\DCS\Scripts\DCS-BIOS\
 ```
 
-Alternatively, check the `Serial Manager/` directory in CockpitOS for helper scripts.
+Alternatively, check the `Serial Manager/` directory in CockpitOS for a `connect-serial-port.cmd` copy.
 
 **Linux/Mac:**
 
@@ -611,7 +587,7 @@ socat TCP:127.0.0.1:7778 /dev/ttyUSB0,b115200,raw,echo=0
 **Step 6.6.3** — Your panel should begin responding
 
 > **✓ Checkpoint**  
-> If using `VERBOSE_MODE`, you should see debug messages in the socat terminal showing DCS-BIOS traffic.
+> If using `DEBUG_ENABLED`, you should see extended debug messages in your console window. Do not use Serial DEBUG if you are connecting via Serial! use Wi-Fi debug instead. 
 
 ---
 
@@ -642,11 +618,11 @@ If your panel has displays (7-segment, LCD, etc.):
 
 ### 7.4 Debug Output
 
-Enable verbose mode to see what's happening:
+Enable debug mode to see what's happening:
 
 ```cpp
 // Config.h
-#define VERBOSE_MODE                                1
+#define DEBUG_ENABLED                                1
 ```
 
 You should see messages like:
@@ -671,7 +647,7 @@ For USB or WiFi modes, you can still get debug output via serial:
 #define VERBOSE_MODE_SERIAL_ONLY                    1
 ```
 
-Connect to your ESP32's serial port with Arduino Serial Monitor or any terminal at 115200 baud.
+Connect to your ESP32's serial port with Arduino Serial Monitor or any terminal at 250000 baud.
 
 ### 8.2 WiFi Debug Console
 
@@ -679,7 +655,6 @@ Send debug messages over UDP to your PC:
 
 ```cpp
 // Config.h
-#define DEBUG_USE_WIFI                              1
 #define VERBOSE_MODE_WIFI_ONLY                      1
 ```
 
@@ -717,7 +692,7 @@ Test your panel without DCS running:
 #define IS_REPLAY                                   1
 ```
 
-This replays a captured DCS-BIOS stream to verify panel operation.
+This replays a captured DCS-BIOS stream to verify panel operation. See ReplayData directory
 
 ---
 
