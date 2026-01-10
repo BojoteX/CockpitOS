@@ -519,10 +519,10 @@ Serial Mode is the original method used by DCS-BIOS with Arduino boards. It uses
 #define USE_DCSBIOS_SERIAL                          1  // ← Enable Serial Mode
 ```
 
-For Serial Mode, you may also want verbose output:
+For Serial Mode, you may also want a DEBUG output different from Serial, for example:
 
 ```cpp
-#define VERBOSE_MODE_SERIAL_ONLY                    1  // Output to serial console
+#define VERBOSE_MODE_WIFI_ONLY                    1  // Output to Wi-Fi console
 ```
 
 ### 6.3 Compile and Upload
