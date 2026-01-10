@@ -72,6 +72,7 @@ For USB mode, run `HID Manager/HID_Manager.py` on your PC to bridge to DCS-BIOS.
 | [Hardware Wiring](Docs/HARDWARE_WIRING.md) | Wiring diagrams for all input/output types |
 | [Transport Modes](Docs/TRANSPORT_MODES.md) | USB, WiFi, Serial configuration |
 | [Advanced Displays](Docs/ADVANCED_DISPLAYS.md) | HT1622 segment displays, TFT gauges |
+| [Advanced Controls](Docs/ADVANCED_CONTROLS.md) | Custom panels, CoverGate, panel registration |
 | [FAQ](Docs/FAQ.md) | Common questions and answers |
 
 ---
