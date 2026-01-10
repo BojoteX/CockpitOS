@@ -59,11 +59,11 @@ SCAN_LINES = 30  # Only scan first N lines for metadata
 # Format: (identifier, comment)
 # =============================================================================
 PERMANENT_PCA_ENTRIES = [
-    ("Brain",     "Auto-detected PCA at 0x26 (runtime)"),
-    ("ECM",       "Auto-detected PCA at 0x22 (runtime)"),
-    ("MasterARM", "Auto-detected PCA at 0x5B (runtime)"),
+    ("Brain",       "Auto-detected PCA at 0x26 (runtime)"),
+    ("ECM",         "Auto-detected PCA at 0x22 (runtime)"),
+    ("MasterARM",   "Auto-detected PCA at 0x5B (runtime)"),
+    ("AnalogGauge", "Auto-detected when DEVICE_GAUGE in LEDMapping"),
 ]
-
 
 def find_panel_kind(filepath: Path) -> tuple[str, str]:
     """

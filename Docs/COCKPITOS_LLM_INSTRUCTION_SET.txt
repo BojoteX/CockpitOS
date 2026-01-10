@@ -1,0 +1,1066 @@
+================================================================================
+COCKPITOS LLM INSTRUCTION SET — COMPLETE TECHNICAL REFERENCE
+================================================================================
+
+This document contains the complete technical specification for CockpitOS, an
+ESP32-based firmware system for DCS World flight simulator cockpit panels.
+An LLM reading this document should be able to provide detailed, accurate
+technical guidance on any aspect of the system.
+
+================================================================================
+SECTION 1: SYSTEM OVERVIEW
+================================================================================
+
+1.1 WHAT IS COCKPITOS
+---------------------
+CockpitOS is firmware for ESP32 microcontrollers that interfaces physical
+cockpit panels with DCS World via the DCS-BIOS protocol. It handles:
+- Inputs: buttons, switches, rotary encoders, potentiometers, matrix rotaries
+- Outputs: LEDs (GPIO, WS2812, TM1637, GN1640T, PCA9555), displays (HT1622, TFT)
+- Communication: USB HID, WiFi UDP, Serial/CDC
+
+1.2 KEY ARCHITECTURAL PRINCIPLES
+--------------------------------
+- ZERO DYNAMIC MEMORY: No malloc, new, std::vector, std::string. All buffers
+  are statically allocated. Exception: TFT displays may use sprites.
+- DETERMINISTIC EXECUTION: No unbounded loops, no blocking calls (no delay()).
+  Uses hardware timers, interrupts, and non-blocking state machines.
+- PERFORMANCE OBSESSED: Bit-wise operations, lookup tables, perfect-hash
+  dispatch, inline calculations. Avoid floating-point unless FPU available.
+- NO EXCEPTIONS/RTTI: Compile with -fno-exceptions, -fno-rtti style coding.
+- MISRA-STYLE: Follow high-reliability coding standards. const by default.
+
+1.3 RELATIONSHIP WITH DCS-BIOS
+------------------------------
+- DCS-BIOS: LUA scripts running INSIDE DCS World that export cockpit data
+- CockpitOS: Firmware running ON the ESP32 that receives DCS-BIOS data
+- Data flow: DCS World → DCS-BIOS LUA → UDP/Serial → CockpitOS → Physical Hardware
+- Command flow: Physical Hardware → CockpitOS → DCS-BIOS → DCS World
+- DCS-BIOS repository: https://github.com/DCS-Skunkworks/dcs-bios
+
+================================================================================
+SECTION 2: HARDWARE REQUIREMENTS
+================================================================================
+
+2.1 SUPPORTED ESP32 VARIANTS
+----------------------------
+- ESP32-S2: Recommended. Native USB, compact (LOLIN S2 Mini popular)
+- ESP32-S3: More powerful, native USB, dual-core
+- ESP32 Classic: Works but requires external USB-UART, no native USB HID
+- ESP32-C3/C6/H2: Supported with limitations
+- ESP32-P4: Newest, fully supported
+
+2.2 NATIVE USB REQUIREMENTS
+---------------------------
+For USB HID mode (recommended):
+- ESP32-S2/S3/P4 required
+- S3/P4: Set Tools → USB Mode → "USB-OTG (TinyUSB)"
+- S2: Works with default settings
+
+2.3 SUPPORTED INPUT HARDWARE
+----------------------------
+- Direct GPIO: Buttons, switches, encoders connected to ESP32 pins
+- 74HC165 Shift Registers: Up to 64 bits in chain for expanded inputs
+- PCA9555 I²C Expanders: 16 I/O pins per chip, addresses 0x20-0x27
+- TM1637: 7-segment drivers with key scanning capability
+- Matrix Rotary: Strobe-based position detection
+- Analog Inputs: Potentiometers via ADC pins
+
+2.4 SUPPORTED OUTPUT HARDWARE
+-----------------------------
+- GPIO LEDs: Direct digital or PWM-dimmable
+- WS2812/NeoPixel: Addressable RGB LEDs with custom RMT driver
+- TM1637: 7-segment displays and indicator LEDs
+- GN1640T: LED matrix driver (used for Caution Advisory panels)
+- PCA9555: I²C I/O expanders for LED outputs
+- HT1622: Segment LCD drivers (IFEI, UFC displays)
+- TFT Displays: SPI LCDs via LovyanGFX (gauges, CMWS)
+- Servo Motors: PWM-driven analog gauges
+
+2.5 DEVELOPMENT ENVIRONMENT
+---------------------------
+- Arduino IDE 2.x (not PlatformIO or IDF)
+- ESP32 Arduino Core 3.3.0+ (by Espressif Systems)
+- LovyanGFX library (for TFT displays)
+- Python 3.x (for generator scripts)
+
+================================================================================
+SECTION 3: PROJECT STRUCTURE
+================================================================================
+
+3.1 DIRECTORY LAYOUT
+--------------------
+CockpitOS/
+├── CockpitOS.ino              ← Main sketch entry point
+├── Config.h                   ← Master configuration (transport, debug, features)
+├── Pins.h                     ← GPIO pin assignments per board type
+├── Mappings.h                 ← PanelKind enum, panel definitions
+├── Mappings.cpp               ← Panel initialization, CoverGate config
+├── generate_panelkind.py      ← Auto-generates PanelKind enum
+│
+├── src/
+│   ├── Globals.h              ← Cross-module includes and externs
+│   ├── PanelRegistry.h/cpp    ← Panel registration and lifecycle
+│   ├── HIDManager.h/cpp       ← HID abstraction, button/axis handling
+│   ├── DCSBIOSBridge.h/cpp    ← Protocol parsing, subscriptions
+│   │
+│   ├── Core/
+│   │   ├── LEDControl.cpp     ← Unified LED control router
+│   │   ├── InputControl.cpp   ← Input polling, selector logic
+│   │   ├── CoverGate.cpp      ← Guarded control state machine
+│   │   ├── RingBuffer.cpp     ← Non-blocking I/O buffers
+│   │   ├── PerfMonitor.h      ← Performance profiling (user-editable)
+│   │   ├── debugPrint.cpp     ← Logging abstraction
+│   │   └── WiFiDebug.cpp      ← UDP remote debugging
+│   │
+│   ├── Panels/
+│   │   ├── Generic.cpp        ← Handles GPIO, HC165, PCA9555 automatically
+│   │   ├── IFEIPanel.cpp      ← Reference: complex display panel
+│   │   ├── WingFold.cpp       ← Reference: state machine panel
+│   │   ├── LockShoot.cpp      ← Reference: simple LED panel
+│   │   ├── CautionAdvisory.cpp
+│   │   ├── LeftAnnunciator.cpp
+│   │   ├── RightAnnunciator.cpp
+│   │   ├── TFT_Display_CMWS.cpp
+│   │   ├── TFT_Gauges_*.cpp   ← Various TFT gauge implementations
+│   │   └── includes/          ← Panel header files
+│   │
+│   ├── LABELS/
+│   │   ├── active_set.h       ← Currently active label set
+│   │   ├── LABEL_SET_MAIN/    ← Example label set
+│   │   ├── LABEL_SET_IFEI/
+│   │   ├── LABEL_SET_ALR67/
+│   │   └── README.md
+│   │
+│   └── Generated/
+│       └── PanelKind.h        ← Auto-generated enum
+│
+├── lib/
+│   └── CUtils/                ← Hardware Abstraction Layer
+│       └── src/
+│           ├── CUtils.h/cpp   ← Unified driver API
+│           └── internal/      ← Driver implementations
+│               ├── GPIO.cpp
+│               ├── PCA9555.cpp
+│               ├── TM1637.cpp
+│               ├── GN1640.cpp
+│               ├── WS2812.cpp
+│               ├── HC165.cpp
+│               ├── HT1622.cpp
+│               └── MatrixRotary.cpp
+│
+├── HID_Manager/               ← Python USB HID bridge application
+│   └── HID_Manager.py
+│
+└── Docs/                      ← Documentation
+    ├── GETTING_STARTED.md
+    ├── CREATING_LABEL_SETS.md
+    ├── ADVANCED_CONTROLS.md
+    ├── FAQ.md
+    └── panel_kind_metadata.md
+
+================================================================================
+SECTION 4: LABEL SETS — CONFIGURATION SYSTEM
+================================================================================
+
+4.1 WHAT IS A LABEL SET
+-----------------------
+A Label Set is a self-contained configuration folder that defines:
+- Which aircraft you're building for (via JSON file)
+- Which panels to include (selected_panels.txt)
+- How physical hardware is wired (InputMapping.h, LEDMapping.h)
+
+Location: src/LABELS/LABEL_SET_XXXX/
+
+4.2 LABEL SET CONTENTS
+----------------------
+LABEL_SET_MYPANEL/
+├── FA-18C_hornet.json     ← Aircraft definition from DCS-BIOS
+├── selected_panels.txt    ← Which panels YOU want (editable)
+├── panels.txt             ← All available panels (auto-generated reference)
+├── generate_data.py       ← Main generator script
+├── display_gen.py         ← Display-specific generator
+├── reset_data.py          ← Cleanup script
+├── METADATA/              ← Optional JSON overlays for customization
+│
+│ ─── AUTO-GENERATED (by running generate_data.py) ───
+├── DCSBIOSBridgeData.h    ← Address tables, control types
+├── InputMapping.h         ← Input definitions → USER EDITS THIS
+├── LEDMapping.h           ← Output definitions → USER EDITS THIS
+├── DisplayMapping.cpp/h   ← Display field definitions
+├── CT_Display.cpp/h       ← Character buffers for displays
+└── LabelSetConfig.h       ← Label set metadata, USB PID
+
+4.3 CREATING A NEW LABEL SET — WORKFLOW
+---------------------------------------
+Step 1: Copy an existing label set
+  cd src/LABELS/
+  cp -r LABEL_SET_IFEI LABEL_SET_MYPANEL
+
+Step 2: Run reset_data.py to clean auto-generated files
+  cd LABEL_SET_MYPANEL
+  python reset_data.py
+
+Step 3: Add your aircraft JSON (from DCS-BIOS)
+  - Only ONE JSON file should be in the folder
+  - Get from: %USERPROFILE%\Saved Games\DCS\Scripts\DCS-BIOS\doc\json\
+
+Step 4: Edit selected_panels.txt
+  - Uncomment panels you want to include
+  - Panel names are case-sensitive, must match panels.txt
+
+Step 5: Run the generator
+  python generate_data.py
+
+Step 6: Edit InputMapping.h and LEDMapping.h
+  - Add your hardware assignments (GPIO pins, I²C addresses, etc.)
+  - Generator preserves your edits on subsequent runs
+
+Step 7: Compile in Arduino IDE
+
+4.4 SWITCHING BETWEEN LABEL SETS
+--------------------------------
+Simply run generate_data.py in the desired label set folder.
+This automatically:
+- Sets that label set as active (updates active_set.h)
+- Disables .cpp files in other label sets (renames them)
+
+4.5 METADATA DIRECTORY (ADVANCED)
+---------------------------------
+Each label set can include a METADATA/ subdirectory with JSON overlay files.
+These allow customization without modifying the base aircraft JSON.
+
+Use cases:
+- Fix incorrect DCS-BIOS definitions
+- Add custom controls not in standard JSON
+- Per-build customization
+
+The generator deep-merges overlays into base definitions at generation time.
+
+================================================================================
+SECTION 5: INPUTMAPPING.H — INPUT CONFIGURATION
+================================================================================
+
+5.1 STRUCT DEFINITION
+---------------------
+struct InputMapping {
+  const char* label;       // Unique name for this control
+  const char* source;      // Hardware source: "GPIO", "HC165", "PCA_0xNN", "TM1637", "NONE"
+  int8_t     port;         // Source-specific: GPIO pin, PCA port (0/1), etc.
+  int8_t     bit;          // Bit index within source, or -1 for special cases
+  int8_t     hidId;        // HID usage ID (-1 to disable)
+  const char* oride_label; // DCS-BIOS command name
+  uint16_t    oride_value; // DCS-BIOS command value (65535 = analog passthrough)
+  const char* controlType; // "momentary", "selector", "analog", "variable_step", "fixed_step"
+  uint16_t    group;       // Selector group ID (0 = no group)
+};
+
+5.2 SOURCE TYPES
+----------------
+"GPIO"      — Direct ESP32 GPIO pin
+  port = PIN(x), bit = 0 (active LOW) or 1 (active HIGH)
+  For one-hot selectors: bit = -1
+
+"HC165"     — 74HC165 shift register chain
+  port = 0 (unused), bit = bit position in chain (0..63)
+
+"PCA_0xNN"  — PCA9555 I²C expander at address 0xNN
+  port = 0 or 1 (which 8-bit port), bit = 0..7
+
+"TM1637"    — TM1637 key scanning
+  port = PIN(x) for CLK, bit = key index
+
+"NONE"      — Virtual/placeholder (for neutral positions, disabled controls)
+
+5.3 CONTROL TYPES
+-----------------
+"momentary"     — Press/release button
+"selector"      — Multi-position switch (uses group for mutual exclusivity)
+"analog"        — Continuous potentiometer/axis
+"variable_step" — Encoder increment/decrement
+"fixed_step"    — Fixed increment pulses
+
+5.4 PIN(x) MACRO
+----------------
+Use PIN(x) for GPIO assignments. This macro handles board-specific pin mapping.
+Example: PIN(4) remains 4 on S2, may become 5 on S3 depending on board layout.
+
+5.5 SELECTOR GROUPS
+-------------------
+All positions of the same switch must share a non-zero group ID.
+The firmware enforces mutual exclusivity within a group.
+Use group = 0 for standalone buttons.
+
+5.6 EXAMPLE PATTERNS
+--------------------
+Momentary button on GPIO:
+{ "FIRE_BTN", "GPIO", PIN(5), 0, -1, "FIRE_BTN", 1, "momentary", 0 },
+
+Three-position selector on HC165 with neutral:
+{ "SW_UP",   "HC165", 0, 11, -1, "MY_SW", 2, "selector", 4 },
+{ "SW_MID",  "HC165", 0, -1, -1, "MY_SW", 1, "selector", 4 }, // bit=-1: neutral
+{ "SW_DOWN", "HC165", 0, 12, -1, "MY_SW", 0, "selector", 4 },
+
+One-hot GPIO selector:
+{ "MODE_0", "GPIO", PIN(33), -1, -1, "MODE_SW", 0, "selector", 21 },
+{ "MODE_1", "GPIO", PIN(21), -1, -1, "MODE_SW", 1, "selector", 21 },
+
+Analog potentiometer:
+{ "VOL_KNOB", "GPIO", PIN(4), 0, -1, "VOL", 65535, "analog", 0 },
+
+Rotary encoder:
+{ "VOL_DEC", "GPIO", PIN(12), 0, -1, "VOL", 0, "variable_step", 0 },
+{ "VOL_INC", "GPIO", PIN(13), 0, -1, "VOL", 1, "variable_step", 0 },
+
+PCA9555 input:
+{ "MASTER_ARM", "PCA_0x5B", 0, 2, -1, "MASTER_ARM", 1, "momentary", 0 },
+
+================================================================================
+SECTION 6: LEDMAPPING.H — OUTPUT CONFIGURATION
+================================================================================
+
+6.1 STRUCT DEFINITION
+---------------------
+enum LEDDeviceType {
+  DEVICE_GPIO,
+  DEVICE_TM1637,
+  DEVICE_PCA9555,
+  DEVICE_WS2812,
+  DEVICE_GN1640T,
+  DEVICE_NONE,
+  DEVICE_GAUGE,
+};
+
+struct LEDMapping {
+  const char* label;          // DCS-BIOS label this LED responds to
+  LEDDeviceType deviceType;   // Which driver controls this LED
+  union {
+    struct { uint8_t gpio; } gpioInfo;
+    struct { uint8_t gpio; uint16_t minPulse; uint16_t maxPulse; uint16_t period; } gaugeInfo;
+    struct { uint8_t address; uint8_t port; uint8_t bit; } pcaInfo;
+    struct { uint8_t clkPin; uint8_t dioPin; uint8_t segment; uint8_t bit; } tm1637Info;
+    struct { uint8_t address; uint8_t column; uint8_t row; } gn1640Info;
+    struct { uint8_t index; uint8_t pin; uint8_t defR; uint8_t defG; uint8_t defB; uint8_t defBright; } ws2812Info;
+  } info;
+  bool dimmable;   // true if brightness can vary
+  bool activeLow;  // true if ON = logic LOW (ignored for WS2812/TM1637)
+};
+
+6.2 DEVICE TYPE DETAILS
+-----------------------
+DEVICE_GPIO:
+  .gpioInfo = { gpio_pin }
+  dimmable = true enables PWM
+  activeLow = true if wired to VCC (ON = LOW)
+
+DEVICE_WS2812:
+  .ws2812Info = { index, pin, defR, defG, defB, defBright }
+  index: LED position on strip (0-based) — MUST BE FIRST FIELD
+  pin: data pin for the strip
+  defR/G/B: default color (0-255)
+  defBright: default brightness (0-255)
+  dimmable = true for intensity-controllable entries
+
+DEVICE_TM1637:
+  .tm1637Info = { clkPin, dioPin, segment, bit }
+  segment/bit: position within the TM1637's LED matrix
+
+DEVICE_PCA9555:
+  .pcaInfo = { i2c_address, port, bit }
+  port: 0 or 1, bit: 0-7
+
+DEVICE_GN1640T:
+  .gn1640Info = { address, column, row }
+  Matrix position for GN1640 LED driver
+
+DEVICE_GAUGE:
+  .gaugeInfo = { gpio, minPulse, maxPulse, period }
+  For servo-driven analog gauges
+  Typical values: minPulse=1000, maxPulse=2000, period=20000 (50Hz)
+
+DEVICE_NONE:
+  Placeholder, not connected to hardware
+
+6.3 EXAMPLE PATTERNS
+--------------------
+GPIO LED:
+{ "SPIN_LT", DEVICE_GPIO, { .gpioInfo = { PIN(34) } }, false, false },
+
+Dimmable GPIO LED:
+{ "BACKLIGHT", DEVICE_GPIO, { .gpioInfo = { PIN(6) } }, true, false },
+
+WS2812 LED:
+{ "LOCK_LIGHT", DEVICE_WS2812,
+  { .ws2812Info = { 0, PIN(12), 0, 255, 0, 255 } },
+  false, false },
+
+TM1637 indicator:
+{ "LH_ADV_GO", DEVICE_TM1637,
+  { .tm1637Info = { PIN(37), PIN(39), 0, 0 } },
+  false, false },
+
+PCA9555 LED:
+{ "ARM_LT", DEVICE_PCA9555,
+  { .pcaInfo = { 0x5B, 1, 3 } },
+  false, true }, // activeLow
+
+Servo gauge:
+{ "FUEL_QTY", DEVICE_GAUGE,
+  { .gaugeInfo = { PIN(10), 1000, 2000, 20000 } },
+  true, false },
+
+================================================================================
+SECTION 7: PANEL SYSTEM
+================================================================================
+
+7.1 PANELKIND ENUM
+------------------
+PanelKind is an enum that identifies each panel type. It's now auto-generated
+by generate_panelkind.py from src/Panels/*.cpp files.
+
+Two categories exist:
+1. PERMANENT ENTRIES: Auto-detected PCA panels (Brain, ECM, MasterARM)
+   - Detected at runtime via I²C scan
+   - No REGISTER_PANEL macro needed
+   - Use PanelRegistry_setPresent() to mark as present
+
+2. COMPILED ENTRIES: Panels with REGISTER_PANEL macro
+   - Detected at compile time via #if defined(HAS_XXX)
+   - Have init/loop/tick functions
+
+7.2 REGISTER_PANEL MACRO
+------------------------
+Syntax:
+REGISTER_PANEL(KIND, INIT, LOOP, DISP_INIT, DISP_LOOP, TICK, PRIORITY);
+
+Parameters:
+- KIND: Must match a PanelKind enum entry
+- INIT: void(*)() called on mission start, or nullptr
+- LOOP: void(*)() called every frame (~250Hz), or nullptr
+- DISP_INIT: void(*)() display initialization, or nullptr
+- DISP_LOOP: void(*)() display update loop, or nullptr
+- TICK: void(*)() per-frame tick for LED drivers, or nullptr
+- PRIORITY: uint8_t, lower runs first (default 100)
+
+7.3 PANEL_KIND METADATA COMMENT
+-------------------------------
+To give a panel a specific PanelKind identifier different from filename:
+Add in first 30 lines of .cpp file:
+  // PANEL_KIND: CA
+
+If no comment, filename (minus .cpp) is used.
+
+7.4 EXAMPLE PANEL STRUCTURE
+---------------------------
+// MyPanel.cpp
+// PANEL_KIND: MyPanel
+
+#include "../Globals.h"
+#include "../HIDManager.h"
+#include "../DCSBIOSBridge.h"
+
+#if defined(HAS_MY_PANEL)
+REGISTER_PANEL(MyPanel, MyPanel_init, MyPanel_loop, nullptr, nullptr, nullptr, 100);
+#endif
+
+void MyPanel_init() {
+    // Called on mission start
+}
+
+void MyPanel_loop() {
+    // Called every frame
+}
+
+7.5 PANELREGISTRY API
+---------------------
+void PanelRegistry_register(const PanelHooks& h);  // Auto-called by REGISTER_PANEL
+bool PanelRegistry_has(PanelKind k);               // Check if panel is present
+bool PanelRegistry_isActive(PanelKind k);          // Check if panel is active
+void PanelRegistry_setActive(PanelKind k, bool);   // Enable/disable at runtime
+void PanelRegistry_setPresent(PanelKind k, bool);  // For auto-detected PCA panels
+
+Iterators (called from main loop):
+void PanelRegistry_forEachInit();        // Call all init functions
+void PanelRegistry_forEachLoop();        // Call all loop functions
+void PanelRegistry_forEachDisplayInit(); // Call all disp_init functions
+void PanelRegistry_forEachDisplayLoop(); // Call all disp_loop functions
+void PanelRegistry_forEachTick();        // Call all tick functions
+
+7.6 PANEL LIFECYCLE
+-------------------
+Startup:
+1. setup()
+   ├── initMappings()         ← Validates mappings
+   ├── initializeDisplays()   ← Calls forEachDisplayInit()
+   ├── initializeLEDs()       ← Configures LED drivers
+   └── initializePanels(true) ← Calls forEachInit() (forced)
+
+2. loop()
+   └── panelLoop()
+       ├── PanelRegistry_forEachLoop()
+       ├── PanelRegistry_forEachDisplayLoop()
+       └── PanelRegistry_forEachTick()
+
+Mission Start (detected by DCS-BIOS):
+└── initializePanels(false) ← Re-syncs all panels
+
+================================================================================
+SECTION 8: COVERGATE SYSTEM — GUARDED CONTROLS
+================================================================================
+
+8.1 PURPOSE
+-----------
+CoverGate handles physically guarded controls — buttons/switches with
+protective covers that must open before the control can activate.
+
+8.2 BEHAVIOR SEQUENCE
+---------------------
+1. User presses guarded button
+2. CoverGate opens cover (sends COVER_LABEL = 1)
+3. Waits delay_ms (for animation)
+4. Sends actual action
+5. Waits close_delay_ms
+6. Closes cover (sends COVER_LABEL = 0)
+
+8.3 CONFIGURATION
+-----------------
+In Mappings.cpp:
+
+const CoverGateDef kCoverGates[] = {
+    // Guarded SELECTORS
+    { "ACTION_LABEL",    "RELEASE_LABEL",   "COVER_LABEL",  CoverGateKind::Selector,        open_delay, close_delay },
+    
+    // Guarded BUTTONS
+    { "FIRE_BTN",        nullptr,           "FIRE_COVER",   CoverGateKind::ButtonMomentary, 350,        300 },
+};
+
+8.4 COVERGATEKIND TYPES
+-----------------------
+Selector:        2-position guarded switch
+ButtonMomentary: Fire buttons, emergency buttons
+ButtonLatched:   Reserved for future use
+
+8.5 TIMING GUIDELINES
+---------------------
+Fire buttons:      open=300-400ms, close=250-350ms
+Emergency switches: open=400-600ms, close=400-600ms
+Selector switches:  open=500ms, close=500ms
+
+================================================================================
+SECTION 9: LATCHED BUTTONS
+================================================================================
+
+9.1 PURPOSE
+-----------
+Some DCS buttons toggle state (press=ON, press again=OFF) rather than
+being momentary. CockpitOS tracks these specially.
+
+9.2 CONFIGURATION
+-----------------
+In Mappings.cpp:
+
+const char* kLatchedButtons[] = {
+    "APU_FIRE_BTN",
+    "CMSD_JET_SEL_BTN",
+    "RWR_POWER_BTN",
+    // Add more as needed
+};
+
+9.3 CHECKING STATE
+------------------
+if (isToggleOn("APU_FIRE_BTN")) { /* button is latched ON */ }
+if (isCoverOpen("LEFT_FIRE_BTN_COVER")) { /* cover is open */ }
+
+================================================================================
+SECTION 10: CUTILS — HARDWARE ABSTRACTION LAYER
+================================================================================
+
+10.1 OVERVIEW
+-------------
+CUtils (lib/CUtils/) is the hardware abstraction layer. All hardware access
+goes through CUtils.h — panel code never accesses hardware directly.
+
+10.2 GPIO API
+-------------
+void GPIO_setAllLEDs(bool state);
+void GPIO_setDigital(uint8_t pin, bool activeHigh, bool state);
+void GPIO_setAnalog(uint8_t pin, bool activeLow, uint8_t intensity);
+void GPIO_offAnalog(uint8_t pin, bool activeLow);
+void preconfigureGPIO();
+
+10.3 WS2812 API
+---------------
+void WS2812_init();
+void WS2812_setLEDColor(uint8_t idx, CRGB color);
+void WS2812_allOn(CRGB color);
+void WS2812_allOff();
+void WS2812_tick();
+
+10.4 TM1637 API
+---------------
+void tm1637_init(TM1637Device& dev, uint8_t clk, uint8_t dio);
+uint8_t tm1637_readKeys(TM1637Device& dev);
+void tm1637_displaySingleLED(TM1637Device& dev, uint8_t grid, uint8_t seg, bool on);
+void tm1637_tick();
+void tm1637_allOn();
+void tm1637_allOff();
+
+10.5 GN1640T API
+----------------
+void GN1640_init(uint8_t clkPin, uint8_t dioPin);
+void GN1640_setLED(uint8_t row, uint8_t col, bool state);
+void GN1640_allOn();
+void GN1640_allOff();
+void GN1640_tick();
+
+10.6 PCA9555 API
+----------------
+void PCA9555_scanConnectedPanels();
+bool readPCA9555(uint8_t addr, byte& p0, byte& p1);
+void PCA9555_write(uint8_t addr, uint8_t port, uint8_t bit, bool state);
+void PCA9555_autoInitFromLEDMap(uint8_t addr);
+void PCA9555_allOn(uint8_t addr);
+void PCA9555_allOff(uint8_t addr);
+
+10.7 HC165 API
+--------------
+void HC165_init(uint8_t pinPL, uint8_t pinCP, uint8_t pinQH, uint8_t numBits);
+uint64_t HC165_read();
+
+10.8 ANALOG GAUGE API
+---------------------
+void AnalogG_registerGauge(uint8_t pin, int minPulseUs, int maxPulseUs);
+void AnalogG_set(uint8_t pin, uint16_t value);
+void AnalogG_tick();  // Call every 20ms
+
+================================================================================
+SECTION 11: HIDMANAGER — INPUT LOGIC LAYER
+================================================================================
+
+11.1 PURPOSE
+------------
+HIDManager handles all high-level input logic: button actions, selector
+groups, throttling, HID report construction, DCS/HID mode switching.
+
+11.2 KEY FUNCTIONS
+------------------
+void HIDManager_setNamedButton(const char* label, bool force, uint8_t value);
+void HIDManager_toggleIfPressed(const char* label);
+void HIDManager_moveAxis(HIDAxis axis, int16_t value);
+void HIDManager_commitDeferredReport(const char* reason);
+bool isModeSelectorDCS();  // Check if in DCS mode vs HID mode
+
+11.3 DCS COMMAND SENDING
+------------------------
+void sendDCSBIOSCommand(const char* label, uint16_t value, bool force);
+bool tryToSendDcsBiosMessage(const char* msg, const char* arg);
+
+================================================================================
+SECTION 12: DCSBIOSBRIDGE — PROTOCOL LAYER
+================================================================================
+
+12.1 PURPOSE
+------------
+DCSBIOSBridge handles the DCS-BIOS protocol: parsing incoming data stream,
+dispatching updates to subscribed handlers, managing command history.
+
+12.2 SUBSCRIPTION SYSTEM
+------------------------
+Panels can subscribe to data changes:
+
+subscribeToDisplayChange(label, callback);   // String data
+subscribeToSelectorChange(label, callback);  // Switch positions
+subscribeToLedChange(label, callback);       // Indicator states
+subscribeToMetadataChange(label, callback);  // Metadata values
+
+12.3 DATA ACCESS
+----------------
+bool isCoverOpen(const char* label);
+bool isToggleOn(const char* label);
+void setCoverState(const char* label, bool value);
+void setToggleState(const char* label, bool value);
+
+================================================================================
+SECTION 13: TRANSPORT MODES
+================================================================================
+
+13.1 AVAILABLE MODES (Config.h)
+-------------------------------
+USE_DCSBIOS_USB       = 1  // Native USB HID (S2/S3/P4 only, requires HID_Manager.py)
+USE_DCSBIOS_WIFI      = 1  // WiFi UDP (all ESP32 except H2)
+USE_DCSBIOS_SERIAL    = 1  // Serial CDC (legacy, requires socat)
+USE_DCSBIOS_BLUETOOTH = 1  // BLE (internal use only)
+
+Only ONE can be active at a time.
+
+13.2 USB HID MODE (RECOMMENDED)
+-------------------------------
+- Lowest latency, simplest setup
+- Requires HID_Manager.py on host PC
+- S3/P4: Set Tools → USB Mode → "USB-OTG (TinyUSB)"
+
+13.3 WIFI MODE
+--------------
+- Good for wireless panels
+- Configure WIFI_SSID and WIFI_PASS in Config.h
+- UDP multicast: 239.255.50.10:5010
+
+13.4 SERIAL MODE
+----------------
+- Legacy, requires socat bridge
+- Works on all ESP32 variants
+
+================================================================================
+SECTION 14: CONFIG.H — MASTER CONFIGURATION
+================================================================================
+
+14.1 TRANSPORT SELECTION
+------------------------
+USE_DCSBIOS_BLUETOOTH    0
+USE_DCSBIOS_WIFI         0
+USE_DCSBIOS_USB          0
+USE_DCSBIOS_SERIAL       1  // Default
+
+14.2 HARDWARE FEATURES
+----------------------
+ENABLE_TFT_GAUGES        0  // TFT display support
+ENABLE_PCA9555           0  // I²C expander support
+SEND_HID_AXES_IN_DCS_MODE 0 // Send HID axes even in DCS mode
+
+14.3 AXIS CALIBRATION
+---------------------
+MIDDLE_AXIS_THRESHOLD    64   // Center deadzone threshold
+UPPER_AXIS_THRESHOLD     128  // Upper deadzone threshold
+LOWER_AXIS_THRESHOLD     128  // Lower deadzone threshold
+CENTER_DEADZONE_INNER    256  // Entry threshold
+CENTER_DEADZONE_OUTER    384  // Exit threshold
+
+14.4 WIFI CONFIGURATION
+-----------------------
+WIFI_SSID               "TestNetwork"
+WIFI_PASS               "TestingOnly"
+
+14.5 DEBUG OPTIONS
+------------------
+DEBUG_ENABLED                    0
+VERBOSE_MODE                     0
+VERBOSE_MODE_SERIAL_ONLY         0
+VERBOSE_MODE_WIFI_ONLY           0
+DEBUG_PERFORMANCE                0
+DEBUG_PERFORMANCE_SHOW_TASKS     0
+PERFORMANCE_SNAPSHOT_INTERVAL_SECONDS 60
+DEBUG_ENABLED_FOR_PCA_ONLY       0
+DEBUG_ENABLED_FOR_HC165_ONLY     0
+DEBUG_ENABLED_FOR_TM1637_ONLY    0
+TEST_LEDS                        0  // Interactive LED testing menu
+IS_REPLAY                        0  // Simulated DCS stream playback
+
+14.6 TIMING CONSTANTS
+---------------------
+POLLING_RATE_HZ          250   // Input polling rate
+DISPLAY_REFRESH_RATE_HZ  60    // Display update rate
+DCS_UPDATE_RATE_HZ       30    // DCS-BIOS loop rate
+HID_REPORT_RATE_HZ       250   // HID report rate
+VALUE_THROTTLE_MS        50    // Debounce same value
+ANY_VALUE_THROTTLE_MS    33    // Debounce any value
+SELECTOR_DWELL_MS        250   // Selector stabilization time
+
+================================================================================
+SECTION 15: PINS.H — GPIO ASSIGNMENTS
+================================================================================
+
+15.1 PURPOSE
+------------
+Pins.h defines GPIO pin assignments that vary by board type and panel
+configuration. It uses preprocessor conditionals based on label set defines.
+
+15.2 COMMON DEFINITIONS
+-----------------------
+SDA_PIN / SCL_PIN           — I²C bus pins
+CA_CLK_PIN / CA_DIO_PIN     — Caution Advisory (GN1640T)
+HC165_* pins                — Shift register configuration
+TFT display pins            — Per-gauge SPI configuration
+
+15.3 LABEL SET CONDITIONALS
+---------------------------
+#if defined(HAS_LEFT_PANEL_CONTROLLER)
+  #define HC165_BITS 40
+  #define HC165_CONTROLLER_PL PIN(39)
+  ...
+#elif defined(HAS_ALR67)
+  #define HC165_BITS 8
+  ...
+#endif
+
+================================================================================
+SECTION 16: DISPLAY SYSTEM
+================================================================================
+
+16.1 DISPLAY TYPES
+------------------
+HT1622: Segment LCDs (IFEI, UFC) — use SegmentMap headers
+TFT: SPI displays via LovyanGFX (gauges, CMWS)
+TM1637: 7-segment numeric displays
+
+16.2 HT1622 SEGMENT DISPLAYS
+----------------------------
+Require SegmentMap header files that define which RAM address/bit controls
+each segment. Created using the RAM Walker tool.
+
+Segment order must match font table:
+[0]=TOP, [1]=TOP-RIGHT, [2]=BOT-RIGHT, [3]=BOTTOM,
+[4]=BOT-LEFT, [5]=TOP-LEFT, [6]=MIDDLE
+
+16.3 TFT DISPLAYS
+-----------------
+Use LovyanGFX library
+Exception to no-heap rule: sprites may use dynamic memory
+Run as FreeRTOS tasks for performance isolation
+Reference implementation: TFT_Display_CMWS.cpp
+
+16.4 DISPLAY SUBSCRIPTION
+-------------------------
+Panels subscribe to display data from DCS-BIOS:
+
+bool registerDisplayBuffer(const char* label, char* buf, uint8_t len,
+                          bool* dirtyFlag, char* last);
+
+================================================================================
+SECTION 17: DEBUGGING & PERFORMANCE
+================================================================================
+
+17.1 DEBUG OUTPUT
+-----------------
+Use debugPrintf() and debugPrintln() — NEVER Serial.print()
+Output routes to Serial or WiFi UDP based on config.
+
+17.2 WIFI DEBUG
+---------------
+Enable DEBUG_USE_WIFI = 1 in Config.h
+Sends debug output via UDP for remote monitoring
+
+17.3 IS_REPLAY MODE
+-------------------
+Set IS_REPLAY = 1 to test with simulated DCS stream
+Uses header file with captured binary data
+Useful for debugging without DCS connection
+
+17.4 PERFMONITOR
+----------------
+PerfMonitor.h is the ONLY Core file users can edit
+Add custom profiling labels:
+
+enum PerfLabel { ..., PERF_MY_PANEL, ... };
+
+In panel code:
+beginProfiling(PERF_MY_PANEL);
+// ... code to measure ...
+endProfiling(PERF_MY_PANEL);
+
+Enable with DEBUG_PERFORMANCE = 1
+
+17.5 COMMON DEBUG SCENARIOS
+---------------------------
+PCA9555 debugging:  DEBUG_ENABLED_FOR_PCA_ONLY = 1
+HC165 debugging:    DEBUG_ENABLED_FOR_HC165_ONLY = 1
+TM1637 debugging:   DEBUG_ENABLED_FOR_TM1637_ONLY = 1
+LED testing:        TEST_LEDS = 1 (interactive menu)
+
+================================================================================
+SECTION 18: BEST PRACTICES
+================================================================================
+
+18.1 PANEL CODE GUIDELINES
+--------------------------
+DO:
+- Use HIDManager_setNamedButton() for all button/selector actions
+- Use static variables for state (no heap allocation)
+- Check #if defined(HAS_YOUR_PANEL) to gate compilation
+- Use debugPrintf() for logging
+- Keep loop functions fast (<1ms typical)
+
+DON'T:
+- Use delay() — it blocks the entire system
+- Allocate with new or malloc
+- Access hardware directly without going through CUtils
+- Duplicate logic that's already in Generic.cpp
+
+18.2 WHEN TO CREATE CUSTOM PANEL
+--------------------------------
+Standard buttons/switches:  Use InputMapping + Generic.cpp
+Standard LEDs:             Use LEDMapping + appropriate tick
+Complex state machine:     Create custom panel
+Custom hardware protocol:  Create custom panel
+Display with subscriptions: Create custom panel
+
+18.3 COMMAND SPACING
+--------------------
+DCS-BIOS can handle ~30 commands/second safely.
+Use VALUE_THROTTLE_MS and ANY_VALUE_THROTTLE_MS for debouncing.
+
+18.4 INPUT DEBOUNCING
+---------------------
+Mechanical switches: 4-20ms debounce
+Encoders: handled by variable_step type
+Selectors: use SELECTOR_DWELL_MS
+
+================================================================================
+SECTION 19: HID_MANAGER.PY — HOST APPLICATION
+================================================================================
+
+19.1 PURPOSE
+------------
+Python application that bridges USB HID communication between ESP32 panels
+and DCS-BIOS. Replaces legacy Serial/CDC + socat approach.
+
+19.2 FEATURES
+-------------
+- Near-zero CPU usage (~0% idle, <1% active)
+- Native USB HID — no serial drivers required
+- Multi-device support (up to 32 panels)
+- Automatic device discovery and hot-plug
+- Cross-platform (Windows, Linux, Raspberry Pi)
+
+19.3 REQUIREMENTS
+-----------------
+Python 3.8+
+pip install hidapi filelock
+Windows: pip install windows-curses
+
+19.4 CONFIGURATION (settings.ini)
+---------------------------------
+[USB]
+VID = 0xCAFE          ; Vendor ID (must match firmware)
+
+[DCS]
+UDP_SOURCE_IP = 127.0.0.1
+
+[MAIN]
+CONSOLE = 1
+
+19.5 THREAD MODEL
+-----------------
+UDP RX:        Receive DCS-BIOS frames (blocking recvfrom)
+Device RX ×N:  Read input triggers (blocking hid.read)
+Device TX ×N:  Write HID reports (Condition.wait)
+Hotplug:       Detect connect/disconnect (sleep polling)
+Stats:         Calculate Hz, bandwidth (sleep polling)
+UI:            Console rendering (getch timeout)
+
+================================================================================
+SECTION 20: QUICK REFERENCE TABLES
+================================================================================
+
+20.1 FILE LOCATIONS
+-------------------
+Main sketch:       CockpitOS.ino
+Configuration:     Config.h
+Pin assignments:   Pins.h
+Panel definitions: Mappings.h, Mappings.cpp
+Label sets:        src/LABELS/LABEL_SET_*/
+Panel code:        src/Panels/*.cpp
+HAL drivers:       lib/CUtils/src/internal/*.cpp
+Core modules:      src/Core/*.cpp
+
+20.2 CONTROL TYPES
+------------------
+momentary      Button press/release
+selector       Multi-position switch (use group)
+analog         Continuous potentiometer
+variable_step  Encoder increment/decrement
+fixed_step     Fixed increment pulses
+
+20.3 DEVICE TYPES
+-----------------
+DEVICE_GPIO     Direct GPIO LED
+DEVICE_WS2812   Addressable RGB LED
+DEVICE_TM1637   7-segment display/LED
+DEVICE_PCA9555  I²C expander output
+DEVICE_GN1640T  LED matrix driver
+DEVICE_GAUGE    Servo motor gauge
+DEVICE_NONE     Placeholder
+
+20.4 HAS_* DEFINES AND THEIR PANELS
+-----------------------------------
+(always):           Generic
+HAS_MAIN:           LA, RA, LockShoot
+HAS_CUSTOM_RIGHT:   CA, WingFold, TFTRadarAlt, TFTHyd
+HAS_IFEI:           IFEI, JETTSEL
+HAS_ALR67:          TFTCabPress
+HAS_RIGHT_PANEL_CONTROLLER: TFTBatt
+
+20.5 GENERATOR SCRIPTS
+----------------------
+generate_data.py    Main generator, runs from label set folder
+display_gen.py      Display-specific generation
+reset_data.py       Clean auto-generated files
+generate_panelkind.py  Generate PanelKind.h (run from CockpitOS root)
+
+================================================================================
+SECTION 21: TROUBLESHOOTING GUIDE
+================================================================================
+
+21.1 COMPILATION ERRORS
+-----------------------
+"undefined reference":
+- Run python generate_data.py in your label set folder
+
+"PIN not declared":
+- Ensure #include "Config.h" is present
+
+"Duplicate label":
+- Each label in InputMapping/LEDMapping must be unique
+
+21.2 RUNTIME ISSUES
+-------------------
+"LED label not found":
+- Labels are case-sensitive, check LEDMapping.h
+
+"TM1637: no device for CLK/DIO":
+- Ensure at least one TM1637 entry exists in LEDMapping.h
+
+Selector not responding:
+- Check all positions share same group ID
+- Verify fallback position has bit=-1
+
+LED always on/off:
+- Check activeLow flag matches hardware wiring
+
+21.3 USB/CONNECTION ISSUES
+--------------------------
+Device not detected:
+- Verify VID matches (0xCAFE default)
+- Try different USB cable (must be data-capable)
+- Try different USB port
+
+Handshake fails:
+- Ensure USE_DCSBIOS_USB = 1 in Config.h
+- Power cycle device
+- Press RST button after upload
+
+21.4 DCS CONNECTION ISSUES
+--------------------------
+No response from DCS:
+- Verify DCS-BIOS is installed and running
+- Check transport configuration matches setup
+- Ensure aircraft JSON matches current aircraft
+
+================================================================================
+END OF INSTRUCTION SET
+================================================================================
+
+This document covers the complete CockpitOS system. An LLM with this knowledge
+should be able to:
+
+1. Explain any architectural concept in detail
+2. Guide users through setup and configuration
+3. Help create custom label sets and panels
+4. Troubleshoot hardware and software issues
+5. Provide code examples for any use case
+6. Explain the relationship between CockpitOS and DCS-BIOS
+
+For the most current information, always reference:
+- GitHub: https://github.com/BojoteX/CockpitOS
+- DCS-BIOS: https://github.com/DCS-Skunkworks/dcs-bios
+
+================================================================================

@@ -14,6 +14,7 @@ This guide covers advanced topics for users who want to create custom panels, im
 6. [Latched Buttons](#6-latched-buttons)
 7. [Panel Lifecycle](#7-panel-lifecycle)
 8. [Best Practices](#8-best-practices)
+9. [METADATA Directory (Advanced)](#9-metadata-directory-advanced)
 
 ---
 
@@ -572,6 +573,67 @@ void MyPanel_loop() {
 
 ---
 
+## 9. METADATA Directory (Advanced)
+
+Each Label Set can include a `METADATA/` subdirectory containing JSON overlay files. These allow you to customize, extend, or correct control definitions without modifying the base aircraft JSON.
+
+### 9.1 Use Cases
+
+- **Fix incorrect DCS-BIOS definitions** — Override addresses or masks
+- **Add custom controls** — Define controls not in the standard JSON
+- **Extend panel definitions** — Add metadata for custom hardware
+- **Per-build customization** — Different settings for different cockpit builds
+
+### 9.2 Directory Structure
+
+```
+src/LABELS/LABEL_SET_MYCOCKPIT/
+├── METADATA/
+│   ├── panel_overrides.json      ← Your custom overlays
+│   └── custom_controls.json
+├── selected_panels.txt
+├── InputMapping.h
+└── ...
+```
+
+### 9.3 How It Works
+
+When `generate_data.py` runs:
+
+1. Loads the base aircraft JSON (e.g., `FA-18C_hornet.json`)
+2. Scans the `METADATA/` directory for `.json` files
+3. Deep-merges overlays into the base definitions
+4. Generates mappings from the merged result
+
+### 9.4 Example Override
+
+To fix an incorrect address for a control:
+
+```json
+{
+  "My Panel": {
+    "BROKEN_SWITCH": {
+      "outputs": [{
+        "address": 12345,
+        "mask": 255,
+        "shift_by": 0
+      }]
+    }
+  }
+}
+```
+
+This overrides only the specified fields — all other properties remain from the base JSON.
+
+### 9.5 Best Practices
+
+- Use descriptive filenames (`rwr_fixes.json`, `custom_gauges.json`)
+- Document your changes with comments in the JSON (use `"_comment": "..."`)
+- Keep overlays minimal — only override what's necessary
+- Version control your METADATA directory with your label set
+
+---
+
 ## Summary
 
 | Topic | Key File(s) | Purpose |
@@ -581,6 +643,7 @@ void MyPanel_loop() {
 | CoverGate config | `Mappings.cpp` | kCoverGates[] table |
 | Latched buttons | `Mappings.cpp` | kLatchedButtons[] table |
 | CoverGate logic | `src/Core/CoverGate.cpp` | State machine for covered controls |
+| METADATA overlays | `LABEL_SET_XXX/METADATA/` | JSON customizations per label set |
 | Reference panels | `src/Panels/*.cpp` | Study existing implementations |
 
 **Next steps:**

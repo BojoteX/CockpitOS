@@ -1366,6 +1366,36 @@ with open(active_set_path, "w", encoding="utf-8") as f:
     f.write(f"#define LABEL_SET {_ls_name}\n")
 print(f"[✓] Created ../active_set.h with LABEL_SET {_ls_name}")
 
+
+
+
+
+
+
+
+
+# --- Call generate_panelkind.py from root ---
+import subprocess
+root_dir = os.path.abspath(os.path.join(current_dir, "..", "..", ".."))
+panelkind_script = os.path.join(root_dir, "generate_panelkind.py")
+
+if os.path.exists(panelkind_script):
+    print("\n" + "=" * 60)
+    print("Running generate_panelkind.py to update PanelKind.h...")
+    print("=" * 60)
+    result = subprocess.run([sys.executable, panelkind_script], cwd=root_dir)
+    if result.returncode != 0:
+        print("⚠️ Warning: generate_panelkind.py returned non-zero exit code")
+else:
+    print(f"⚠️ Warning: Could not find {panelkind_script}")
+# --- End generate_panelkind.py call ---
+
+
+
+
+
+
+
 # Press ENTER to exit
 input("\nPress <ENTER> to exit...")
 sys.exit(1)

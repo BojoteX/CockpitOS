@@ -17,6 +17,7 @@ enum class PanelKind : uint8_t {
     Brain,                   // Auto-detected PCA at 0x26 (runtime)
     ECM,                     // Auto-detected PCA at 0x22 (runtime)
     MasterARM,               // Auto-detected PCA at 0x5B (runtime)
+    AnalogGauge,             // Auto-detected when DEVICE_GAUGE in LEDMapping
 
     // ===== Compiled panels (auto-generated from src/Panels/*.cpp) =====
     CA,                      // PANEL_KIND in CautionAdvisory.cpp

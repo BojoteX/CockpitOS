@@ -13,36 +13,7 @@
 // All other button/cover logic is handled automatically unless you require custom overrides.
 // ==============================================================================================================
 
-enum class PanelKind : uint8_t {
-  Brain, 
-  ECM, 
-  MasterARM, 
-  IFEI, 
-  ALR67, 
-  CA, 
-  LA, 
-  RA, 
-  JETTSEL,
-  IR, 
-  LockShoot,
-  TFTBatt, 
-  TFTCabPress, 
-  TFTBrake, 
-  TFTHyd, 
-  TFTRadarAlt,
-  TFTCmws,
-  RightPanelCtl, 
-  LeftPanelCtl, 
-  FrontLeft, 
-  CustomFrontRight,
-  Generic,
-  AnalogGauge,
-  KY58,
-  WingFold,
-  COUNT
-};
-static_assert(static_cast<uint8_t>(PanelKind::COUNT) <= 32,
-			  "Switch mask to 64-bit if you add more kinds");
+#include "src/Generated/PanelKind.h"
 
 // Give your PCA custom panel a basic short name and address where it is located (use the I2C scanner in Tools) 
 enum class PanelID : uint8_t { 

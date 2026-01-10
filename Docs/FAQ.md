@@ -170,6 +170,9 @@ Heap allocation can cause fragmentation, unpredictable timing, and memory exhaus
 **Compilation fails with "undefined reference"**  
 Usually means a label set file is missing or not generated. Run `python generate_data.py` in your label set folder.
 
+**How do I test without DCS running?**  
+Set `IS_REPLAY = 1` in `Config.h` to enable stream replay mode. This plays back a captured DCS-BIOS stream from a header file, letting you test panel behavior without connecting to DCS. Use the tools in `Debug Tools/` to generate replay data from captured streams.
+
 **No response from DCS**  
 1. Verify DCS-BIOS is installed and running
 2. Check transport configuration matches your setup
@@ -208,6 +211,19 @@ In `src/Panels/`. Copy an existing panel as a template. Register it with the `RE
 
 **How do I send commands to DCS?**  
 Use `sendDCSBIOSCommand(label, value, force)`. CockpitOS handles throttling and transport automatically.
+
+**How do I profile performance?**  
+`PerfMonitor.h` in `src/Core/` is the **only Core file you're expected to edit**. Add custom profiling labels to measure your panel's timing:
+```cpp
+// In PerfMonitor.h, add your label
+enum PerfLabel { ..., PERF_MY_PANEL, ... };
+
+// In your panel code
+beginProfiling(PERF_MY_PANEL);
+// ... your code ...
+endProfiling(PERF_MY_PANEL);
+```
+The performance snapshot (enabled via `DEBUG_PERFORMANCE = 1` in Config.h) will include your custom measurements.
 
 **Can I contribute to CockpitOS?**  
 Yes! The project is open source under MIT license. Submit issues and pull requests on GitHub.
