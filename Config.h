@@ -26,7 +26,7 @@
 #define SEND_HID_AXES_IN_DCS_MODE                   0 // Sends HID Axes even if DCS Mode is active
 #define MIDDLE_AXIS_THRESHOLD                      64 // Adjust if your Middle Axis won't stick to center (optimal should be 32-64) but noisy axes require 128-256
 #define UPPER_AXIS_THRESHOLD                      128 // Adjust if your Upper Axis won't stick to max (optimal should be 32-64) but noisy axes require 128-256
-#define LOWER_AXIS_THRESHOLD                      128 // Adjust if your Lower Axis won't stick to min (optimal should be 32-64) but noisy axes require 128-256
+#define LOWER_AXIS_THRESHOLD                      256 // Adjust if your Lower Axis won't stick to min (optimal should be 32-64) but noisy axes require 128-256
 #define CENTER_DEADZONE_INNER                     256 // Entry threshold — easy to enter
 #define CENTER_DEADZONE_OUTER                     384 // Exit threshold — must move further to escape
 

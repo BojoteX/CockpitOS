@@ -75,6 +75,7 @@ For USB mode, run `HID Manager/HID_Manager.py` on your PC to bridge to DCS-BIOS.
 | [Advanced Displays](Docs/ADVANCED_DISPLAYS.md) | HT1622 segment displays, TFT gauges |
 | [Advanced Controls](Docs/ADVANCED_CONTROLS.md) | Custom panels, CoverGate, panel registration |
 | [FAQ](Docs/FAQ.md) | Common questions and answers |
+| [LLM Docs](Docs/COCKPITOS_LLM_INSTRUCTION_SET.txt) | LLM friendly docs for AI assistants |
 
 ---
 
