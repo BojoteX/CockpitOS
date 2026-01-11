@@ -143,12 +143,13 @@ extern const DisplayBufferHashEntry CT_DisplayBufferHash[];
 const DisplayBufferEntry* findDisplayBufferByLabel(const char* label);
 
 
-// --- Forward declarations for opaque driver pointer types ---
-typedef void* DisplayDriverPtr;
+    // --- Forward declarations for opaque driver pointer types ---
+    typedef void* DisplayDriverPtr;
 
-// --- Forward declaration for field def struct (real type in DisplayMapping.h) ---
-struct DisplayFieldDefLabel;
-struct FieldState;
+    // --- Forward declaration for field def struct (real type in DisplayMapping.h) ---
+    struct DisplayFieldDefLabel;
+    struct FieldState;
 
-void renderField(const char* label, const char* value, const DisplayFieldDefLabel* defOverride = nullptr, FieldState* stateOverride = nullptr);
+    void renderField(const char* label, const char* value, const DisplayFieldDefLabel* defOverride = nullptr, FieldState* stateOverride = nullptr);
 
+    
