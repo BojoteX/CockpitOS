@@ -39,8 +39,7 @@ Install from https://github.com/DCS-Skunkworks/dcs-bios/releases
 ## 2) Get CockpitOS
 
 1. Download from https://github.com/BojoteX/CockpitOS/releases/
-2. Unzip to `My Documents\Arduino\CockpitOS\`
-(example):
+2. Unzip to `My Documents\Arduino\CockpitOS\` (example):
    - `My Documents\Arduino\CockpitOS\CockpitOS.ino` (Make sure the directory structure matches this)
 3. Confirm you see:
    - `CockpitOS.ino`
