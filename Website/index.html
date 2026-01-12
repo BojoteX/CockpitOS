@@ -1,0 +1,1867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CockpitOS — ESP32 Firmware for DCS World Cockpit Panels</title>
+    <meta name="description" content="Connect physical cockpit hardware to DCS World via DCS-BIOS protocol. ESP32 firmware supporting buttons, switches, encoders, LEDs, TFT displays, and segment displays.">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ═══════════════════════════════════════════════════════════════════════
+           CSS VARIABLES — COCKPIT THEME
+           ═══════════════════════════════════════════════════════════════════════ */
+        :root {
+            /* Core palette */
+            --bg-primary: #0a0c0f;
+            --bg-secondary: #0f1215;
+            --bg-tertiary: #151a1f;
+            --bg-card: #1a1f25;
+            --bg-elevated: #222932;
+            
+            /* Amber cockpit accent */
+            --accent-primary: #ff9500;
+            --accent-secondary: #ffb347;
+            --accent-glow: rgba(255, 149, 0, 0.4);
+            --accent-dim: rgba(255, 149, 0, 0.15);
+            
+            /* Status colors */
+            --success: #00ff88;
+            --success-dim: rgba(0, 255, 136, 0.2);
+            --warning: #ffcc00;
+            --error: #ff4444;
+            --info: #00aaff;
+            
+            /* Text */
+            --text-primary: #e8eaed;
+            --text-secondary: #9aa0a6;
+            --text-tertiary: #5f6368;
+            --text-accent: var(--accent-primary);
+            
+            /* Borders & lines */
+            --border-primary: rgba(255, 255, 255, 0.08);
+            --border-accent: rgba(255, 149, 0, 0.3);
+            --border-glow: rgba(255, 149, 0, 0.5);
+            
+            /* Typography */
+            --font-display: 'Orbitron', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --font-body: 'Barlow', sans-serif;
+            
+            /* Spacing */
+            --section-padding: clamp(4rem, 10vw, 8rem);
+            --container-max: 1400px;
+            --grid-gap: 2rem;
+            
+            /* Effects */
+            --transition-fast: 150ms ease;
+            --transition-medium: 300ms ease;
+            --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+            
+            /* Scanline effect */
+            --scanline-opacity: 0.05;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════
+           RESET & BASE
+           ═══════════════════════════════════════════════════════════════════════ */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 80px; /* OFFSET FOR STICKY HEADER */
+            font-size: 16px;
+        }
+        
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        ::selection {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════
+           TYPOGRAPHY
+           ═══════════════════════════════════════════════════════════════════════ */
+        h1, h2 {
+            font-family: var(--font-display);
+            font-weight: 600;
+            line-height: 1.1;
+            letter-spacing: 0.02em;
+        }
+
+        /* V2 CHANGE: Use Barlow for smaller headers for better readability */
+        h3, h4, h5, h6 {
+            font-family: var(--font-body);
+            font-weight: 700;
+            line-height: 1.3;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+        
+        h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); }
+        h2 { font-size: clamp(1.8rem, 4vw, 3rem); }
+        h3 { font-size: clamp(1.2rem, 2.5vw, 1.5rem); }
+        h4 { font-size: clamp(1rem, 2vw, 1.25rem); }
+        
+        p {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            max-width: 70ch; /* OPTIMIZED LINE LENGTH */
+        }
+        
+        a {
+            color: var(--accent-primary);
+            text-decoration: none;
+            transition: color var(--transition-fast);
+        }
+        
+        a:hover {
+            color: var(--accent-secondary);
+        }
+        
+        code, .mono {
+            font-family: var(--font-mono);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════
+           LAYOUT
+           ═══════════════════════════════════════════════════════════════════════ */
+        .container {
+            width: 100%;
+            max-width: var(--container-max);
+            margin: 0 auto;
+            padding: 0 clamp(1.5rem, 4vw, 3rem);
+        }
+        
+        section {
+            padding: var(--section-padding) 0;
+            position: relative;
+        }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+        
+        .section-header h2 {
+            margin-bottom: 1rem;
+        }
+        
+        .section-header p {
+            margin: 0 auto;
+            font-size: 1.15rem;
+        }
+        
+        .label {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--accent-primary);
+            margin-bottom: 0.75rem;
+            padding: 0.35rem 0.75rem;
+            background: var(--accent-dim);
+            border: 1px solid var(--border-accent);
+            border-radius: 2px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════
+           NAVIGATION
+           ═══════════════════════════════════════════════════════════════════════ */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(10, 12, 15, 0.9);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-primary);
+            transition: all var(--transition-medium);
+        }
+        
+        nav .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 70px;
+        }
+        
+        .logo {
+            font-family: var(--font-display);
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--bg-primary);
+            box-shadow: 0 0 15px var(--accent-dim);
+        }
+        
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 2.5rem;
+            list-style: none;
+        }
+        
+        .nav-links a {
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.5rem 0;
+            position: relative;
+        }
+        
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--accent-primary);
+            transition: width var(--transition-medium);
+            box-shadow: 0 0 8px var(--accent-primary);
+        }
+        
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+        
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        /* V2 CHANGE: Active state class for JS ScrollSpy */
+        .nav-links a.active {
+            color: var(--text-primary);
+        }
+        .nav-links a.active::after {
+            width: 100%;
+        }
+        
+        .nav-cta {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            padding: 0.6rem 1.25rem;
+            background: var(--accent-primary);
+            color: var(--bg-primary) !important;
+            border-radius: 3px;
+            font-weight: 700;
+            transition: all var(--transition-fast);
+        }
+        
+        .nav-cta:hover {
+            background: var(--accent-secondary);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+        
+        .nav-cta::after {
+            display: none !important;
+        }
+
+        /* Mobile nav toggle */
+        .nav-toggle {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+        
+        .nav-toggle span {
+            width: 24px;
+            height: 2px;
+            background: var(--text-primary);
+            transition: all var(--transition-fast);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════
+           HERO SECTION
+           ═══════════════════════════════════════════════════════════════════════ */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding-top: 70px;
+            overflow: hidden;
+        }
+
+        /* V2 CHANGE: Scanlines SCOPED to Hero Only */
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, var(--scanline-opacity)) 2px,
+                rgba(0, 0, 0, var(--scanline-opacity)) 4px
+            );
+        }
+        
+        .hero-bg {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .hero-grid {
+            position: absolute;
+            inset: -50%;
+            background-image: 
+                linear-gradient(var(--border-primary) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border-primary) 1px, transparent 1px);
+            background-size: 60px 60px;
+            transform: perspective(500px) rotateX(60deg);
+            animation: gridMove 20s linear infinite;
+        }
+        
+        @keyframes gridMove {
+            0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+            100% { transform: perspective(500px) rotateX(60deg) translateY(60px); }
+        }
+        
+        .hero-gradient {
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255, 149, 0, 0.05), transparent 70%),
+                radial-gradient(circle at 30% 80%, rgba(0, 170, 255, 0.08), transparent 40%),
+                linear-gradient(to bottom, transparent, var(--bg-primary) 90%);
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            max-width: 900px;
+            padding: 0 2rem;
+        }
+        
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--success);
+            background: var(--success-dim);
+            padding: 0.5rem 1rem;
+            border-radius: 100px;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.8s ease forwards;
+        }
+        
+        .hero-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--success);
+            animation: pulse 2s ease infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+        
+        .hero h1 {
+            margin-bottom: 1.5rem;
+            animation: fadeInUp 0.8s ease 0.1s forwards;
+            opacity: 0;
+        }
+        
+        .hero h1 span {
+            display: block;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255, 149, 0, 0.2);
+        }
+        
+        .hero-description {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            margin-bottom: 2.5rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            animation: fadeInUp 0.8s ease 0.2s forwards;
+            opacity: 0;
+        }
+        
+        .hero-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: fadeInUp 0.8s ease 0.3s forwards;
+            opacity: 0;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 1rem 2rem;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: all var(--transition-medium);
+            text-decoration: none;
+        }
+        
+        .btn-primary {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent-secondary);
+            color: var(--bg-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px var(--accent-glow);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-primary);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--bg-card);
+            border-color: var(--border-accent);
+            color: var(--accent-primary);
+        }
+        
+        /* Hero stats */
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 4rem;
+            margin-top: 4rem;
+            padding-top: 3rem;
+            border-top: 1px solid var(--border-primary);
+            animation: fadeInUp 0.8s ease 0.4s forwards;
+            opacity: 0;
+        }
+        
+        .hero-stat {
+            text-align: center;
+        }
+        
+        .hero-stat-value {
+            font-family: var(--font-display);
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            display: block;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+        
+        .hero-stat-label {
+            font-size: 0.85rem;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 500;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════
+           DATA FLOW SECTION
+           ═══════════════════════════════════════════════════════════════════════ */
+        .dataflow {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-primary);
+            border-bottom: 1px solid var(--border-primary);
+        }
+        
+        .dataflow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            flex-wrap: wrap;
+            margin-top: 3rem;
+        }
+        
+        .dataflow-node {
+            position: relative;
+            width: 180px;
+            text-align: center;
+        }
+        
+        .dataflow-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            padding: 1.5rem 1rem;
+            transition: all var(--transition-medium);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .dataflow-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--accent-primary);
+            transform: scaleX(0);
+            transition: transform var(--transition-medium);
+        }
+        
+        .dataflow-node:hover .dataflow-box {
+            border-color: var(--border-accent);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        .dataflow-node:hover .dataflow-box::before {
+            transform: scaleX(1);
+        }
+        
+        .dataflow-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 1rem;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .dataflow-box h4 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .dataflow-box p {
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
+        }
+        
+        /* Animated arrows between nodes */
+        .dataflow-arrow {
+            width: 60px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .dataflow-arrow::before {
+            content: '';
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+            animation: arrowPulse 1.5s ease infinite;
+        }
+        
+        .dataflow-arrow::after {
+            content: '';
+            position: absolute;
+            right: 8px;
+            width: 0;
+            height: 0;
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            border-left: 8px solid var(--accent-primary);
+            animation: arrowPulse 1.5s ease infinite;
+        }
+        
+        @keyframes arrowPulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+        
+        .dataflow-bidirectional {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-tertiary);
+            margin-top: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════
+           FEATURES SECTION
+           ═══════════════════════════════════════════════════════════════════════ */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: var(--grid-gap);
+        }
+        
+        .feature-card {
+            /* V2 CHANGE: Gradient/Glass Border Style */
+            background: linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+                        linear-gradient(145deg, rgba(255,255,255,0.08), transparent) border-box;
+            border: 1px solid transparent;
+            border-radius: 12px;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-medium);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        
+        .feature-card:hover {
+            background: linear-gradient(var(--bg-elevated), var(--bg-elevated)) padding-box,
+                        linear-gradient(145deg, var(--accent-primary), transparent) border-box;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        }
+        
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.25rem;
+            position: relative;
+            z-index: 1;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+        }
+        
+        .feature-card h3 {
+            margin-bottom: 0.75rem;
+            position: relative;
+            z-index: 1;
+            color: var(--text-primary);
+        }
+        
+        .feature-card p {
+            font-size: 0.95rem;
+            position: relative;
+            z-index: 1;
+            margin-bottom: 1.5rem;
+        }
+        
+        .feature-list {
+            list-style: none;
+            position: relative;
+            z-index: 1;
+            border-top: 1px solid var(--border-primary);
+            padding-top: 1rem;
+        }
+        
+        .feature-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            padding: 0.35rem 0;
+        }
+        
+        .feature-list li::before {
+            content: '›';
+            color: var(--accent-primary);
+            font-weight: 800;
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════
+           HARDWARE SECTION
+           ═══════════════════════════════════════════════════════════════════════ */
+        .hardware {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-primary);
+            border-bottom: 1px solid var(--border-primary);
+        }
+        
+        .hardware-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--grid-gap);
+        }
+        
+        .hardware-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform var(--transition-fast);
+        }
+
+        .hardware-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-accent);
+        }
+        
+        .hardware-header {
+            background: var(--bg-elevated);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .hardware-header h4 {
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            margin: 0;
+            color: var(--text-primary);
+        }
+        
+        .hardware-status {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+        
+        .hardware-status.recommended {
+            background: var(--success-dim);
+            color: var(--success);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+        
+        .hardware-status.supported {
+            background: var(--accent-dim);
+            color: var(--accent-primary);
+            border: 1px solid var(--border-accent);
+        }
+        
+        .hardware-body {
+            padding: 1.25rem 1.5rem;
+        }
+        
+        .hardware-body p {
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        
+        .hardware-specs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .hardware-spec {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            padding: 0.3rem 0.6rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 3px;
+            color: var(--text-secondary);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════
+           QUICKSTART SECTION
+           ═══════════════════════════════════════════════════════════════════════ */
+        .quickstart-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--grid-gap);
+            counter-reset: step;
+        }
+        
+        .quickstart-step {
+            position: relative;
+            padding: 2rem;
+            padding-left: 5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            counter-increment: step;
+            transition: border-color var(--transition-fast);
+        }
+
+        .quickstart-step:hover {
+            border-color: var(--border-primary); /* subtle highlighting handled by ::before */
+        }
+        
+        .quickstart-step::before {
+            content: counter(step);
+            position: absolute;
+            left: 1.5rem;
+            top: 2rem;
+            width: 40px;
+            height: 40px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--accent-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            box-shadow: 0 0 10px var(--accent-dim);
+        }
+        
+        .quickstart-step h4 {
+            margin-bottom: 0.75rem;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+        
+        .quickstart-step p {
+            font-size: 0.9rem;
+        }
+        
+        .quickstart-step code {
+            display: inline-block;
+            background: var(--bg-secondary);
+            padding: 0.15rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.85rem;
+            color: var(--accent-primary);
+            border: 1px solid var(--border-primary);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════
+           CODE EXAMPLE SECTION
+           ═══════════════════════════════════════════════════════════════════════ */
+        .code-section {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-primary);
+            border-bottom: 1px solid var(--border-primary);
+        }
+        
+        .code-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--grid-gap);
+        }
+        
+        .code-block {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .code-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 1rem;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-primary);
+        }
+        
+        .code-filename {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .code-filename::before {
+            content: '';
+            width: 10px;
+            height: 10px;
+            background: var(--accent-primary);
+            border-radius: 2px;
+        }
+
+        /* V2 CHANGE: Copy Button Styles */
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border-primary);
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        .copy-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+            background: var(--accent-dim);
+        }
+        
+        .code-body {
+            padding: 1.25rem;
+            overflow-x: auto;
+        }
+        
+        .code-body pre {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+        
+        .code-body .comment { color: var(--text-tertiary); font-style: italic; }
+        .code-body .keyword { color: var(--info); font-weight: bold; }
+        .code-body .string { color: var(--success); }
+        .code-body .number { color: var(--accent-secondary); }
+        .code-body .function { color: var(--accent-primary); }
+
+        /* ═══════════════════════════════════════════════════════════════════════
+           DOCUMENTATION SECTION
+           ═══════════════════════════════════════════════════════════════════════ */
+        .docs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.25rem;
+        }
+        
+        .doc-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1.25rem;
+            /* V2 CHANGE: Gradient Border Style matching features */
+            background: linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+                        linear-gradient(145deg, rgba(255,255,255,0.05), transparent) border-box;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            transition: all var(--transition-medium);
+            text-decoration: none;
+        }
+        
+        .doc-card:hover {
+            background: linear-gradient(var(--bg-elevated), var(--bg-elevated)) padding-box,
+                        linear-gradient(145deg, var(--accent-primary), transparent) border-box;
+            transform: translateY(-2px);
+        }
+        
+        .doc-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+            border: 1px solid var(--border-primary);
+        }
+        
+        .doc-content h4 {
+            font-size: 1rem;
+            margin-bottom: 0.35rem;
+            color: var(--text-primary);
+        }
+        
+        .doc-content p {
+            font-size: 0.85rem;
+            color: var(--text-tertiary);
+            line-height: 1.5;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════
+           CTA SECTION
+           ═══════════════════════════════════════════════════════════════════════ */
+        .cta {
+            background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary));
+            border-top: 1px solid var(--border-primary);
+        }
+        
+        .cta-content {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        
+        .cta h2 {
+            margin-bottom: 1rem;
+        }
+        
+        .cta p {
+            margin: 0 auto 2rem;
+            font-size: 1.15rem;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════
+           FOOTER
+           ═══════════════════════════════════════════════════════════════════════ */
+        footer {
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border-primary);
+            padding: 3rem 0 2rem;
+        }
+        
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border-primary);
+        }
+        
+        .footer-brand {
+            max-width: 300px;
+        }
+        
+        .footer-brand .logo {
+            margin-bottom: 1rem;
+        }
+        
+        .footer-brand p {
+            font-size: 0.9rem;
+            color: var(--text-tertiary);
+        }
+        
+        .footer-links {
+            display: flex;
+            gap: 4rem;
+        }
+        
+        .footer-column h5 {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-tertiary);
+            margin-bottom: 1rem;
+        }
+        
+        .footer-column ul {
+            list-style: none;
+        }
+        
+        .footer-column li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .footer-column a {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        .footer-column a:hover {
+            color: var(--accent-primary);
+        }
+        
+        .footer-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .footer-bottom p {
+            font-size: 0.85rem;
+            color: var(--text-tertiary);
+        }
+        
+        .footer-social {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .footer-social a {
+            width: 36px;
+            height: 36px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-primary);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: all var(--transition-fast);
+        }
+        
+        .footer-social a:hover {
+            background: var(--accent-dim);
+            border-color: var(--border-accent);
+            color: var(--accent-primary);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════
+           RESPONSIVE DESIGN
+           ═══════════════════════════════════════════════════════════════════════ */
+        @media (max-width: 1024px) {
+            .code-container {
+                grid-template-columns: 1fr;
+            }
+            .footer-links {
+                gap: 2rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            :root {
+                --section-padding: clamp(3rem, 8vw, 5rem);
+            }
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 70px;
+                left: 0;
+                right: 0;
+                background: var(--bg-secondary);
+                border-bottom: 1px solid var(--border-primary);
+                flex-direction: column;
+                padding: 1.5rem;
+                gap: 1rem;
+            }
+            .nav-links.active {
+                display: flex;
+            }
+            .nav-toggle {
+                display: flex;
+            }
+            .hero-stats {
+                flex-direction: column;
+                gap: 2rem;
+            }
+            .dataflow-diagram {
+                flex-direction: column;
+            }
+            .dataflow-arrow {
+                transform: rotate(90deg);
+                width: 40px;
+                height: 40px;
+            }
+            .quickstart-step {
+                padding-left: 2rem;
+                padding-top: 4rem;
+            }
+            .quickstart-step::before {
+                top: 1.5rem;
+                left: 1.5rem;
+            }
+            .footer-content {
+                flex-direction: column;
+            }
+            .footer-links {
+                flex-direction: column;
+            }
+            .footer-bottom {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="container">
+            <a href="#" class="logo">
+                <div class="logo-icon">C</div>
+                CockpitOS
+            </a>
+            
+            <ul class="nav-links" id="navLinks">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#hardware">Hardware</a></li>
+                <li><a href="#quickstart">Quick Start</a></li>
+                <li><a href="#code">Config</a></li>
+                <li><a href="#docs">Docs</a></li>
+                <li><a href="https://github.com/BojoteX/CockpitOS" class="nav-cta" target="_blank">GitHub →</a></li>
+            </ul>
+            
+            <div class="nav-toggle" onclick="document.getElementById('navLinks').classList.toggle('active')">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-bg">
+            <div class="hero-grid"></div>
+            <div class="hero-gradient"></div>
+        </div>
+        
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span></span>
+                Open Source • MIT License
+            </div>
+            
+            <h1>
+                <span>CockpitOS</span>
+                ESP32 Firmware for DCS Cockpits
+            </h1>
+            
+            <p class="hero-description">
+                Connect physical cockpit panels to DCS World via the DCS-BIOS protocol. 
+                Native USB, WiFi, and Serial support across the entire ESP32 family.
+            </p>
+            
+            <div class="hero-actions">
+                <a href="#quickstart" class="btn btn-primary">
+                    Get Started →
+                </a>
+                <a href="https://go.bojote.com/CockpitOS" class="btn btn-secondary" target="_blank">
+                    💬 AI Assistant
+                </a>
+            </div>
+            
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <span class="hero-stat-value">250</span>
+                    <span class="hero-stat-label">Hz Input Polling</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-value">O(1)</span>
+                    <span class="hero-stat-label">Label Lookups</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-value">0</span>
+                    <span class="hero-stat-label">Heap Allocation</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="dataflow" id="dataflow">
+        <div class="container">
+            <div class="section-header">
+                <span class="label">Architecture</span>
+                <h2>How It Works</h2>
+                <p>Bidirectional communication between DCS World and your physical hardware</p>
+            </div>
+            
+            <div class="dataflow-diagram">
+                <div class="dataflow-node">
+                    <div class="dataflow-box">
+                        <div class="dataflow-icon">🎮</div>
+                        <h4>DCS World</h4>
+                        <p>Flight Simulator</p>
+                    </div>
+                    <div class="dataflow-bidirectional">↕ Cockpit State</div>
+                </div>
+                
+                <div class="dataflow-arrow"></div>
+                
+                <div class="dataflow-node">
+                    <div class="dataflow-box">
+                        <div class="dataflow-icon">📡</div>
+                        <h4>DCS-BIOS</h4>
+                        <p>LUA Protocol</p>
+                    </div>
+                    <div class="dataflow-bidirectional">↕ Binary Stream</div>
+                </div>
+                
+                <div class="dataflow-arrow"></div>
+                
+                <div class="dataflow-node">
+                    <div class="dataflow-box">
+                        <div class="dataflow-icon">⚡</div>
+                        <h4>CockpitOS</h4>
+                        <p>ESP32 Firmware</p>
+                    </div>
+                    <div class="dataflow-bidirectional">↕ GPIO / I²C / SPI</div>
+                </div>
+                
+                <div class="dataflow-arrow"></div>
+                
+                <div class="dataflow-node">
+                    <div class="dataflow-box">
+                        <div class="dataflow-icon">🔘</div>
+                        <h4>Hardware</h4>
+                        <p>Your Panel</p>
+                    </div>
+                    <div class="dataflow-bidirectional">Physical I/O</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-header">
+                <span class="label">Capabilities</span>
+                <h2>Built for Real Cockpits</h2>
+                <p>Everything you need to bring your simulator cockpit to life</p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⌨️</div>
+                    <h3>Comprehensive Inputs</h3>
+                    <p>Support for every type of cockpit control you can imagine.</p>
+                    <ul class="feature-list">
+                        <li>Buttons & toggle switches</li>
+                        <li>Rotary encoders & selectors</li>
+                        <li>Analog axes with self-calibration</li>
+                        <li>Matrix scanning for rotary switches</li>
+                        <li>74HC165 shift registers</li>
+                        <li>PCA9555 I²C expanders</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">💡</div>
+                    <h3>Versatile Outputs</h3>
+                    <p>Drive LEDs, displays, and gauges with precision.</p>
+                    <ul class="feature-list">
+                        <li>GPIO LEDs with PWM dimming</li>
+                        <li>WS2812 addressable RGB LEDs</li>
+                        <li>TM1637 & GN1640T LED drivers</li>
+                        <li>HT1622 segment LCD displays</li>
+                        <li>SPI TFT gauges via LovyanGFX</li>
+                        <li>Servo motor gauges</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">📶</div>
+                    <h3>Flexible Connectivity</h3>
+                    <p>Choose the transport that fits your setup.</p>
+                    <ul class="feature-list">
+                        <li>USB HID (lowest latency)</li>
+                        <li>WiFi UDP (wireless panels)</li>
+                        <li>Serial CDC (legacy support)</li>
+                        <li>Bluetooth BLE (ESP32-H2)</li>
+                        <li>Multi-device support</li>
+                        <li>Hot-plug detection</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🏗️</div>
+                    <h3>Production-Grade Architecture</h3>
+                    <p>Designed for reliability during long flight sessions.</p>
+                    <ul class="feature-list">
+                        <li>Zero heap allocation</li>
+                        <li>Non-blocking I/O throughout</li>
+                        <li>O(1) perfect hash lookups</li>
+                        <li>250 Hz input polling</li>
+                        <li>Deterministic execution</li>
+                        <li>MISRA-style coding standards</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">✈️</div>
+                    <h3>Per-Aircraft Configuration</h3>
+                    <p>Customize your firmware for any DCS module.</p>
+                    <ul class="feature-list">
+                        <li>Label Set architecture</li>
+                        <li>Auto-generated mappings</li>
+                        <li>Python generator scripts</li>
+                        <li>Preserves user edits</li>
+                        <li>METADATA overlays</li>
+                        <li>Multi-aircraft support</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🛠️</div>
+                    <h3>Developer Friendly</h3>
+                    <p>Comprehensive tooling and documentation.</p>
+                    <ul class="feature-list">
+                        <li>Arduino IDE 2.x environment</li>
+                        <li>AI Assistant for help</li>
+                        <li>RAM Walker for displays</li>
+                        <li>WiFi debug console</li>
+                        <li>Performance profiling</li>
+                        <li>Stream replay testing</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="hardware" id="hardware">
+        <div class="container">
+            <div class="section-header">
+                <span class="label">Compatibility</span>
+                <h2>Supported Hardware</h2>
+                <p>Runs on the entire ESP32 family with variant-specific optimizations</p>
+            </div>
+            
+            <div class="hardware-grid">
+                <div class="hardware-card">
+                    <div class="hardware-header">
+                        <h4>ESP32-S2</h4>
+                        <span class="hardware-status recommended">Recommended</span>
+                    </div>
+                    <div class="hardware-body">
+                        <p>Native USB support. Perfect balance of features and simplicity.</p>
+                        <div class="hardware-specs">
+                            <span class="hardware-spec">Native USB</span>
+                            <span class="hardware-spec">WiFi</span>
+                            <span class="hardware-spec">240 MHz</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="hardware-card">
+                    <div class="hardware-header">
+                        <h4>ESP32-S3</h4>
+                        <span class="hardware-status recommended">Recommended</span>
+                    </div>
+                    <div class="hardware-body">
+                        <p>Dual-core performance with native USB. Best for complex panels.</p>
+                        <div class="hardware-specs">
+                            <span class="hardware-spec">Native USB</span>
+                            <span class="hardware-spec">WiFi</span>
+                            <span class="hardware-spec">BLE</span>
+                            <span class="hardware-spec">Dual Core</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="hardware-card">
+                    <div class="hardware-header">
+                        <h4>ESP32 Classic</h4>
+                        <span class="hardware-status supported">Supported</span>
+                    </div>
+                    <div class="hardware-body">
+                        <p>Original ESP32. Requires external USB-UART bridge.</p>
+                        <div class="hardware-specs">
+                            <span class="hardware-spec">WiFi</span>
+                            <span class="hardware-spec">BLE</span>
+                            <span class="hardware-spec">Serial Only</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="hardware-card">
+                    <div class="hardware-header">
+                        <h4>ESP32-C3 / C6</h4>
+                        <span class="hardware-status supported">Supported</span>
+                    </div>
+                    <div class="hardware-body">
+                        <p>RISC-V architecture. WiFi and Serial transport modes.</p>
+                        <div class="hardware-specs">
+                            <span class="hardware-spec">WiFi</span>
+                            <span class="hardware-spec">BLE</span>
+                            <span class="hardware-spec">RISC-V</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="hardware-card">
+                    <div class="hardware-header">
+                        <h4>ESP32-H2</h4>
+                        <span class="hardware-status supported">Supported</span>
+                    </div>
+                    <div class="hardware-body">
+                        <p>BLE-only variant. Thread/Zigbee capable. Serial transport.</p>
+                        <div class="hardware-specs">
+                            <span class="hardware-spec">BLE Only</span>
+                            <span class="hardware-spec">Thread</span>
+                            <span class="hardware-spec">Zigbee</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="hardware-card">
+                    <div class="hardware-header">
+                        <h4>ESP32-P4</h4>
+                        <span class="hardware-status recommended">Recommended</span>
+                    </div>
+                    <div class="hardware-body">
+                        <p>Newest and most powerful. Native USB with high performance.</p>
+                        <div class="hardware-specs">
+                            <span class="hardware-spec">Native USB</span>
+                            <span class="hardware-spec">WiFi</span>
+                            <span class="hardware-spec">BLE</span>
+                            <span class="hardware-spec">Newest</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="quickstart" id="quickstart">
+        <div class="container">
+            <div class="section-header">
+                <span class="label">Get Started</span>
+                <h2>Up and Running in Minutes</h2>
+                <p>From download to working panel in five simple steps</p>
+            </div>
+            
+            <div class="quickstart-steps">
+                <div class="quickstart-step">
+                    <h4>Install Arduino IDE</h4>
+                    <p>Download <a href="https://www.arduino.cc/en/software" target="_blank">Arduino IDE 2.x</a> and install the <code>ESP32 Arduino Core 3.3+</code> via Boards Manager.</p>
+                </div>
+                
+                <div class="quickstart-step">
+                    <h4>Download CockpitOS</h4>
+                    <p>Clone or download from <a href="https://github.com/BojoteX/CockpitOS" target="_blank">GitHub</a>. Extract to your Arduino folder.</p>
+                </div>
+                
+                <div class="quickstart-step">
+                    <h4>Select a Label Set</h4>
+                    <p>Navigate to <code>src/LABELS/LABEL_SET_TEST_ONLY</code> and run <code>python generate_data.py</code></p>
+                </div>
+                
+                <div class="quickstart-step">
+                    <h4>Configure Transport</h4>
+                    <p>Edit <code>Config.h</code> to select USB, WiFi, or Serial mode for your setup.</p>
+                </div>
+                
+                <div class="quickstart-step">
+                    <h4>Compile & Upload</h4>
+                    <p>Select your board in Arduino IDE, compile, and upload. Your panel is ready!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="code-section" id="code">
+        <div class="container">
+            <div class="section-header">
+                <span class="label">Configuration</span>
+                <h2>Simple Mapping Files</h2>
+                <p>Define your hardware in clean, readable configuration headers</p>
+            </div>
+            
+            <div class="code-container">
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-filename">InputMapping.h</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <div class="code-body">
+<pre><span class="comment">// Button on GPIO 5</span>
+{ <span class="string">"MASTER_CAUTION_RESET"</span>, <span class="string">"GPIO"</span>, <span class="function">PIN</span>(<span class="number">5</span>), <span class="number">0</span>, <span class="number">-1</span>,
+  <span class="string">"MASTER_CAUTION_RESET"</span>, <span class="number">1</span>, <span class="string">"momentary"</span>, <span class="number">0</span> },
+
+<span class="comment">// 3-position selector switch (group 1)</span>
+{ <span class="string">"MASTER_ARM_SW_ARM"</span>,  <span class="string">"GPIO"</span>, <span class="function">PIN</span>(<span class="number">6</span>),  <span class="number">0</span>, <span class="number">-1</span>,
+  <span class="string">"MASTER_ARM_SW"</span>, <span class="number">1</span>, <span class="string">"selector"</span>, <span class="number">1</span> },
+{ <span class="string">"MASTER_ARM_SW_SAFE"</span>, <span class="string">"GPIO"</span>, <span class="function">PIN</span>(<span class="number">6</span>), <span class="number">-1</span>, <span class="number">-1</span>,
+  <span class="string">"MASTER_ARM_SW"</span>, <span class="number">0</span>, <span class="string">"selector"</span>, <span class="number">1</span> },
+
+<span class="comment">// Rotary encoder (CCW/CW pair)</span>
+{ <span class="string">"VOLUME_DEC"</span>, <span class="string">"GPIO"</span>, <span class="function">PIN</span>(<span class="number">8</span>), <span class="number">0</span>, <span class="number">-1</span>,
+  <span class="string">"VOLUME"</span>, <span class="number">0</span>, <span class="string">"variable_step"</span>, <span class="number">0</span> },
+{ <span class="string">"VOLUME_INC"</span>, <span class="string">"GPIO"</span>, <span class="function">PIN</span>(<span class="number">9</span>), <span class="number">0</span>, <span class="number">-1</span>,
+  <span class="string">"VOLUME"</span>, <span class="number">1</span>, <span class="string">"variable_step"</span>, <span class="number">0</span> },</pre>
+                    </div>
+                </div>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-filename">LEDMapping.h</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <div class="code-body">
+<pre><span class="comment">// GPIO LED (active low)</span>
+{ <span class="string">"MASTER_CAUTION_LT"</span>, <span class="keyword">DEVICE_GPIO</span>,
+  {.gpioInfo = {<span class="number">7</span>}}, <span class="keyword">false</span>, <span class="keyword">true</span> },
+
+<span class="comment">// WS2812 RGB LED (index 0, dimmable)</span>
+{ <span class="string">"LOCK_LT"</span>, <span class="keyword">DEVICE_WS2812</span>,
+  {.ws2812Info = {<span class="number">0</span>, <span class="number">21</span>, <span class="number">255</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">200</span>}},
+  <span class="keyword">true</span>, <span class="keyword">false</span> },
+
+<span class="comment">// PCA9555 expander LED</span>
+{ <span class="string">"ECM_FAIL_LT"</span>, <span class="keyword">DEVICE_PCA9555</span>,
+  {.pcaInfo = {<span class="number">0x22</span>, <span class="number">0</span>, <span class="number">3</span>}},
+  <span class="keyword">false</span>, <span class="keyword">true</span> },
+
+<span class="comment">// TM1637 7-segment display</span>
+{ <span class="string">"RPM_DISPLAY"</span>, <span class="keyword">DEVICE_TM1637</span>,
+  {.tm1637Info = {<span class="number">9</span>, <span class="number">8</span>, <span class="number">0</span>, <span class="number">0</span>}},
+  <span class="keyword">true</span>, <span class="keyword">false</span> },</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="docs" id="docs">
+        <div class="container">
+            <div class="section-header">
+                <span class="label">Resources</span>
+                <h2>Documentation</h2>
+                <p>Comprehensive guides for every skill level</p>
+            </div>
+            
+            <div class="docs-grid">
+                <a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/GETTING_STARTED.md" class="doc-card" target="_blank">
+                    <div class="doc-icon">🚀</div>
+                    <div class="doc-content">
+                        <h4>Getting Started</h4>
+                        <p>First-time setup, Arduino IDE configuration, compile and upload</p>
+                    </div>
+                </a>
+                
+                <a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/CREATING_LABEL_SETS.md" class="doc-card" target="_blank">
+                    <div class="doc-icon">✈️</div>
+                    <div class="doc-content">
+                        <h4>Creating Label Sets</h4>
+                        <p>Configure for your aircraft and hardware setup</p>
+                    </div>
+                </a>
+                
+                <a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/HARDWARE_WIRING.md" class="doc-card" target="_blank">
+                    <div class="doc-icon">🔌</div>
+                    <div class="doc-content">
+                        <h4>Hardware Wiring</h4>
+                        <p>Wiring diagrams for all input and output types</p>
+                    </div>
+                </a>
+                
+                <a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/TRANSPORT_MODES.md" class="doc-card" target="_blank">
+                    <div class="doc-icon">📡</div>
+                    <div class="doc-content">
+                        <h4>Transport Modes</h4>
+                        <p>USB, WiFi, and Serial configuration guide</p>
+                    </div>
+                </a>
+                
+                <a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/ADVANCED_DISPLAYS.md" class="doc-card" target="_blank">
+                    <div class="doc-icon">📺</div>
+                    <div class="doc-content">
+                        <h4>Advanced Displays</h4>
+                        <p>HT1622 segment displays and TFT gauges</p>
+                    </div>
+                </a>
+                
+                <a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/ADVANCED_CONTROLS.md" class="doc-card" target="_blank">
+                    <div class="doc-icon">⚙️</div>
+                    <div class="doc-content">
+                        <h4>Advanced Controls</h4>
+                        <p>Custom panels, CoverGate system, panel registration</p>
+                    </div>
+                </a>
+                
+                <a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/FAQ.md" class="doc-card" target="_blank">
+                    <div class="doc-icon">❓</div>
+                    <div class="doc-content">
+                        <h4>FAQ</h4>
+                        <p>Common questions and quick answers</p>
+                    </div>
+                </a>
+                
+                <a href="https://go.bojote.com/CockpitOS" class="doc-card" target="_blank">
+                    <div class="doc-icon">🤖</div>
+                    <div class="doc-content">
+                        <h4>AI Assistant</h4>
+                        <p>Interactive help for any CockpitOS question</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta">
+        <div class="container">
+            <div class="cta-content">
+                <span class="label">Ready to Build?</span>
+                <h2>Start Your Cockpit Project Today</h2>
+                <p>Join the community of flight sim enthusiasts building authentic cockpit hardware with CockpitOS.</p>
+                <div class="cta-buttons">
+                    <a href="https://github.com/BojoteX/CockpitOS" class="btn btn-primary" target="_blank">
+                        View on GitHub →
+                    </a>
+                    <a href="https://github.com/BojoteX/CockpitOS/discussions" class="btn btn-secondary" target="_blank">
+                        Join Discussions
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="#" class="logo">
+                        <div class="logo-icon">C</div>
+                        CockpitOS
+                    </a>
+                    <p>ESP32 firmware for DCS World cockpit panels. Open source, community driven, built with precision.</p>
+                </div>
+                
+                <div class="footer-links">
+                    <div class="footer-column">
+                        <h5>Documentation</h5>
+                        <ul>
+                            <li><a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/GETTING_STARTED.md" target="_blank">Getting Started</a></li>
+                            <li><a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/HARDWARE_WIRING.md" target="_blank">Hardware Wiring</a></li>
+                            <li><a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/FAQ.md" target="_blank">FAQ</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="footer-column">
+                        <h5>Community</h5>
+                        <ul>
+                            <li><a href="https://github.com/BojoteX/CockpitOS" target="_blank">GitHub</a></li>
+                            <li><a href="https://github.com/BojoteX/CockpitOS/discussions" target="_blank">Discussions</a></li>
+                            <li><a href="https://github.com/BojoteX/CockpitOS/issues" target="_blank">Issues</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="footer-column">
+                        <h5>Related</h5>
+                        <ul>
+                            <li><a href="https://github.com/DCS-Skunkworks/dcs-bios" target="_blank">DCS-BIOS</a></li>
+                            <li><a href="https://github.com/lovyan03/LovyanGFX" target="_blank">LovyanGFX</a></li>
+                            <li><a href="https://www.arduino.cc" target="_blank">Arduino</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>© 2025 CockpitOS Project. Released under MIT License.</p>
+                <div class="footer-social">
+                    <a href="https://github.com/BojoteX/CockpitOS" target="_blank" title="GitHub">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Copy to clipboard functionality
+        function copyCode(btn) {
+            const pre = btn.parentElement.nextElementSibling.querySelector('pre');
+            const code = pre.innerText;
+            
+            navigator.clipboard.writeText(code).then(() => {
+                const originalText = btn.innerText;
+                btn.innerText = 'Copied!';
+                btn.style.color = 'var(--success)';
+                btn.style.borderColor = 'var(--success)';
+                
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.color = '';
+                    btn.style.borderColor = '';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        // Active section highlighting (ScrollSpy)
+        document.addEventListener('DOMContentLoaded', () => {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.nav-links a[href^="#"]');
+            
+            const observerOptions = {
+                root: null,
+                rootMargin: '-30% 0px -70% 0px', // Active when section is near top
+                threshold: 0
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const id = entry.target.getAttribute('id');
+                        
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href') === '#' + id) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+        });
+    </script>
+</body>
+</html>
