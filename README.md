@@ -2,7 +2,7 @@
 
 **ESP32 firmware for DCS World cockpit panels connected via DCS-BIOS protocol**
 
-![CockpitOS Logo](./CockpitOS_logo.png?nc=1)
+![CockpitOS Logo](./CockpitOS_logo_large.png)
 
 
 CockpitOS connects physical cockpit hardware/panels to DCS World via the [DCS-BIOS protocol](https://github.com/DCS-Skunkworks/dcs-bios). It runs natively across the entire ESP32 family—Classic, C3, C5, C6, P4, S2, and S3—supporting buttons, switches, encoders, LEDs, TFT displays, and segment displays out of the box. With transport options spanning legacy Serial (socat), Wi-Fi, and native USB, CockpitOS delivers the flexibility modern cockpit builders demand. Think of it as the [DCS-BIOS Arduino Library](https://github.com/DCS-Skunkworks/dcs-bios-arduino-library)—reimagined for performance and scale on ESP32 devices with native USB support or Wi-Fi
