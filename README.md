@@ -118,8 +118,8 @@ CockpitOS/
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  DCS World  │────▶│  DCS-BIOS   │────▶│  CockpitOS  │────▶│  Hardware   │
-│             │◀────│  (LUA)      │◀────│  (ESP32)    │◀────│  (Panel)    │
+│  DCS World  │───▶│  DCS-BIOS   │────▶│  CockpitOS  │────▶│  Hardware   │
+│             │◀───│  (LUA)      │◀────│  (ESP32)    │◀────│  (Panel)    │
 └─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
      Sim              Export/Import       Firmware           Physical I/O
 ```
