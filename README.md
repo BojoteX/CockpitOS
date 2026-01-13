@@ -81,6 +81,14 @@ For USB mode, run `HID Manager/HID_Manager.py` on your PC to bridge to DCS-BIOS.
 
 ---
 
+## Firmware Uploader
+
+Need help uploading code to your device? 
+
+**[Firmware Uploader](https://cockpitos.bojote.com/upload)**
+
+---
+
 ## AI Assistant
 
 Need help building your first panel? Stuck on a wiring issue? Want to understand the code?
