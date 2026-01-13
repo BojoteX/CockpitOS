@@ -6,6 +6,10 @@
     <title>CockpitOS — ESP32 Firmware for DCS World Cockpit Panels</title>
     <meta name="description" content="Connect physical cockpit hardware to DCS World via DCS-BIOS protocol. ESP32 firmware supporting buttons, switches, encoders, LEDs, TFT displays, and segment displays.">
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/BojoteX/CockpitOS/main/Logos/favicon.ico">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/BojoteX/CockpitOS/main/Logos/favicon.ico">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -1333,6 +1337,9 @@
                 <a href="#quickstart" class="btn btn-primary">
                     Get Started
                 </a>
+                <a href="https://cockpitos.bojote.com/upload/" class="btn btn-secondary" target="_blank">
+                    Upload Firmware
+                </a>
                 <a href="https://go.bojote.com/CockpitOS" class="btn btn-secondary" target="_blank">
                     AI Assistant
                 </a>
@@ -1639,8 +1646,8 @@
                 </div>
 
                 <div class="quickstart-step">
-                    <h4>Compile & Upload</h4>
-                    <p>Select your board in Arduino IDE, compile, and upload. Your panel is ready!</p>
+                    <h4>Upload Firmware</h4>
+                    <p>Use the <a href="https://cockpitos.bojote.com/upload/" target="_blank">Web Flasher</a> to upload directly from your browser, or compile and upload via Arduino IDE.</p>
                 </div>
             </div>
         </div>
@@ -1766,6 +1773,14 @@
                     </div>
                 </a>
 
+                <a href="https://cockpitos.bojote.com/upload/" class="doc-card" target="_blank">
+                    <div class="doc-icon">⬆️</div>
+                    <div class="doc-content">
+                        <h4>Web Flasher</h4>
+                        <p>Upload firmware directly from your browser via Web Serial</p>
+                    </div>
+                </a>
+
                 <a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/FAQ.md" class="doc-card" target="_blank">
                     <div class="doc-icon">❓</div>
                     <div class="doc-content">
@@ -1825,9 +1840,17 @@
                     </div>
 
                     <div class="footer-column">
+                        <h5>Tools</h5>
+                        <ul>
+                            <li><a href="https://cockpitos.bojote.com/upload/" target="_blank">Web Flasher</a></li>
+                            <li><a href="https://go.bojote.com/CockpitOS" target="_blank">AI Assistant</a></li>
+                            <li><a href="https://github.com/BojoteX/CockpitOS" target="_blank">GitHub</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="footer-column">
                         <h5>Community</h5>
                         <ul>
-                            <li><a href="https://github.com/BojoteX/CockpitOS" target="_blank">GitHub</a></li>
                             <li><a href="https://github.com/BojoteX/CockpitOS/discussions" target="_blank">Discussions</a></li>
                             <li><a href="https://github.com/BojoteX/CockpitOS/issues" target="_blank">Issues</a></li>
                         </ul>
