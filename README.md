@@ -2,7 +2,7 @@
 
 **ESP32 firmware for DCS World cockpit panels connected via DCS-BIOS protocol**
 
-![CockpitOS Logo](./CockpitOS_logo.png)
+![CockpitOS Logo](./CockpitOS_logo_small.png)
 
 
 CockpitOS connects physical cockpit hardware/panels to DCS World via the [DCS-BIOS protocol](https://github.com/DCS-Skunkworks/dcs-bios). It runs natively across the entire ESP32 family—Classic, C3, C5, C6, P4, S2, and S3—supporting buttons, switches, encoders, LEDs, TFT displays, and segment displays out of the box. With transport options spanning legacy Serial (socat), Wi-Fi, and native USB, CockpitOS delivers the flexibility modern cockpit builders demand. Think of it as the [DCS-BIOS Arduino Library](https://github.com/DCS-Skunkworks/dcs-bios-arduino-library)—reimagined for performance and scale on ESP32 devices with native USB support or Wi-Fi
@@ -76,7 +76,24 @@ For USB mode, run `HID Manager/HID_Manager.py` on your PC to bridge to DCS-BIOS.
 | [Advanced Controls](Docs/ADVANCED_CONTROLS.md) | Custom panels, CoverGate, panel registration |
 | [FAQ](Docs/FAQ.md) | Common questions and answers |
 | [Your First Panel in 30 Minutes (WiFi)](Docs/CockpitOS_First_Panel_30_Minutes.md) | How to build your first Wi-Fi panel in 30 min |
-| [LLM Docs](https://raw.githubusercontent.com/BojoteX/CockpitOS/refs/heads/main/Docs/COCKPITOS_LLM_INSTRUCTION_SET.txt) | LLM friendly docs for AI assistants |
+| [AI Assistant](https://go.bojote.com/CockpitOS) | Interactive help for any CockpitOS task |
+| [LLM Docs](https://raw.githubusercontent.com/BojoteX/CockpitOS/refs/heads/main/Docs/COCKPITOS_LLM_INSTRUCTION_SET.txt) | Raw documentation for AI tools |
+
+---
+
+## AI Assistant
+
+Need help building your first panel? Stuck on a wiring issue? Want to understand the code?
+
+**[💬 Chat with CockpitOS Assistant](https://go.bojote.com/CockpitOS)**
+
+Our AI assistant knows the entire CockpitOS codebase, all APIs, and common pitfalls. It can:
+- Guide you through creating a new panel from scratch
+- Generate InputMapping.h and LEDMapping.h entries
+- Explain any part of the architecture
+- Troubleshoot connection and configuration issues
+
+*Works for beginners and experts alike.*
 
 ---
 
