@@ -1,3 +1,4 @@
 TODO:
 
-- Youtube Video tutorials
+- Version/build/date: We need to know what "version" user has installed
+- Youtube Video tutorials (shorts + 30 minutes from zero to hero + Complex panel custom front right (video)

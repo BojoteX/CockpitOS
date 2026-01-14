@@ -5,11 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CockpitOS — ESP32 Firmware for DCS World Cockpit Panels</title>
     <meta name="description" content="Connect physical cockpit hardware to DCS World via DCS-BIOS protocol. ESP32 firmware supporting buttons, switches, encoders, LEDs, TFT displays, and segment displays.">
-    
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/BojoteX/CockpitOS/main/Logos/favicon.ico">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/BojoteX/CockpitOS/main/Logos/favicon.ico">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <style>
         /* ═══════════════════════════════════════════════════════════════════════
            CSS VARIABLES — COCKPIT THEME
@@ -21,46 +25,49 @@
             --bg-tertiary: #151a1f;
             --bg-card: #1a1f25;
             --bg-elevated: #222932;
-            
+
             /* Amber cockpit accent */
             --accent-primary: #ff9500;
             --accent-secondary: #ffb347;
             --accent-glow: rgba(255, 149, 0, 0.4);
             --accent-dim: rgba(255, 149, 0, 0.15);
-            
+
             /* Status colors */
             --success: #00ff88;
             --success-dim: rgba(0, 255, 136, 0.2);
             --warning: #ffcc00;
             --error: #ff4444;
             --info: #00aaff;
-            
+
             /* Text */
             --text-primary: #e8eaed;
             --text-secondary: #9aa0a6;
             --text-tertiary: #5f6368;
             --text-accent: var(--accent-primary);
-            
+
             /* Borders & lines */
             --border-primary: rgba(255, 255, 255, 0.08);
             --border-accent: rgba(255, 149, 0, 0.3);
             --border-glow: rgba(255, 149, 0, 0.5);
-            
-            /* Typography */
+
+            /* Typography - FONT DISCIPLINE: 3 fonts only
+               - Orbitron: Display headings (h1, h2) and logo
+               - Barlow: Body text, nav links, paragraphs, h3-h6
+               - JetBrains Mono: Code, labels, technical text */
             --font-display: 'Orbitron', sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
             --font-body: 'Barlow', sans-serif;
-            
+
             /* Spacing */
             --section-padding: clamp(4rem, 10vw, 8rem);
             --container-max: 1400px;
             --grid-gap: 2rem;
-            
+
             /* Effects */
             --transition-fast: 150ms ease;
             --transition-medium: 300ms ease;
             --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
-            
+
             /* Scanline effect */
             --scanline-opacity: 0.05;
         }
@@ -73,13 +80,13 @@
             margin: 0;
             padding: 0;
         }
-        
+
         html {
             scroll-behavior: smooth;
             scroll-padding-top: 80px; /* OFFSET FOR STICKY HEADER */
             font-size: 16px;
         }
-        
+
         body {
             font-family: var(--font-body);
             background: var(--bg-primary);
@@ -88,14 +95,18 @@
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
         }
-        
+
         ::selection {
             background: var(--accent-primary);
             color: var(--bg-primary);
         }
 
         /* ═══════════════════════════════════════════════════════════════════════
-           TYPOGRAPHY
+           TYPOGRAPHY - FONT DISCIPLINE
+
+           Orbitron: h1, h2, logo, hero stats
+           Barlow: Everything else (body, nav, h3-h6, buttons, paragraphs)
+           JetBrains Mono: code, labels, technical badges, hardware specs
            ═══════════════════════════════════════════════════════════════════════ */
         h1, h2 {
             font-family: var(--font-display);
@@ -104,7 +115,7 @@
             letter-spacing: 0.02em;
         }
 
-        /* V2 CHANGE: Use Barlow for smaller headers for better readability */
+        /* Barlow for smaller headers - better readability */
         h3, h4, h5, h6 {
             font-family: var(--font-body);
             font-weight: 700;
@@ -112,28 +123,29 @@
             letter-spacing: 0.03em;
             text-transform: uppercase;
         }
-        
+
         h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); }
         h2 { font-size: clamp(1.8rem, 4vw, 3rem); }
         h3 { font-size: clamp(1.2rem, 2.5vw, 1.5rem); }
         h4 { font-size: clamp(1rem, 2vw, 1.25rem); }
-        
+
         p {
+            font-family: var(--font-body);
             font-size: 1.05rem;
             color: var(--text-secondary);
             max-width: 70ch; /* OPTIMIZED LINE LENGTH */
         }
-        
+
         a {
             color: var(--accent-primary);
             text-decoration: none;
             transition: color var(--transition-fast);
         }
-        
+
         a:hover {
             color: var(--accent-secondary);
         }
-        
+
         code, .mono {
             font-family: var(--font-mono);
         }
@@ -147,26 +159,26 @@
             margin: 0 auto;
             padding: 0 clamp(1.5rem, 4vw, 3rem);
         }
-        
+
         section {
             padding: var(--section-padding) 0;
             position: relative;
         }
-        
+
         .section-header {
             text-align: center;
             margin-bottom: 4rem;
         }
-        
+
         .section-header h2 {
             margin-bottom: 1rem;
         }
-        
+
         .section-header p {
             margin: 0 auto;
             font-size: 1.15rem;
         }
-        
+
         .label {
             display: inline-block;
             font-family: var(--font-mono);
@@ -196,14 +208,14 @@
             border-bottom: 1px solid var(--border-primary);
             transition: all var(--transition-medium);
         }
-        
+
         nav .container {
             display: flex;
             align-items: center;
             justify-content: space-between;
             height: 70px;
         }
-        
+
         .logo {
             font-family: var(--font-display);
             font-size: 1.4rem;
@@ -213,7 +225,7 @@
             align-items: center;
             gap: 0.75rem;
         }
-        
+
         .logo-icon {
             width: 32px;
             height: 32px;
@@ -222,19 +234,20 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            font-family: var(--font-display);
             font-size: 1rem;
             font-weight: 800;
             color: var(--bg-primary);
             box-shadow: 0 0 15px var(--accent-dim);
         }
-        
+
         .nav-links {
             display: flex;
             align-items: center;
             gap: 2.5rem;
             list-style: none;
         }
-        
+
         .nav-links a {
             font-family: var(--font-body);
             font-size: 0.9rem;
@@ -245,7 +258,7 @@
             padding: 0.5rem 0;
             position: relative;
         }
-        
+
         .nav-links a::after {
             content: '';
             position: absolute;
@@ -257,40 +270,44 @@
             transition: width var(--transition-medium);
             box-shadow: 0 0 8px var(--accent-primary);
         }
-        
+
         .nav-links a:hover {
             color: var(--text-primary);
         }
-        
+
         .nav-links a:hover::after {
             width: 100%;
         }
 
-        /* V2 CHANGE: Active state class for JS ScrollSpy */
+        /* Active state class for JS ScrollSpy */
         .nav-links a.active {
             color: var(--text-primary);
         }
         .nav-links a.active::after {
             width: 100%;
         }
-        
+
+        /* FIX #1: GitHub CTA button - proper padding and margin */
         .nav-cta {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 0.85rem;
             padding: 0.6rem 1.25rem;
+            margin-left: 0.5rem; /* FIX: Add spacing from previous nav item */
             background: var(--accent-primary);
             color: var(--bg-primary) !important;
             border-radius: 3px;
-            font-weight: 700;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
             transition: all var(--transition-fast);
         }
-        
+
         .nav-cta:hover {
             background: var(--accent-secondary);
             transform: translateY(-1px);
             box-shadow: 0 4px 20px var(--accent-glow);
         }
-        
+
         .nav-cta::after {
             display: none !important;
         }
@@ -303,7 +320,7 @@
             cursor: pointer;
             padding: 0.5rem;
         }
-        
+
         .nav-toggle span {
             width: 24px;
             height: 2px;
@@ -324,7 +341,7 @@
             overflow: hidden;
         }
 
-        /* V2 CHANGE: Scanlines SCOPED to Hero Only */
+        /* Scanlines SCOPED to Hero Only */
         .hero::before {
             content: '';
             position: absolute;
@@ -342,39 +359,39 @@
                 rgba(0, 0, 0, var(--scanline-opacity)) 4px
             );
         }
-        
+
         .hero-bg {
             position: absolute;
             inset: 0;
             overflow: hidden;
             z-index: 1;
         }
-        
+
         .hero-grid {
             position: absolute;
             inset: -50%;
-            background-image: 
+            background-image:
                 linear-gradient(var(--border-primary) 1px, transparent 1px),
                 linear-gradient(90deg, var(--border-primary) 1px, transparent 1px);
             background-size: 60px 60px;
             transform: perspective(500px) rotateX(60deg);
             animation: gridMove 20s linear infinite;
         }
-        
+
         @keyframes gridMove {
             0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
             100% { transform: perspective(500px) rotateX(60deg) translateY(60px); }
         }
-        
+
         .hero-gradient {
             position: absolute;
             inset: 0;
-            background: 
+            background:
                 radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255, 149, 0, 0.05), transparent 70%),
                 radial-gradient(circle at 30% 80%, rgba(0, 170, 255, 0.08), transparent 40%),
                 linear-gradient(to bottom, transparent, var(--bg-primary) 90%);
         }
-        
+
         .hero-content {
             position: relative;
             z-index: 10;
@@ -382,7 +399,8 @@
             max-width: 900px;
             padding: 0 2rem;
         }
-        
+
+        /* FIX #2: Hero badge - add margin-top for spacing from nav/top */
         .hero-badge {
             display: inline-flex;
             align-items: center;
@@ -394,10 +412,11 @@
             padding: 0.5rem 1rem;
             border-radius: 100px;
             border: 1px solid rgba(0, 255, 136, 0.3);
+            margin-top: 2rem; /* FIX: Add top margin for spacing */
             margin-bottom: 2rem;
             animation: fadeInUp 0.8s ease forwards;
         }
-        
+
         .hero-badge::before {
             content: '';
             width: 6px;
@@ -407,18 +426,18 @@
             box-shadow: 0 0 8px var(--success);
             animation: pulse 2s ease infinite;
         }
-        
+
         @keyframes pulse {
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.5; transform: scale(1.2); }
         }
-        
+
         .hero h1 {
             margin-bottom: 1.5rem;
             animation: fadeInUp 0.8s ease 0.1s forwards;
             opacity: 0;
         }
-        
+
         .hero h1 span {
             display: block;
             background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
@@ -427,8 +446,9 @@
             background-clip: text;
             text-shadow: 0 0 30px rgba(255, 149, 0, 0.2);
         }
-        
+
         .hero-description {
+            font-family: var(--font-body);
             font-size: 1.25rem;
             color: var(--text-secondary);
             margin-bottom: 2.5rem;
@@ -438,7 +458,7 @@
             animation: fadeInUp 0.8s ease 0.2s forwards;
             opacity: 0;
         }
-        
+
         .hero-actions {
             display: flex;
             gap: 1rem;
@@ -447,7 +467,7 @@
             animation: fadeInUp 0.8s ease 0.3s forwards;
             opacity: 0;
         }
-        
+
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -458,15 +478,17 @@
                 transform: translateY(0);
             }
         }
-        
-        /* Buttons */
+
+        /* Buttons - use Barlow for consistency */
         .btn {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 0.9rem;
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
             padding: 1rem 2rem;
             border-radius: 4px;
             border: none;
@@ -474,32 +496,32 @@
             transition: all var(--transition-medium);
             text-decoration: none;
         }
-        
+
         .btn-primary {
             background: var(--accent-primary);
             color: var(--bg-primary);
         }
-        
+
         .btn-primary:hover {
             background: var(--accent-secondary);
             color: var(--bg-primary);
             transform: translateY(-2px);
             box-shadow: 0 8px 30px var(--accent-glow);
         }
-        
+
         .btn-secondary {
             background: transparent;
             color: var(--text-primary);
             border: 1px solid var(--border-primary);
         }
-        
+
         .btn-secondary:hover {
             background: var(--bg-card);
             border-color: var(--border-accent);
             color: var(--accent-primary);
         }
-        
-        /* Hero stats */
+
+        /* Hero stats - Orbitron for values only */
         .hero-stats {
             display: flex;
             justify-content: center;
@@ -510,11 +532,11 @@
             animation: fadeInUp 0.8s ease 0.4s forwards;
             opacity: 0;
         }
-        
+
         .hero-stat {
             text-align: center;
         }
-        
+
         .hero-stat-value {
             font-family: var(--font-display);
             font-size: 2.5rem;
@@ -524,8 +546,9 @@
             line-height: 1;
             margin-bottom: 0.5rem;
         }
-        
+
         .hero-stat-label {
+            font-family: var(--font-body);
             font-size: 0.85rem;
             color: var(--text-tertiary);
             text-transform: uppercase;
@@ -541,7 +564,7 @@
             border-top: 1px solid var(--border-primary);
             border-bottom: 1px solid var(--border-primary);
         }
-        
+
         .dataflow-diagram {
             display: flex;
             align-items: center;
@@ -550,13 +573,13 @@
             flex-wrap: wrap;
             margin-top: 3rem;
         }
-        
+
         .dataflow-node {
             position: relative;
             width: 180px;
             text-align: center;
         }
-        
+
         .dataflow-box {
             background: var(--bg-card);
             border: 1px solid var(--border-primary);
@@ -566,7 +589,7 @@
             position: relative;
             overflow: hidden;
         }
-        
+
         .dataflow-box::before {
             content: '';
             position: absolute;
@@ -578,17 +601,17 @@
             transform: scaleX(0);
             transition: transform var(--transition-medium);
         }
-        
+
         .dataflow-node:hover .dataflow-box {
             border-color: var(--border-accent);
             transform: translateY(-4px);
             box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
         }
-        
+
         .dataflow-node:hover .dataflow-box::before {
             transform: scaleX(1);
         }
-        
+
         .dataflow-icon {
             width: 48px;
             height: 48px;
@@ -600,17 +623,19 @@
             justify-content: center;
             font-size: 1.5rem;
         }
-        
+
         .dataflow-box h4 {
+            font-family: var(--font-body);
             font-size: 1rem;
             margin-bottom: 0.5rem;
         }
-        
+
         .dataflow-box p {
+            font-family: var(--font-body);
             font-size: 0.8rem;
             color: var(--text-tertiary);
         }
-        
+
         /* Animated arrows between nodes */
         .dataflow-arrow {
             width: 60px;
@@ -620,7 +645,7 @@
             justify-content: center;
             position: relative;
         }
-        
+
         .dataflow-arrow::before {
             content: '';
             width: 40px;
@@ -628,7 +653,7 @@
             background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
             animation: arrowPulse 1.5s ease infinite;
         }
-        
+
         .dataflow-arrow::after {
             content: '';
             position: absolute;
@@ -640,12 +665,12 @@
             border-left: 8px solid var(--accent-primary);
             animation: arrowPulse 1.5s ease infinite;
         }
-        
+
         @keyframes arrowPulse {
             0%, 100% { opacity: 0.4; }
             50% { opacity: 1; }
         }
-        
+
         .dataflow-bidirectional {
             font-family: var(--font-mono);
             font-size: 0.7rem;
@@ -663,9 +688,9 @@
             grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: var(--grid-gap);
         }
-        
+
         .feature-card {
-            /* V2 CHANGE: Gradient/Glass Border Style */
+            /* Gradient/Glass Border Style */
             background: linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
                         linear-gradient(145deg, rgba(255,255,255,0.08), transparent) border-box;
             border: 1px solid transparent;
@@ -676,14 +701,14 @@
             transition: all var(--transition-medium);
             box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         }
-        
+
         .feature-card:hover {
             background: linear-gradient(var(--bg-elevated), var(--bg-elevated)) padding-box,
                         linear-gradient(145deg, var(--accent-primary), transparent) border-box;
             transform: translateY(-4px);
             box-shadow: 0 8px 30px rgba(0,0,0,0.3);
         }
-        
+
         .feature-icon {
             width: 56px;
             height: 56px;
@@ -699,21 +724,23 @@
             z-index: 1;
             box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
         }
-        
+
         .feature-card h3 {
+            font-family: var(--font-body);
             margin-bottom: 0.75rem;
             position: relative;
             z-index: 1;
             color: var(--text-primary);
         }
-        
+
         .feature-card p {
+            font-family: var(--font-body);
             font-size: 0.95rem;
             position: relative;
             z-index: 1;
             margin-bottom: 1.5rem;
         }
-        
+
         .feature-list {
             list-style: none;
             position: relative;
@@ -721,16 +748,17 @@
             border-top: 1px solid var(--border-primary);
             padding-top: 1rem;
         }
-        
+
         .feature-list li {
             display: flex;
             align-items: center;
             gap: 0.6rem;
+            font-family: var(--font-body);
             font-size: 0.9rem;
             color: var(--text-secondary);
             padding: 0.35rem 0;
         }
-        
+
         .feature-list li::before {
             content: '›';
             color: var(--accent-primary);
@@ -747,13 +775,13 @@
             border-top: 1px solid var(--border-primary);
             border-bottom: 1px solid var(--border-primary);
         }
-        
+
         .hardware-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: var(--grid-gap);
         }
-        
+
         .hardware-card {
             background: var(--bg-card);
             border: 1px solid var(--border-primary);
@@ -766,7 +794,7 @@
             transform: translateY(-2px);
             border-color: var(--border-accent);
         }
-        
+
         .hardware-header {
             background: var(--bg-elevated);
             padding: 1rem 1.5rem;
@@ -775,14 +803,16 @@
             align-items: center;
             justify-content: space-between;
         }
-        
+
         .hardware-header h4 {
             font-family: var(--font-mono);
             font-size: 0.95rem;
             margin: 0;
             color: var(--text-primary);
+            text-transform: none;
+            letter-spacing: 0;
         }
-        
+
         .hardware-status {
             font-family: var(--font-mono);
             font-size: 0.7rem;
@@ -792,34 +822,35 @@
             letter-spacing: 0.05em;
             font-weight: 600;
         }
-        
+
         .hardware-status.recommended {
             background: var(--success-dim);
             color: var(--success);
             border: 1px solid rgba(0, 255, 136, 0.3);
         }
-        
+
         .hardware-status.supported {
             background: var(--accent-dim);
             color: var(--accent-primary);
             border: 1px solid var(--border-accent);
         }
-        
+
         .hardware-body {
             padding: 1.25rem 1.5rem;
         }
-        
+
         .hardware-body p {
+            font-family: var(--font-body);
             font-size: 0.9rem;
             margin-bottom: 1rem;
         }
-        
+
         .hardware-specs {
             display: flex;
             flex-wrap: wrap;
             gap: 0.5rem;
         }
-        
+
         .hardware-spec {
             font-family: var(--font-mono);
             font-size: 0.7rem;
@@ -839,7 +870,7 @@
             gap: var(--grid-gap);
             counter-reset: step;
         }
-        
+
         .quickstart-step {
             position: relative;
             padding: 2rem;
@@ -854,7 +885,7 @@
         .quickstart-step:hover {
             border-color: var(--border-primary); /* subtle highlighting handled by ::before */
         }
-        
+
         .quickstart-step::before {
             content: counter(step);
             position: absolute;
@@ -874,25 +905,33 @@
             color: var(--accent-primary);
             box-shadow: 0 0 10px var(--accent-dim);
         }
-        
+
         .quickstart-step h4 {
+            font-family: var(--font-body);
             margin-bottom: 0.75rem;
             font-size: 1.1rem;
             color: var(--text-primary);
         }
-        
+
         .quickstart-step p {
+            font-family: var(--font-body);
             font-size: 0.9rem;
         }
-        
+
+        /* FIX #3: Code elements in quickstart - handle overflow for long paths */
         .quickstart-step code {
             display: inline-block;
             background: var(--bg-secondary);
             padding: 0.15rem 0.5rem;
             border-radius: 3px;
-            font-size: 0.85rem;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
             color: var(--accent-primary);
             border: 1px solid var(--border-primary);
+            /* FIX: Allow long paths to wrap */
+            word-break: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
         }
 
         /* ═══════════════════════════════════════════════════════════════════════
@@ -903,13 +942,13 @@
             border-top: 1px solid var(--border-primary);
             border-bottom: 1px solid var(--border-primary);
         }
-        
+
         .code-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: var(--grid-gap);
         }
-        
+
         .code-block {
             background: var(--bg-primary);
             border: 1px solid var(--border-primary);
@@ -917,7 +956,7 @@
             overflow: hidden;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
-        
+
         .code-header {
             display: flex;
             align-items: center;
@@ -926,7 +965,7 @@
             background: var(--bg-card);
             border-bottom: 1px solid var(--border-primary);
         }
-        
+
         .code-filename {
             font-family: var(--font-mono);
             font-size: 0.8rem;
@@ -935,7 +974,7 @@
             align-items: center;
             gap: 0.5rem;
         }
-        
+
         .code-filename::before {
             content: '';
             width: 10px;
@@ -944,18 +983,20 @@
             border-radius: 2px;
         }
 
-        /* V2 CHANGE: Copy Button Styles */
+        /* Copy Button Styles */
         .copy-btn {
             background: transparent;
             border: 1px solid var(--border-primary);
             color: var(--text-secondary);
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
             padding: 4px 10px;
             border-radius: 4px;
             cursor: pointer;
             transition: all 0.2s;
-            text-transform: uppercase;
         }
 
         .copy-btn:hover {
@@ -963,19 +1004,19 @@
             color: var(--accent-primary);
             background: var(--accent-dim);
         }
-        
+
         .code-body {
             padding: 1.25rem;
             overflow-x: auto;
         }
-        
+
         .code-body pre {
             font-family: var(--font-mono);
             font-size: 0.85rem;
             line-height: 1.7;
             color: var(--text-secondary);
         }
-        
+
         .code-body .comment { color: var(--text-tertiary); font-style: italic; }
         .code-body .keyword { color: var(--info); font-weight: bold; }
         .code-body .string { color: var(--success); }
@@ -990,13 +1031,13 @@
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 1.25rem;
         }
-        
+
         .doc-card {
             display: flex;
             align-items: flex-start;
             gap: 1rem;
             padding: 1.25rem;
-            /* V2 CHANGE: Gradient Border Style matching features */
+            /* Gradient Border Style matching features */
             background: linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
                         linear-gradient(145deg, rgba(255,255,255,0.05), transparent) border-box;
             border: 1px solid transparent;
@@ -1004,13 +1045,13 @@
             transition: all var(--transition-medium);
             text-decoration: none;
         }
-        
+
         .doc-card:hover {
             background: linear-gradient(var(--bg-elevated), var(--bg-elevated)) padding-box,
                         linear-gradient(145deg, var(--accent-primary), transparent) border-box;
             transform: translateY(-2px);
         }
-        
+
         .doc-icon {
             width: 44px;
             height: 44px;
@@ -1023,14 +1064,16 @@
             flex-shrink: 0;
             border: 1px solid var(--border-primary);
         }
-        
+
         .doc-content h4 {
+            font-family: var(--font-body);
             font-size: 1rem;
             margin-bottom: 0.35rem;
             color: var(--text-primary);
         }
-        
+
         .doc-content p {
+            font-family: var(--font-body);
             font-size: 0.85rem;
             color: var(--text-tertiary);
             line-height: 1.5;
@@ -1043,22 +1086,22 @@
             background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary));
             border-top: 1px solid var(--border-primary);
         }
-        
+
         .cta-content {
             text-align: center;
             max-width: 700px;
             margin: 0 auto;
         }
-        
+
         .cta h2 {
             margin-bottom: 1rem;
         }
-        
+
         .cta p {
             margin: 0 auto 2rem;
             font-size: 1.15rem;
         }
-        
+
         .cta-buttons {
             display: flex;
             gap: 1rem;
@@ -1074,7 +1117,7 @@
             border-top: 1px solid var(--border-primary);
             padding: 3rem 0 2rem;
         }
-        
+
         .footer-content {
             display: flex;
             justify-content: space-between;
@@ -1085,51 +1128,54 @@
             padding-bottom: 2rem;
             border-bottom: 1px solid var(--border-primary);
         }
-        
+
         .footer-brand {
             max-width: 300px;
         }
-        
+
         .footer-brand .logo {
             margin-bottom: 1rem;
         }
-        
+
         .footer-brand p {
+            font-family: var(--font-body);
             font-size: 0.9rem;
             color: var(--text-tertiary);
         }
-        
+
         .footer-links {
             display: flex;
             gap: 4rem;
         }
-        
+
         .footer-column h5 {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 0.8rem;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.1em;
             color: var(--text-tertiary);
             margin-bottom: 1rem;
         }
-        
+
         .footer-column ul {
             list-style: none;
         }
-        
+
         .footer-column li {
             margin-bottom: 0.5rem;
         }
-        
+
         .footer-column a {
+            font-family: var(--font-body);
             font-size: 0.9rem;
             color: var(--text-secondary);
         }
-        
+
         .footer-column a:hover {
             color: var(--accent-primary);
         }
-        
+
         .footer-bottom {
             display: flex;
             justify-content: space-between;
@@ -1137,17 +1183,18 @@
             flex-wrap: wrap;
             gap: 1rem;
         }
-        
+
         .footer-bottom p {
+            font-family: var(--font-body);
             font-size: 0.85rem;
             color: var(--text-tertiary);
         }
-        
+
         .footer-social {
             display: flex;
             gap: 1rem;
         }
-        
+
         .footer-social a {
             width: 36px;
             height: 36px;
@@ -1160,7 +1207,7 @@
             color: var(--text-secondary);
             transition: all var(--transition-fast);
         }
-        
+
         .footer-social a:hover {
             background: var(--accent-dim);
             border-color: var(--border-accent);
@@ -1178,7 +1225,7 @@
                 gap: 2rem;
             }
         }
-        
+
         @media (max-width: 768px) {
             :root {
                 --section-padding: clamp(3rem, 8vw, 5rem);
@@ -1200,6 +1247,10 @@
             }
             .nav-toggle {
                 display: flex;
+            }
+            /* FIX: Reset margin on mobile for CTA */
+            .nav-cta {
+                margin-left: 0;
             }
             .hero-stats {
                 flex-direction: column;
@@ -1242,16 +1293,16 @@
                 <div class="logo-icon">C</div>
                 CockpitOS
             </a>
-            
+
             <ul class="nav-links" id="navLinks">
                 <li><a href="#features">Features</a></li>
                 <li><a href="#hardware">Hardware</a></li>
                 <li><a href="#quickstart">Quick Start</a></li>
                 <li><a href="#code">Config</a></li>
                 <li><a href="#docs">Docs</a></li>
-                <li><a href="https://github.com/BojoteX/CockpitOS" class="nav-cta" target="_blank">GitHub →</a></li>
+                <li><a href="https://github.com/BojoteX/CockpitOS" class="nav-cta" target="_blank">GitHub</a></li>
             </ul>
-            
+
             <div class="nav-toggle" onclick="document.getElementById('navLinks').classList.toggle('active')">
                 <span></span>
                 <span></span>
@@ -1265,32 +1316,35 @@
             <div class="hero-grid"></div>
             <div class="hero-gradient"></div>
         </div>
-        
+
         <div class="hero-content">
             <div class="hero-badge">
                 <span></span>
                 Open Source • MIT License
             </div>
-            
+
             <h1>
                 <span>CockpitOS</span>
                 ESP32 Firmware for DCS Cockpits
             </h1>
-            
+
             <p class="hero-description">
-                Connect physical cockpit panels to DCS World via the DCS-BIOS protocol. 
+                Connect physical cockpit panels to DCS World via the DCS-BIOS protocol.
                 Native USB, WiFi, and Serial support across the entire ESP32 family.
             </p>
-            
+
             <div class="hero-actions">
                 <a href="#quickstart" class="btn btn-primary">
-                    Get Started →
+                    Get Started
+                </a>
+                <a href="https://cockpitos.bojote.com/upload/" class="btn btn-secondary" target="_blank">
+                    Upload Firmware
                 </a>
                 <a href="https://go.bojote.com/CockpitOS" class="btn btn-secondary" target="_blank">
-                    💬 AI Assistant
+                    AI Assistant
                 </a>
             </div>
-            
+
             <div class="hero-stats">
                 <div class="hero-stat">
                     <span class="hero-stat-value">250</span>
@@ -1315,7 +1369,7 @@
                 <h2>How It Works</h2>
                 <p>Bidirectional communication between DCS World and your physical hardware</p>
             </div>
-            
+
             <div class="dataflow-diagram">
                 <div class="dataflow-node">
                     <div class="dataflow-box">
@@ -1323,33 +1377,33 @@
                         <h4>DCS World</h4>
                         <p>Flight Simulator</p>
                     </div>
-                    <div class="dataflow-bidirectional">↕ Cockpit State</div>
+                    <div class="dataflow-bidirectional">Cockpit State</div>
                 </div>
-                
+
                 <div class="dataflow-arrow"></div>
-                
+
                 <div class="dataflow-node">
                     <div class="dataflow-box">
                         <div class="dataflow-icon">📡</div>
                         <h4>DCS-BIOS</h4>
                         <p>LUA Protocol</p>
                     </div>
-                    <div class="dataflow-bidirectional">↕ Binary Stream</div>
+                    <div class="dataflow-bidirectional">Binary Stream</div>
                 </div>
-                
+
                 <div class="dataflow-arrow"></div>
-                
+
                 <div class="dataflow-node">
                     <div class="dataflow-box">
                         <div class="dataflow-icon">⚡</div>
                         <h4>CockpitOS</h4>
                         <p>ESP32 Firmware</p>
                     </div>
-                    <div class="dataflow-bidirectional">↕ GPIO / I²C / SPI</div>
+                    <div class="dataflow-bidirectional">GPIO / I²C / SPI</div>
                 </div>
-                
+
                 <div class="dataflow-arrow"></div>
-                
+
                 <div class="dataflow-node">
                     <div class="dataflow-box">
                         <div class="dataflow-icon">🔘</div>
@@ -1369,7 +1423,7 @@
                 <h2>Built for Real Cockpits</h2>
                 <p>Everything you need to bring your simulator cockpit to life</p>
             </div>
-            
+
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon">⌨️</div>
@@ -1384,7 +1438,7 @@
                         <li>PCA9555 I²C expanders</li>
                     </ul>
                 </div>
-                
+
                 <div class="feature-card">
                     <div class="feature-icon">💡</div>
                     <h3>Versatile Outputs</h3>
@@ -1398,7 +1452,7 @@
                         <li>Servo motor gauges</li>
                     </ul>
                 </div>
-                
+
                 <div class="feature-card">
                     <div class="feature-icon">📶</div>
                     <h3>Flexible Connectivity</h3>
@@ -1412,7 +1466,7 @@
                         <li>Hot-plug detection</li>
                     </ul>
                 </div>
-                
+
                 <div class="feature-card">
                     <div class="feature-icon">🏗️</div>
                     <h3>Production-Grade Architecture</h3>
@@ -1426,7 +1480,7 @@
                         <li>MISRA-style coding standards</li>
                     </ul>
                 </div>
-                
+
                 <div class="feature-card">
                     <div class="feature-icon">✈️</div>
                     <h3>Per-Aircraft Configuration</h3>
@@ -1440,7 +1494,7 @@
                         <li>Multi-aircraft support</li>
                     </ul>
                 </div>
-                
+
                 <div class="feature-card">
                     <div class="feature-icon">🛠️</div>
                     <h3>Developer Friendly</h3>
@@ -1465,7 +1519,7 @@
                 <h2>Supported Hardware</h2>
                 <p>Runs on the entire ESP32 family with variant-specific optimizations</p>
             </div>
-            
+
             <div class="hardware-grid">
                 <div class="hardware-card">
                     <div class="hardware-header">
@@ -1481,7 +1535,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="hardware-card">
                     <div class="hardware-header">
                         <h4>ESP32-S3</h4>
@@ -1497,7 +1551,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="hardware-card">
                     <div class="hardware-header">
                         <h4>ESP32 Classic</h4>
@@ -1512,7 +1566,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="hardware-card">
                     <div class="hardware-header">
                         <h4>ESP32-C3 / C6</h4>
@@ -1527,7 +1581,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="hardware-card">
                     <div class="hardware-header">
                         <h4>ESP32-H2</h4>
@@ -1542,7 +1596,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="hardware-card">
                     <div class="hardware-header">
                         <h4>ESP32-P4</h4>
@@ -1569,31 +1623,31 @@
                 <h2>Up and Running in Minutes</h2>
                 <p>From download to working panel in five simple steps</p>
             </div>
-            
+
             <div class="quickstart-steps">
                 <div class="quickstart-step">
                     <h4>Install Arduino IDE</h4>
                     <p>Download <a href="https://www.arduino.cc/en/software" target="_blank">Arduino IDE 2.x</a> and install the <code>ESP32 Arduino Core 3.3+</code> via Boards Manager.</p>
                 </div>
-                
+
                 <div class="quickstart-step">
                     <h4>Download CockpitOS</h4>
                     <p>Clone or download from <a href="https://github.com/BojoteX/CockpitOS" target="_blank">GitHub</a>. Extract to your Arduino folder.</p>
                 </div>
-                
+
                 <div class="quickstart-step">
                     <h4>Select a Label Set</h4>
-                    <p>Navigate to <code>src/LABELS/LABEL_SET_TEST_ONLY</code> and run <code>python generate_data.py</code></p>
+                    <p>Navigate to <code>src/LABELS/</code> directory and run <code>python generate_data.py</code></p>
                 </div>
-                
+
                 <div class="quickstart-step">
                     <h4>Configure Transport</h4>
                     <p>Edit <code>Config.h</code> to select USB, WiFi, or Serial mode for your setup.</p>
                 </div>
-                
+
                 <div class="quickstart-step">
-                    <h4>Compile & Upload</h4>
-                    <p>Select your board in Arduino IDE, compile, and upload. Your panel is ready!</p>
+                    <h4>Upload Firmware</h4>
+                    <p>Use the <a href="https://cockpitos.bojote.com/upload/" target="_blank">Web Flasher</a> to upload directly from your browser, or compile and upload via Arduino IDE.</p>
                 </div>
             </div>
         </div>
@@ -1606,7 +1660,7 @@
                 <h2>Simple Mapping Files</h2>
                 <p>Define your hardware in clean, readable configuration headers</p>
             </div>
-            
+
             <div class="code-container">
                 <div class="code-block">
                     <div class="code-header">
@@ -1631,7 +1685,7 @@
   <span class="string">"VOLUME"</span>, <span class="number">1</span>, <span class="string">"variable_step"</span>, <span class="number">0</span> },</pre>
                     </div>
                 </div>
-                
+
                 <div class="code-block">
                     <div class="code-header">
                         <span class="code-filename">LEDMapping.h</span>
@@ -1669,7 +1723,7 @@
                 <h2>Documentation</h2>
                 <p>Comprehensive guides for every skill level</p>
             </div>
-            
+
             <div class="docs-grid">
                 <a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/GETTING_STARTED.md" class="doc-card" target="_blank">
                     <div class="doc-icon">🚀</div>
@@ -1678,7 +1732,7 @@
                         <p>First-time setup, Arduino IDE configuration, compile and upload</p>
                     </div>
                 </a>
-                
+
                 <a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/CREATING_LABEL_SETS.md" class="doc-card" target="_blank">
                     <div class="doc-icon">✈️</div>
                     <div class="doc-content">
@@ -1686,7 +1740,7 @@
                         <p>Configure for your aircraft and hardware setup</p>
                     </div>
                 </a>
-                
+
                 <a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/HARDWARE_WIRING.md" class="doc-card" target="_blank">
                     <div class="doc-icon">🔌</div>
                     <div class="doc-content">
@@ -1694,7 +1748,7 @@
                         <p>Wiring diagrams for all input and output types</p>
                     </div>
                 </a>
-                
+
                 <a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/TRANSPORT_MODES.md" class="doc-card" target="_blank">
                     <div class="doc-icon">📡</div>
                     <div class="doc-content">
@@ -1702,7 +1756,7 @@
                         <p>USB, WiFi, and Serial configuration guide</p>
                     </div>
                 </a>
-                
+
                 <a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/ADVANCED_DISPLAYS.md" class="doc-card" target="_blank">
                     <div class="doc-icon">📺</div>
                     <div class="doc-content">
@@ -1710,7 +1764,7 @@
                         <p>HT1622 segment displays and TFT gauges</p>
                     </div>
                 </a>
-                
+
                 <a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/ADVANCED_CONTROLS.md" class="doc-card" target="_blank">
                     <div class="doc-icon">⚙️</div>
                     <div class="doc-content">
@@ -1718,7 +1772,15 @@
                         <p>Custom panels, CoverGate system, panel registration</p>
                     </div>
                 </a>
-                
+
+                <a href="https://cockpitos.bojote.com/upload/" class="doc-card" target="_blank">
+                    <div class="doc-icon">⬆️</div>
+                    <div class="doc-content">
+                        <h4>Web Flasher</h4>
+                        <p>Upload firmware directly from your browser via Web Serial</p>
+                    </div>
+                </a>
+
                 <a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/FAQ.md" class="doc-card" target="_blank">
                     <div class="doc-icon">❓</div>
                     <div class="doc-content">
@@ -1726,7 +1788,7 @@
                         <p>Common questions and quick answers</p>
                     </div>
                 </a>
-                
+
                 <a href="https://go.bojote.com/CockpitOS" class="doc-card" target="_blank">
                     <div class="doc-icon">🤖</div>
                     <div class="doc-content">
@@ -1746,7 +1808,7 @@
                 <p>Join the community of flight sim enthusiasts building authentic cockpit hardware with CockpitOS.</p>
                 <div class="cta-buttons">
                     <a href="https://github.com/BojoteX/CockpitOS" class="btn btn-primary" target="_blank">
-                        View on GitHub →
+                        View on GitHub
                     </a>
                     <a href="https://github.com/BojoteX/CockpitOS/discussions" class="btn btn-secondary" target="_blank">
                         Join Discussions
@@ -1766,7 +1828,7 @@
                     </a>
                     <p>ESP32 firmware for DCS World cockpit panels. Open source, community driven, built with precision.</p>
                 </div>
-                
+
                 <div class="footer-links">
                     <div class="footer-column">
                         <h5>Documentation</h5>
@@ -1776,16 +1838,24 @@
                             <li><a href="https://github.com/BojoteX/CockpitOS/blob/main/Docs/FAQ.md" target="_blank">FAQ</a></li>
                         </ul>
                     </div>
-                    
+
+                    <div class="footer-column">
+                        <h5>Tools</h5>
+                        <ul>
+                            <li><a href="https://cockpitos.bojote.com/upload/" target="_blank">Web Flasher</a></li>
+                            <li><a href="https://go.bojote.com/CockpitOS" target="_blank">AI Assistant</a></li>
+                            <li><a href="https://github.com/BojoteX/CockpitOS" target="_blank">GitHub</a></li>
+                        </ul>
+                    </div>
+
                     <div class="footer-column">
                         <h5>Community</h5>
                         <ul>
-                            <li><a href="https://github.com/BojoteX/CockpitOS" target="_blank">GitHub</a></li>
                             <li><a href="https://github.com/BojoteX/CockpitOS/discussions" target="_blank">Discussions</a></li>
                             <li><a href="https://github.com/BojoteX/CockpitOS/issues" target="_blank">Issues</a></li>
                         </ul>
                     </div>
-                    
+
                     <div class="footer-column">
                         <h5>Related</h5>
                         <ul>
@@ -1796,7 +1866,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="footer-bottom">
                 <p>© 2025 CockpitOS Project. Released under MIT License.</p>
                 <div class="footer-social">
@@ -1815,13 +1885,13 @@
         function copyCode(btn) {
             const pre = btn.parentElement.nextElementSibling.querySelector('pre');
             const code = pre.innerText;
-            
+
             navigator.clipboard.writeText(code).then(() => {
                 const originalText = btn.innerText;
                 btn.innerText = 'Copied!';
                 btn.style.color = 'var(--success)';
                 btn.style.borderColor = 'var(--success)';
-                
+
                 setTimeout(() => {
                     btn.innerText = originalText;
                     btn.style.color = '';
@@ -1836,7 +1906,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const sections = document.querySelectorAll('section');
             const navLinks = document.querySelectorAll('.nav-links a[href^="#"]');
-            
+
             const observerOptions = {
                 root: null,
                 rootMargin: '-30% 0px -70% 0px', // Active when section is near top
@@ -1847,7 +1917,7 @@
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         const id = entry.target.getAttribute('id');
-                        
+
                         navLinks.forEach(link => {
                             link.classList.remove('active');
                             if (link.getAttribute('href') === '#' + id) {
