@@ -2,3 +2,4 @@ TODO:
 
 - Version/build/date: We need to know what "version" user has installed
 - Youtube Video tutorials (shorts + 30 minutes from zero to hero + Complex panel custom front right (video)
+- Trigger boot mode from within firmware
