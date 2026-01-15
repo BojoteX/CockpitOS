@@ -124,6 +124,50 @@ REGISTER_PANEL(LockShoot, nullptr, nullptr, nullptr, nullptr, WS2812_tick, 100);
 REGISTER_PANEL(LA, nullptr, nullptr, nullptr, nullptr, tm1637_tick, 100);
 ```
 
+### 2.3 Priority-Based Execution
+
+Panels are executed in priority order (lower number = higher priority):
+
+| Priority | Use Case |
+|----------|----------|
+| 1-49 | Time-critical panels (display refresh) |
+| 50-99 | Standard input panels |
+| 100 | Default priority |
+| 101-199 | Lower-priority panels |
+| 200+ | Background tasks |
+
+```cpp
+// High-priority display panel
+REGISTER_PANEL(CriticalDisplay, nullptr, nullptr, Display_init, Display_loop, nullptr, 10);
+
+// Standard input panel
+REGISTER_PANEL(Switches, Switch_init, Switch_loop, nullptr, nullptr, nullptr, 100);
+```
+
+### 2.4 Runtime Enable/Disable (Advanced)
+
+You can enable or disable panels at runtime using `PanelRegistry_setActive()`:
+
+```cpp
+#include "Core/PanelRegistry.h"
+
+// Disable a panel temporarily
+PanelRegistry_setActive(PanelKind::MyPanel, false);
+
+// Re-enable the panel
+PanelRegistry_setActive(PanelKind::MyPanel, true);
+```
+
+**Use cases:**
+- Disable panels for aircraft that don't support them
+- Temporarily disable panels during configuration
+- Power-saving mode (disable unused displays)
+
+When a panel is disabled:
+- Its `loop`, `disp_loop`, and `tick` functions are not called
+- Its `init` function is still called on mission start
+- The panel can be re-enabled at any time
+
 ---
 
 ## 3. PanelKind and Auto-Generation
@@ -524,6 +568,75 @@ This re-syncs all panel states with DCS.
 | `disp_init` | Once at startup | Initialize display hardware |
 | `disp_loop` | Every frame | Render display updates |
 | `tick` | Every frame | Flush LED drivers (WS2812, TM1637, etc.) |
+
+### 7.4 Mission Lifecycle Details (Advanced)
+
+CockpitOS tracks mission state through several internal functions:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    MISSION LIFECYCLE EVENTS                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   DCS World Events:                                                         │
+│   ─────────────────                                                         │
+│   1. Aircraft loaded → onAircraftName() callback                            │
+│   2. Mission starts  → onMissionStart() → initializePanels(false)           │
+│   3. Mission ends    → panels continue running (no explicit event)          │
+│   4. New aircraft    → onAircraftName() → re-init sequence                  │
+│                                                                             │
+│   Key Functions:                                                            │
+│   ──────────────                                                            │
+│   • simReady() — returns true when DCS is actively sending data             │
+│   • isPanelsSyncedThisMission() — true after init completes                 │
+│   • validateSelectorSync() — ensures switch states match DCS                │
+│                                                                             │
+│   Timing:                                                                   │
+│   ────────                                                                  │
+│   • MISSION_START_DEBOUNCE = 500ms — wait before panel sync                 │
+│   • This prevents rapid re-syncs during mission loading                     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 7.5 Aircraft Change Callback
+
+Register a callback to be notified when the aircraft changes:
+
+```cpp
+static void onAircraftChange(const char* label, const char* newAircraft) {
+    // newAircraft contains the DCS-BIOS aircraft identifier
+    // e.g., "FA-18C_hornet", "A-10C", "F-16C_50"
+
+    if (strcmp(newAircraft, "FA-18C_hornet") == 0) {
+        // Enable F/A-18C specific panels
+        PanelRegistry_setActive(PanelKind::IFEI, true);
+    } else {
+        // Disable F/A-18C specific panels
+        PanelRegistry_setActive(PanelKind::IFEI, false);
+    }
+}
+
+void MyPanel_init() {
+    subscribeToDisplayChange("_ACFT_NAME", onAircraftChange);
+}
+```
+
+### 7.6 Checking Simulation State
+
+Use these functions to check the current state:
+
+```cpp
+// Check if DCS is actively running
+if (simReady()) {
+    // Safe to send commands to DCS
+}
+
+// Check if panels have been synced this mission
+if (isPanelsSyncedThisMission()) {
+    // Initial sync is complete
+}
+```
 
 ---
 

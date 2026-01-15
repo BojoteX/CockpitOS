@@ -525,6 +525,42 @@ Before configuring DCS-BIOS, test your LED with the built-in test mode:
 
 This confirms your wiring before you connect to DCS.
 
+### 4.6 PWM Intensity Mapping (Advanced)
+
+When `dimmable = true`, CockpitOS maps DCS-BIOS values (0-65535) to PWM duty cycle (0-255):
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    PWM INTENSITY MAPPING                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   DCS-BIOS sends values from 0 to 65535 (16-bit).                           │
+│   PWM output ranges from 0 to 255 (8-bit duty cycle).                       │
+│                                                                             │
+│   Mapping: PWM = (DCS_value * 255) / 65535                                  │
+│                                                                             │
+│   DCS Value     PWM Value     Brightness                                    │
+│   ─────────────────────────────────────────                                 │
+│   0             0             OFF                                           │
+│   16383         63            25%                                           │
+│   32767         127           50%                                           │
+│   49151         191           75%                                           │
+│   65535         255           100%                                          │
+│                                                                             │
+│   For active-low LEDs, the PWM value is automatically inverted:             │
+│   PWM_out = 255 - PWM_value                                                 │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Example — Instrument Panel Dimmer:**
+
+```cpp
+// DCS-BIOS sends INST_PNL_DIMMER as 0-65535
+// LED brightness automatically tracks the dimmer position
+{ "INST_PNL_DIMMER", DEVICE_GPIO, { .gpioInfo = { PIN(5) } }, true, false },
+```
+
 ---
 
 ## 5. Potentiometers and Analog Inputs
@@ -889,6 +925,48 @@ First, configure the shift register pins in `Pins.h`:
 - `bit` — which bit position (0-15 for 16 bits, 0-23 for 24 bits, etc.)
 - `bit = -1` — fallback position for selectors (when no bit is LOW)
 
+### 7.6 64-Bit Daisy-Chain Support (Advanced)
+
+CockpitOS supports up to **64 bits** (8 chips) in a single HC165 chain using a 64-bit internal register:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    64-BIT HC165 CHAIN                                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   Maximum configuration: 8 chips × 8 bits = 64 inputs                       │
+│                                                                             │
+│   In Pins.h:                                                                │
+│   #define HC165_BITS    64     // Up to 64 bits supported                   │
+│                                                                             │
+│   Bit numbering:                                                            │
+│   Chip #1: bits 0-7    (D0 = bit 0, D7 = bit 7)                            │
+│   Chip #2: bits 8-15   (D0 = bit 8, D7 = bit 15)                           │
+│   Chip #3: bits 16-23                                                       │
+│   ...                                                                       │
+│   Chip #8: bits 56-63                                                       │
+│                                                                             │
+│   ⚠️ Using more than 32 bits may increase scan time slightly               │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 7.7 Debugging HC165 Inputs
+
+Enable targeted debug output to verify bit mappings during initial wiring:
+
+```cpp
+// In Config.h
+#define DEBUG_ENABLED_FOR_HC165_ONLY    1
+```
+
+This outputs the raw 64-bit value whenever any HC165 input changes, helping you identify which physical button corresponds to which bit number:
+
+```
+[HC165] Raw: 0x0000000000000004 (bit 2 active)
+[HC165] Raw: 0x0000000000000000 (all released)
+```
+
 ---
 
 ## 8. Expanding I/O — PCA9555 I²C Expanders
@@ -1040,6 +1118,58 @@ The PCA9555 address is determined by the A0, A1, A2 pins:
 - `port` — 0 or 1
 - `bit` — 0-7
 
+### 8.8 I²C Fast Mode (Advanced)
+
+CockpitOS supports I²C Fast Mode (400kHz) for faster PCA9555 communication:
+
+```cpp
+// In Config.h
+#define PCA_FAST_MODE    1    // Enable 400kHz I²C (default)
+                              // Set to 0 for 100kHz standard mode
+```
+
+Fast Mode reduces scan latency when using multiple PCA9555 chips. Use standard mode (100kHz) if you experience communication errors with long I²C bus wires (>50cm).
+
+### 8.9 Extended Address Range
+
+CockpitOS supports PCA9555 chips at additional addresses beyond 0x20-0x27:
+
+| Address Range | Chip Variant |
+|---------------|--------------|
+| 0x20 - 0x27 | Standard PCA9555 |
+| 0x5B | Extended address (some modules) |
+
+The driver automatically handles chips at any supported address.
+
+### 8.10 Selector Groups on PCA9555
+
+Multi-position selectors using PCA9555 inputs work the same as GPIO selectors — use the `group` field to link positions:
+
+```cpp
+//  label                  source       port  bit hidId  DCSCommand         value  Type        group
+{ "ENGINE_CRANK_LEFT",    "PCA_0x20",   0,    0,  -1, "ENGINE_CRANK_SW",     2, "selector",    4 },
+{ "ENGINE_CRANK_OFF",     "PCA_0x20",   0,   -1,  -1, "ENGINE_CRANK_SW",     1, "selector",    4 },
+{ "ENGINE_CRANK_RIGHT",   "PCA_0x20",   0,    1,  -1, "ENGINE_CRANK_SW",     0, "selector",    4 },
+```
+
+All entries with the same `group` number form a selector — only one can be active at a time.
+
+**Limits:**
+- `MAX_PCA9555_INPUTS = 64` — maximum input mappings across all PCA chips
+- `MAX_PCA_GROUPS = 128` — maximum selector groups
+- `MAX_PCAS = 8` — maximum PCA9555 chips (addresses 0x20-0x27)
+
+### 8.11 Debugging PCA9555 Inputs
+
+Enable targeted debug output during wiring:
+
+```cpp
+// In Config.h
+#define DEBUG_ENABLED_FOR_PCA_ONLY    1
+```
+
+This outputs port/bit information when PCA inputs change, helping identify physical wiring.
+
 ---
 
 ## 9. TM1637 Displays and Keypads
@@ -1103,6 +1233,58 @@ Some TM1637 modules support a key matrix for button input:
 - `source = "TM1637"` — identifies TM1637 key input
 - `port` — the DIO pin (identifies which TM1637 device)
 - `bit` — key scan code returned by the module
+
+### 9.4 Brightness Control (Advanced)
+
+TM1637 supports 8 brightness levels (0-7). CockpitOS maps DCS-BIOS dimmer values to these levels:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    TM1637 BRIGHTNESS LEVELS                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   Level    Duty Cycle    Visual                                             │
+│   ─────────────────────────────────────────                                 │
+│   0        1/16          Very dim (barely visible)                          │
+│   1        2/16          Dim                                                │
+│   2        4/16          Low                                                │
+│   3        6/16          Medium-low                                         │
+│   4        8/16          Medium                                             │
+│   5        10/16         Medium-high                                        │
+│   6        12/16         Bright                                             │
+│   7        14/16         Maximum brightness                                 │
+│                                                                             │
+│   DCS-BIOS values (0-65535) are scaled to these 8 levels automatically.     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 9.5 Multi-Device Support
+
+CockpitOS supports up to **8 TM1637 devices** simultaneously:
+
+```cpp
+// Each TM1637 is identified by its DIO pin
+// Device 1: CLK=PIN(8), DIO=PIN(9)
+// Device 2: CLK=PIN(10), DIO=PIN(11)
+// etc.
+```
+
+The driver maintains an internal registry of up to 8 TM1637 devices. Each device is auto-registered when first referenced in LEDMapping.h.
+
+**Limits:**
+- Maximum 8 TM1637 devices
+- Each device can control up to 6 digits × 8 segments = 48 LEDs
+
+### 9.6 Debugging TM1637 Inputs
+
+For TM1637 key scanning issues (ghosting, false triggers):
+
+```cpp
+// In Config.h
+#define DEBUG_ENABLED_FOR_TM1637_ONLY    1
+#define ADVANCED_TM1637_INPUT_FILTERING  1   // Extra debouncing for noisy modules
+```
 
 ---
 
@@ -1197,6 +1379,70 @@ WS2812 (NeoPixel) LEDs are individually addressable RGB LEDs that can display an
 > - Orange: `{ 255, 165, 0 }`
 > - Yellow: `{ 255, 255, 0 }`
 
+### 10.4 Multi-Strip Support (Advanced)
+
+CockpitOS supports up to **8 independent WS2812 strips**, each on a different GPIO:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    MULTI-STRIP WS2812 CONFIGURATION                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│                        ESP32                                                │
+│                     ┌─────────┐                                             │
+│                     │         │                                             │
+│                     │ GPIO 15 ├──────► Strip 1 (Caution Panel)              │
+│                     │         │                                             │
+│                     │ GPIO 16 ├──────► Strip 2 (Landing Gear)               │
+│                     │         │                                             │
+│                     │ GPIO 17 ├──────► Strip 3 (Engine Indicators)          │
+│                     │         │                                             │
+│                     └─────────┘                                             │
+│                                                                             │
+│   Each strip is identified by its data pin in LEDMapping.h.                 │
+│   LED index is per-strip (each strip starts at index 0).                    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Example — Three strips:**
+
+```cpp
+// Strip 1 on GPIO 15
+{ "CAUTION_1", DEVICE_WS2812, { .ws2812Info = { 0, PIN(15), 255, 200, 0, 255 } }, false, false },
+{ "CAUTION_2", DEVICE_WS2812, { .ws2812Info = { 1, PIN(15), 255, 200, 0, 255 } }, false, false },
+
+// Strip 2 on GPIO 16
+{ "GEAR_NOSE", DEVICE_WS2812, { .ws2812Info = { 0, PIN(16), 0, 255, 0, 255 } }, false, false },
+{ "GEAR_LEFT", DEVICE_WS2812, { .ws2812Info = { 1, PIN(16), 0, 255, 0, 255 } }, false, false },
+```
+
+### 10.5 Per-Strip Brightness
+
+Each strip maintains its own brightness level. The `defBright` field (0-255) sets the initial brightness:
+
+```cpp
+// Full brightness strip
+{ "WARN_LT", DEVICE_WS2812, { .ws2812Info = { 0, PIN(15), 255, 0, 0, 255 } }, false, false },
+
+// Dimmed strip (50% brightness)
+{ "INST_LT", DEVICE_WS2812, { .ws2812Info = { 0, PIN(16), 255, 255, 255, 128 } }, false, false },
+```
+
+### 10.6 RMT Timing (Technical)
+
+CockpitOS uses the ESP32's RMT (Remote Control) peripheral for precise WS2812 timing:
+
+- Data rate: ~800 kHz
+- Bit timing: 0.4µs HIGH + 0.85µs LOW for '0', 0.8µs HIGH + 0.45µs LOW for '1'
+- Reset: 50µs LOW minimum between frames
+
+The RMT peripheral handles timing in hardware, ensuring reliable data transmission even when the CPU is busy. Each strip uses one RMT channel.
+
+**Limits:**
+- Maximum 8 strips (limited by RMT channels)
+- No practical limit on LEDs per strip (tested up to 300)
+
 ---
 
 ## 11. GN1640T LED Matrix Drivers
@@ -1241,6 +1487,38 @@ The GN1640T drives LED matrices — useful for annunciator panels with many indi
 - `address` — device address (if multiple GN1640T chips)
 - `column` — which column (0-7)
 - `row` — which row (0-7)
+
+### 11.3 Shadow Buffer and Change Detection (Advanced)
+
+CockpitOS maintains a shadow buffer for each GN1640T device to minimize I²C traffic:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    GN1640T SHADOW BUFFER                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   How it works:                                                             │
+│   1. Each LED state is tracked in a shadow buffer (64 bits per device)      │
+│   2. When an LED changes, only the affected column is updated               │
+│   3. If nothing changed, no I²C communication occurs                        │
+│                                                                             │
+│   Benefits:                                                                 │
+│   - Reduces I²C bus traffic significantly                                   │
+│   - Prevents unnecessary LED flicker                                        │
+│   - Lower CPU overhead                                                      │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 11.4 Refresh Throttling
+
+The GN1640T driver enforces a minimum **2ms delay** between consecutive updates to the same device:
+
+- Prevents overwhelming the chip with rapid updates
+- Ensures stable LED output during fast DCS-BIOS streams
+- Automatically batches multiple changes into single updates when possible
+
+This throttling is automatic — no configuration needed.
 
 ---
 
@@ -1377,6 +1655,58 @@ Servo motors can drive physical gauge needles for immersive cockpit instruments.
 - `minPulse = 1000` and `maxPulse = 2000` are typical starting values
 - Adjust based on your servo's actual range and gauge travel
 - Some gauges only need 90° of travel — adjust accordingly
+
+### 13.4 Automatic Calibration Sequence (Advanced)
+
+At startup, CockpitOS runs a calibration sweep for each configured servo:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    SERVO CALIBRATION SEQUENCE                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   On power-up, each servo automatically:                                    │
+│                                                                             │
+│   1. Moves to MINIMUM position (minPulse) ──► Holds 500ms                  │
+│   2. Moves to MAXIMUM position (maxPulse) ──► Holds 500ms                  │
+│   3. Returns to MINIMUM position ──────────► Ready for DCS values          │
+│                                                                             │
+│   This calibration:                                                         │
+│   - Verifies servo is responding                                            │
+│   - Shows the mechanical range on your gauge                                │
+│   - Helps identify minPulse/maxPulse adjustments needed                     │
+│                                                                             │
+│   ⚠️ Ensure gauge mechanism allows full travel before first power-up!      │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 13.5 16-Bit Range Mapping
+
+CockpitOS maps DCS-BIOS values (0-65535) to the servo's pulse range:
+
+```cpp
+// Mapping formula:
+pulse = minPulse + ((value * (maxPulse - minPulse)) / 65535)
+```
+
+**Example:**
+- `minPulse = 1000`, `maxPulse = 2000`
+- DCS value = 32767 (50%)
+- Pulse = 1000 + ((32767 × 1000) / 65535) = 1500µs (center position)
+
+This provides 16-bit precision for smooth gauge needle movement.
+
+### 13.6 Update Rate
+
+Servo positions update at a fixed rate defined by `SERVO_UPDATE_FREQ_MS` (default 20ms = 50Hz):
+
+```cpp
+// In Config.h
+#define SERVO_UPDATE_FREQ_MS    20    // 50Hz update rate (standard for servos)
+```
+
+Lower values (faster updates) may cause jitter on some servos. Standard 50Hz works well for most hobby servos.
 
 ---
 
