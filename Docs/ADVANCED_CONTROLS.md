@@ -13,8 +13,9 @@ This guide covers advanced topics for users who want to create custom panels, im
 5. [CoverGate System](#5-covergate-system)
 6. [Latched Buttons](#6-latched-buttons)
 7. [Panel Lifecycle](#7-panel-lifecycle)
-8. [Best Practices](#8-best-practices)
-9. [METADATA Directory (Advanced)](#9-metadata-directory-advanced)
+8. [DCS-BIOS Subscription System](#8-dcs-bios-subscription-system)
+9. [Best Practices](#9-best-practices)
+10. [METADATA Directory (Advanced)](#10-metadata-directory-advanced)
 
 ---
 
@@ -425,6 +426,14 @@ struct CoverGateDef {
 
 Adjust based on your aircraft's cover animation speed in DCS.
 
+### 5.7 CoverGate Limits
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `MAX_COVER_GATES` | 16 | Maximum number of covered controls |
+
+If you need more than 16 covered controls, increase `MAX_COVER_GATES` in `src/Core/CoverGate.cpp`. Each entry uses approximately 32 bytes of RAM.
+
 ---
 
 ## 6. Latched Buttons
@@ -518,7 +527,126 @@ This re-syncs all panel states with DCS.
 
 ---
 
-## 8. Best Practices
+## 8. DCS-BIOS Subscription System
+
+CockpitOS provides a subscription API to receive callbacks when DCS-BIOS values change. Understanding the limits and proper usage is essential for reliable panel operation.
+
+### 8.1 Subscription Types and Limits
+
+| Subscription Type | Function | Max Subscriptions | Use Case |
+|-------------------|----------|-------------------|----------|
+| Display Change | `subscribeToDisplayChange()` | 32 | Text displays (UFC, IFEI) |
+| Selector Change | `subscribeToSelectorChange()` | 32 | Switch positions, knob states |
+| LED Change | `subscribeToLedChange()` | 32 | Indicator lights, gauges |
+| Metadata Change | `subscribeToMetadataChange()` | 32 | System data (altitude, heading) |
+| Display Buffer | `registerDisplayBuffer()` | 64 | Character buffers with dirty flags |
+
+**Critical:** If you exceed these limits, the subscription silently fails. Plan your panel's subscriptions carefully.
+
+### 8.2 Display Subscriptions
+
+Use display subscriptions for text fields that update frequently:
+
+```cpp
+static void onDisplayChange(const char* label, const char* value) {
+    // Called when display content changes
+    // label: e.g., "UFC_COMM1_DISPLAY"
+    // value: the new text content
+    updateMyDisplay(value);
+}
+
+void MyPanel_init() {
+    subscribeToDisplayChange("UFC_COMM1_DISPLAY", onDisplayChange);
+}
+```
+
+### 8.3 Selector Subscriptions
+
+Use selector subscriptions for switch positions and knob states:
+
+```cpp
+static void onSelectorChange(const char* label, uint16_t value) {
+    // Called when selector position changes
+    // label: e.g., "MASTER_ARM_SW"
+    // value: position index (0, 1, 2, etc.)
+    if (value == 1) {
+        // ARM position
+    }
+}
+
+void MyPanel_init() {
+    subscribeToSelectorChange("MASTER_ARM_SW", onSelectorChange);
+}
+```
+
+### 8.4 LED Subscriptions
+
+Use LED subscriptions for indicator lights and analog values:
+
+```cpp
+static void onLedChange(const char* label, uint16_t value, uint16_t maxValue) {
+    // Called when LED/gauge value changes
+    // label: e.g., "FUEL_QTY_L"
+    // value: current value
+    // maxValue: maximum possible value
+    float percentage = (float)value / maxValue;
+    setGaugePosition(percentage);
+}
+
+void MyPanel_init() {
+    subscribeToLedChange("FUEL_QTY_L", onLedChange);
+}
+```
+
+### 8.5 Display Buffers with Dirty Flags
+
+For displays that need to track whether content has changed:
+
+```cpp
+static char s_displayBuf[8];
+static char s_lastBuf[8];
+static bool s_dirty = false;
+
+void MyPanel_init() {
+    registerDisplayBuffer("UFC_COMM1_DISPLAY", s_displayBuf,
+                         sizeof(s_displayBuf), &s_dirty, s_lastBuf);
+}
+
+void MyPanel_loop() {
+    if (s_dirty) {
+        s_dirty = false;
+        // Update hardware display with s_displayBuf
+        renderDisplay(s_displayBuf);
+    }
+}
+```
+
+The dirty flag pattern prevents unnecessary redraws when content hasn't changed.
+
+### 8.6 Command History and Throttling
+
+CockpitOS tracks recent commands to prevent spamming:
+
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| `MAX_TRACKED_RECORDS` | 512 | Maximum commands in history |
+| `VALUE_THROTTLE_MS` | 50ms | Skip duplicate values within this window |
+| `ANY_VALUE_THROTTLE_MS` | 33ms | Minimum spacing between any values |
+| `SELECTOR_DWELL_MS` | 250ms | Stable time before sending selector change |
+
+**Query functions:**
+
+```cpp
+// Get the last known state of a control
+uint16_t state = getLastKnownState("MASTER_ARM_SW");
+
+// Get a metadata value (altitude, heading, etc.)
+uint16_t altitude = getMetadataValue("ALT_MSL_FT");
+```
+
+---
+
+## 9. Best Practices
 
 ### 8.1 Panel Code Guidelines
 
@@ -573,18 +701,18 @@ void MyPanel_loop() {
 
 ---
 
-## 9. METADATA Directory (Advanced)
+## 10. METADATA Directory (Advanced)
 
 Each Label Set can include a `METADATA/` subdirectory containing JSON overlay files. These allow you to customize, extend, or correct control definitions without modifying the base aircraft JSON.
 
-### 9.1 Use Cases
+### 10.1 Use Cases
 
 - **Fix incorrect DCS-BIOS definitions** — Override addresses or masks
 - **Add custom controls** — Define controls not in the standard JSON
 - **Extend panel definitions** — Add metadata for custom hardware
 - **Per-build customization** — Different settings for different cockpit builds
 
-### 9.2 Directory Structure
+### 10.2 Directory Structure
 
 ```
 src/LABELS/LABEL_SET_MYCOCKPIT/
@@ -596,7 +724,7 @@ src/LABELS/LABEL_SET_MYCOCKPIT/
 └── ...
 ```
 
-### 9.3 How It Works
+### 10.3 How It Works
 
 When `generate_data.py` runs:
 
@@ -605,7 +733,7 @@ When `generate_data.py` runs:
 3. Deep-merges overlays into the base definitions
 4. Generates mappings from the merged result
 
-### 9.4 Example Override
+### 10.4 Example Override
 
 To fix an incorrect address for a control:
 
@@ -625,7 +753,7 @@ To fix an incorrect address for a control:
 
 This overrides only the specified fields — all other properties remain from the base JSON.
 
-### 9.5 Best Practices
+### 10.5 Best Practices
 
 - Use descriptive filenames (`rwr_fixes.json`, `custom_gauges.json`)
 - Document your changes with comments in the JSON (use `"_comment": "..."`)

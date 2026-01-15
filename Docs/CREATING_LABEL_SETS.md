@@ -14,9 +14,11 @@ A complete guide for creating custom Label Sets in CockpitOS. This document assu
 6. [Configuring InputMapping.h](#6-configuring-inputmappingh)
 7. [Configuring LEDMapping.h](#7-configuring-ledmappingh)
 8. [Running the Generator](#8-running-the-generator)
-9. [Common Patterns and Recipes](#9-common-patterns-and-recipes)
-10. [Troubleshooting](#10-troubleshooting)
-11. [Next Steps](#11-next-steps)
+9. [The METADATA Directory](#9-the-metadata-directory)
+10. [Understanding LabelSetConfig.h](#10-understanding-labelsetconfigh)
+11. [Common Patterns and Recipes](#11-common-patterns-and-recipes)
+12. [Troubleshooting](#12-troubleshooting)
+13. [Next Steps](#13-next-steps)
 
 ---
 
@@ -872,7 +874,229 @@ This automatically:
 
 ---
 
-## 9. Common Patterns and Recipes
+## 9. The METADATA Directory
+
+Each Label Set includes a `METADATA/` subdirectory containing JSON overlay files that extend or customize the base aircraft definition. This is a powerful feature for adding custom controls, shared telemetry fields, and system metadata.
+
+### 9.1 METADATA Directory Structure
+
+```
+src/LABELS/LABEL_SET_MYPANEL/
+├── METADATA/
+│   ├── CommonData.json       ← Shared telemetry (altitude, heading, speed, etc.)
+│   ├── MetadataStart.json    ← System fields at address 0 (aircraft name)
+│   ├── MetadataEnd.json      ← System counters at address 65534
+│   └── Custom.json           ← YOUR custom controls (optional)
+├── FA-18C_hornet.json
+├── selected_panels.txt
+└── ...
+```
+
+### 9.2 How METADATA Files Are Processed
+
+When you run `generate_data.py`, the generator:
+
+1. Loads the base aircraft JSON (e.g., `FA-18C_hornet.json`)
+2. Scans the `METADATA/` directory for `.json` files
+3. Loads files in **alphabetical order** (CommonData → Custom → MetadataEnd → MetadataStart)
+4. Deep-merges overlays into the base definitions
+5. **Aircraft JSON takes precedence** — existing labels are NOT overwritten
+
+This means METADATA files can only **ADD** new controls, not override existing ones from the aircraft JSON.
+
+### 9.3 Standard METADATA Files
+
+**MetadataStart.json** — System field at address 0:
+```json
+{
+    "Metadata": {
+        "_ACFT_NAME": {
+            "control_type": "display",
+            "identifier": "_ACFT_NAME",
+            "outputs": [{
+                "address": 0,
+                "max_length": 24,
+                "type": "string"
+            }]
+        }
+    }
+}
+```
+
+**CommonData.json** — Shared telemetry available to all panels:
+- Altitude: `ALT_MSL_FT` (address 1076)
+- Heading: `HDG_DEG`, `HDG_DEG_MAG` (address 1078, 1124)
+- Position: `LATI`, `LONI` with fractions (address 1100+)
+- Speed: `IAS_KNOTS`, `MACH` (address 1096+)
+- Time: `HOURS`, `MINUTES`, `SECONDS` (address 1106+)
+- System: `DCS_BIOS` (version), `PILOTNAME`
+
+**MetadataEnd.json** — System counters at high address:
+```json
+{
+    "Metadata": {
+        "_UPDATE_COUNTER": {
+            "address": 65534,
+            "mask": 255,
+            "shift_by": 0,
+            "type": "integer"
+        }
+    }
+}
+```
+
+### 9.4 Creating Custom.json
+
+Use `Custom.json` to define controls that don't exist in the base aircraft JSON. This is useful for:
+
+- Panel-specific switches not in DCS-BIOS
+- Custom wiring configurations
+- Test controls for development
+
+**Example Custom.json:**
+
+```json
+{
+    "Custom": {
+        "WING_FOLD_CUSTOM_PULL": {
+            "category": "Wing Fold Switch",
+            "control_type": "selector",
+            "identifier": "WING_FOLD_PULL",
+            "inputs": [
+                {"interface": "fixed_step"},
+                {"interface": "set_state", "max_value": 1},
+                {"interface": "action", "argument": "TOGGLE"}
+            ],
+            "outputs": [{
+                "address": 29856,
+                "mask": 2048,
+                "shift_by": 11,
+                "type": "integer"
+            }]
+        },
+        "MY_TEST_BUTTON": {
+            "category": "Custom",
+            "control_type": "selector",
+            "identifier": "MY_TEST_BUTTON",
+            "inputs": [
+                {"interface": "set_state", "max_value": 1}
+            ],
+            "outputs": [{
+                "address": 0,
+                "mask": 1,
+                "shift_by": 0,
+                "type": "integer"
+            }]
+        }
+    }
+}
+```
+
+**Key points:**
+- The top-level key (`"Custom"`) becomes the panel/category name
+- Each control needs `control_type`, `identifier`, `inputs`, and `outputs`
+- Use meaningful `address`/`mask`/`shift_by` values that match DCS-BIOS expectations
+- Controls defined here appear in your generated `InputMapping.h` and `LEDMapping.h`
+
+### 9.5 When to Use METADATA vs Aircraft JSON
+
+| Scenario | Solution |
+|----------|----------|
+| Standard DCS-BIOS control | Already in aircraft JSON — just select the panel |
+| Control missing from DCS-BIOS | Add to `Custom.json` |
+| Shared telemetry (altitude, speed) | Already in `CommonData.json` |
+| System tracking (_UPDATE_COUNTER) | Already in `MetadataEnd.json` |
+| Fix incorrect address/mask | Use `Custom.json` with correct values |
+
+### 9.6 METADATA Best Practices
+
+- **Don't modify standard METADATA files** (CommonData, MetadataStart, MetadataEnd) — they're shared across label sets
+- **Use descriptive names** in Custom.json (e.g., `WING_FOLD_CUSTOM_PULL` not `BTN1`)
+- **Document your custom controls** with comments in the JSON: `"_comment": "Custom pull handle"`
+- **Keep Custom.json minimal** — only add what you actually need
+- **Version control your METADATA** — it's part of your label set configuration
+
+---
+
+## 10. Understanding LabelSetConfig.h
+
+The generator creates `LabelSetConfig.h` with important configuration options for your label set. Understanding these options helps you customize your firmware's behavior.
+
+### 10.1 Generated Fields
+
+```cpp
+#define LABEL_SET_NAME        "MAIN"
+#define HAS_HID_MODE_SELECTOR 1
+#define MODE_DEFAULT_IS_HID   0
+#define LABEL_SET_FULLNAME    "CockpitOS Main Panel v5" // You can safely change this
+#define HAS_MAIN
+#define AUTOGEN_USB_PID       0xC8DD // DO NOT EDIT THIS
+```
+
+### 10.2 Field Descriptions
+
+| Field | Purpose | Editable? |
+|-------|---------|-----------|
+| `LABEL_SET_NAME` | Short identifier (matches folder name without `LABEL_SET_` prefix) | No |
+| `HAS_HID_MODE_SELECTOR` | Whether physical mode switch is present (GPIO 33) | No (auto-detected) |
+| `MODE_DEFAULT_IS_HID` | Default mode: `0` = DCS mode, `1` = HID-only mode | Yes |
+| `LABEL_SET_FULLNAME` | Human-readable name shown in USB device list | **Yes** |
+| `HAS_XXXX` | Feature flags for conditional compilation | No (auto-generated) |
+| `AUTOGEN_USB_PID` | USB Product ID (SHA1-based, deterministic) | **No** |
+
+### 10.3 HID Mode Selector
+
+If `HAS_HID_MODE_SELECTOR` is defined, CockpitOS reads GPIO 33 at startup:
+
+- **GPIO 33 LOW** → HID-only mode (device acts as gamepad/joystick only)
+- **GPIO 33 HIGH** → DCS mode (full DCS-BIOS communication)
+
+This allows a physical switch to toggle between modes without recompiling.
+
+**Wiring:**
+```
+GPIO 33 ────┬──── [Switch] ──── GND
+            │
+         (pull-up enabled internally)
+```
+
+When no physical switch is present, the firmware uses `MODE_DEFAULT_IS_HID` to determine behavior.
+
+### 10.4 Customizing LABEL_SET_FULLNAME
+
+The `LABEL_SET_FULLNAME` field appears as your USB device name in Windows Device Manager and other USB tools. You can safely change this to something descriptive:
+
+```cpp
+#define LABEL_SET_FULLNAME    "F/A-18C IFEI Panel"
+```
+
+This change survives regeneration — the generator preserves your custom value.
+
+### 10.5 Understanding AUTOGEN_USB_PID
+
+The USB Product ID (PID) is automatically generated using a SHA1 hash of your label set name. This ensures:
+
+- **Each label set gets a unique PID** (no conflicts between panels)
+- **Same label set always gets the same PID** (deterministic)
+- **Windows recognizes each panel as a distinct device**
+
+**Never edit this value manually** — if you need a different PID, create a new label set with a different name.
+
+### 10.6 Feature Flags (HAS_XXXX)
+
+The generator creates `#define HAS_XXXX` flags based on your `selected_panels.txt`:
+
+```cpp
+#define HAS_IFEI           // IFEI panel selected
+#define HAS_CAUTION_LIGHTS // Caution lights selected
+#define HAS_UFC            // UFC panel selected
+```
+
+These flags enable conditional compilation — panel code wrapped in `#if defined(HAS_XXXX)` only compiles when that panel is selected.
+
+---
+
+## 11. Common Patterns and Recipes
 
 ### 9.1 Three-Position Toggle Switch
 
@@ -950,9 +1174,9 @@ This automatically:
 
 ---
 
-## 10. Troubleshooting
+## 12. Troubleshooting
 
-### 10.1 Generator Errors
+### 12.1 Generator Errors
 
 **"Invalid panel name"**
 ```
@@ -974,7 +1198,7 @@ This automatically:
 ```
 - Remove extra JSON files, keep only your target aircraft
 
-### 10.2 Compilation Errors
+### 12.2 Compilation Errors
 
 **"PIN not declared"**
 - Ensure `#include "Config.h"` is present
@@ -984,7 +1208,7 @@ This automatically:
 - Check for duplicate entries in InputMapping or LEDMapping
 - Each label must be unique
 
-### 10.3 Runtime Issues
+### 12.3 Runtime Issues
 
 **"LED label not found"**
 - The label in your code doesn't match LEDMapping.h
@@ -1003,7 +1227,7 @@ This automatically:
 - Check `activeLow` flag matches your hardware
 - Verify the GPIO is not used elsewhere
 
-### 10.4 Debugging Tips
+### 12.4 Debugging Tips
 
 1. **Enable DEBUG mode** in Config.h:
    ```cpp
@@ -1020,7 +1244,7 @@ This automatically:
 
 ---
 
-## 11. Next Steps
+## 13. Next Steps
 
 After creating your Label Set:
 

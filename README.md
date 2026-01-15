@@ -69,11 +69,13 @@ For USB mode, run `HID Manager/HID_Manager.py` on your PC to bridge to DCS-BIOS.
 | Guide | Description |
 |-------|-------------|
 | [Getting Started](Docs/GETTING_STARTED.md) | First-time setup, compile, upload |
-| [Creating Label Sets](Docs/CREATING_LABEL_SETS.md) | Configure for your aircraft and hardware |
+| [Creating Label Sets](Docs/CREATING_LABEL_SETS.md) | Configure for your aircraft, METADATA system, LabelSetConfig |
 | [Hardware Wiring](Docs/HARDWARE_WIRING.md) | Wiring diagrams for all input/output types |
 | [Transport Modes](Docs/TRANSPORT_MODES.md) | USB, WiFi, Serial configuration |
 | [Advanced Displays](Docs/ADVANCED_DISPLAYS.md) | HT1622 segment displays, TFT gauges |
-| [Advanced Controls](Docs/ADVANCED_CONTROLS.md) | Custom panels, CoverGate, panel registration |
+| [Advanced Controls](Docs/ADVANCED_CONTROLS.md) | Custom panels, CoverGate, subscriptions, panel registration |
+| [Config Reference](Docs/CONFIG_REFERENCE.md) | Complete Config.h flag reference |
+| [Python Tools](Docs/PYTHON_TOOLS.md) | HID Manager, generators, debug tools CLI reference |
 | [FAQ](Docs/FAQ.md) | Common questions and answers |
 | [Your First Panel in 30 Minutes (WiFi)](Docs/CockpitOS_First_Panel_30_Minutes.md) | How to build your first Wi-Fi panel in 30 min |
 | [AI Assistant](https://go.bojote.com/CockpitOS) | Interactive help for any CockpitOS task |
