@@ -178,6 +178,68 @@ This isn't certified avionics software, but it's built with reliability in mind 
 
 ---
 
+## For Developers
+
+*This section covers internal architecture. Skip if you just want to build panels.*
+
+### Protocol Implementation
+
+CockpitOS adapts to DCS-BIOS, it doesn't reinvent it. We kept the original `protocol.cpp` state machine intact — the same sync-frame detection, address parsing, and delta-compressed 16-bit word handling. The wire format is efficient; we saw no reason to change it.
+
+### Transport Abstraction
+
+Panel logic (inputs, LEDs, displays) is fully decoupled from the data transport:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      PANEL LOGIC                                │
+│         (subscriptions, callbacks, hardware drivers)            │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
+        ┌─────────────────┼─────────────────┐
+        ▼                 ▼                 ▼
+   ┌─────────┐      ┌───────────┐     ┌──────────┐
+   │ USB HID │      │ WiFi UDP  │     │  Serial  │
+   └─────────┘      └───────────┘     └──────────┘
+```
+
+Swapping transports requires no panel code changes. This also means the architecture could theoretically adapt to different protocols — if another sim exposed a binary stream with address/value pairs, we'd swap the transport layer, not rewrite panels.
+
+### Selective Subscriptions (Label Sets)
+
+Traditional DCS-BIOS clients receive the entire aircraft state — every address, every update, whether you need it or not. CockpitOS inverts this:
+
+- Each **Label Set** defines which DCS-BIOS addresses the panel cares about
+- At compile time, we generate hash tables for O(1) address lookup
+- At runtime, irrelevant addresses are skipped in microseconds
+- Result: A panel with 50 controls doesn't process 2,000+ addresses per frame
+
+This matters for multi-panel pits where each ESP32 handles a specific section.
+
+### USB HID Approach
+
+Native USB on ESP32-S2/S3 eliminates socat and virtual COM ports entirely:
+
+- Device exposes as HID gamepad with **Feature Reports** as a bidirectional mailbox
+- `HID_Manager.py` polls Feature Reports and relays to/from DCS-BIOS UDP
+- Lightweight: **<1% CPU** on Raspberry Pi, tested with **20+ devices** on Windows 11
+- No COM port enumeration, no driver issues, no socat configuration
+
+Trade-off: USB has hub/controller limits that serial doesn't. For typical pit builds (5-15 panels), USB is simpler. For 30+ devices, serial scales better.
+
+### Why This Exists
+
+The [DCS-BIOS Arduino Library](https://github.com/DCS-Skunkworks/dcs-bios-arduino-library) is excellent for getting started. CockpitOS exists because we needed:
+
+- Native USB support (not available on classic Arduino)
+- WiFi transport for wireless panels
+- Static memory model for long session stability
+- Per-panel address filtering at scale
+
+We're not replacing DCS-BIOS — we're providing an alternative client implementation that respects the protocol while expanding hardware and transport options.
+
+---
+
 ## License
 
 MIT — See [LICENSE](LICENSE)
