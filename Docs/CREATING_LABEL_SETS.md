@@ -16,9 +16,10 @@ A complete guide for creating custom Label Sets in CockpitOS. This document assu
 8. [Running the Generator](#8-running-the-generator)
 9. [The METADATA Directory](#9-the-metadata-directory)
 10. [Understanding LabelSetConfig.h](#10-understanding-labelsetconfigh)
-11. [Common Patterns and Recipes](#11-common-patterns-and-recipes)
-12. [Troubleshooting](#12-troubleshooting)
-13. [Next Steps](#13-next-steps)
+11. [Multi-Aircraft Support](#11-multi-aircraft-support)
+12. [Common Patterns and Recipes](#12-common-patterns-and-recipes)
+13. [Troubleshooting](#13-troubleshooting)
+14. [Next Steps](#14-next-steps)
 
 ---
 
@@ -872,6 +873,71 @@ This automatically:
 - Disables .cpp files in other Label Sets
 - Updates `active_set.h`
 
+### 8.4 Generator Internals (Advanced)
+
+Understanding how the generator processes controls helps you configure complex panels.
+
+#### Automatic INC/DEC Generation
+
+For selectors with many positions, the generator automatically creates INC/DEC pseudo-labels:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    FIXED_STEP AUTO-GENERATION                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   Threshold: FIXED_STEP_INCDEC_THRESHOLD = 2                                │
+│                                                                             │
+│   If a selector has MORE than 2 positions AND supports fixed_step:          │
+│   - Generator creates LABEL_INC and LABEL_DEC entries automatically         │
+│   - These are used for encoder-based control                                │
+│                                                                             │
+│   Example: 5-position selector                                              │
+│   Input:   RADIO_CHAN (positions 0-4)                                       │
+│   Output:  RADIO_CHAN_INC, RADIO_CHAN_DEC (for encoder)                    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Slash-Split Selector Labels
+
+Selectors with position names separated by slashes are automatically expanded:
+
+```cpp
+// In aircraft JSON:
+"MASTER_ARM_SW": "SAFE/ARM/DISCH"
+
+// Generator creates 3 entries:
+// MASTER_ARM_SW_SAFE   → value 0
+// MASTER_ARM_SW_ARM    → value 1
+// MASTER_ARM_SW_DISCH  → value 2
+```
+
+This creates descriptive labels for each position instead of numeric values.
+
+#### Button and Cover Auto-Detection
+
+The generator identifies control types from identifier patterns:
+
+| Pattern | Detected Type |
+|---------|---------------|
+| `*_BTN`, `*_BUTTON` | Momentary button |
+| `*_COVER`, `*_CVR` | Cover gate |
+| `*_SW`, `*_SWITCH` | Selector |
+| `*_KNOB`, `*_DIAL` | Rotary selector |
+
+This auto-detection sets appropriate defaults, but you can override by manually specifying `controlType`.
+
+#### Hash Table Generation
+
+The generator creates O(1) lookup tables using the djb2 hash algorithm:
+
+- Each label gets a precomputed hash
+- Hash collisions are resolved at compile time
+- Runtime lookups are constant-time regardless of label count
+
+This is why CockpitOS can handle hundreds of controls without performance degradation.
+
 ---
 
 ## 9. The METADATA Directory
@@ -1096,9 +1162,90 @@ These flags enable conditional compilation — panel code wrapped in `#if define
 
 ---
 
-## 11. Common Patterns and Recipes
+## 11. Multi-Aircraft Support
 
-### 9.1 Three-Position Toggle Switch
+CockpitOS can detect aircraft changes and adapt panel behavior accordingly.
+
+### 11.1 How Aircraft Detection Works
+
+DCS-BIOS exports the aircraft name in a metadata field. CockpitOS monitors this field:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    AIRCRAFT DETECTION FLOW                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   1. DCS-BIOS sends aircraft name in _ACFT_NAME field (address 0)          │
+│   2. CockpitOS parses the name via anonymous string buffer                  │
+│   3. On name change, CockpitOS triggers panel re-initialization             │
+│   4. Panels re-sync their state to new aircraft values                      │
+│                                                                             │
+│   Aircraft identifiers (examples):                                          │
+│   - FA-18C_hornet                                                           │
+│   - A-10C                                                                   │
+│   - F-16C_50                                                                │
+│   - AV8BNA                                                                  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 11.2 Switching Aircraft Mid-Session
+
+When you load a different aircraft in DCS:
+
+1. DCS-BIOS sends the new aircraft name
+2. CockpitOS detects the name change in the protocol parser
+3. `initializePanels(false)` is called to re-sync
+4. All subscriptions receive updated values
+
+This happens automatically — no configuration needed.
+
+### 11.3 Label Set and Aircraft Relationship
+
+Each Label Set contains **one aircraft JSON**. The JSON filename should match the DCS-BIOS aircraft identifier:
+
+```
+src/LABELS/LABEL_SET_HORNET/
+├── FA-18C_hornet.json       ← Matches DCS-BIOS identifier
+├── selected_panels.txt
+└── ...
+```
+
+### 11.4 Multi-Aircraft Label Sets
+
+For cockpit builds supporting multiple aircraft, you have two options:
+
+**Option A: Separate Label Sets (Recommended)**
+- Create separate Label Sets for each aircraft
+- Recompile firmware when switching aircraft
+- Maximum control over each aircraft's configuration
+
+**Option B: Superset Label Set**
+- Use single Label Set with controls from all aircraft
+- No recompilation needed
+- Larger firmware size, some controls may be inactive
+
+### 11.5 Known Issue: Export Stream Listener Address
+
+When implementing multi-aircraft detection in custom code, use:
+
+```cpp
+ExportStreamListener(0x0000, 0xFFFD)  // ✓ Correct
+```
+
+NOT:
+
+```cpp
+ExportStreamListener(0x0000, 0xFFFE)  // ✗ Causes flush timing issues
+```
+
+Using 0xFFFE causes flush timing issues with chunked HID transmission, breaking multi-aircraft detection.
+
+---
+
+## 12. Common Patterns and Recipes
+
+### 12.1 Three-Position Toggle Switch
 
 **Hardware:** Toggle switch with UP/CENTER/DOWN positions, UP and DOWN wired to GPIOs
 
@@ -1109,7 +1256,7 @@ These flags enable conditional compilation — panel code wrapped in `#if define
 { "FUEL_DUMP_DOWN",   "GPIO", PIN(11),  0, -1, "FUEL_DUMP", 0, "selector", 8 },
 ```
 
-### 9.2 Guarded Momentary Button
+### 12.2 Guarded Momentary Button
 
 **Hardware:** Button protected by a flip-up cover
 
@@ -1119,7 +1266,7 @@ These flags enable conditional compilation — panel code wrapped in `#if define
 { "EMERG_JETT_BTN",   "GPIO", PIN(6), 0, -1, "EMERG_JETT_BTN",   1, "momentary", 0 },
 ```
 
-### 9.3 Rotary Encoder for Volume/Brightness
+### 12.3 Rotary Encoder for Volume/Brightness
 
 **Hardware:** Quadrature encoder with A/B outputs
 
@@ -1129,7 +1276,7 @@ These flags enable conditional compilation — panel code wrapped in `#if define
 { "RADIO_VOL_INC", "GPIO", PIN(13), 0, -1, "RADIO_VOL", 1, "variable_step", 0 },
 ```
 
-### 9.4 Multi-Position Rotary Switch on HC165
+### 12.4 Multi-Position Rotary Switch on HC165
 
 **Hardware:** 5-position rotary connected to shift register
 
@@ -1142,7 +1289,7 @@ These flags enable conditional compilation — panel code wrapped in `#if define
 { "MODE_HIGH",  "HC165", 0,  4, -1, "MODE_SW", 4, "selector", 15 },
 ```
 
-### 9.5 RGB Status Light
+### 12.5 RGB Status Light
 
 **Hardware:** WS2812 LED for multi-color status
 
@@ -1161,7 +1308,7 @@ These flags enable conditional compilation — panel code wrapped in `#if define
   false, false },
 ```
 
-### 9.6 Analog Fuel Gauge with Servo
+### 12.6 Analog Fuel Gauge with Servo
 
 **Hardware:** Servo motor driving a fuel gauge needle
 
@@ -1174,9 +1321,9 @@ These flags enable conditional compilation — panel code wrapped in `#if define
 
 ---
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
-### 12.1 Generator Errors
+### 13.1 Generator Errors
 
 **"Invalid panel name"**
 ```
@@ -1198,7 +1345,7 @@ These flags enable conditional compilation — panel code wrapped in `#if define
 ```
 - Remove extra JSON files, keep only your target aircraft
 
-### 12.2 Compilation Errors
+### 13.2 Compilation Errors
 
 **"PIN not declared"**
 - Ensure `#include "Config.h"` is present
@@ -1208,7 +1355,7 @@ These flags enable conditional compilation — panel code wrapped in `#if define
 - Check for duplicate entries in InputMapping or LEDMapping
 - Each label must be unique
 
-### 12.3 Runtime Issues
+### 13.3 Runtime Issues
 
 **"LED label not found"**
 - The label in your code doesn't match LEDMapping.h
@@ -1227,7 +1374,7 @@ These flags enable conditional compilation — panel code wrapped in `#if define
 - Check `activeLow` flag matches your hardware
 - Verify the GPIO is not used elsewhere
 
-### 12.4 Debugging Tips
+### 13.4 Debugging Tips
 
 1. **Enable DEBUG mode** in Config.h:
    ```cpp
@@ -1244,7 +1391,7 @@ These flags enable conditional compilation — panel code wrapped in `#if define
 
 ---
 
-## 13. Next Steps
+## 14. Next Steps
 
 After creating your Label Set:
 
