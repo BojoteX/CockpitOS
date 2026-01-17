@@ -1541,7 +1541,11 @@ void DCSBIOSBridge_setup() {
     Serial.setTimeout(SERIAL_TX_TIMEOUT);
 
 #if (ARDUINO_USB_MODE == 0)
+    #if SUPRESS_REBOOT_VIA_CDC
     Serial.enableReboot(false);
+    #else
+	Serial.enableReboot(true);
+    #endif
     setupCDCEvents();
     debugPrintln("[CDC] Serial was already started");
     Serial.begin(115200);
@@ -1576,7 +1580,11 @@ void DCSBIOSBridge_setup() {
     USBSerial.setRxBufferSize(SERIAL_RX_BUFFER_SIZE);
     USBSerial.setTxTimeoutMs(SERIAL_TX_TIMEOUT);
     USBSerial.setTimeout(SERIAL_TX_TIMEOUT);
+    #if SUPRESS_REBOOT_VIA_CDC
     USBSerial.enableReboot(false);
+    #else
+    USBSerial.enableReboot(true);
+    #endif
     setupCDCEvents();
     USBSerial.begin();
     debugPrintln("[USB CDC] Serial has started!");
