@@ -1348,6 +1348,10 @@ def run():
     _label_set_fullname = existing_fullname if existing_fullname else f"CockpitOS Panel {_ls_name}"
 
     _lines = [
+        '#if __has_include("./CustomPins.h")',
+        '#include "./CustomPins.h"',
+        '#endif',
+        '',
         f'#define LABEL_SET_NAME        "{_ls_name}"',
         f'#define HAS_HID_MODE_SELECTOR {_has_hid_mode_selector}',
         f'#define MODE_DEFAULT_IS_HID   {_mode_default_is_hid}',
@@ -1356,6 +1360,7 @@ def run():
         f'#define AUTOGEN_USB_PID       0x{_pid:04X} // DO NOT EDIT THIS',
         ''
     ]
+
     with open(labelsetconfig_filename, "w", encoding="utf-8") as _f:
         _f.write("\n".join(_lines))
 
@@ -1370,14 +1375,6 @@ def run():
         f.write("#pragma once\n\n")
         f.write(f"#define LABEL_SET {_ls_name}\n")
     print(f"[✓] Created ../active_set.h with LABEL_SET {_ls_name}")
-
-
-
-
-
-
-
-
 
     # --- Call generate_panelkind.py from root ---
     root_dir = os.path.abspath(os.path.join(current_dir, "..", "..", ".."))
@@ -1394,16 +1391,9 @@ def run():
         print(f"⚠️ Warning: Could not find {panelkind_script}")
     # --- End generate_panelkind.py call ---
 
-
-
-
-
-
-
     # Press ENTER to exit
     input("\nPress <ENTER> to exit...")
     sys.exit(1)
-
 
 if __name__ == "__main__":
     run()
