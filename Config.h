@@ -17,8 +17,8 @@
 // Bluetooth BLE, Pure Native USB, WIFI or Serial (CDC/Socat). Only ONE can be active 
 #define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included) Completely bypasses socat and uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (All ESP32 that support BLE Bluetooth).
 #define USE_DCSBIOS_WIFI                            0 // Completely bypasses socat and uses WiFi to connect to DCS. (ALL ESP32 Devices except H2) 
-#define USE_DCSBIOS_USB                             1 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (S2, S3 & P4 Only). S3 & P4 require USB Mode set to USB-OTG (TinyUSB) in Tools Menu
-#define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
+#define USE_DCSBIOS_USB                             0 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (S2, S3 & P4 Only). S3 & P4 require USB Mode set to USB-OTG (TinyUSB) in Tools Menu
+#define USE_DCSBIOS_SERIAL                          1 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 
 // Panel specific features like: Does your panel have TFT gauges? is a PCA Expander present? want HID Axes even in DCS Mode?
 #define ENABLE_TFT_GAUGES                           1 // Enable TFT Gauges (should always be 1, except for testing or debugging)
@@ -89,6 +89,7 @@
 #define SERVO_UPDATE_FREQ_MS                       20 // For Analog servo instruments. Update rate in ms (as per servo specs)
 #define SKIP_ANALOG_FILTERING                       0 // Applies to HID Only, Set to 1 to skip all filtering for Min latency
 #define ADVANCED_TM1637_INPUT_FILTERING             0 // Enable it if you see ghosts with TM1637 inputs
+#define SUPRESS_REBOOT_VIA_CDC                      0 // Enabling this sets Serial.enableReboot(false) so device can NOT be reset via CDC
 
 // Serial Debug Ring Buffer
 #define SERIAL_DEBUG_USE_RINGBUFFER                 0 // Should be use a ring buffer for Serial Debug messages? not really necessary
