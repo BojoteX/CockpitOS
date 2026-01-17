@@ -29,6 +29,8 @@
 #define LOWER_AXIS_THRESHOLD                      256 // Adjust if your Lower Axis won't stick to min (optimal should be 32-64) but noisy axes require 128-256
 #define CENTER_DEADZONE_INNER                     256 // Entry threshold — easy to enter
 #define CENTER_DEADZONE_OUTER                     384 // Exit threshold — must move further to escape
+#define AX_DEFAULT_MIN                            768 // Assumed worst min for an axis (it will expand as you move the knob and it will be NVS saved). Use 4095 for ABSOLUTE learning from scratch
+#define AX_DEFAULT_MAX                           3327 // Assumed worst max for an axis (it will expand as you move the knob and it will be NVS saved). Use 0 for ABSOLUTE learning from scratch
 
 // Wi-Fi network credentials (used for WiFi remote Debug Console and DCSBIOS WiFi mode if selected)
 #define WIFI_SSID                                  "TestNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
