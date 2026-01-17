@@ -1,5 +1,5 @@
-// PID:0xC1E5 
+// PID:0x56E6 
 
 #pragma once
 
-#define LABEL_SET CMWS_DISPLAY
+#define LABEL_SET KY58

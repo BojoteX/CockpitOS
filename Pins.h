@@ -88,20 +88,21 @@
   #define HC165_CONTROLLER_CP        PIN(34)   // Clock (CP)
   #define HC165_CONTROLLER_QH        PIN(33)   // Data (QH)
 #elif defined(HAS_KY58)
-  #define HC165_BITS                 16   // Number of bits in HC165 shift register (0 = disabled) 
-  #define HC165_CONTROLLER_PL        PIN(39)   // Latch (PL)
-  #define HC165_CONTROLLER_CP        PIN(38)   // Clock (CP)
-  #define HC165_CONTROLLER_QH        PIN(40)   // Data (QH)
-// #elif defined(HAS_TEST_ONLY)
-  // #define HC165_BITS                 0   // Number of bits in HC165 shift register (0 = disabled) 
-  // #define HC165_CONTROLLER_PL        PIN(12)   // Latch (PL)
-  // #define HC165_CONTROLLER_CP        PIN(11)   // Clock (CP)
-  // #define HC165_CONTROLLER_QH        PIN(10)   // Data (QH)
+  // We moved this to CustomPins.h so that Pins.h stays generic
 #else
-  #define HC165_BITS                 0   // Number of bits in HC165 shift register (0 = disabled) 
-  #define HC165_CONTROLLER_PL       -1
-  #define HC165_CONTROLLER_CP       -1
-  #define HC165_CONTROLLER_QH       -1  
+  // Defaults - only if not already defined (e.g., by CustomPins.h)
+  #ifndef HC165_BITS
+    #define HC165_BITS                 0
+  #endif
+  #ifndef HC165_CONTROLLER_PL
+    #define HC165_CONTROLLER_PL       -1
+  #endif
+  #ifndef HC165_CONTROLLER_CP
+    #define HC165_CONTROLLER_CP       -1
+  #endif
+  #ifndef HC165_CONTROLLER_QH
+    #define HC165_CONTROLLER_QH       -1
+  #endif
 #endif
 
 /*
