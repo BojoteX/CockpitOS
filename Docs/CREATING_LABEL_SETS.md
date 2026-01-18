@@ -629,6 +629,11 @@ If your Label Set doesn't have a `CustomPins.h`, create one:
 
 #pragma once
 
+// --- Hardware Feature Flags ---
+// Enable only if your hardware includes these components
+#define ENABLE_TFT_GAUGES          0   // 1 if using TFT displays (requires LovyanGFX)
+#define ENABLE_PCA9555             0   // 1 if using PCA9555 I2C expanders
+
 // --- HC165 Shift Register Pins ---
 #define HC165_BITS                 16   // Number of bits (0 = disabled)
 #define HC165_CONTROLLER_PL        PIN(39)   // Latch (PL)
@@ -648,6 +653,13 @@ If your Label Set doesn't have a `CustomPins.h`, create one:
 #define BL_GREEN_PIN               PIN(1)
 #define BL_WHITE_PIN               PIN(2)
 ```
+
+**Hardware Feature Flags:**
+
+| Flag | Description |
+|------|-------------|
+| `ENABLE_TFT_GAUGES` | Set to 1 if your panel has TFT displays. Requires LovyanGFX library. |
+| `ENABLE_PCA9555` | Set to 1 if your panel uses PCA9555 I2C expanders for additional I/O. |
 
 #### The PIN() Macro
 
