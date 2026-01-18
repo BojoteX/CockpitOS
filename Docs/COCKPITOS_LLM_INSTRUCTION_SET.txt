@@ -2280,11 +2280,16 @@ USE_DCSBIOS_WIFI         0  // WiFi UDP
 USE_DCSBIOS_USB          0  // Native USB HID (recommended)
 USE_DCSBIOS_SERIAL       1  // Legacy serial (default)
 
-15.2 HARDWARE FEATURES
+15.2 HARDWARE FEATURES (Config.h)
 ----------------------------------------
-ENABLE_TFT_GAUGES         0  // TFT display support
-ENABLE_PCA9555            0  // I2C expander support
 SEND_HID_AXES_IN_DCS_MODE 0  // Send HID axes in DCS mode
+
+15.2.1 PER-LABEL-SET FEATURES (CustomPins.h)
+----------------------------------------
+ENABLE_TFT_GAUGES         0  // TFT display support (requires LovyanGFX)
+ENABLE_PCA9555            0  // I2C expander support
+
+These are defined in each Label Set's CustomPins.h, not Config.h.
 
 15.3 AXIS CALIBRATION
 ----------------------------------------
