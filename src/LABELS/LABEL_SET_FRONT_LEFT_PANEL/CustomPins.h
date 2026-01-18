@@ -1,12 +1,7 @@
-// CustomPins.h - Configuration PINS KY58
+// CustomPins.h - Configuration PINS Front Left Panel
 
 #pragma once
 
 // --- Feature Enables ---
 #define ENABLE_TFT_GAUGES                         0 // Enable TFT Gauges for this specific LABEL SET? 1 = Yes (Enable only if TFT Gauges are present in your hardware/PCB)
 #define ENABLE_PCA9555                            0 // Should we enable PCA9555 logic to this LABEL SET? 1 = Yes (Enable only if PCA expanders are present in your hardware/PCB)
-
-#define HC165_BITS                 16   // Number of bits in HC165 shift register (0 = disabled) 
-#define HC165_CONTROLLER_PL        PIN(39)   // Latch (PL)
-#define HC165_CONTROLLER_CP        PIN(38)   // Clock (CP)
-#define HC165_CONTROLLER_QH        PIN(40)   // Data (QH)
