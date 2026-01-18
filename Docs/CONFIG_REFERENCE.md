@@ -67,6 +67,8 @@ Fine-tune analog input behavior for potentiometers and axes.
 | `LOWER_AXIS_THRESHOLD` | 256 | Tolerance for detecting minimum position |
 | `CENTER_DEADZONE_INNER` | 256 | Easy entry threshold for center detection |
 | `CENTER_DEADZONE_OUTER` | 384 | Must move beyond this to exit center zone (hysteresis) |
+| `AX_DEFAULT_MIN` | 768 | Assumed worst minimum for axis auto-learning. Use 4095 to learn from scratch. |
+| `AX_DEFAULT_MAX` | 3327 | Assumed worst maximum for axis auto-learning. Use 0 to learn from scratch. |
 
 ---
 
@@ -134,6 +136,7 @@ These settings have been tuned for optimal performance. **Change only if you und
 | `PCA_FAST_MODE` | 1 | Enable 400kHz I2C for PCA9555. |
 | `SKIP_ANALOG_FILTERING` | 0 | Disable analog input filtering for minimum latency (HID only). |
 | `ADVANCED_TM1637_INPUT_FILTERING` | 0 | Extra filtering for TM1637 key ghosting issues. |
+| `SUPRESS_REBOOT_VIA_CDC` | 0 | Prevent device reset via CDC serial. Sets `Serial.enableReboot(false)`. |
 
 ---
 

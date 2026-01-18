@@ -237,21 +237,27 @@ The following files will be DELETED if present:
   - DCSBIOSBridgeData.h
   - InputMapping.h
   - LEDMapping.h
-  - DisplayMapping.cpp
+  - DisplayMapping.cpp / DisplayMapping.cpp.DISABLED
   - DisplayMapping.h
-  - CT_Display.cpp
+  - CT_Display.cpp / CT_Display.cpp.DISABLED
   - CT_Display.h
   - LabelSetConfig.h
 
-Are you absolutely sure you want to DELETE these files? (yes/NO): yes
+  * CustomPins.h will be BLANKED (reset to template)
+
+  NOTE: METADATA/ directory will be PRESERVED
+
+Are you absolutely sure you want to proceed? (yes/NO): yes
 ```
 
 **What remains after reset:**
 - `generate_data.py` (main generator)
 - `display_gen.py` (display generator)
 - `reset_data.py` (this cleanup script)
+- `CustomPins.h` (reset to template — you'll edit this)
 - `selected_panels.txt` (panel selection — you'll edit this)
 - `panels.txt` (reference list — auto-regenerated)
+- `METADATA/` directory (CommonData.json, Custom.json, etc.)
 - Any `*_SegmentMap.h` files (hardware mappings for displays)
 - The aircraft JSON file
 
