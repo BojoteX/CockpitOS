@@ -198,28 +198,37 @@ The final folder structure **must** look exactly like this:
     └── CockpitOS\
         ├── CockpitOS.ino        ◄── This file MUST exist here
         ├── Config.h
+        ├── Pins.h
+        ├── Mappings.h
         ├── src\
-        ├── LABELS\
+        │   └── LABELS\          ◄── Label Sets live here
+        ├── lib\
         └── ...
-    
+
     macOS:
     ────────────────────────────────────────────────────────────
     /Users/<YourName>/Documents/Arduino/
     └── CockpitOS/
         ├── CockpitOS.ino        ◄── This file MUST exist here
         ├── Config.h
+        ├── Pins.h
+        ├── Mappings.h
         ├── src/
-        ├── LABELS/
+        │   └── LABELS/          ◄── Label Sets live here
+        ├── lib/
         └── ...
-    
+
     Linux:
     ────────────────────────────────────────────────────────────
     /home/<YourName>/Arduino/
     └── CockpitOS/
         ├── CockpitOS.ino        ◄── This file MUST exist here
         ├── Config.h
+        ├── Pins.h
+        ├── Mappings.h
         ├── src/
-        ├── LABELS/
+        │   └── LABELS/          ◄── Label Sets live here
+        ├── lib/
         └── ...
 ```
 
@@ -787,11 +796,12 @@ Congratulations! You've successfully set up your development environment and upl
 
 To start building your cockpit panel, you'll need to:
 
-1. **Choose a Label Set** — Select an aircraft configuration from the `LABELS/` directory
+1. **Choose a Label Set** — Select an aircraft configuration from the `src/LABELS/` directory
 2. **Configure Your Hardware** — Edit `InputMapping.h` and `LEDMapping.h` for your specific buttons, switches, and LEDs
-3. **Generate Data Files** — Run the Python generator script
-4. **Wire Your Panel** — Connect physical components to your ESP32's GPIO pins
-5. **Run the HID Manager** — Use the Python HID Manager on your PC to bridge DCS-BIOS data
+3. **Create CustomPins.h** — Define your panel-specific GPIO pin assignments
+4. **Generate Data Files** — Run the Python generator script (`generate_data.py`)
+5. **Wire Your Panel** — Connect physical components to your ESP32's GPIO pins
+6. **Run the HID Manager** — Use the Python HID Manager on your PC to bridge DCS-BIOS data (USB mode only)
 
 See the `README.md` files in the CockpitOS repository for detailed instructions on each of these steps.
 
