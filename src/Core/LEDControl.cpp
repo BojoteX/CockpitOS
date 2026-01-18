@@ -4,6 +4,70 @@
 #include "../LEDControl.h"
 #include "../DCSBIOSBridge.h"
 
+// ============================================================================
+// OUTPUT DRIVER PRESENCE FLAGS
+// Set by scanOutputDevicePresence(), used by tickOutputDrivers()
+// ============================================================================
+static bool g_hasTM1637 = false;
+static bool g_hasWS2812 = false;
+static bool g_hasGN1640 = false;
+static bool g_hasGauge = false;
+static bool g_deviceScanComplete = false;
+
+// ============================================================================
+// scanOutputDevicePresence() - Scan LEDMapping to detect which drivers needed
+// Called once during initializeLEDs()
+// ============================================================================
+void scanOutputDevicePresence() {
+    g_hasTM1637 = false;
+    g_hasWS2812 = false;
+    g_hasGN1640 = false;
+    g_hasGauge = false;
+
+    for (uint16_t i = 0; i < panelLEDsCount; ++i) {
+        switch (panelLEDs[i].deviceType) {
+        case DEVICE_TM1637:  g_hasTM1637 = true;  break;
+        case DEVICE_WS2812:  g_hasWS2812 = true;  break;
+        case DEVICE_GN1640T: g_hasGN1640 = true;  break;
+        case DEVICE_GAUGE:   g_hasGauge = true;  break;
+        default: break;
+        }
+    }
+
+    g_deviceScanComplete = true;
+
+    debugPrintf("📊 Output device scan: TM1637=%d WS2812=%d GN1640=%d GAUGE=%d\n",
+        g_hasTM1637, g_hasWS2812, g_hasGN1640, g_hasGauge);
+}
+
+// ============================================================================
+// hasOutputDevice() - Query if a device type exists in LEDMapping
+// ============================================================================
+bool hasOutputDevice(uint8_t deviceType) {
+    if (!g_deviceScanComplete) {
+        debugPrintln("⚠️ hasOutputDevice() called before scanOutputDevicePresence()!");
+        return false;
+    }
+    switch (deviceType) {
+    case DEVICE_TM1637:  return g_hasTM1637;
+    case DEVICE_WS2812:  return g_hasWS2812;
+    case DEVICE_GN1640T: return g_hasGN1640;
+    case DEVICE_GAUGE:   return g_hasGauge;
+    default: return false;
+    }
+}
+
+// ============================================================================
+// tickOutputDrivers() - Flush all output driver buffers
+// Called each frame from panelLoop(), idempotent (safe to call multiple times)
+// ============================================================================
+void tickOutputDrivers() {
+    if (g_hasTM1637)  tm1637_tick();
+    if (g_hasWS2812)  WS2812_tick();
+    if (g_hasGN1640)  GN1640_tick();
+    // Note: GAUGE uses task-based updates, no tick needed
+}
+
 // Blazing fast setLED()
 void setLED(const char* label, bool state, uint8_t intensity, uint16_t rawValue, uint16_t maxValue) {
 
@@ -53,13 +117,17 @@ void setLED(const char* label, bool state, uint8_t intensity, uint16_t rawValue,
         case DEVICE_PCA9555:
             #if DEBUG_PERFORMANCE
             beginProfiling(PERF_LED_PCA9555);
-            #endif        
-            PCA9555_write(
-                led->info.pcaInfo.address,
-                led->info.pcaInfo.port,
-                led->info.pcaInfo.bit,
-                led->activeLow ? !state : state
-            );
+            #endif   
+
+            #if ENABLE_PCA9555
+                PCA9555_write(
+                    led->info.pcaInfo.address,
+                    led->info.pcaInfo.port,
+                    led->info.pcaInfo.bit,
+                    led->activeLow ? !state : state
+                );
+            #endif
+
             #if DEBUG_PERFORMANCE
             endProfiling(PERF_LED_PCA9555);
             #endif            

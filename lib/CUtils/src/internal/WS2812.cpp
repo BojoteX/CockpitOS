@@ -14,6 +14,11 @@
 #include <driver/rmt.h>
 #endif
 
+// Place holders
+#ifndef WS2812B_PIN
+  #define WS2812B_PIN                           -1
+#endif
+
 namespace WS2812Mini
 {
 
