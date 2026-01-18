@@ -10,6 +10,20 @@
 #include "../DCSBIOSBridge.h" // for timing helpers like shouldPollMs()
 #include "includes/Generic.h"
 
+// Defaults - only if not already defined (e.g., by CustomPins.h)
+#ifndef HC165_BITS
+    #define HC165_BITS                 0
+#endif
+#ifndef HC165_CONTROLLER_PL
+    #define HC165_CONTROLLER_PL       -1
+#endif
+#ifndef HC165_CONTROLLER_CP
+    #define HC165_CONTROLLER_CP       -1
+#endif
+#ifndef HC165_CONTROLLER_QH
+    #define HC165_CONTROLLER_QH       -1
+#endif
+
 // Main Inputs Panel (Generic for GPIO, HC165, PCA9555, Analog & TM1637)
 REGISTER_PANEL(Generic, Generic_init, Generic_loop, nullptr, nullptr, nullptr, 100); // Main Inputs
 

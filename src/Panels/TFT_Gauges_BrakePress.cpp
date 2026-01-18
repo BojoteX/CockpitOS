@@ -43,12 +43,24 @@
 #endif
 
 // --- Pins ---
-#define BRAKE_PRESSURE_CS_PIN       PIN(5)  // Chip Select (Blue)
-#define BRAKE_PRESSURE_MOSI_PIN     PIN(10) // SDA (Yellow)
-#define BRAKE_PRESSURE_SCLK_PIN     PIN(11) // SCL (Orange)
-#define BRAKE_PRESSURE_DC_PIN       PIN(7)  // Data/Command (Green)
-#define BRAKE_PRESSURE_RST_PIN      -1
-#define BRAKE_PRESSURE_MISO_PIN     -1
+#ifndef BRAKE_PRESSURE_CS_PIN
+  #define BRAKE_PRESSURE_CS_PIN       -1  // Chip Select (Blue)
+#endif
+#ifndef BRAKE_PRESSURE_MOSI_PIN
+  #define BRAKE_PRESSURE_MOSI_PIN     -1 // SDA (Yellow)
+#endif
+#ifndef BRAKE_PRESSURE_SCLK_PIN
+  #define BRAKE_PRESSURE_SCLK_PIN     -1 // SCL (Orange)
+#endif
+#ifndef BRAKE_PRESSURE_DC_PIN
+  #define BRAKE_PRESSURE_DC_PIN       -1  // Data/Command (Green)
+#endif
+#ifndef BRAKE_PRESSURE_RST_PIN
+  #define BRAKE_PRESSURE_RST_PIN      -1
+#endif
+#ifndef BRAKE_PRESSURE_MISO_PIN
+  #define BRAKE_PRESSURE_MISO_PIN     -1
+#endif
 
 // --- Assets (240x240 bg, 15x150 needle) ---
 #include "Assets/BrakePressure/brakePressBackground.h"

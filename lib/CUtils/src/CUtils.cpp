@@ -41,7 +41,11 @@ uint8_t PCA9555_cachedPortStates[8][2] = {{0}};
 #include "internal/GPIO.cpp"   
 #include "internal/TM1637.cpp"  
 #include "internal/GN1640.cpp"  
-#include "internal/PCA9555.cpp" 
+
+#if ENABLE_PCA9555
+    #include "internal/PCA9555.cpp" 
+#endif
+
 #include "internal/MatrixRotary.cpp"
 #include "internal/HC165.cpp"
 #include "internal/AnalogG.cpp"
