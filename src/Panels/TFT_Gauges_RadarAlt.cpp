@@ -43,14 +43,24 @@
 #endif
 
 // --- Pins ---
-
-
-#define RADARALT_CS_PIN   PIN(10)    // Chip Select (Blue)
-#define RADARALT_DC_PIN   PIN(11)    // Data/Command (Green)
-#define RADARALT_MOSI_PIN PIN(13)    // SDA (Yellow)
-#define RADARALT_SCLK_PIN PIN(14)    // SCL (Orange)
-#define RADARALT_RST_PIN  -1
-#define RADARALT_MISO_PIN -1
+#ifndef RADARALT_CS_PIN
+  #define RADARALT_CS_PIN   -1  // Chip Select (Blue)
+#endif
+#ifndef RADARALT_DC_PIN
+  #define RADARALT_DC_PIN   -1  // Data/Command (Green)
+#endif
+#ifndef RADARALT_MOSI_PIN
+  #define RADARALT_MOSI_PIN -1  // SDA (Yellow)
+#endif
+#ifndef RADARALT_SCLK_PIN
+  #define RADARALT_SCLK_PIN -1  // SCL (Orange)
+#endif
+#ifndef RADARALT_RST_PIN
+  #define RADARALT_RST_PIN  -1
+#endif
+#ifndef RADARALT_MISO_PIN
+  #define RADARALT_MISO_PIN -1
+#endif
 
 
 // --- Assets ---
