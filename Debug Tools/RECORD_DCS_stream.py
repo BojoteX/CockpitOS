@@ -10,7 +10,7 @@ IP_ADDRESS = "0.0.0.0"
 UDP_PORT = 5010
 BUFFER_SIZE = 4096
 GROUP = "239.255.50.10"
-OUTPUT_FILE = "dcsbios_data.json.LAST"
+OUTPUT_FILE = "streams/dcsbios_data.json.LAST"
 
 print(f"Listening on UDP {GROUP}:{UDP_PORT}, saving to {OUTPUT_FILE}")
 

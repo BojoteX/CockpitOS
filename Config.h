@@ -17,13 +17,14 @@
 // Bluetooth BLE, Pure Native USB, WIFI or Serial (CDC/Socat). Only ONE can be active 
 #define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included) Completely bypasses socat and uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (All ESP32 that support BLE Bluetooth).
 #define USE_DCSBIOS_WIFI                            0 // Completely bypasses socat and uses WiFi to connect to DCS. (ALL ESP32 Devices except H2) 
-#define USE_DCSBIOS_USB                             0 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (S2, S3 & P4 Only). S3 & P4 require USB Mode set to USB-OTG (TinyUSB) in Tools Menu
-#define USE_DCSBIOS_SERIAL                          1 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
+#define USE_DCSBIOS_USB                             1 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (S2, S3 & P4 Only). S3 & P4 require USB Mode set to USB-OTG (TinyUSB) in Tools Menu
+#define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 
-// Panel specific features like: Does your panel have TFT gauges? is a PCA Expander present? want HID Axes even in DCS Mode?
-#define ENABLE_TFT_GAUGES                           0 // Enable TFT Gauges (should always be 1, except for testing or debugging)
-#define ENABLE_PCA9555                              0 // 0 = skip PCA logic & autodetection, 1 = enable PCA Expanders. Enable only if PCA expanders are present in your hardware/PCB 
-#define SEND_HID_AXES_IN_DCS_MODE                   0 // Sends HID Axes even if DCS Mode is active
+// Wi-Fi network credentials (used for WiFi remote Debug Console and DCSBIOS WiFi mode if selected)
+#define WIFI_SSID                                  "TestNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
+#define WIFI_PASS                                  "TestingOnly"
+
+// Panel specific Axis config features 
 #define MIDDLE_AXIS_THRESHOLD                      64 // Adjust if your Middle Axis won't stick to center (optimal should be 32-64) but noisy axes require 128-256
 #define UPPER_AXIS_THRESHOLD                      128 // Adjust if your Upper Axis won't stick to max (optimal should be 32-64) but noisy axes require 128-256
 #define LOWER_AXIS_THRESHOLD                      256 // Adjust if your Lower Axis won't stick to min (optimal should be 32-64) but noisy axes require 128-256
@@ -31,10 +32,6 @@
 #define CENTER_DEADZONE_OUTER                     384 // Exit threshold — must move further to escape
 #define AX_DEFAULT_MIN                            768 // Assumed worst min for an axis (it will expand as you move the knob and it will be NVS saved). Use 4095 for ABSOLUTE learning from scratch
 #define AX_DEFAULT_MAX                           3327 // Assumed worst max for an axis (it will expand as you move the knob and it will be NVS saved). Use 0 for ABSOLUTE learning from scratch
-
-// Wi-Fi network credentials (used for WiFi remote Debug Console and DCSBIOS WiFi mode if selected)
-#define WIFI_SSID                                  "TestNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
-#define WIFI_PASS                                  "TestingOnly"
 
 // For production, ALL THESE should be set to 0. Use for debugging only.
 #define DEBUG_ENABLED                               0  // Use it ONLY when identifying issues or troubleshooting
@@ -82,9 +79,9 @@
 #define MAX_PCA_GROUPS                            128 // Max PCA selector groups
 #define MAX_PCA9555_INPUTS                         64 // Max PCA input mappings
 #define MAX_PCAS                                    8 // Max PCA9555 chips (0x20–0x27)
-#define MAX_PENDING_UPDATES                       220
+#define MAX_PENDING_UPDATES                       220 // Do not modify Unless doing heavy customizations
 #define STREAM_TIMEOUT_MS                        1000 // ms without activity → consider dead
-#define MAX_REGISTERED_DISPLAY_BUFFERS             64
+#define MAX_REGISTERED_DISPLAY_BUFFERS             64 // Do not modify Unless doing heavy customizations
 #define MAX_VALIDATED_SELECTORS                    32 // Tune to match maximum selectors you need to track
 #define MISSION_START_DEBOUNCE                    500 // ms to wait before panel sync
 #define GAMEPAD_REPORT_SIZE                        64 // Must match the HID descriptor, you should NEVER have to change this.
@@ -92,6 +89,7 @@
 #define SKIP_ANALOG_FILTERING                       0 // Applies to HID Only, Set to 1 to skip all filtering for Min latency
 #define ADVANCED_TM1637_INPUT_FILTERING             0 // Enable it if you see ghosts with TM1637 inputs
 #define SUPRESS_REBOOT_VIA_CDC                      0 // Enabling this sets Serial.enableReboot(false) so device can NOT be reset via CDC
+#define SEND_HID_AXES_IN_DCS_MODE                   0 // Sends HID Axes even if DCS Mode is active
 
 // Serial Debug Ring Buffer
 #define SERIAL_DEBUG_USE_RINGBUFFER                 0 // Should be use a ring buffer for Serial Debug messages? not really necessary
