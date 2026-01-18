@@ -34,10 +34,11 @@ const DisplayFieldDefLabel* findFieldDefByLabel(const char* label) {
 }
 
 
-const DisplayFieldDefLabel* findFieldByLabel(const char* label) {
-    for (size_t i = 0; i < numFieldDefs; ++i)
-        if (strcmp(fieldDefs[i].label, label) == 0)
-            return &fieldDefs[i];
-    return nullptr;
-}
+    const DisplayFieldDefLabel* findFieldByLabel(const char* label) {
+        for (size_t i = 0; i < numFieldDefs; ++i)
+            if (strcmp(fieldDefs[i].label, label) == 0)
+                return &fieldDefs[i];
+        return nullptr;
+    }
 
+    

@@ -150,9 +150,13 @@ void setup() {
 
     // If you set DEBUG_ENABLED or DEBUG_ENABLED_FOR_PCA_ONLY you get PCA9555 logging
   #if DEBUG_ENABLED_FOR_PCA_ONLY 
-    enablePCA9555Logging(1);
+    #if ENABLE_PCA9555
+      enablePCA9555Logging(1);
+    #endif
   #else  
-    enablePCA9555Logging(DEBUG); // If you set DEBUG_ENABLED only it will also log PCA, otherwise no PCA logging.
+    #if ENABLE_PCA9555
+      enablePCA9555Logging(DEBUG); // If you set DEBUG_ENABLED only it will also log PCA, otherwise no PCA logging.
+    #endif
   #endif
 
     // Initialize PCA9555 Inputs + Cached Port States explicitly to OFF (active-low LEDs)

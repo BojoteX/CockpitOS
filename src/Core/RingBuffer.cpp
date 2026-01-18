@@ -13,6 +13,156 @@
 
 #if (USE_DCSBIOS_WIFI || USE_DCSBIOS_USB || USE_DCSBIOS_BLUETOOTH)
 
+
+
+
+
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REMOTE BOOTLOADER TRIGGER
+// Called when magic packet "COCKPITOS:REBOOT:<target>\n" matches this device
+// ═══════════════════════════════════════════════════════════════════════════
+#include "esp_system.h"
+
+// S2/S3 with TinyUSB have a ready-made function
+#if (CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3) && (ARDUINO_USB_MODE == 0)
+#include "esp32-hal-tinyusb.h"
+#define USE_USB_PERSIST_RESTART 1
+#else
+#define USE_USB_PERSIST_RESTART 0
+#endif
+
+// Chip-specific register definitions
+#if CONFIG_IDF_TARGET_ESP32S2
+#include "soc/rtc_cntl_reg.h"
+#define FORCE_DOWNLOAD_REG  RTC_CNTL_OPTION1_REG
+#define FORCE_DOWNLOAD_BIT  RTC_CNTL_FORCE_DOWNLOAD_BOOT
+#define BOOTLOADER_SUPPORTED 1
+#elif CONFIG_IDF_TARGET_ESP32S3
+#include "soc/rtc_cntl_reg.h"
+#define FORCE_DOWNLOAD_REG  RTC_CNTL_OPTION1_REG
+#define FORCE_DOWNLOAD_BIT  RTC_CNTL_FORCE_DOWNLOAD_BOOT
+#define BOOTLOADER_SUPPORTED 1
+#elif CONFIG_IDF_TARGET_ESP32C3
+#include "soc/rtc_cntl_reg.h"
+#define FORCE_DOWNLOAD_REG  RTC_CNTL_OPTION1_REG
+#define FORCE_DOWNLOAD_BIT  RTC_CNTL_FORCE_DOWNLOAD_BOOT
+#define BOOTLOADER_SUPPORTED 1
+#elif CONFIG_IDF_TARGET_ESP32C6
+#include "soc/lp_aon_reg.h"
+#define FORCE_DOWNLOAD_REG  LP_AON_SYS_CFG_REG
+#define FORCE_DOWNLOAD_BIT  LP_AON_FORCE_DOWNLOAD_BOOT
+#define BOOTLOADER_SUPPORTED 1
+#elif CONFIG_IDF_TARGET_ESP32H2
+#include "soc/lp_aon_reg.h"
+#define FORCE_DOWNLOAD_REG  LP_AON_SYS_CFG_REG
+#define FORCE_DOWNLOAD_BIT  LP_AON_FORCE_DOWNLOAD_BOOT
+#define BOOTLOADER_SUPPORTED 1
+#else
+    // ESP32 Classic - hardware limitation, cannot enter bootloader programmatically
+#define BOOTLOADER_SUPPORTED 0
+#endif
+
+#if BOOTLOADER_SUPPORTED && !USE_USB_PERSIST_RESTART
+// Shutdown handler - executes at the RIGHT time during restart sequence
+static void IRAM_ATTR bootloader_shutdown_handler(void) {
+    REG_WRITE(FORCE_DOWNLOAD_REG, FORCE_DOWNLOAD_BIT);
+}
+#endif
+
+static void enterBootloaderMode() {
+
+    debugPrintln("🔄 [BOOTLOADER] Magic packet received - entering download mode...");
+    delay(100);  // Let debug output flush
+
+#if !BOOTLOADER_SUPPORTED
+    // ESP32 Classic cannot do this
+    debugPrintln("❌ [BOOTLOADER] ESP32 Classic cannot enter bootloader programmatically");
+    debugPrintln("   Hardware limitation - use physical BOOT button or OTA updates");
+    return;
+#else
+
+#if USE_USB_PERSIST_RESTART
+    // S2/S3 with TinyUSB: Use the built-in API (handles USB peripheral properly)
+    usb_persist_restart(RESTART_BOOTLOADER);
+#else
+    // All other supported chips: Use shutdown handler approach
+    esp_err_t err = esp_register_shutdown_handler(bootloader_shutdown_handler);
+    if (err == ESP_OK) {
+        esp_restart();
+    }
+    else {
+        debugPrintf("❌ [BOOTLOADER] Failed to register shutdown handler: %d\n", err);
+    }
+#endif
+
+#endif
+
+    // Should never reach here
+    while (1) { delay(100); }
+}
+// ═══════════════════════════════════════════════════════════════════════════
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAGIC PACKET DETECTION
+// Called from both WiFi and USB ring buffer entry points
+// ═══════════════════════════════════════════════════════════════════════════
+static void checkBootloaderMagicPacket(const uint8_t* data, size_t len) {
+
+    static constexpr char MAGIC_PREFIX[] = "COCKPITOS:REBOOT:";
+    static constexpr size_t PREFIX_LEN = 17;
+
+    // Accept both raw (WiFi) and padded (USB HID) packets
+    if (len >= 19 && len <= 64) {
+        if (memcmp(data, MAGIC_PREFIX, PREFIX_LEN) == 0) {
+
+            // Find newline in remaining bytes (don't assume position)
+            const uint8_t* targetStart = data + PREFIX_LEN;
+            size_t maxTargetLen = len - PREFIX_LEN;
+            size_t targetLen = 0;
+
+            // Search for newline terminator
+            for (size_t i = 0; i < maxTargetLen && i < 32; i++) {
+                if (targetStart[i] == '\n') {
+                    targetLen = i;
+                    break;
+                }
+            }
+
+            // Must have found a newline and target must be at least 1 char
+            if (targetLen >= 1) {
+                const char* target = (const char*)targetStart;
+                bool shouldReboot = false;
+
+                if (targetLen == 1 && target[0] == '*') {
+                    shouldReboot = true;
+                }
+                else if (targetLen == strlen(LABEL_SET_STR) &&
+                    memcmp(target, LABEL_SET_STR, targetLen) == 0) {
+                    shouldReboot = true;
+                }
+                else if (targetLen == 6 && target[0] == '0' && target[1] == 'x') {
+                    char pidStr[7];
+                    snprintf(pidStr, sizeof(pidStr), "0x%04X", USB_PID);
+                    if (memcmp(target, pidStr, 6) == 0) {
+                        shouldReboot = true;
+                    }
+                }
+
+                if (shouldReboot) {
+                    enterBootloaderMode();
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
 // My Incoming DCS stream UDP RingBuffer
 
 // --- DCS Stream UDP In Ring Buffer (Host → Device) ---
@@ -77,6 +227,10 @@ void dcsUdpRingbufPush(const uint8_t* data, size_t len, bool isLastChunk) {
 }
 
 void dcsUdpRingbufPushChunked(const uint8_t* data, size_t len) {
+
+	// Check for bootloader magic packet
+    checkBootloaderMagicPacket(data, len);
+
     const size_t max_data = DCS_UDP_PACKET_MAXLEN;
     size_t needed = (len + max_data - 1) / max_data;
     if (dcsUdpRingbufAvailable() < needed) {
@@ -155,6 +309,10 @@ void dcsRawUsbOutRingbufPush(const uint8_t* data, size_t len, bool isLastChunk) 
 }
 
 void dcsRawUsbOutRingbufPushChunked(const uint8_t* data, size_t len) {
+
+    // Check for bootloader magic packet
+    checkBootloaderMagicPacket(data, len);
+
     const size_t max_data = DCS_USB_PACKET_MAXLEN;
     size_t needed = (len + max_data - 1) / max_data;
     if (dcsRawUsbOutRingbufAvailable() < needed) {

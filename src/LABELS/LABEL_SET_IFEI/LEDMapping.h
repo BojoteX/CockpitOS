@@ -4,12 +4,12 @@
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
   DEVICE_NONE,
-  DEVICE_GN1640T,
   DEVICE_GPIO,
-  DEVICE_GAUGE,
-  DEVICE_TM1637,
   DEVICE_PCA9555,
+  DEVICE_GAUGE,
   DEVICE_WS2812,
+  DEVICE_GN1640T,
+  DEVICE_TM1637,
 };
 
 struct LEDMapping {
@@ -29,12 +29,12 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
-  { "FLP_LG_FLAPS_LT"     , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 5, 0}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 5 Bit 0,
-  { "FLP_LG_FULL_FLAPS_LT", DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 4, 1}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 4 Bit 1,
-  { "FLP_LG_HALF_FLAPS_LT", DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 4, 0}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 4 Bit 0,
-  { "FLP_LG_LEFT_GEAR_LT" , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 3, 0}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 3 Bit 0,
-  { "FLP_LG_NOSE_GEAR_LT" , DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 5, 1}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 5 Bit 1,
-  { "FLP_LG_RIGHT_GEAR_LT", DEVICE_TM1637  , {.tm1637Info = {PIN(9), PIN(8), 3, 1}}, false, false }, // TM1637 CLK PIN(9) DIO PIN(8) Seg 3 Bit 1,
+  { "FLP_LG_FLAPS_LT"     , DEVICE_TM1637  , {.tm1637Info = {JETT_CLK_PIN, JETT_DIO_PIN, 5, 0}}, false, false }, // TM1637 CLK JETT_CLK_PIN DIO JETT_DIO_PIN Seg 5 Bit 0,
+  { "FLP_LG_FULL_FLAPS_LT", DEVICE_TM1637  , {.tm1637Info = {JETT_CLK_PIN, JETT_DIO_PIN, 4, 1}}, false, false }, // TM1637 CLK JETT_CLK_PIN DIO JETT_DIO_PIN Seg 4 Bit 1,
+  { "FLP_LG_HALF_FLAPS_LT", DEVICE_TM1637  , {.tm1637Info = {JETT_CLK_PIN, JETT_DIO_PIN, 4, 0}}, false, false }, // TM1637 CLK JETT_CLK_PIN DIO JETT_DIO_PIN Seg 4 Bit 0,
+  { "FLP_LG_LEFT_GEAR_LT" , DEVICE_TM1637  , {.tm1637Info = {JETT_CLK_PIN, JETT_DIO_PIN, 3, 0}}, false, false }, // TM1637 CLK JETT_CLK_PIN DIO JETT_DIO_PIN Seg 3 Bit 0,
+  { "FLP_LG_NOSE_GEAR_LT" , DEVICE_TM1637  , {.tm1637Info = {JETT_CLK_PIN, JETT_DIO_PIN, 5, 1}}, false, false }, // TM1637 CLK JETT_CLK_PIN DIO JETT_DIO_PIN Seg 5 Bit 1,
+  { "FLP_LG_RIGHT_GEAR_LT", DEVICE_TM1637  , {.tm1637Info = {JETT_CLK_PIN, JETT_DIO_PIN, 3, 1}}, false, false }, // TM1637 CLK JETT_CLK_PIN DIO JETT_DIO_PIN Seg 3 Bit 1,
   { "IFEI"                , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CHART_DIMMER"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CONSOLES_DIMMER"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,

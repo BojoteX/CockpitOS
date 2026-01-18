@@ -31,7 +31,14 @@
 // DEVICE ON/OFF RULES:
 //   - Device is OFF only when ALL 4 large arrows have BOTH BRT=0 AND DIM=0
 //   - When OFF: LAMP=0%, small arrows=OFF, ticks=OFF, nothing drawn
-//   - When ON: small arrows and ticks are always DIM
+//   - When ON: small arrows and ticks inherit state from their quadrant's large arrow
+//
+// QUADRANT OWNERSHIP:
+//   - large[0] (45°, TopRight):     controls 0°-90° range (ticks + center small arrow)
+//   - large[1] (135°, BottomRight): controls 90°-180° range
+//   - large[2] (225°, BottomLeft):  controls 180°-270° range
+//   - large[3] (315°, TopLeft):     controls 270°-360° range
+//   - Boundary small arrows (0°, 90°, 180°, 270°) are shared: MAX(adjacent states)
 //
 // PAGE MODE RULES:
 //   - Only accept exact full strings: "MAIN" or "TEST"
@@ -52,7 +59,8 @@
 // PANEL REGISTRATION
 // =============================================================================
 #if defined(HAS_CMWS_DISPLAY)
-    REGISTER_PANEL(TFTCmws, nullptr, nullptr, CMWSDisplay_init, CMWSDisplay_loop, nullptr, 100);
+    // REGISTER_PANEL(TFTCmws, nullptr, nullptr, CMWSDisplay_init, CMWSDisplay_loop, nullptr, 100);
+    REGISTER_PANEL(TFTCmws, CMWSDisplay_notifyMissionStart, nullptr, CMWSDisplay_init, CMWSDisplay_loop, nullptr, 100);
 #endif
 
 #if !__has_include(<LovyanGFX.hpp>)
@@ -250,6 +258,44 @@ static inline int16_t clampI16(int32_t v, int16_t lo, int16_t hi) {
 }
 
 // =============================================================================
+// QUADRANT STATE HELPERS
+// Small arrows and ticks inherit state from their owning large arrow quadrant.
+// Boundary elements (0°, 90°, 180°, 270°) are shared: use MAX(adjacent states).
+// =============================================================================
+
+// Returns brighter of two states (BRT > DIM > OFF)
+static inline ElemState maxState(ElemState a, ElemState b) {
+    return (static_cast<uint8_t>(a) >= static_cast<uint8_t>(b)) ? a : b;
+}
+
+// Compute small arrow state from quadrant ownership
+// Indices: 0=0°, 1=45°, 2=90°, 3=135°, 4=180°, 5=225°, 6=270°, 7=315°
+// Shared boundaries (even indices) return maxState of both adjacent quadrants
+static inline ElemState computeSmallArrowState(int idx, const ElemState large[LARGE_ARROW_COUNT]) {
+    switch (idx) {
+        case 0: return maxState(large[3], large[0]);  // 0°   - TopLeft ↔ TopRight
+        case 1: return large[0];                       // 45°  - TopRight center
+        case 2: return maxState(large[0], large[1]);  // 90°  - TopRight ↔ BottomRight
+        case 3: return large[1];                       // 135° - BottomRight center
+        case 4: return maxState(large[1], large[2]);  // 180° - BottomRight ↔ BottomLeft
+        case 5: return large[2];                       // 225° - BottomLeft center
+        case 6: return maxState(large[2], large[3]);  // 270° - BottomLeft ↔ TopLeft
+        case 7: return large[3];                       // 315° - TopLeft center
+        default: return ElemState::OFF;
+    }
+}
+
+// Compute tick state from tick index (ticks at 15° increments, skip small arrow positions)
+// Quadrant mapping: ticks 1-5 → large[0], 7-11 → large[1], 13-17 → large[2], 19-23 → large[3]
+static inline ElemState computeTickState(int tickIdx, const ElemState large[LARGE_ARROW_COUNT]) {
+    // Tick indices 0,6,12,18 are small arrow positions (0°,90°,180°,270°) - skip
+    if (tickIdx < 6)       return large[0];  // 15°, 30°, 45°(skip), 60°, 75°
+    if (tickIdx < 12)      return large[1];  // 105°, 120°, 135°(skip), 150°, 165°
+    if (tickIdx < 18)      return large[2];  // 195°, 210°, 225°(skip), 240°, 255°
+    return large[3];                          // 285°, 300°, 315°(skip), 330°, 345°
+}
+
+// =============================================================================
 // FIXED-WIDTH FIELD HELPERS (NO HEAP, NO NULL SCANNING)
 // =============================================================================
 
@@ -295,6 +341,7 @@ static TickCache  g_ticks[TICK_COUNT];
 
 static RectI16 g_largeAabb[LARGE_ARROW_COUNT];
 static RectI16 g_smallAabb[SMALL_ARROW_COUNT];
+static RectI16 g_quadrantTickAabb[LARGE_ARROW_COUNT];
 static RectI16 g_dRect;
 static RectI16 g_rRect;
 
@@ -693,6 +740,27 @@ static void precomputeGeometry() {
         computeTickVertices(g_ticks[i], angle);
     }
 
+    // Precompute quadrant tick bounding boxes
+    // Quadrant q owns ticks: q*6+1 through q*6+5 (skipping small arrow positions at multiples of 6)
+    for (int q = 0; q < LARGE_ARROW_COUNT; ++q) {
+        int16_t minX = 32767, minY = 32767, maxX = -32768, maxY = -32768;
+        for (int t = q * 6 + 1; t < (q + 1) * 6; ++t) {
+            const TickCache& tc = g_ticks[t % TICK_COUNT];
+            if (tc.inner.x < minX) minX = tc.inner.x;
+            if (tc.outer.x < minX) minX = tc.outer.x;
+            if (tc.inner.x > maxX) maxX = tc.inner.x;
+            if (tc.outer.x > maxX) maxX = tc.outer.x;
+            if (tc.inner.y < minY) minY = tc.inner.y;
+            if (tc.outer.y < minY) minY = tc.outer.y;
+            if (tc.inner.y > maxY) maxY = tc.inner.y;
+            if (tc.outer.y > maxY) maxY = tc.outer.y;
+        }
+        g_quadrantTickAabb[q] = RectI16{ 
+            static_cast<int16_t>(minX - 1), static_cast<int16_t>(minY - 1),
+            static_cast<int16_t>(maxX - minX + 3), static_cast<int16_t>(maxY - minY + 3) 
+        };
+    }
+
     g_dRect = RectI16{ static_cast<int16_t>(RING_CX + DR_X_OFFSET - 15),
                        static_cast<int16_t>(RING_CY - DR_OFFSET - 15), 30, 30 };
     g_rRect = RectI16{ static_cast<int16_t>(RING_CX + DR_X_OFFSET - 15),
@@ -724,13 +792,17 @@ static bool angleIsSmallArrow(int angleDeg) {
     return false;
 }
 
-static void drawTicksIntersectingRect(const RectI16& r, bool deviceOn) {
-    if (!deviceOn) return;
+static void drawTicksIntersectingRect(const RectI16& r, const CmwsState& s) {
+    if (!s.deviceOn) return;
 
     for (int i = 0; i < TICK_COUNT; ++i) {
         const int angle = (i * 360) / TICK_COUNT;
 
         if (angleIsSmallArrow(angle)) continue;
+
+        // Compute tick state from owning quadrant's large arrow
+        const ElemState st = computeTickState(i, s.large);
+        if (st == ElemState::OFF) continue;
 
         const TickCache& t = g_ticks[i];
         int16_t minX = (t.inner.x < t.outer.x) ? t.inner.x : t.outer.x;
@@ -740,19 +812,23 @@ static void drawTicksIntersectingRect(const RectI16& r, bool deviceOn) {
 
         RectI16 tr { minX, minY, static_cast<int16_t>(maxX - minX + 1), static_cast<int16_t>(maxY - minY + 1) };
         if (rectIntersects(r, tr)) {
-            drawTickDirect(t, COL_AMBER_DIM);
+            drawTickDirect(t, colorFor(st));
         }
     }
 }
 
 static void drawArrowsIntersectingRect(const RectI16& r, const CmwsState& s) {
+    // Small arrows: state inherited from quadrant owner(s)
     if (s.deviceOn) {
         for (int i = 0; i < SMALL_ARROW_COUNT; ++i) {
             if (!rectIntersects(r, g_smallAabb[i])) continue;
-            drawArrowDirect(g_smallArrows[i], COL_AMBER_DIM);
+            const ElemState st = computeSmallArrowState(i, s.large);
+            if (st == ElemState::OFF) continue;
+            drawArrowDirect(g_smallArrows[i], colorFor(st));
         }
     }
 
+    // Large arrows: direct state
     for (int i = 0; i < LARGE_ARROW_COUNT; ++i) {
         if (!rectIntersects(r, g_largeAabb[i])) continue;
         const ElemState st = s.large[i];
@@ -803,7 +879,7 @@ static void fullRedraw(const CmwsState& s) {
     }
 
     RectI16 full { 0, 0, SCREEN_W, SCREEN_H };
-    drawTicksIntersectingRect(full, s.deviceOn);
+    drawTicksIntersectingRect(full, s);
     drawArrowsIntersectingRect(full, s);
     drawDRIntersectingRect(full, s);
 
@@ -923,7 +999,7 @@ static void redrawRegion(const RectI16& r, const CmwsState& s) {
     if (rr.w <= 0 || rr.h <= 0) return;
 
     tft.fillRect(rr.x, rr.y, rr.w, rr.h, COL_BLACK);
-    drawTicksIntersectingRect(rr, s.deviceOn);
+    drawTicksIntersectingRect(rr, s);
     drawArrowsIntersectingRect(rr, s);
     drawDRIntersectingRect(rr, s);
 }
@@ -1005,10 +1081,28 @@ static void CMWSDisplay_draw(bool force = false) {
     // --- INCREMENTAL UPDATE ---
     DirtyRectList dirty;
 
-    // 1) Large arrows that changed
+    // Quadrant-to-small-arrow mapping: each large arrow affects 3 small arrows
+    // large[0] (45°, TopRight):     small 0°, 45°, 90°   → indices 0, 1, 2
+    // large[1] (135°, BottomRight): small 90°, 135°, 180° → indices 2, 3, 4
+    // large[2] (225°, BottomLeft):  small 180°, 225°, 270° → indices 4, 5, 6
+    // large[3] (315°, TopLeft):     small 270°, 315°, 0°  → indices 6, 7, 0
+    static constexpr int8_t kAffectedSmallArrows[LARGE_ARROW_COUNT][3] = {
+        { 0, 1, 2 },  // large[0]
+        { 2, 3, 4 },  // large[1]
+        { 4, 5, 6 },  // large[2]
+        { 6, 7, 0 },  // large[3]
+    };
+
+    // 1) Large arrows that changed + their dependent small arrows + ticks
     for (int i = 0; i < LARGE_ARROW_COUNT; ++i) {
         if (s.large[i] != g_lastDrawn.large[i]) {
             dirty.add(g_largeAabb[i]);
+            // Add affected small arrows (they inherit this quadrant's state)
+            dirty.add(g_smallAabb[kAffectedSmallArrows[i][0]]);
+            dirty.add(g_smallAabb[kAffectedSmallArrows[i][1]]);
+            dirty.add(g_smallAabb[kAffectedSmallArrows[i][2]]);
+            // Add affected ticks
+            dirty.add(g_quadrantTickAabb[i]);
         }
     }
 
@@ -1100,7 +1194,7 @@ static void redrawRegion(const RectI16& r, const CmwsState& s) {
     if (rr.w <= 0 || rr.h <= 0) return;
 
     tft.fillRect(rr.x, rr.y, rr.w, rr.h, COL_BLACK);
-    drawTicksIntersectingRect(rr, s.deviceOn);
+    drawTicksIntersectingRect(rr, s);
     drawArrowsIntersectingRect(rr, s);
     drawDRIntersectingRect(rr, s);
 }
@@ -1583,9 +1677,8 @@ void CMWSDisplay_bitTest() {
     memcpy(tmp.flareCount, " 88", 4);
     memcpy(tmp.chaffCount, " 88", 4);
 
-    // Phase 1: All bright
+    // Phase 1: All large arrows BRT (all quadrants lit - ticks and small arrows follow)
     for (int i = 0; i < LARGE_ARROW_COUNT; ++i) tmp.large[i] = ElemState::BRT;
-    for (int i = 0; i < SMALL_ARROW_COUNT; ++i) tmp.small[i] = ElemState::DIM;
     tmp.dispense = ElemState::BRT;
     tmp.ready    = ElemState::BRT;
 
@@ -1596,7 +1689,7 @@ void CMWSDisplay_bitTest() {
     CMWSDisplay_draw(true);
     vTaskDelay(pdMS_TO_TICKS(500));
 
-    // Phase 2: All dim
+    // Phase 2: All large arrows DIM (all quadrants dim)
     for (int i = 0; i < LARGE_ARROW_COUNT; ++i) tmp.large[i] = ElemState::DIM;
     tmp.dispense = ElemState::DIM;
     tmp.ready    = ElemState::DIM;
@@ -1608,7 +1701,7 @@ void CMWSDisplay_bitTest() {
     CMWSDisplay_draw(true);
     vTaskDelay(pdMS_TO_TICKS(500));
 
-    // Phase 3: Device OFF
+    // Phase 3: Device OFF (all quadrants off)
     tmp.deviceOn = false;
     for (int i = 0; i < LARGE_ARROW_COUNT; ++i) tmp.large[i] = ElemState::OFF;
     tmp.dispense = ElemState::OFF;
@@ -1621,23 +1714,40 @@ void CMWSDisplay_bitTest() {
     CMWSDisplay_draw(true);
     vTaskDelay(pdMS_TO_TICKS(500));
 
-    // Phase 4: Rotate large arrows
+    // Phase 4: Quadrant rotation - one BRT at a time, others OFF
+    // This demonstrates ticks and small arrows following their quadrant
     tmp.deviceOn = true;
-    for (int a = 0; a < LARGE_ARROW_COUNT; ++a) {
-        for (int i = 0; i < LARGE_ARROW_COUNT; ++i) tmp.large[i] = ElemState::DIM;
-        tmp.large[a] = ElemState::BRT;
-        tmp.dispense = ElemState::DIM;
-        tmp.ready    = ElemState::DIM;
+    for (int q = 0; q < LARGE_ARROW_COUNT; ++q) {
+        // All quadrants OFF except current one BRT
+        for (int i = 0; i < LARGE_ARROW_COUNT; ++i) {
+            tmp.large[i] = (i == q) ? ElemState::BRT : ElemState::OFF;
+        }
+        tmp.dispense = ElemState::OFF;
+        tmp.ready    = ElemState::OFF;
 
         portENTER_CRITICAL(&g_stateMux);
         g_pending = tmp;
         portEXIT_CRITICAL(&g_stateMux);
         g_forceFull = true; g_dirty = true;
         CMWSDisplay_draw(true);
-        vTaskDelay(pdMS_TO_TICKS(300));
+        vTaskDelay(pdMS_TO_TICKS(400));
     }
 
-    // Restore
+    // Phase 5: Shared boundary test - TopRight BRT + BottomRight DIM
+    // The 90° small arrow (shared boundary) should be BRT (max of BRT, DIM)
+    tmp.large[0] = ElemState::BRT;   // TopRight
+    tmp.large[1] = ElemState::DIM;   // BottomRight
+    tmp.large[2] = ElemState::OFF;
+    tmp.large[3] = ElemState::OFF;
+
+    portENTER_CRITICAL(&g_stateMux);
+    g_pending = tmp;
+    portEXIT_CRITICAL(&g_stateMux);
+    g_forceFull = true; g_dirty = true;
+    CMWSDisplay_draw(true);
+    vTaskDelay(pdMS_TO_TICKS(500));
+
+    // Restore original state
     portENTER_CRITICAL(&g_stateMux);
     g_pending = saved;
     portEXIT_CRITICAL(&g_stateMux);

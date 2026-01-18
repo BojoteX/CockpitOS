@@ -25,22 +25,6 @@
     REGISTER_PANEL(TFTBatt, nullptr, nullptr, BatteryGauge_init, BatteryGauge_loop, nullptr, 100);
 #endif
 
-// Panel registration
-#if defined(HAS_RIGHT_PANEL_CONTROLLER)
-    // --- Pins Only for Right Panel Controller ---
-    #define BATTERY_MOSI_PIN   PIN(8)   // SDA (Yellow)
-    #define BATTERY_SCLK_PIN   PIN(9)   // SCL (Orange)
-    #define BATTERY_DC_PIN     PIN(13)  // Data/Command (Green)
-    #define BATTERY_CS_PIN     PIN(36)  // Chip Select (Blue)
-    #define BATTERY_RST_PIN    PIN(12)  // Used by the Right Panel Controller (UNKNOWN COLOR)   
-#else
-    #define BATTERY_MOSI_PIN   -1  // SDA (Yellow)
-    #define BATTERY_SCLK_PIN   -1  // SCL (Orange)
-    #define BATTERY_DC_PIN     -1  // Data/Command (Green)
-    #define BATTERY_CS_PIN     -1  // Chip Select (Blue)
-    #define BATTERY_RST_PIN    -1  // Used by the Right Panel Controller (UNKNOWN COLOR)   
-#endif
-
 #define MAX_MEMORY_TFT 4
 #define GAUGE_DRAW_MIN_INTERVAL_MS 13
 #define RUN_GAUGE_AS_TASK 1
@@ -56,6 +40,23 @@
 #define BATT_CPU_CORE 0
 #else
 #define BATT_CPU_CORE 0
+#endif
+
+// TFT Gauges PINs set to -1 if they were never defined
+#ifndef BATTERY_MOSI_PIN
+  #define BATTERY_MOSI_PIN   -1  // SDA (Yellow)
+#endif
+#ifndef BATTERY_SCLK_PIN
+  #define BATTERY_SCLK_PIN   -1  // SCL (Orange)
+#endif
+#ifndef BATTERY_DC_PIN
+  #define BATTERY_DC_PIN     -1  // Data/Command (Green)
+#endif
+#ifndef BATTERY_CS_PIN
+  #define BATTERY_CS_PIN     -1  // Chip Select (Blue)
+#endif
+#ifndef BATTERY_RST_PIN
+  #define BATTERY_RST_PIN    -1  // Used by the Right Panel Controller (UNKNOWN COLOR)
 #endif
 
 // --- Assets (240x240 bg, 15x88 needle) ---

@@ -72,7 +72,8 @@ void GN1640_init(uint8_t clkPin, uint8_t dioPin) {
 void GN1640_setLED(uint8_t row, uint8_t col, bool state) {
 
   // Return if we dont have the caution advisory
-  if(!PanelRegistry_has(PanelKind::CA)) return;
+  // if(!PanelRegistry_has(PanelKind::CA)) return;
+  if (!hasOutputDevice(DEVICE_GN1640T)) return;
 
   if (row > 7 || col > 7) return;
 
