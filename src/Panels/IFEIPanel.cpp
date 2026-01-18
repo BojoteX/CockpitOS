@@ -5,11 +5,13 @@
 #include "../Globals.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
-#include "includes/IFEIPanel.h"
 
 #if defined(HAS_IFEI)
-    REGISTER_PANEL(IFEI, IFEI_init, nullptr, IFEIDisplay_init, IFEIDisplay_loop, nullptr, 100);
-#endif
+
+#include "includes/IFEIPanel.h"
+
+// Load Library
+REGISTER_PANEL(IFEI, IFEI_init, nullptr, IFEIDisplay_init, IFEIDisplay_loop, nullptr, 100);
 
 #define RUN_IFEI_DISPLAY_AS_TASK 0
 #define IFEI_DISPLAY_REFRESH_RATE_HZ 250
@@ -1439,3 +1441,5 @@ void IFEIDisplay::clear7SegFromShadow(const SegmentMap* map, int numDigits) {
         }
     }
 }
+
+#endif // HAS_IFEI

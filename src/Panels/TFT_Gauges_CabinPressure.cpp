@@ -42,20 +42,24 @@
 #define CABPRESS_CPU_CORE 0
 #endif
 
-#if defined(HAS_ALR67) || defined(HAS_CABIN_PRESSURE_GAUGE) 
-    #define CABIN_PRESSURE_DC_PIN   PIN(18)  // Data/Command (Green)
-    #define CABIN_PRESSURE_CS_PIN   PIN(36)  // Chip Select (Blue)
-    #define CABIN_PRESSURE_MOSI_PIN PIN(39)  // SDA (Yellow)
-    #define CABIN_PRESSURE_SCLK_PIN PIN(40)  // SCL (Orange)
-    #define CABIN_PRESSURE_RST_PIN  -1  // Reset (White)
-    #define CABIN_PRESSURE_MISO_PIN -1  // Unused
-#else
-    #define CABIN_PRESSURE_DC_PIN   -1  // Data/Command (Green)
-    #define CABIN_PRESSURE_CS_PIN   -1  // Chip Select (Blue)
-    #define CABIN_PRESSURE_MOSI_PIN -1  // SDA (Yellow)
-    #define CABIN_PRESSURE_SCLK_PIN -1  // SCL (Orange)
-    #define CABIN_PRESSURE_RST_PIN  -1  // Reset (White)
-    #define CABIN_PRESSURE_MISO_PIN -1  // Unused
+// Set defaults for Cabin pressure TFT gauge
+#ifndef CABIN_PRESSURE_DC_PIN
+  #define CABIN_PRESSURE_DC_PIN   -1  // Data/Command (Green)
+#endif
+#ifndef CABIN_PRESSURE_CS_PIN
+  #define CABIN_PRESSURE_CS_PIN   -1  // Chip Select (Blue)
+#endif
+#ifndef CABIN_PRESSURE_MOSI_PIN
+  #define CABIN_PRESSURE_MOSI_PIN -1  // SDA (Yellow)
+#endif
+#ifndef CABIN_PRESSURE_SCLK_PIN
+  #define CABIN_PRESSURE_SCLK_PIN -1  // SCL (Orange)
+#endif
+#ifndef CABIN_PRESSURE_RST_PIN
+  #define CABIN_PRESSURE_RST_PIN  -1  // Reset (White)
+#endif
+#ifndef CABIN_PRESSURE_MISO_PIN
+  #define CABIN_PRESSURE_MISO_PIN -1  // Unused
 #endif
 
 // --- Assets (360x360 bg, 23x238 needle) ---

@@ -11,6 +11,7 @@
 #include "src/Globals.h"
 #include "Mappings.h"
 #include "src/HIDManager.h"
+#include "src/LEDControl.h"
 
 // Recently added
 #include "src/InputControl.h"
@@ -229,21 +230,38 @@ static void TM1637_initFromLEDMap_Local() {
 
 void initializeLEDs() {
 
-    if (PanelRegistry_has(PanelKind::MasterARM)) PCA9555_autoInitFromLEDMap(0x5B);
-    if (PanelRegistry_has(PanelKind::ECM)) PCA9555_autoInitFromLEDMap(0x22);
-    if (PanelRegistry_has(PanelKind::Brain)) PCA9555_autoInitFromLEDMap(0x26);
+    // ========================================================================
+    // STEP 1: Scan LEDMapping to detect which output drivers are needed
+    // This replaces panel-based detection with data-driven detection
+    // ========================================================================
+    scanOutputDevicePresence();    
 
-    if (PanelRegistry_has(PanelKind::LockShoot)) {
-        debugPrintln("✅ Lock/Shoot detected, initializing...");
-    } else {
-        debugPrintln("⚠️ Lock/Shoot NOT detected!");
-    }
+    // ========================================================================
+    // STEP 2: Initialize PCA9555 devices (still uses I2C discovery)
+    // ========================================================================
+    #if ENABLE_PCA9555
+        if (PanelRegistry_has(PanelKind::MasterARM)) PCA9555_autoInitFromLEDMap(0x5B);
+        if (PanelRegistry_has(PanelKind::ECM)) PCA9555_autoInitFromLEDMap(0x22);
+        if (PanelRegistry_has(PanelKind::Brain)) PCA9555_autoInitFromLEDMap(0x26);
+    #endif
 
-    if (PanelRegistry_has(PanelKind::CA)) {
-        debugPrintln("✅ Caution Advisory detected, initializing...");
+    // ========================================================================
+    // STEP 3: Initialize drivers based on LEDMapping presence (data-driven)
+    // ========================================================================
+    
+    // GN1640 (Caution Advisory matrix) - now data-driven
+    if (hasOutputDevice(DEVICE_GN1640T)) {
+        debugPrintln("✅ GN1640 detected in LEDMapping, initializing...");
         GN1640_init(CA_CLK_PIN, CA_DIO_PIN);
     } else {
-        debugPrintln("⚠️ Caution Advisory NOT detected!");
+        debugPrintln("⚠️ GN1640 not present in LEDMapping");
+    }
+
+    // WS2812 - now data-driven (was already scanning LEDMapping)
+    if (hasOutputDevice(DEVICE_WS2812)) {
+        debugPrintln("✅ WS2812 detected in LEDMapping, initializing...");
+    } else {
+        debugPrintln("⚠️ WS2812 not present in LEDMapping");
     }
 
     // TM1637: generic init from LEDMapping
@@ -263,26 +281,32 @@ void initializeLEDs() {
         tm1637_allOff();
     }
 
-    // Flash sequence
-    if (PanelRegistry_has(PanelKind::CA)) { GN1640_allOn(); delay(1000); GN1640_allOff(); }
-    if (PanelRegistry_has(PanelKind::LockShoot)) { WS2812_allOn(Green); delay(1000); WS2812_allOff(); }
+    if (hasOutputDevice(DEVICE_GN1640T)) {
+        GN1640_allOn(); delay(1000); GN1640_allOff(); 
+    }
+
+    if (hasOutputDevice(DEVICE_WS2812)) {
+
+        // Load ALL WS2812 defined in our file
+        initWS2812FromMap(); 
+
+        // Test ALL WS2812 LEDs;
+        // WS2812Mini::WS2812_allOnFromMap();
+        // delay(1000);
+        // WS2812Mini::WS2812_allOffAll();
+
+        WS2812_allOn(Green); delay(1000); WS2812_allOff();
+    }
 
     // PCA9555 devices
-    if (PanelRegistry_has(PanelKind::MasterARM)) { PCA9555_allOn(0x5B); delay(1000); PCA9555_allOff(0x5B); }
-    if (PanelRegistry_has(PanelKind::ECM)) { PCA9555_allOn(0x22); delay(1000); PCA9555_allOff(0x22); }
+    #if ENABLE_PCA9555
+        if (PanelRegistry_has(PanelKind::MasterARM)) { PCA9555_allOn(0x5B); delay(1000); PCA9555_allOff(0x5B); }
+        if (PanelRegistry_has(PanelKind::ECM)) { PCA9555_allOn(0x22); delay(1000); PCA9555_allOff(0x22); }
+    #endif
 
     // GPIO LEDs
     preconfigureGPIO();
     GPIO_setAllLEDs(true); delay(1000); GPIO_setAllLEDs(false);
-
-    // Load ALL WS2812 defined in our file
-    initWS2812FromMap(); 
-
-    // Test ALL WS2812 LEDs;
-    // WS2812_allOnFromMap();
-    WS2812Mini::WS2812_allOnFromMap();
-    delay(1000);
-    WS2812Mini::WS2812_allOffAll();
 
     // Always init GPIO 0 (ESP32S2) for testing and debugging
     // pinMode(0, INPUT_PULLUP);
@@ -306,6 +330,12 @@ void panelLoop() {
     PanelRegistry_forEachLoop();
     PanelRegistry_forEachDisplayLoop();
     PanelRegistry_forEachTick();
+    
+    // ========================================================================
+    // AUTO-TICK: Flush output driver buffers based on LEDMapping presence
+    // This makes panel tick registration optional for LED-only panels
+    // ========================================================================
+    tickOutputDrivers();
 
     #if DEBUG_USE_WIFI && WIFI_DEBUG_USE_RINGBUFFER
     wifiDebugDrainSendBuffer();

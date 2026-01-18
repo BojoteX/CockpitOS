@@ -43,13 +43,24 @@
 #endif
 
 // --- Pins ---
-#define HYD_PRESSURE_CS_PIN     PIN(17)  // Chip Select (Blue) *** CANT USE GPIO 8 *** Conflict with i2c BUS for PCA9555
-#define HYD_PRESSURE_DC_PIN     PIN(3)   // Data/Command (Green)
-#define HYD_PRESSURE_MOSI_PIN   PIN(4)   // SDA (Yellow)
-#define HYD_PRESSURE_SCLK_PIN  PIN(12)   // SCL (Orange)
-#define HYD_PRESSURE_RST_PIN   -1
-#define HYD_PRESSURE_MISO_PIN  -1
-
+#ifndef HYD_PRESSURE_CS_PIN
+  #define HYD_PRESSURE_CS_PIN     -1  // Chip Select (Blue)
+#endif
+#ifndef HYD_PRESSURE_DC_PIN
+  #define HYD_PRESSURE_DC_PIN     -1  // Data/Command (Green)
+#endif
+#ifndef HYD_PRESSURE_MOSI_PIN
+  #define HYD_PRESSURE_MOSI_PIN   -1  // SDA (Yellow)
+#endif
+#ifndef HYD_PRESSURE_SCLK_PIN
+  #define HYD_PRESSURE_SCLK_PIN   -1  // SCL (Orange)
+#endif
+#ifndef HYD_PRESSURE_RST_PIN
+  #define HYD_PRESSURE_RST_PIN    -1
+#endif
+#ifndef HYD_PRESSURE_MISO_PIN
+  #define HYD_PRESSURE_MISO_PIN   -1
+#endif
 
 // --- Assets (240x240 bg, 33x120 needles) ---
 #include "Assets/HydPressure/hydPressBackground.h"

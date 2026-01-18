@@ -185,10 +185,10 @@ static void axCalibWipe() {
 
     // Reset all arrays
     for (uint8_t i = 0; i < HID_AXIS_COUNT; i++) {
-        axMin[i] = 4095;
-        axMax[i] = 0;
-        axMinSaved[i] = 4095;
-        axMaxSaved[i] = 0;
+        axMin[i] = AX_DEFAULT_MIN;
+        axMax[i] = AX_DEFAULT_MAX;
+        axMinSaved[i] = AX_DEFAULT_MIN;
+        axMaxSaved[i] = AX_DEFAULT_MAX;
     }
 
     debugPrintln("[CAL] Calibration wiped");
@@ -201,8 +201,8 @@ void HIDManager_saveCalibration() {
 
 static void axCalibInit() {
     for (uint8_t i = 0; i < HID_AXIS_COUNT; i++) {
-        axMin[i] = 4095;  // Start high, any reading will be lower
-        axMax[i] = 0;     // Start low, any reading will be higher
+        axMin[i] = AX_DEFAULT_MIN;
+        axMax[i] = AX_DEFAULT_MAX;
     }
 }
 
