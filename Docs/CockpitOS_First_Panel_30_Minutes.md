@@ -162,7 +162,7 @@ If upload fails, hold **BOOT** button while plugging in USB.
 ## 10) Test
 
 ### Debug Console
-Run `CockpitOS\Debug Tools\UDP_console_debugger.py` to see WiFi status and commands.
+Run `CockpitOS\Debug Tools\DEBUG_UDP_console.py` to see WiFi status and commands.
 
 ### In DCS
 1. Load an F/A-18C mission
