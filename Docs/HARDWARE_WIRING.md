@@ -897,16 +897,19 @@ You can chain multiple 74HC165s to read 16, 24, 32+ inputs:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 7.4 Configuring in Pins.h
+### 7.4 Configuring in CustomPins.h
 
-First, configure the shift register pins in `Pins.h`:
+First, configure the shift register pins in your Label Set's `CustomPins.h`:
 
 ```cpp
+// In src/LABELS/LABEL_SET_YOURPANEL/CustomPins.h
 #define HC165_BITS                16   // Total bits (8 per chip × 2 chips)
 #define HC165_CONTROLLER_PL      PIN(39)   // Parallel Load pin
 #define HC165_CONTROLLER_CP      PIN(38)   // Clock pin
 #define HC165_CONTROLLER_QH      PIN(40)   // Data out pin
 ```
+
+**Note:** Each Label Set has its own `CustomPins.h` file for panel-specific GPIO assignments. See [CREATING_LABEL_SETS.md](CREATING_LABEL_SETS.md#69-custompinsh--panel-specific-gpio-assignments) for details.
 
 ### 7.5 Configuring in InputMapping.h
 
@@ -936,7 +939,7 @@ CockpitOS supports up to **64 bits** (8 chips) in a single HC165 chain using a 6
 │                                                                             │
 │   Maximum configuration: 8 chips × 8 bits = 64 inputs                       │
 │                                                                             │
-│   In Pins.h:                                                                │
+│   In CustomPins.h:                                                          │
 │   #define HC165_BITS    64     // Up to 64 bits supported                   │
 │                                                                             │
 │   Bit numbering:                                                            │

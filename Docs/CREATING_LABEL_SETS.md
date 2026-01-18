@@ -38,6 +38,7 @@ src/LABELS/LABEL_SET_MYPANEL/
 ├── FA-18C_hornet.json      ← Aircraft definition (from DCS-BIOS)
 ├── selected_panels.txt     ← Which panels YOU want
 ├── panels.txt              ← All available panels (auto-generated reference)
+├── CustomPins.h            ← YOUR GPIO pin assignments → YOU CREATE THIS
 ├── generate_data.py        ← Main generator script
 ├── display_gen.py          ← Display-specific generator
 ├── reset_data.py           ← Cleanup script
@@ -599,6 +600,95 @@ This is an advanced configuration for specialized hardware.
 2. First entry with an active physical signal wins
 3. If no physical signal found, the fallback entry (bit=-1) wins
 4. Only ONE command sent per group per poll cycle
+
+### 6.9 CustomPins.h — Panel-Specific GPIO Assignments
+
+Each Label Set has its own `CustomPins.h` file where you define the GPIO pin assignments specific to that panel. This keeps pin configurations organized and allows different panels to use different pin layouts.
+
+#### Why CustomPins.h?
+
+Previously, all GPIO assignments were in a single global `Pins.h` file. This caused issues when:
+- Different panels needed different pin layouts
+- Pin conflicts between Label Sets
+- Hard to maintain as the project grew
+
+Now, **each Label Set owns its own pin definitions** in `CustomPins.h`.
+
+#### Creating CustomPins.h
+
+If your Label Set doesn't have a `CustomPins.h`, create one:
+
+```cpp
+// CustomPins.h - Configuration PINS for MY_PANEL
+
+#pragma once
+
+// --- HC165 Shift Register Pins ---
+#define HC165_BITS                 16   // Number of bits (0 = disabled)
+#define HC165_CONTROLLER_PL        PIN(39)   // Latch (PL)
+#define HC165_CONTROLLER_CP        PIN(40)   // Clock (CP)
+#define HC165_CONTROLLER_QH        PIN(38)   // Data (QH)
+
+// --- Display Pins ---
+#define DATA0_PIN                  PIN(34)
+#define WR0_PIN                    PIN(35)
+#define CS0_PIN                    PIN(36)
+
+// --- TM1637 Pins ---
+#define JETT_DIO_PIN               PIN(8)
+#define JETT_CLK_PIN               PIN(9)
+
+// --- Backlight Pins ---
+#define BL_GREEN_PIN               PIN(1)
+#define BL_WHITE_PIN               PIN(2)
+```
+
+#### The PIN() Macro
+
+Always use the `PIN(x)` macro for GPIO numbers instead of raw integers:
+
+```cpp
+#define MY_LED_PIN    PIN(8)     // ✓ Correct
+#define MY_LED_PIN    8          // ✗ Works, but not portable
+```
+
+**Why?** The `PIN()` macro automatically converts S2 pin numbers to their equivalent S3 positions. This allows you to swap between ESP32-S2 and ESP32-S3 boards on PCBs like TEK Creations Brain Controllers without changing your code.
+
+**S2 to S3 conversion table:**
+
+| S2 Mini GPIO | S3 Mini (same position) |
+|--------------|-------------------------|
+| 3            | 2                       |
+| 5            | 4                       |
+| 7            | 12                      |
+| 9            | 13                      |
+| 12           | 10                      |
+| 8            | 7                       |
+| 10           | 8                       |
+| 40           | 33                      |
+| 38           | 37                      |
+| 36           | 38                      |
+
+#### What Goes in CustomPins.h vs InputMapping.h?
+
+| Definition Type | Where to Put It |
+|-----------------|-----------------|
+| HC165 chain configuration | `CustomPins.h` |
+| Display controller pins | `CustomPins.h` |
+| TM1637/GN1640T driver pins | `CustomPins.h` |
+| I²C SDA/SCL pins | `CustomPins.h` |
+| Individual button/switch GPIOs | `InputMapping.h` (in `port` field) |
+| Individual LED GPIOs | `LEDMapping.h` (in device info) |
+
+`CustomPins.h` is for **shared hardware infrastructure** that multiple inputs/outputs depend on. Individual control pins are defined directly in the mapping files.
+
+#### Global Pins.h
+
+The root `Pins.h` file now contains only:
+- Placeholder defaults (e.g., `#ifndef CA_DIO_PIN`)
+- The critical `#include "src/LabelSetSelect.h"` that loads your Label Set
+
+**Don't add panel-specific pins to the global `Pins.h`** — put them in your Label Set's `CustomPins.h` instead.
 
 ---
 
