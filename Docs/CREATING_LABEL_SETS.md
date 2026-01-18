@@ -237,21 +237,27 @@ The following files will be DELETED if present:
   - DCSBIOSBridgeData.h
   - InputMapping.h
   - LEDMapping.h
-  - DisplayMapping.cpp
+  - DisplayMapping.cpp / DisplayMapping.cpp.DISABLED
   - DisplayMapping.h
-  - CT_Display.cpp
+  - CT_Display.cpp / CT_Display.cpp.DISABLED
   - CT_Display.h
   - LabelSetConfig.h
 
-Are you absolutely sure you want to DELETE these files? (yes/NO): yes
+  * CustomPins.h will be BLANKED (reset to template)
+
+  NOTE: METADATA/ directory will be PRESERVED
+
+Are you absolutely sure you want to proceed? (yes/NO): yes
 ```
 
 **What remains after reset:**
 - `generate_data.py` (main generator)
 - `display_gen.py` (display generator)
 - `reset_data.py` (this cleanup script)
+- `CustomPins.h` (reset to template — you'll edit this)
 - `selected_panels.txt` (panel selection — you'll edit this)
 - `panels.txt` (reference list — auto-regenerated)
+- `METADATA/` directory (CommonData.json, Custom.json, etc.)
 - Any `*_SegmentMap.h` files (hardware mappings for displays)
 - The aircraft JSON file
 
@@ -623,6 +629,11 @@ If your Label Set doesn't have a `CustomPins.h`, create one:
 
 #pragma once
 
+// --- Hardware Feature Flags ---
+// Enable only if your hardware includes these components
+#define ENABLE_TFT_GAUGES          0   // 1 if using TFT displays (requires LovyanGFX)
+#define ENABLE_PCA9555             0   // 1 if using PCA9555 I2C expanders
+
 // --- HC165 Shift Register Pins ---
 #define HC165_BITS                 16   // Number of bits (0 = disabled)
 #define HC165_CONTROLLER_PL        PIN(39)   // Latch (PL)
@@ -642,6 +653,13 @@ If your Label Set doesn't have a `CustomPins.h`, create one:
 #define BL_GREEN_PIN               PIN(1)
 #define BL_WHITE_PIN               PIN(2)
 ```
+
+**Hardware Feature Flags:**
+
+| Flag | Description |
+|------|-------------|
+| `ENABLE_TFT_GAUGES` | Set to 1 if your panel has TFT displays. Requires LovyanGFX library. |
+| `ENABLE_PCA9555` | Set to 1 if your panel uses PCA9555 I2C expanders for additional I/O. |
 
 #### The PIN() Macro
 

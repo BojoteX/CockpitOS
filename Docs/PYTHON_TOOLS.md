@@ -125,41 +125,44 @@ Are you absolutely sure you want to DELETE these files? (yes/NO):
 
 Located in `Debug Tools/` directory. These help with development and troubleshooting.
 
-### 3.1 DCS_stream_generator.py
+### 3.1 PLAY_DCS_stream.py
 
-Replays captured DCS-BIOS data streams for offline testing.
+Replays captured DCS-BIOS data streams for offline testing. Features an interactive menu to select from available stream recordings.
 
 ```bash
-python DCS_stream_generator.py [--speed MULTIPLIER] [--fps FPS]
+python PLAY_DCS_stream.py [--speed MULTIPLIER] [--fps FPS] [--stream ID]
 ```
 
 | Argument | Default | Description |
 |----------|---------|-------------|
 | `--speed` | 1.0 | Replay speed multiplier (e.g., 2.0 = 2x faster) |
 | `--fps` | (none) | Override timing with fixed FPS (e.g., 60) |
+| `--stream` | (none) | Stream identifier to load directly (bypasses menu) |
 
 **Examples:**
 ```bash
-# Normal speed replay
-python DCS_stream_generator.py
+# Interactive menu (shows available streams)
+python PLAY_DCS_stream.py
 
-# 2x speed replay
-python DCS_stream_generator.py --speed 2.0
+# Play specific stream at 2x speed
+python PLAY_DCS_stream.py --stream IFEI --speed 2.0
 
-# Fixed 60 FPS (ignores recorded timing)
-python DCS_stream_generator.py --fps 60
+# Play with fixed 60 FPS (ignores recorded timing)
+python PLAY_DCS_stream.py --stream AH-64 --fps 60
+
+# Play last recorded stream
+python PLAY_DCS_stream.py --stream LAST
 ```
 
-**Requirements:**
-- `dcsbios_data.json` file in the same directory (captured stream data)
+**Stream files location:** `Debug Tools/streams/dcsbios_data.json.*`
 - Sends to multicast `239.255.50.10:5010`
 
-### 3.2 UDP_console_debugger.py
+### 3.2 DEBUG_UDP_console.py
 
 Receives and logs debug messages from CockpitOS devices over WiFi UDP.
 
 ```bash
-python UDP_console_debugger.py [--ip IP_ADDRESS]
+python DEBUG_UDP_console.py [--ip IP_ADDRESS]
 ```
 
 | Argument | Default | Description |
@@ -169,10 +172,10 @@ python UDP_console_debugger.py [--ip IP_ADDRESS]
 **Examples:**
 ```bash
 # Log all debug messages
-python UDP_console_debugger.py
+python DEBUG_UDP_console.py
 
 # Filter to specific device
-python UDP_console_debugger.py --ip 192.168.1.50
+python DEBUG_UDP_console.py --ip 192.168.1.50
 ```
 
 **Notes:**
@@ -258,24 +261,24 @@ WING_FOLD_ROTATE 1
 - Sends to `192.168.7.166:7778` (edit `DCS_IP` in script if needed)
 - Each command sent as UDP packet with newline terminator
 
-### 3.5 DCS_stream_capture.py
+### 3.5 RECORD_DCS_stream.py
 
 Captures live DCS-BIOS data stream to a JSON file for later replay.
 
 ```bash
-python DCS_stream_capture.py
+python RECORD_DCS_stream.py
 ```
 
 **No arguments** — captures until Ctrl+C is pressed.
 
-**Output:** `dcsbios_data.json`
+**Output:** `streams/dcsbios_data.json.LAST` (auto-saved to streams directory)
 
-### 3.6 DCS_commands_logger.py
+### 3.6 LOG_DCS_commands.py
 
 Logs all DCS-BIOS commands sent by CockpitOS devices.
 
 ```bash
-python DCS_commands_logger.py
+python LOG_DCS_commands.py
 ```
 
 ### 3.7 avg_frame_size.py
@@ -355,8 +358,8 @@ python generate_ReplayData.py
 ```
 
 **Usage with firmware:**
-1. Capture stream data using `DCS_stream_capture.py`
-2. Place the JSON file in `ReplayData/`
+1. Capture stream data using `RECORD_DCS_stream.py`
+2. Copy stream file from `streams/` to `ReplayData/`
 3. Run `generate_ReplayData.py`
 4. Set `IS_REPLAY = 1` in Config.h
 5. Compile and upload firmware
@@ -371,11 +374,11 @@ python generate_ReplayData.py
 ```bash
 # 1. Capture live DCS data
 cd "Debug Tools"
-python DCS_stream_capture.py
+python RECORD_DCS_stream.py
 # (fly around in DCS, press Ctrl+C when done)
 
 # 2. Replay the captured data
-python DCS_stream_generator.py --speed 1.0
+python PLAY_DCS_stream.py --stream LAST
 ```
 
 ### Debugging WiFi Connection
@@ -383,7 +386,7 @@ python DCS_stream_generator.py --speed 1.0
 ```bash
 # 1. Start UDP logger on PC
 cd "Debug Tools"
-python UDP_console_debugger.py
+python DEBUG_UDP_console.py
 
 # 2. Enable verbose mode in firmware
 # Set VERBOSE_MODE = 1 and VERBOSE_MODE_WIFI_ONLY = 1 in Config.h
