@@ -294,6 +294,51 @@ Interactive tool for sending individual DCS-BIOS commands.
 python CommandTester.py
 ```
 
+### 3.9 bootloader_tool.py
+
+Remotely triggers ESP32 devices into bootloader mode for firmware updates. Sends a magic UDP multicast packet that causes the device to reboot into the bootloader.
+
+```bash
+python bootloader_tool.py [OPTIONS]
+```
+
+| Argument | Description |
+|----------|-------------|
+| (none) | Interactive menu mode |
+| `--device NAME` / `-d NAME` | Reboot device by LABEL_SET_NAME |
+| `--pid PID` / `-p PID` | Reboot device by USB PID (e.g., 0xC8DD) |
+| `--all` / `-a` | Reboot ALL CockpitOS devices (use with caution!) |
+| `--yes` / `-y` | Skip confirmation prompt |
+
+**Examples:**
+```bash
+# Interactive menu (auto-discovers configured panels)
+python bootloader_tool.py
+
+# Reboot specific device by name
+python bootloader_tool.py --device IFEI
+
+# Reboot by USB PID
+python bootloader_tool.py --pid 0xC8DD
+
+# Reboot all devices (requires 'YES' confirmation)
+python bootloader_tool.py --all
+
+# Automated script (skip confirmation)
+python bootloader_tool.py --device IFEI --yes
+```
+
+**How it works:**
+- Sends UDP multicast to `239.255.50.10:5010` with magic packet `COCKPITOS:REBOOT:<target>`
+- Works for both WiFi devices (direct) and USB devices (HID Manager forwards the packet)
+- Device must have bootloader support enabled in firmware
+- In interactive mode, auto-discovers all Label Sets from `src/LABELS/` directory
+
+**Use cases:**
+- Remote firmware updates without physical access to device
+- Batch updating multiple panels
+- Automated CI/CD deployment pipelines
+
 ---
 
 ## 4. Replay Data Generator
