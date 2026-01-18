@@ -52,9 +52,9 @@ Enable or disable major firmware features.
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `ENABLE_TFT_GAUGES` | 1 | Enable TFT display support via LovyanGFX. Set to 0 to reduce firmware size if not using TFTs. |
-| `ENABLE_PCA9555` | 0 | Enable PCA9555 I2C expander support. Set to 1 if your hardware includes PCA9555 chips. |
 | `SEND_HID_AXES_IN_DCS_MODE` | 0 | Send HID axis reports even when in DCS mode. Useful for hybrid setups. |
+
+**Per-Label-Set Features:** `ENABLE_TFT_GAUGES` and `ENABLE_PCA9555` are defined in each Label Set's `CustomPins.h` file, not in Config.h. See [CREATING_LABEL_SETS.md](CREATING_LABEL_SETS.md#69-custompinsh--panel-specific-gpio-assignments) for details.
 
 ### Analog Axis Thresholds
 
@@ -67,6 +67,8 @@ Fine-tune analog input behavior for potentiometers and axes.
 | `LOWER_AXIS_THRESHOLD` | 256 | Tolerance for detecting minimum position |
 | `CENTER_DEADZONE_INNER` | 256 | Easy entry threshold for center detection |
 | `CENTER_DEADZONE_OUTER` | 384 | Must move beyond this to exit center zone (hysteresis) |
+| `AX_DEFAULT_MIN` | 768 | Assumed worst minimum for axis auto-learning. Use 4095 to learn from scratch. |
+| `AX_DEFAULT_MAX` | 3327 | Assumed worst maximum for axis auto-learning. Use 0 to learn from scratch. |
 
 ---
 
@@ -134,6 +136,7 @@ These settings have been tuned for optimal performance. **Change only if you und
 | `PCA_FAST_MODE` | 1 | Enable 400kHz I2C for PCA9555. |
 | `SKIP_ANALOG_FILTERING` | 0 | Disable analog input filtering for minimum latency (HID only). |
 | `ADVANCED_TM1637_INPUT_FILTERING` | 0 | Extra filtering for TM1637 key ghosting issues. |
+| `SUPRESS_REBOOT_VIA_CDC` | 0 | Prevent device reset via CDC serial. Sets `Serial.enableReboot(false)`. |
 
 ---
 
@@ -278,7 +281,7 @@ These flags are automatically set based on the target ESP32 variant. **Do not mo
 
 ## Quick Reference: Production Settings
 
-For a production build, use these settings:
+For a production build, use these settings in `Config.h`:
 
 ```cpp
 // Transport (choose ONE)
@@ -287,16 +290,20 @@ For a production build, use these settings:
 #define USE_DCSBIOS_SERIAL  0
 #define USE_DCSBIOS_BLUETOOTH 0
 
-// Features
-#define ENABLE_TFT_GAUGES   1
-#define ENABLE_PCA9555      0  // Set to 1 if using PCA chips
-
 // All debug OFF
 #define DEBUG_ENABLED       0
 #define VERBOSE_MODE        0
 #define DEBUG_PERFORMANCE   0
 #define TEST_LEDS           0
 #define IS_REPLAY           0
+```
+
+And in your Label Set's `CustomPins.h`:
+
+```cpp
+// Set based on your hardware
+#define ENABLE_TFT_GAUGES   0  // 1 if using TFT displays
+#define ENABLE_PCA9555      0  // 1 if using PCA9555 I2C expanders
 ```
 
 ---
