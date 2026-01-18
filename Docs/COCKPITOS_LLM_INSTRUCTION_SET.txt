@@ -365,7 +365,7 @@ SECTION 4: PROJECT STRUCTURE
 CockpitOS/
   CockpitOS.ino              - Main sketch entry point
   Config.h                   - Master configuration
-  Pins.h                     - GPIO pin assignments per board
+  Pins.h                     - Placeholder defaults (see CustomPins.h per Label Set)
   Mappings.h                 - PanelKind enum, panel definitions
   Mappings.cpp               - CoverGate config, latched buttons
   generate_panelkind.py      - Auto-generates PanelKind enum
@@ -416,9 +416,9 @@ CockpitOS/
 ----------------------------------------
 USER MAY EDIT:
   Config.h                   - Transport, features configuration
-  Pins.h                     - Only if adding new hardware
   Mappings.cpp               - CoverGate, latched buttons config
   src/Core/PerfMonitor.h     - Custom profiling labels
+  src/LABELS/*/CustomPins.h  - Panel-specific GPIO pin assignments
   src/LABELS/*/InputMapping.h - Input hardware definitions
   src/LABELS/*/LEDMapping.h  - Output hardware definitions
   src/Panels/*.cpp           - Custom panel implementations
@@ -449,11 +449,12 @@ LABEL_SET_MYPANEL/
   FA-18C_hornet.json       - Aircraft JSON from DCS-BIOS (ONLY ONE!)
   selected_panels.txt      - Panels to include (user edits)
   panels.txt               - All available panels (reference)
+  CustomPins.h             - Panel-specific GPIO pin assignments (user creates)
   generate_data.py         - Main generator script
   display_gen.py           - Display-specific generator
   reset_data.py            - Cleanup script
   METADATA/                - Optional JSON overlays
-  
+
   AUTO-GENERATED:
   DCSBIOSBridgeData.h      - Address tables, control types
   InputMapping.h           - Input definitions (user edits preserved)
@@ -555,9 +556,10 @@ TYPE            BEHAVIOR
 
 6.4 PIN(x) MACRO
 ----------------------------------------
-Use PIN(x) for ALL GPIO assignments in InputMapping.h
-Handles board-specific pin mapping defined in Pins.h
+Use PIN(x) for ALL GPIO assignments in InputMapping.h and CustomPins.h
+Handles board-specific S2/S3 pin mapping automatically
 Example: PIN(4) stays 4 on S2, may become 5 on S3
+Define panel-specific pins in CustomPins.h (each Label Set has its own)
 
 6.5 SELECTOR GROUPS
 ----------------------------------------
@@ -2694,7 +2696,7 @@ ERROR: "undefined reference to InputMappings"
 FIX:   Run python generate_data.py in label set folder
 
 ERROR: "PIN not declared"
-FIX:   Ensure #include "Config.h", check Pins.h
+FIX:   Ensure #include "Config.h", check CustomPins.h in your Label Set
 
 ERROR: "Duplicate label"
 FIX:   Each label in InputMapping/LEDMapping must be unique
@@ -2781,13 +2783,14 @@ SECTION 22: QUICK REFERENCE TABLES
 ----------------------------------------
 Main sketch:       CockpitOS.ino
 Configuration:     Config.h
-Pin assignments:   Pins.h
+Pin assignments:   src/LABELS/*/CustomPins.h (per Label Set)
 Panel definitions: Mappings.h, Mappings.cpp
 Label sets:        src/LABELS/LABEL_SET_*/
 Panel code:        src/Panels/*.cpp
 HAL drivers:       lib/CUtils/src/internal/*.cpp
 Core modules:      src/Core/*.cpp
 HID Manager:       HID_Manager/HID_Manager.py
+Debug Tools:       Debug Tools/*.py (bootloader_tool.py, etc.)
 
 22.2 CONTROL TYPES
 ----------------------------------------
