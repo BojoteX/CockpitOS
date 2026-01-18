@@ -20,13 +20,8 @@ enum class PanelKind : uint8_t {
     AnalogGauge,             // Auto-detected when DEVICE_GAUGE in LEDMapping
 
     // ===== Compiled panels (auto-generated from src/Panels/*.cpp) =====
-    CA,                      // PANEL_KIND in CautionAdvisory.cpp
     Generic,                 // from Generic.cpp
     IFEI,                    // PANEL_KIND in IFEIPanel.cpp
-    JETTSEL,                 // PANEL_KIND in JettisonSelect.cpp
-    LA,                      // PANEL_KIND in LeftAnnunciator.cpp
-    LockShoot,               // from LockShoot.cpp
-    RA,                      // PANEL_KIND in RightAnnunciator.cpp
     TFTBatt,                 // PANEL_KIND in TFT_Gauges_Battery.cpp
     TFTBrake,                // PANEL_KIND in TFT_Gauges_BrakePress.cpp
     TFTCabPress,             // PANEL_KIND in TFT_Gauges_CabinPressure.cpp

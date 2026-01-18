@@ -59,7 +59,8 @@
 // PANEL REGISTRATION
 // =============================================================================
 #if defined(HAS_CMWS_DISPLAY)
-    REGISTER_PANEL(TFTCmws, nullptr, nullptr, CMWSDisplay_init, CMWSDisplay_loop, nullptr, 100);
+    // REGISTER_PANEL(TFTCmws, nullptr, nullptr, CMWSDisplay_init, CMWSDisplay_loop, nullptr, 100);
+    REGISTER_PANEL(TFTCmws, CMWSDisplay_notifyMissionStart, nullptr, CMWSDisplay_init, CMWSDisplay_loop, nullptr, 100);
 #endif
 
 #if !__has_include(<LovyanGFX.hpp>)
@@ -340,6 +341,7 @@ static TickCache  g_ticks[TICK_COUNT];
 
 static RectI16 g_largeAabb[LARGE_ARROW_COUNT];
 static RectI16 g_smallAabb[SMALL_ARROW_COUNT];
+static RectI16 g_quadrantTickAabb[LARGE_ARROW_COUNT];
 static RectI16 g_dRect;
 static RectI16 g_rRect;
 
@@ -738,6 +740,27 @@ static void precomputeGeometry() {
         computeTickVertices(g_ticks[i], angle);
     }
 
+    // Precompute quadrant tick bounding boxes
+    // Quadrant q owns ticks: q*6+1 through q*6+5 (skipping small arrow positions at multiples of 6)
+    for (int q = 0; q < LARGE_ARROW_COUNT; ++q) {
+        int16_t minX = 32767, minY = 32767, maxX = -32768, maxY = -32768;
+        for (int t = q * 6 + 1; t < (q + 1) * 6; ++t) {
+            const TickCache& tc = g_ticks[t % TICK_COUNT];
+            if (tc.inner.x < minX) minX = tc.inner.x;
+            if (tc.outer.x < minX) minX = tc.outer.x;
+            if (tc.inner.x > maxX) maxX = tc.inner.x;
+            if (tc.outer.x > maxX) maxX = tc.outer.x;
+            if (tc.inner.y < minY) minY = tc.inner.y;
+            if (tc.outer.y < minY) minY = tc.outer.y;
+            if (tc.inner.y > maxY) maxY = tc.inner.y;
+            if (tc.outer.y > maxY) maxY = tc.outer.y;
+        }
+        g_quadrantTickAabb[q] = RectI16{ 
+            static_cast<int16_t>(minX - 1), static_cast<int16_t>(minY - 1),
+            static_cast<int16_t>(maxX - minX + 3), static_cast<int16_t>(maxY - minY + 3) 
+        };
+    }
+
     g_dRect = RectI16{ static_cast<int16_t>(RING_CX + DR_X_OFFSET - 15),
                        static_cast<int16_t>(RING_CY - DR_OFFSET - 15), 30, 30 };
     g_rRect = RectI16{ static_cast<int16_t>(RING_CX + DR_X_OFFSET - 15),
@@ -1070,7 +1093,7 @@ static void CMWSDisplay_draw(bool force = false) {
         { 6, 7, 0 },  // large[3]
     };
 
-    // 1) Large arrows that changed + their dependent small arrows
+    // 1) Large arrows that changed + their dependent small arrows + ticks
     for (int i = 0; i < LARGE_ARROW_COUNT; ++i) {
         if (s.large[i] != g_lastDrawn.large[i]) {
             dirty.add(g_largeAabb[i]);
@@ -1078,6 +1101,8 @@ static void CMWSDisplay_draw(bool force = false) {
             dirty.add(g_smallAabb[kAffectedSmallArrows[i][0]]);
             dirty.add(g_smallAabb[kAffectedSmallArrows[i][1]]);
             dirty.add(g_smallAabb[kAffectedSmallArrows[i][2]]);
+            // Add affected ticks
+            dirty.add(g_quadrantTickAabb[i]);
         }
     }
 

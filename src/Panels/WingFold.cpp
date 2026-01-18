@@ -3,11 +3,11 @@
 
 #include "../Globals.h"
 #include "../HIDManager.h"
-#include "includes/WingFold.h"
 
 #if defined(HAS_CUSTOM_RIGHT)
+#include "includes/WingFold.h"
+
 REGISTER_PANEL(WingFold, WingFold_init, WingFold_loop, nullptr, nullptr, nullptr, 100);
-#endif
 
 // Labels
 static constexpr const char* L_PULL_POS0 = "WING_FOLD_PULL_POS0";        // PUSH
@@ -244,3 +244,4 @@ void WingFold_loop() {
         prevS = curS;
     }
 }
+#endif // HAS_CUSTOM_RIGHT

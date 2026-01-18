@@ -1,5 +1,5 @@
-// PID:0x56E6 
+// PID:0x1BAC 
 
 #pragma once
 
-#define LABEL_SET KY58
+#define LABEL_SET TEST_ONLY
