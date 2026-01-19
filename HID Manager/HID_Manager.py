@@ -127,7 +127,7 @@ FEATURE_REPORT_ID      = 0
 
 # Tunable constants
 MAX_DEVICES            = 32
-MAX_HANDSHAKE_ATTEMPTS = 50   # ~10 seconds at 0.2s intervals
+MAX_HANDSHAKE_ATTEMPTS = 300   # ~60 seconds at 0.2s intervals
 MAX_FEATURE_DRAIN      = 64   # Max messages to drain per trigger
 IDLE_TIMEOUT           = 2.0
 LOG_KEEP               = 2000

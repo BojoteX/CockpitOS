@@ -14,7 +14,7 @@
 #endif
 
 // Versioning for internal use
-#define VERSION_CURRENT                            "R.1.1.3_01-18-26" // Just to troubleshoot instalations
+#define VERSION_CURRENT                            "R.1.1.4_01-19-26" // Just to troubleshoot instalations
 
 // Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. 
 // Bluetooth BLE, Pure Native USB, WIFI or Serial (CDC/Socat). Only ONE can be active 
@@ -27,6 +27,8 @@
 #if !__has_include(".credentials/wifi.h")
   #define WIFI_SSID                     "TestNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
   #define WIFI_PASS                     "TestingOnly" // Make sure your Wi-Fi router supports WPA2-PSK (AES/CCMP), otherwise, device will not connect *** THIS IS VERY IMPORTANT ***. ESP32s will Connect to 2.4 GHz and WPA2-PSK (AES/CCMP) capable routers ONLY so make sure yours supports these requirements.
+#else
+  #include ".credentials/wifi.h"                      // We store out credentials for Wi-Fi here (if file does NOT exists or is not created we use defaults above)
 #endif
 
 // *** READ THIS *** (Advanced users only)
@@ -121,14 +123,14 @@
 
 // DCS Commands USB Send Ring Buffer (outgoing packets) - *MANDATORY* this one is REQUIRED to be set to send via USB pipe for transport (due to 64 byte report size limitation)
 #define DCS_USB_RINGBUF_SIZE                     32  // Number of packets buffered (tune as needed) 32 is optimal, 64 for slow devices (hosts) so we make queue deep
-#define DCS_USB_PACKET_MAXLEN                    64  // Max USB packet size (safe for DCS-BIOS)
+#define DCS_USB_PACKET_MAXLEN   GAMEPAD_REPORT_SIZE  // Max USB packet size safe for DCS-BIOS (to match HID report size)
 
 // DCS UDP/USB Receive Ring Buffer (incoming packets) - *MANDATORY* when using USB mode, optional in WiFi UDP mode.
 #define MAX_UDP_FRAMES_PER_DRAIN                  1  // Max number to hold in buffer before parsing (increase for bursty processing) 1 is deterministic, best.
 #if USE_DCSBIOS_USB
   #define DCS_USE_RINGBUFFER                      1  // Should ALWAYS be 1 when USE_DCSBIOS_USB. DO NOT CHANGE 
   #define DCS_UDP_RINGBUF_SIZE                   32  // Number of USB packets buffered (tune as needed) 64 is optimal
-  #define DCS_UDP_PACKET_MAXLEN                  64  // Should ALWAYS be 64 when USE_DCSBIOS_USB
+  #define DCS_UDP_PACKET_MAXLEN GAMEPAD_REPORT_SIZE  // Should ALWAYS be 64 when USE_DCSBIOS_USB (to match HID report size)
 #else // Used for incoming DCS stream via WiFi UDP (if enabled) 
   #if USE_DCSBIOS_WIFI || USE_DCSBIOS_BLUETOOTH
     #define DCS_USE_RINGBUFFER                    1  // Enforces WiFi/BLE use of a ring buffer for the incoming DCS Stream data (otherwise it will crash)
