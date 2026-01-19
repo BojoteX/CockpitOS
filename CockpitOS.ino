@@ -210,6 +210,9 @@ void setup() {
         }  
     }    
 
+    // What version compiled this?
+    debugPrintf("CockpitOS version is %s\n", VERSION_CURRENT);
+
     // What Arduino ESP32 was this compiled with?
     debugPrintf("ESP32 Arduino core v%d.%d.%d  |  IDF v%d.%d.%d\n", 
       ESP_ARDUINO_VERSION_MAJOR, ESP_ARDUINO_VERSION_MINOR, ESP_ARDUINO_VERSION_PATCH, 
