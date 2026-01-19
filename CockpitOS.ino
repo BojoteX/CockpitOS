@@ -36,6 +36,64 @@ volatile bool mainLoopStarted = false;
 // Force compilation of all CUtils internals (Arduino IDE won't compile .cpps in lib automatically)
 #include "lib/CUtils/src/CUtils.cpp"
 
+// ═══════════════════════════════════════════════════════════════════════════
+// STARTUP WATCHDOG TASK
+// Enters bootloader mode if main loop is not reached within timeout.
+// This protects against WiFi hangs, TFT init failures, OOM, etc.
+// ═══════════════════════════════════════════════════════════════════════════
+
+static void startupWatchdogTask(void* param) {
+    (void)param;
+    
+    const TickType_t checkInterval = pdMS_TO_TICKS(100);
+    const uint32_t timeoutTicks = STARTUP_WATCHDOG_TIMEOUT_MS / 100;
+    uint32_t tickCount = 0;
+    
+    while (!mainLoopStarted && tickCount < timeoutTicks) {
+        vTaskDelay(checkInterval);
+        tickCount++;
+    }
+    
+    if (!mainLoopStarted) {
+        // Use debugPrint - routes to whatever transport is available
+        debugPrintln();
+        debugPrintln("╔═══════════════════════════════════════════════════════════╗");
+        debugPrintln("║  ⚠️  STARTUP WATCHDOG TRIGGERED                           ║");
+        debugPrintln("║  Device did not reach main loop within timeout.           ║");
+        debugPrintln("║  Entering bootloader mode for firmware recovery...        ║");
+        debugPrintln("╚═══════════════════════════════════════════════════════════╝");
+        
+        // Drain ring buffers to actual hardware
+        sendPendingSerial();
+        #if DEBUG_USE_WIFI || USE_DCSBIOS_WIFI
+        wifiDebugDrainSendBuffer();
+        #endif
+        
+        vTaskDelay(pdMS_TO_TICKS(100));  // Brief pause for transmission
+        
+        // Enter bootloader for firmware recovery
+        enterBootloaderMode();
+        
+        // Should never reach here
+        while (1) { vTaskDelay(pdMS_TO_TICKS(1000)); }
+    }
+    
+    // Success - main loop started, watchdog no longer needed
+    vTaskDelete(NULL);
+}
+
+static void createStartupWatchdog() {
+    xTaskCreatePinnedToCore(
+        startupWatchdogTask,    // Task function
+        "StartupWD",            // Name (for debugging)
+        2048,                   // Stack size (minimal - just loops and checks)
+        NULL,                   // Parameter
+        1,                      // Priority (low is fine)
+        NULL,                   // Task handle (don't need to store - self-deletes)
+        0                       // Core 0 (main code runs on Core 1)
+    );
+}
+
 // Checks mode selector state
 bool isModeSelectorDCS() {
   #if defined(HAS_HID_MODE_SELECTOR) && (HAS_HID_MODE_SELECTOR == 1)
@@ -87,6 +145,9 @@ void checkHealth() {
 }
 
 void setup() {
+
+  // Startup watchdog before any init that could hang
+    createStartupWatchdog();
 
     // Only do this if we have a selector
     #if defined(HAS_HID_MODE_SELECTOR) && (HAS_HID_MODE_SELECTOR == 1)

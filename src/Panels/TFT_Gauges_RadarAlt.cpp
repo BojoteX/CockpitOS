@@ -25,7 +25,7 @@
     REGISTER_PANEL(TFTRadarAlt, nullptr, nullptr, RadarAlt_init, RadarAlt_loop, nullptr, 100);
 #endif
 
-#define MAX_MEMORY_TFT 32
+#define MAX_MEMORY_TFT 8
 #define RADARALT_DRAW_MIN_INTERVAL_MS 13
 #define RUN_RADARALT_AS_TASK 1
 #define BACKLIGHT_LABEL "INST_PNL_DIMMER"

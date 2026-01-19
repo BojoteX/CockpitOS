@@ -11,14 +11,6 @@
 #error "Invalid configuration: USE_DCSBIOS_WIFI and USE_DCSBIOS_USB cannot both be set to 1. Only one can be enabled at a time because they share the receive ring buffer."
 #endif
 
-#if (USE_DCSBIOS_WIFI || USE_DCSBIOS_USB || USE_DCSBIOS_BLUETOOTH)
-
-
-
-
-
-
-
 // ═══════════════════════════════════════════════════════════════════════════
 // REMOTE BOOTLOADER TRIGGER
 // Called when magic packet "COCKPITOS:REBOOT:<target>\n" matches this device
@@ -71,9 +63,9 @@ static void IRAM_ATTR bootloader_shutdown_handler(void) {
 }
 #endif
 
-static void enterBootloaderMode() {
+void enterBootloaderMode() {
 
-    debugPrintln("🔄 [BOOTLOADER] Magic packet received - entering download mode...");
+    debugPrintln("🔄 [BOOTLOADER] Entering firmware download mode...");
     delay(100);  // Let debug output flush
 
 #if !BOOTLOADER_SUPPORTED
@@ -103,6 +95,9 @@ static void enterBootloaderMode() {
     while (1) { delay(100); }
 }
 // ═══════════════════════════════════════════════════════════════════════════
+
+
+#if (USE_DCSBIOS_WIFI || USE_DCSBIOS_USB || USE_DCSBIOS_BLUETOOTH)
 
 
 // ═══════════════════════════════════════════════════════════════════════════
