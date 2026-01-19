@@ -13,6 +13,9 @@
   #error "You need to run the auto-generator script in the LABELS directory"
 #endif
 
+// Versioning for internal use
+#define VERSION_CURRENT                            "R.1.1.3_01-18-26" // Just to troubleshoot instalations
+
 // Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. 
 // Bluetooth BLE, Pure Native USB, WIFI or Serial (CDC/Socat). Only ONE can be active 
 #define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included) Completely bypasses socat and uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (All ESP32 that support BLE Bluetooth).
@@ -23,15 +26,6 @@
 // Wi-Fi network credentials (used for WiFi remote Debug Console and DCSBIOS WiFi mode if selected)
 #define WIFI_SSID                                  "TestNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
 #define WIFI_PASS                                  "TestingOnly"
-
-// Panel specific Axis config features 
-#define MIDDLE_AXIS_THRESHOLD                      64 // Adjust if your Middle Axis won't stick to center (optimal should be 32-64) but noisy axes require 128-256
-#define UPPER_AXIS_THRESHOLD                      128 // Adjust if your Upper Axis won't stick to max (optimal should be 32-64) but noisy axes require 128-256
-#define LOWER_AXIS_THRESHOLD                      256 // Adjust if your Lower Axis won't stick to min (optimal should be 32-64) but noisy axes require 128-256
-#define CENTER_DEADZONE_INNER                     256 // Entry threshold — easy to enter
-#define CENTER_DEADZONE_OUTER                     384 // Exit threshold — must move further to escape
-#define AX_DEFAULT_MIN                            768 // Assumed worst min for an axis (it will expand as you move the knob and it will be NVS saved). Use 4095 for ABSOLUTE learning from scratch
-#define AX_DEFAULT_MAX                           3327 // Assumed worst max for an axis (it will expand as you move the knob and it will be NVS saved). Use 0 for ABSOLUTE learning from scratch
 
 // For production, ALL THESE should be set to 0. Use for debugging only.
 #define DEBUG_ENABLED                               0  // Use it ONLY when identifying issues or troubleshooting
@@ -48,6 +42,15 @@
 #define DEBUG_ENABLED_FOR_PCA_ONLY                  0  // Use it ONLY when mapping Port/bit/mask in PCA9xxx devices
 #define DEBUG_ENABLED_FOR_HC165_ONLY                0  // Use it ONLY when mapping bits in HC165 devices
 #define DEBUG_ENABLED_FOR_TM1637_ONLY               0  // Use ONLY when mapping TM1637 keys
+
+// Panel specific Axis config features 
+#define MIDDLE_AXIS_THRESHOLD                      64 // Adjust if your Middle Axis won't stick to center (optimal should be 32-64) but noisy axes require 128-256
+#define UPPER_AXIS_THRESHOLD                      128 // Adjust if your Upper Axis won't stick to max (optimal should be 32-64) but noisy axes require 128-256
+#define LOWER_AXIS_THRESHOLD                      256 // Adjust if your Lower Axis won't stick to min (optimal should be 32-64) but noisy axes require 128-256
+#define CENTER_DEADZONE_INNER                     256 // Entry threshold — easy to enter
+#define CENTER_DEADZONE_OUTER                     384 // Exit threshold — must move further to escape
+#define AX_DEFAULT_MIN                            768 // Assumed worst min for an axis (it will expand as you move the knob and it will be NVS saved). Use 4095 for ABSOLUTE learning from scratch
+#define AX_DEFAULT_MAX                           3327 // Assumed worst max for an axis (it will expand as you move the knob and it will be NVS saved). Use 0 for ABSOLUTE learning from scratch
 
 // Advanced config, these settings have been carefully tuned for performance and stability, 
 #define TEST_LEDS                                   0 // Interactive menu (via serial console) to test LEDs individually
