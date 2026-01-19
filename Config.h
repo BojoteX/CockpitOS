@@ -18,24 +18,26 @@
 
 // Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. 
 // Bluetooth BLE, Pure Native USB, WIFI or Serial (CDC/Socat). Only ONE can be active 
-#define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included) Completely bypasses socat and uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (All ESP32 that support BLE Bluetooth).
-#define USE_DCSBIOS_WIFI                            0 // Completely bypasses socat and uses WiFi to connect to DCS. (ALL ESP32 Devices except H2) 
-#define USE_DCSBIOS_USB                             1 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (S2, S3 & P4 Only). S3 & P4 require USB Mode set to USB-OTG (TinyUSB) in Tools Menu
-#define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
+#define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included) requires NimBLE-Arduino by h2zero. Uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on ALL ESP32s except S2s and P4s).
+#define USE_DCSBIOS_WIFI                            0 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
+#define USE_DCSBIOS_USB                             0 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
+#define USE_DCSBIOS_SERIAL                          1 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 
 // Wi-Fi network credentials (used for WiFi remote Debug Console and DCSBIOS WiFi mode if selected)
-#define WIFI_SSID                                  "TestNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
-#define WIFI_PASS                                  "TestingOnly"
+#define WIFI_SSID                      "Metro5600DCS" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
+#define WIFI_PASS                        "4458e8c3c2" // Make sure your Wi-Fi router supports WPA2-PSK (AES/CCMP), otherwise, device will not connect *** THIS IS VERY IMPORTANT ***. ESP32s will Connect to 2.4 GHz and WPA2-PSK (AES/CCMP) capable routers ONLY so make sure yours supports these requirements.
+
+// *** READ THIS *** (Advanced users only)
+// TinyUSB + Wi-Fi enabled at the same time consume a LOT of memory, so if you decide to enable debugging on S2 devices keep that in mind as compiles will most likely fail if both the WiFi stack (for debug or normal operation) is enabled along USB-OTG (TinyUSB). To avoid, simply use an S3 device or stick to the stack capabilities (e.g) Debug via Serial if using USB or Debug via WiFi if using WiFi as transport.  
 
 // For production, ALL THESE should be set to 0. Use for debugging only.
-#define DEBUG_ENABLED                               0  // Use it ONLY when identifying issues or troubleshooting
-#define DEBUG_LISTENERS_AT_STARTUP                  0  // Debug Listeners for ADVANCED troubleshooting! usually not needed.
-#define VERBOSE_MODE                                0  // Logs INFO messages to both Serial and UDP (very useful).
+#define DEBUG_ENABLED                               0  // Use it ONLY when identifying issues or troubleshooting. Not required when using VERBOSE modes below
+#define VERBOSE_MODE                                0  // Verbose will output to both WiFi & Serial (Uses a LOT of Memory, might fail compile on S2 devices).
 #define VERBOSE_MODE_SERIAL_ONLY                    0  // Verbose will only output to Serial. 
-#define VERBOSE_MODE_WIFI_ONLY                      0  // Verbose will only output to WiFi so Serial port is clean.
-#define VERBOSE_PERFORMANCE_ONLY                    0  // Requires DEBUG_PERFORMANCE as well, this will only output perf snapshots, make sure you pick WIFI or SERIAL above and DEBUG_ENABLED is 0
-#define DEBUG_PERFORMANCE                           0  // Shows a performance snapshot every x seconds (interval can be configured below)
+#define VERBOSE_MODE_WIFI_ONLY                      1  // Verbose will only output to WiFi.
+#define VERBOSE_PERFORMANCE_ONLY                    0  // This will output perf snapshots as well (never mind the ONLY part), make sure you pick VERBOSE_MODE_SERIAL_ONLY or VERBOSE_MODE_WIFI_ONLY as well
 #define DEBUG_PERFORMANCE_SHOW_TASKS                0  // Includes the current task list with the snapshot. Not really needed.
+#define DEBUG_LISTENERS_AT_STARTUP                  0  // Debug Listeners for ADVANCED troubleshooting! usually not needed.
 #define PERFORMANCE_SNAPSHOT_INTERVAL_SECONDS       60 // Interval between snapshots (in seconds)
 
 // Key scanning
@@ -56,7 +58,6 @@
 #define TEST_LEDS                                   0 // Interactive menu (via serial console) to test LEDs individually
 #define IS_REPLAY                                   0 // Simulate a loopback DCS stream to check your panel is working and debug via Serial
 #define DCSBIOS_USE_LITE_VERSION                    1 // Set to 1 to use a LITE (local) version of the DCSBIOS Library. 0 Uses the Original unmodified Library (you'll need to install it)
-#define SCAN_WIFI_NETWORKS                          0 // For debugging and see what networks the device sees (this outputs to Serial interface)
 #define USE_WIRE_FOR_I2C                            0 // If set to 1 uses the Arduino compatible I2C Wire Library (slow). Use 0 for Faster alternative
 #define PCA_FAST_MODE                               1 // Set to 1 to enable 400MHz PCA Bus FAST MODE 
 #define SERIAL_RX_BUFFER_SIZE                     512 // This is the INCOMING buffer for DCS Data (in bytes) when using CDC / Serial. increase if you see OVERFLOW msg             
@@ -93,6 +94,7 @@
 #define ADVANCED_TM1637_INPUT_FILTERING             0 // Enable it if you see ghosts with TM1637 inputs
 #define SUPRESS_REBOOT_VIA_CDC                      0 // Enabling this sets Serial.enableReboot(false) so device can NOT be reset via CDC
 #define SEND_HID_AXES_IN_DCS_MODE                   0 // Sends HID Axes even if DCS Mode is active
+#define SCAN_WIFI_NETWORKS                          0 // For debugging and see what networks the device sees (this outputs to Serial interface ONLY, as it can't output to WiFi if it has not connected yet)
 
 // Serial Debug Ring Buffer
 #define SERIAL_DEBUG_USE_RINGBUFFER                 0 // Should be use a ring buffer for Serial Debug messages? not really necessary
@@ -107,15 +109,15 @@
 // WiFi Debug Ring Buffer 
 #define WIFI_DEBUG_USE_RINGBUFFER                   0 // Should be use a ring buffer for WiFi Debug messages? helps when using WiFi DCS Mode. If WiFi is not used, this value is ignored anyway. Also, if using CDC + WiFi Debug, this is REQUIRED to avoid CDC stalls
 #if WIFI_DEBUG_USE_RINGBUFFER
-  #define WIFI_DBG_SEND_RINGBUF_SIZE               64 // How many slots in our buffer
-  #define WIFI_DBG_MSG_MAXLEN                      64 // Max size for each slot
+  #define WIFI_DBG_SEND_RINGBUF_SIZE               16 // How many slots in our buffer
+  #define WIFI_DBG_MSG_MAXLEN                     128 // Max size for each slot
 #else
   #define WIFI_DBG_SEND_RINGBUF_SIZE                0 // How many slots in our buffer
   #define WIFI_DBG_MSG_MAXLEN                    1472 // Max size for each slot
 #endif
 
 // DCS Commands USB Send Ring Buffer (outgoing packets) - *MANDATORY* this one is REQUIRED to be set to send via USB pipe for transport (due to 64 byte report size limitation)
-#define DCS_USB_RINGBUF_SIZE                     32  // Number of packets buffered (tune as needed) 32 is optimal
+#define DCS_USB_RINGBUF_SIZE                     32  // Number of packets buffered (tune as needed) 32 is optimal, 64 for slow devices (hosts) so we make queue deep
 #define DCS_USB_PACKET_MAXLEN                    64  // Max USB packet size (safe for DCS-BIOS)
 
 // DCS UDP/USB Receive Ring Buffer (incoming packets) - *MANDATORY* when using USB mode, optional in WiFi UDP mode.
@@ -123,26 +125,16 @@
 #if USE_DCSBIOS_USB
   #define DCS_USE_RINGBUFFER                      1  // Should ALWAYS be 1 when USE_DCSBIOS_USB. DO NOT CHANGE 
   #define DCS_UDP_RINGBUF_SIZE                   32  // Number of USB packets buffered (tune as needed) 64 is optimal
-  #define DCS_UDP_PACKET_MAXLEN                  64  // Should ALWAYS be 64 when USE_DCSBIOS_USB 
+  #define DCS_UDP_PACKET_MAXLEN                  64  // Should ALWAYS be 64 when USE_DCSBIOS_USB
 #else // Used for incoming DCS stream via WiFi UDP (if enabled) 
-
   #if USE_DCSBIOS_WIFI || USE_DCSBIOS_BLUETOOTH
-    #define DCS_USE_RINGBUFFER                      1  // Enforces WiFi/BLE use of a ring buffer for the incoming DCS Stream data (otherwise it will crash)
+    #define DCS_USE_RINGBUFFER                    1  // Enforces WiFi/BLE use of a ring buffer for the incoming DCS Stream data (otherwise it will crash)
+    #define DCS_UDP_RINGBUF_SIZE                 12  // Number of UDP packets buffered (tune as needed)
+    #define DCS_UDP_PACKET_MAXLEN               128  // Max UDP packet size (safe for Incoming UDP from DCS-BIOS)
   #else 
-    #define DCS_USE_RINGBUFFER                      0  // No need for it as Wi-Fi/BLE for DCS-BIOS is not active.
-  #endif
-
-  #if DCS_USE_RINGBUFFER
-    #if USE_DCSBIOS_WIFI
-      #define DCS_UDP_RINGBUF_SIZE                 64  // Number of UDP packets buffered (tune as needed)
-      #define DCS_UDP_PACKET_MAXLEN                64  // Max UDP packet size (safe for Incoming UDP from DCS-BIOS)
-    #else
-      #define DCS_UDP_RINGBUF_SIZE                 64  // Number of BLE packets buffered (tune as needed)
-      #define DCS_UDP_PACKET_MAXLEN                64  // Max BLE packet size (safe for Incoming BLE from DCS-BIOS)
-    #endif
-  #else
-    #define DCS_UDP_RINGBUF_SIZE                  0  // Number of packets buffered (tune as needed)
-    #define DCS_UDP_PACKET_MAXLEN              1472  // Max UDP packet size (safe for DCS-BIOS)
+    #define DCS_USE_RINGBUFFER                    0  // No need for it as Wi-Fi/BLE for DCS-BIOS is not active.
+    #define DCS_UDP_RINGBUF_SIZE                  0  // Number of BLE packets buffered (tune as needed)
+    #define DCS_UDP_PACKET_MAXLEN              1472  // Max BLE packet size (safe for Incoming BLE from DCS-BIOS)
   #endif
 #endif
 
@@ -242,6 +234,35 @@
   #define DEVICE_HAS_HWSERIAL 0
 #endif
 
+// --- Wi-Fi capability guard ---
+// ESP32-H2: no Wi-Fi (BLE + 802.15.4 only)
+// ESP32-P4: no Wi-Fi / no BT (application MCU)
+#if (defined(ESP_FAMILY_H2) || defined(ESP_FAMILY_P4))
+  #define DEVICE_HAS_WIFI 0
+#else
+  #define DEVICE_HAS_WIFI 1
+#endif
+
+#if VERBOSE_MODE_WIFI_ONLY && DEVICE_HAS_WIFI
+  #define DEBUG_USE_WIFI 1
+#else
+  #define DEBUG_USE_WIFI 0
+#endif
+
+#if VERBOSE_PERFORMANCE_ONLY || VERBOSE_MODE
+  #define DEBUG_PERFORMANCE 1
+#else
+  #define DEBUG_PERFORMANCE 0
+#endif
+
+#if USE_DCSBIOS_WIFI && !DEVICE_HAS_WIFI
+  #error "❌ USE_DCSBIOS_WIFI is not supported on this chip (no Wi-Fi radio). ESP32-H2 and ESP32-P4 cannot use Wi-Fi."
+#endif
+
+#if DEBUG_USE_WIFI && !DEVICE_HAS_WIFI
+  #error "❌ DEBUG_USE_WIFI is not supported on this chip (no Wi-Fi radio). Use Serial/USB debugging instead."
+#endif
+
 #if USE_DCSBIOS_USB
   // Check that we are on a TinyUSB-capable family
   #if !(defined(ESP_FAMILY_S2) || defined(ESP_FAMILY_S3) || defined(ESP_FAMILY_P4))
@@ -255,19 +276,18 @@
 
 // --- BLE allowed chips ---
 #if USE_DCSBIOS_BLUETOOTH
+
+  // #if !__has_include("BLEManager.cpp")
+  #if !__has_include("src/Core/Private/BLEManager.cpp")
+      #error "The Open source version of CockpitOS does NOT include BLE support. This is reserved for private use only. Not available upon request or as a paid feature."
+  #endif
+
   #if !( defined(ESP_FAMILY_CLASSIC) || defined(ESP_FAMILY_S3) || \
          defined(ESP_FAMILY_C2)      || defined(ESP_FAMILY_C3) || \
          defined(ESP_FAMILY_C5)      || defined(ESP_FAMILY_C6) || \
          defined(ESP_FAMILY_H2) )
     #error "❌ BLE is not supported on ESP32-S2 or ESP32-P4. Choose another mode"
   #endif
-#endif
-
-// Simplify Wi-Fi Debugging
-#if VERBOSE_MODE_WIFI_ONLY
-  #define DEBUG_USE_WIFI                             1  // Uses WiFi to output VERBOSE and DEBUG messages
-#else
-  #define DEBUG_USE_WIFI                             0  // Uses WiFi to output VERBOSE and DEBUG messages
 #endif
 
 // Define the Built-in LED if compiling with a board that does not define it. Only if you get errors about LED_BUILTIN not defined.
