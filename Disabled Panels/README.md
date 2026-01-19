@@ -1,2 +1,0 @@
-Just move .cpp files from your Panels directory here when you want to disable them or simply NOT MIX THEM with other
-aircraft. For example, Panels directory should ONLY contain Panel implementations for a SINGLE aircraft.
