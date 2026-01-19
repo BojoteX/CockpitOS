@@ -21,6 +21,9 @@
 // So we can call our custom print functions from anywhere
 #include "debugPrint.h"
 
+// So we can call enter bootloader mode programatically when no serial ports are exposed
+#include "Bootloader.h"
+
 #if (USE_DCSBIOS_WIFI || USE_DCSBIOS_USB || USE_DCSBIOS_BLUETOOTH)
 #include "RingBuffer.h"
 #endif
