@@ -20,8 +20,8 @@
 // Bluetooth BLE, Pure Native USB, WIFI or Serial (CDC/Socat). Only ONE can be active 
 #define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included) requires NimBLE-Arduino by h2zero. Uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on ALL ESP32s except S2s and P4s).
 #define USE_DCSBIOS_WIFI                            0 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
-#define USE_DCSBIOS_USB                             0 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
-#define USE_DCSBIOS_SERIAL                          1 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
+#define USE_DCSBIOS_USB                             1 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
+#define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 
 // Wi-Fi network credentials (used for WiFi remote Debug Console and DCSBIOS WiFi mode if selected)
 #define WIFI_SSID                      "Metro5600DCS" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
@@ -34,8 +34,8 @@
 #define DEBUG_ENABLED                               0  // Use it ONLY when identifying issues or troubleshooting. Not required when using VERBOSE modes below
 #define VERBOSE_MODE                                0  // Verbose will output to both WiFi & Serial (Uses a LOT of Memory, might fail compile on S2 devices).
 #define VERBOSE_MODE_SERIAL_ONLY                    0  // Verbose will only output to Serial. 
-#define VERBOSE_MODE_WIFI_ONLY                      1  // Verbose will only output to WiFi.
-#define VERBOSE_PERFORMANCE_ONLY                    0  // This will output perf snapshots as well (never mind the ONLY part), make sure you pick VERBOSE_MODE_SERIAL_ONLY or VERBOSE_MODE_WIFI_ONLY as well
+#define VERBOSE_MODE_WIFI_ONLY                      0  // Verbose will only output to WiFi.
+#define VERBOSE_PERFORMANCE_ONLY                    0  // This will output perf snapshots ONLY, make sure you pick VERBOSE_MODE_SERIAL_ONLY or VERBOSE_MODE_WIFI_ONLY so that we know where to output those snapshot ONLY messages.
 #define DEBUG_PERFORMANCE_SHOW_TASKS                0  // Includes the current task list with the snapshot. Not really needed.
 #define DEBUG_LISTENERS_AT_STARTUP                  0  // Debug Listeners for ADVANCED troubleshooting! usually not needed.
 #define PERFORMANCE_SNAPSHOT_INTERVAL_SECONDS       60 // Interval between snapshots (in seconds)
@@ -64,6 +64,7 @@
 #define SERIAL_TX_TIMEOUT                           5 // in ms (Used for CDC receive stream timeouts)
 #define HID_SENDREPORT_TIMEOUT                      5 // in ms (Only used with ESP32 Arduino Core HID.SendReport implementation)
 #define CDC_TIMEOUT_RX_TX                           5 // in ms (Only used with CDC/Serial health checks)
+#define STARTUP_WATCHDOG_TIMEOUT_MS             30000 // Startup watchdog - enters bootloader if main loop not reached within timeout (30 seconds)
 #define DCS_UPDATE_RATE_HZ                         30 // DCSBIOS Loop update rate (used for DCS Keepalives, if enabled)
 #define HID_REPORT_RATE_HZ                        250 // HID report sending rate in Hz. (used for HID Keepalives, if enabled)
 #define POLLING_RATE_HZ                           250 // Panel/buttons update rate in Hz (125, 250, 500 Hz) during main loop. Leave at 250
@@ -129,7 +130,7 @@
 #else // Used for incoming DCS stream via WiFi UDP (if enabled) 
   #if USE_DCSBIOS_WIFI || USE_DCSBIOS_BLUETOOTH
     #define DCS_USE_RINGBUFFER                    1  // Enforces WiFi/BLE use of a ring buffer for the incoming DCS Stream data (otherwise it will crash)
-    #define DCS_UDP_RINGBUF_SIZE                 12  // Number of UDP packets buffered (tune as needed)
+    #define DCS_UDP_RINGBUF_SIZE                 16  // Number of UDP packets buffered (tune as needed)
     #define DCS_UDP_PACKET_MAXLEN               128  // Max UDP packet size (safe for Incoming UDP from DCS-BIOS)
   #else 
     #define DCS_USE_RINGBUFFER                    0  // No need for it as Wi-Fi/BLE for DCS-BIOS is not active.

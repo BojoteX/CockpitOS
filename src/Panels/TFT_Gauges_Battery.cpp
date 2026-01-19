@@ -25,7 +25,7 @@
     REGISTER_PANEL(TFTBatt, nullptr, nullptr, BatteryGauge_init, BatteryGauge_loop, nullptr, 100);
 #endif
 
-#define MAX_MEMORY_TFT 4
+#define MAX_MEMORY_TFT 8
 #define GAUGE_DRAW_MIN_INTERVAL_MS 13
 #define RUN_GAUGE_AS_TASK 1
 #define BACKLIGHT_LABEL "CONSOLES_DIMMER"
