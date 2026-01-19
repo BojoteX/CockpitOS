@@ -11,108 +11,40 @@ static AsyncUDP udp;
 IPAddress dcsSourceIP;      // Last source IP seen
 static volatile bool dcsSourceIPValid = false;
 
-// ═══════════════════════════════════════════════════════════════════════════
-// RING BUFFER MODE — Only compiled when WIFI_DEBUG_USE_RINGBUFFER is enabled
-// ═══════════════════════════════════════════════════════════════════════════
 #if WIFI_DEBUG_USE_RINGBUFFER
+static char udpTempBuf[UDP_TMPBUF_SIZE];
+#endif
 
-static char udpTempBuf[UDP_TMPBUF_SIZE]; // Reassembly buffer for chunked messages
+#if WIFI_DEBUG_USE_RINGBUFFER
 static volatile uint32_t wifiDebugSendOverflow = 0;
 static volatile size_t   wifiDebugSendHighWater = 0;
 static volatile uint32_t wifiDebugSendTotalBytes = 0;
 static volatile uint32_t wifiDebugSendMsgCount = 0;
 static volatile size_t   wifiDebugSendMsgMaxLen = 0;
-static WifiDebugSendMsg wifiDbgSendBuf[WIFI_DBG_SEND_RINGBUF_SIZE];
-static volatile uint8_t wifiDbgSendHead = 0, wifiDbgSendTail = 0;
+#endif
 
-inline static bool wifiDbgSendRingFull()  { return ((wifiDbgSendHead + 1) % WIFI_DBG_SEND_RINGBUF_SIZE) == wifiDbgSendTail; }
-inline static bool wifiDbgSendRingEmpty() { return wifiDbgSendHead == wifiDbgSendTail; }
+// static volatile uint32_t wifiDebugSendOverflow = 0;
+// static volatile size_t   wifiDebugSendHighWater = 0;
 
 uint32_t wifiDebugSendGetOverflow(void) { return wifiDebugSendOverflow; }
 size_t wifiDebugSendGetHighWater(void) { return wifiDebugSendHighWater; }
+size_t wifiDebugSendGetPending(void) { return wifiDebugSendRingPending(); }
+
+// static volatile uint32_t wifiDebugSendTotalBytes = 0;
+// static volatile uint32_t wifiDebugSendMsgCount = 0;
+// static volatile size_t   wifiDebugSendMsgMaxLen = 0;
+
+static WifiDebugSendMsg wifiDbgSendBuf[WIFI_DBG_SEND_RINGBUF_SIZE];
+static volatile uint8_t wifiDbgSendHead = 0, wifiDbgSendTail = 0;
+inline static bool wifiDbgSendRingFull()  { return ((wifiDbgSendHead + 1) % WIFI_DBG_SEND_RINGBUF_SIZE) == wifiDbgSendTail; }
+inline static bool wifiDbgSendRingEmpty() { return wifiDbgSendHead == wifiDbgSendTail; }
+
 float wifiDebugSendAvgMsgLen(void) {
     return (wifiDebugSendMsgCount > 0) ? ((float)wifiDebugSendTotalBytes / wifiDebugSendMsgCount) : 0.0f;
 }
-size_t wifiDebugSendMaxMsgLen(void) { return wifiDebugSendMsgMaxLen; }
-
-size_t wifiDebugSendRingPending() {
-    if (wifiDbgSendHead >= wifiDbgSendTail) return wifiDbgSendHead - wifiDbgSendTail;
-    return WIFI_DBG_SEND_RINGBUF_SIZE - (wifiDbgSendTail - wifiDbgSendHead);
+size_t wifiDebugSendMaxMsgLen(void) {
+    return wifiDebugSendMsgMaxLen;
 }
-size_t wifiDebugSendGetPending(void) { return wifiDebugSendRingPending(); }
-
-size_t wifiDebugSendRingAvailable() {
-    if (wifiDbgSendHead >= wifiDbgSendTail)
-        return WIFI_DBG_SEND_RINGBUF_SIZE - (wifiDbgSendHead - wifiDbgSendTail) - 1;
-    else
-        return (wifiDbgSendTail - wifiDbgSendHead) - 1;
-}
-
-bool wifiDebugSendRingPop(WifiDebugSendMsg* out) {
-    if (wifiDbgSendRingEmpty()) return false;
-    *out = wifiDbgSendBuf[wifiDbgSendTail];
-    wifiDbgSendTail = (wifiDbgSendTail + 1) % WIFI_DBG_SEND_RINGBUF_SIZE;
-    return true;
-}
-
-void wifiDebugSendRingPush(const char* data, size_t len, bool isLastChunk) {
-    if (wifiDbgSendRingFull()) {
-        wifiDebugSendOverflow++;
-        return;
-    }
-    if (len >= WIFI_DBG_MSG_MAXLEN) len = WIFI_DBG_MSG_MAXLEN - 1;
-    memcpy(wifiDbgSendBuf[wifiDbgSendHead].msg, data, len);
-    wifiDbgSendBuf[wifiDbgSendHead].msg[len] = '\0';
-    wifiDbgSendBuf[wifiDbgSendHead].len = len;
-    wifiDbgSendBuf[wifiDbgSendHead].isLastChunk = isLastChunk;
-    wifiDbgSendHead = (wifiDbgSendHead + 1) % WIFI_DBG_SEND_RINGBUF_SIZE;
-
-    // High water mark
-    size_t pending = wifiDebugSendRingPending();
-    if (pending > wifiDebugSendHighWater) wifiDebugSendHighWater = pending;
-
-    // Stats
-    wifiDebugSendTotalBytes += len;
-    wifiDebugSendMsgCount++;
-    if (len > wifiDebugSendMsgMaxLen) wifiDebugSendMsgMaxLen = len;    
-}
-
-void wifiDebugDrainSendBuffer(void) {
-    if (WiFi.status() != WL_CONNECTED) return;
-    WifiDebugSendMsg dbgmsg;
-    size_t tempPos = 0;
-
-    while (wifiDebugSendRingPop(&dbgmsg)) {
-        if (tempPos + dbgmsg.len > sizeof(udpTempBuf)) {
-            tempPos = 0; // overflow: drop the current message
-            wifiDebugSendOverflow++;
-            continue;
-        }
-        memcpy(udpTempBuf + tempPos, dbgmsg.msg, dbgmsg.len);
-        tempPos += dbgmsg.len;
-        if (dbgmsg.isLastChunk) {
-            wifiDebugSendRaw(udpTempBuf, tempPos);
-            tempPos = 0;
-        }
-    }
-}
-
-#else
-// ═══════════════════════════════════════════════════════════════════════════
-// DIRECT MODE — Stubs when ring buffer is disabled (saves ~1.5KB RAM)
-// ═══════════════════════════════════════════════════════════════════════════
-uint32_t wifiDebugSendGetOverflow(void) { return 0; }
-size_t wifiDebugSendGetHighWater(void) { return 0; }
-size_t wifiDebugSendGetPending(void) { return 0; }
-float wifiDebugSendAvgMsgLen(void) { return 0.0f; }
-size_t wifiDebugSendMaxMsgLen(void) { return 0; }
-void wifiDebugDrainSendBuffer(void) { }
-
-#endif // WIFI_DEBUG_USE_RINGBUFFER
-
-// ═══════════════════════════════════════════════════════════════════════════
-// COMMON CODE — Always compiled
-// ═══════════════════════════════════════════════════════════════════════════
 
 // ---------- NETWORK UTILITIES / BOILERPLATE ----------
 
@@ -188,6 +120,43 @@ void wifiDebugInit(uint16_t localPort) {
 #endif
 }
 
+/*
+bool tryToSendDcsBiosMessageUDP(const char* msg, const char* arg) {
+    if (WiFi.status() != WL_CONNECTED) return false;
+
+    if (!msg || !arg) return false;
+
+    constexpr size_t maxMsgLen = 64;
+    constexpr size_t maxArgLen = 32;
+
+    size_t msgLen = strnlen(msg, maxMsgLen);
+    size_t argLen = strnlen(arg, maxArgLen);
+
+    if (msgLen == maxMsgLen || argLen == maxArgLen) return false;
+
+    char buf[maxMsgLen + 1 + maxArgLen + 3]; // "MSG ARG\n\0"
+    size_t len = 0;
+    memcpy(buf, msg, msgLen);
+    buf[msgLen] = ' ';
+    memcpy(buf + msgLen + 1, arg, argLen);
+    len = msgLen + 1 + argLen;
+    buf[len++] = '\n';
+    buf[len] = '\0'; // Not needed for UDP, but safe
+
+    IPAddress targetIP = dcsSourceIPValid ? dcsSourceIP : IPAddress();
+    if (!dcsSourceIPValid) {
+        if (!targetIP.fromString(DCS_COMPUTER_IP)) {
+            // Fallback if the string is malformed
+			targetIP = IPAddress(255, 255, 255, 255); // Not ideal , but better than nothing
+        }
+		serialDebugPrintf("[DCS-WIFI] ⚠️ Using fallback IP %s to send via UDP (might fail)\n", targetIP.toString().c_str());
+    }
+
+    udp.writeTo((const uint8_t*)buf, len, targetIP, DCS_REMOTE_PORT);
+	return true;
+}
+*/
+
 bool tryToSendDcsBiosMessageUDP(const char* msg, const char* arg) {
     if (WiFi.status() != WL_CONNECTED) return false;
     if (!msg || !arg) return false;
@@ -256,26 +225,26 @@ void wifi_setup() {
 
 // --------- FORMATTED/LINE-BASED DEBUG PRINTS ---------
 
-void wifiDebugSendRaw(const char* data, size_t len) {
-    if (WiFi.status() != WL_CONNECTED) return;
+size_t wifiDebugSendRingPending() {
+    if (wifiDbgSendHead >= wifiDbgSendTail) return wifiDbgSendHead - wifiDbgSendTail;
+    return WIFI_DBG_SEND_RINGBUF_SIZE - (wifiDbgSendTail - wifiDbgSendHead);
+}
 
-    const size_t CHUNK = DCS_UDP_MAX_REASSEMBLED;
-    size_t offset = 0;
-    while (offset < len) {
-        size_t toSend = (len - offset > CHUNK) ? CHUNK : (len - offset);
-        udp.writeTo((const uint8_t*)(data + offset), toSend, DEBUG_REMOTE_IP, DEBUG_REMOTE_PORT);
-        offset += toSend;
-    }
+size_t wifiDebugSendRingAvailable() {
+    if (wifiDbgSendHead >= wifiDbgSendTail)
+        return WIFI_DBG_SEND_RINGBUF_SIZE - (wifiDbgSendHead - wifiDbgSendTail) - 1;
+    else
+        return (wifiDbgSendTail - wifiDbgSendHead) - 1;
 }
 
 void wifiDebugSendChunked(const char* data, size_t len) {
 
-    // Direct send when ring buffer disabled — no reassembly overhead
+    // We send directly via UDP if not using the UDP Send Debug Ring Buffer
     #if !WIFI_DEBUG_USE_RINGBUFFER
         wifiDebugSendRaw(data, len);   
         return;
-    #else
-    // Ring buffer mode — chunk and queue for deferred send
+    #endif
+
     size_t max_data = WIFI_DBG_MSG_MAXLEN - 1;
     // --- PASS 1: Count chunks needed, UTF-8-safe
     size_t temp_pos = 0, temp_len = len, needed = 0;
@@ -304,18 +273,68 @@ void wifiDebugSendChunked(const char* data, size_t len) {
 
     if(!mainLoopStarted)
         wifiDebugDrainSendBuffer();
-    #endif
+}
+
+// UDP Send debug Ring Buffer implementation
+bool wifiDebugSendRingPop(WifiDebugSendMsg* out) {
+    if (wifiDbgSendRingEmpty()) return false;
+    *out = wifiDbgSendBuf[wifiDbgSendTail];
+    wifiDbgSendTail = (wifiDbgSendTail + 1) % WIFI_DBG_SEND_RINGBUF_SIZE;
+    return true;
+}
+
+// Then in your drain function:
+void wifiDebugDrainSendBuffer(void) {
+    if (WiFi.status() != WL_CONNECTED) return;
+    WifiDebugSendMsg dbgmsg;
+    size_t tempPos = 0;
+
+    while (wifiDebugSendRingPop(&dbgmsg)) {
+        if (tempPos + dbgmsg.len > sizeof(udpTempBuf)) {
+            tempPos = 0; // overflow: drop the current message
+            wifiDebugSendOverflow++;
+            continue;
+        }
+        memcpy(udpTempBuf + tempPos, dbgmsg.msg, dbgmsg.len);
+        tempPos += dbgmsg.len;
+        if (dbgmsg.isLastChunk) {
+            wifiDebugSendRaw(udpTempBuf, tempPos);
+            tempPos = 0;
+        }
+    }
+}
+
+void wifiDebugSendRingPush(const char* data, size_t len, bool isLastChunk) {
+    if (wifiDbgSendRingFull()) {
+        wifiDebugSendOverflow++;
+        return;
+    }
+    if (len >= WIFI_DBG_MSG_MAXLEN) len = WIFI_DBG_MSG_MAXLEN - 1;
+    memcpy(wifiDbgSendBuf[wifiDbgSendHead].msg, data, len);
+    wifiDbgSendBuf[wifiDbgSendHead].msg[len] = '\0';
+    wifiDbgSendBuf[wifiDbgSendHead].len = len;
+    wifiDbgSendBuf[wifiDbgSendHead].isLastChunk = isLastChunk; // <---
+    wifiDbgSendHead = (wifiDbgSendHead + 1) % WIFI_DBG_SEND_RINGBUF_SIZE;
+
+    // High water mark
+    size_t pending = wifiDebugSendRingPending();
+    if (pending > wifiDebugSendHighWater) wifiDebugSendHighWater = pending;
+
+    // --- Added these lines for stats ---
+    wifiDebugSendTotalBytes += len;
+    wifiDebugSendMsgCount++;
+    if (len > wifiDebugSendMsgMaxLen) wifiDebugSendMsgMaxLen = len;    
 }
 
 void wifiDebugPrint(const char* msg) {
     wifiDebugSendChunked(msg, strlen(msg));
 }
-
 void wifiDebugPrintn(const char* msg, size_t len) {
     wifiDebugSendChunked(msg, len);
 }
 
 void wifiDebugPrintf(const char* format, ...) {
+    // Max allowable message size for WiFi debug (MUST BE LARGER THAN WIFI_DBG_MSG_MAXLEN)
     char wifiDebugPrintf_buf[WIFI_DEBUG_BUFFER_SIZE];    
     va_list args;
     va_start(args, format);
@@ -327,6 +346,18 @@ void wifiDebugPrintf(const char* format, ...) {
 
 void wifiDebugPrintln(const char* msg) {
     wifiDebugSendChunked(msg, strlen(msg));
+}
+
+void wifiDebugSendRaw(const char* data, size_t len) {
+    if (WiFi.status() != WL_CONNECTED) return;
+
+    const size_t CHUNK = DCS_UDP_MAX_REASSEMBLED;
+    size_t offset = 0;
+    while (offset < len) {
+        size_t toSend = (len - offset > CHUNK) ? CHUNK : (len - offset);
+        udp.writeTo((const uint8_t*)(data + offset), toSend, DEBUG_REMOTE_IP, DEBUG_REMOTE_PORT);
+        offset += toSend;
+    }
 }
 
 #endif // DEBUG_USE_WIFI || USE_DCSBIOS_WIFI
