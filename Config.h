@@ -24,8 +24,8 @@
 #define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 
 // Wi-Fi network credentials (used for WiFi remote Debug Console and DCSBIOS WiFi mode if selected)
-#define WIFI_SSID                      "Metro5600DCS" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
-#define WIFI_PASS                        "4458e8c3c2" // Make sure your Wi-Fi router supports WPA2-PSK (AES/CCMP), otherwise, device will not connect *** THIS IS VERY IMPORTANT ***. ESP32s will Connect to 2.4 GHz and WPA2-PSK (AES/CCMP) capable routers ONLY so make sure yours supports these requirements.
+#define WIFI_SSID                       "TestNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
+#define WIFI_PASS                       "TestingOnly" // Make sure your Wi-Fi router supports WPA2-PSK (AES/CCMP), otherwise, device will not connect *** THIS IS VERY IMPORTANT ***. ESP32s will Connect to 2.4 GHz and WPA2-PSK (AES/CCMP) capable routers ONLY so make sure yours supports these requirements.
 
 // *** READ THIS *** (Advanced users only)
 // TinyUSB + Wi-Fi enabled at the same time consume a LOT of memory, so if you decide to enable debugging on S2 devices keep that in mind as compiles will most likely fail if both the WiFi stack (for debug or normal operation) is enabled along USB-OTG (TinyUSB). To avoid, simply use an S3 device or stick to the stack capabilities (e.g) Debug via Serial if using USB or Debug via WiFi if using WiFi as transport.  
@@ -278,7 +278,6 @@
 // --- BLE allowed chips ---
 #if USE_DCSBIOS_BLUETOOTH
 
-  // #if !__has_include("BLEManager.cpp")
   #if !__has_include("src/Core/Private/BLEManager.cpp")
       #error "The Open source version of CockpitOS does NOT include BLE support. This is reserved for private use only. Not available upon request or as a paid feature."
   #endif
