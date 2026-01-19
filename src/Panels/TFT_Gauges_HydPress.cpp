@@ -25,7 +25,7 @@
     REGISTER_PANEL(TFTHyd, nullptr, nullptr, HydPressureGauge_init, HydPressureGauge_loop, nullptr, 100);
 #endif
 
-#define MAX_MEMORY_TFT 16
+#define MAX_MEMORY_TFT 8
 #define HYD_PRESSURE_GAUGE_DRAW_MIN_INTERVAL_MS 13
 #define RUN_HYD_PRESSURE_GAUGE_AS_TASK 1
 #define BACKLIGHT_LABEL "INST_PNL_DIMMER"

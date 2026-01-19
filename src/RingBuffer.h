@@ -1,5 +1,7 @@
 #pragma once
 
+void enterBootloaderMode();
+
 // --- UDP Receive buffer struct ---
 typedef struct {
     uint8_t data[DCS_UDP_PACKET_MAXLEN];
