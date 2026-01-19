@@ -23,9 +23,11 @@
 #define USE_DCSBIOS_USB                             1 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
 #define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 
-// Wi-Fi network credentials (used for WiFi remote Debug Console and DCSBIOS WiFi mode if selected)
-#define WIFI_SSID                       "TestNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
-#define WIFI_PASS                       "TestingOnly" // Make sure your Wi-Fi router supports WPA2-PSK (AES/CCMP), otherwise, device will not connect *** THIS IS VERY IMPORTANT ***. ESP32s will Connect to 2.4 GHz and WPA2-PSK (AES/CCMP) capable routers ONLY so make sure yours supports these requirements.
+// Your personal Wi-Fi network credentials should be stored in .credentials/wifi.h. If file not found or does not exists yet, we use defaults ("TestNetwork" / "TestingOnly")
+#if !__has_include(".credentials/wifi.h")
+  #define WIFI_SSID                     "TestNetwork" // Use a hotspot for local testing and debugging, but for production use your regular WiFi if you plan to enable USE_DCSBIOS_WIFI
+  #define WIFI_PASS                     "TestingOnly" // Make sure your Wi-Fi router supports WPA2-PSK (AES/CCMP), otherwise, device will not connect *** THIS IS VERY IMPORTANT ***. ESP32s will Connect to 2.4 GHz and WPA2-PSK (AES/CCMP) capable routers ONLY so make sure yours supports these requirements.
+#endif
 
 // *** READ THIS *** (Advanced users only)
 // TinyUSB + Wi-Fi enabled at the same time consume a LOT of memory, so if you decide to enable debugging on S2 devices keep that in mind as compiles will most likely fail if both the WiFi stack (for debug or normal operation) is enabled along USB-OTG (TinyUSB). To avoid, simply use an S3 device or stick to the stack capabilities (e.g) Debug via Serial if using USB or Debug via WiFi if using WiFi as transport.  
@@ -236,8 +238,7 @@
 #endif
 
 // --- Wi-Fi capability guard ---
-// ESP32-H2: no Wi-Fi (BLE + 802.15.4 only)
-// ESP32-P4: no Wi-Fi / no BT (application MCU)
+// ESP32-H2: no Wi-Fi (BLE + 802.15.4 only) | ESP32-P4: no Wi-Fi / no BT (application MCU)
 #if (defined(ESP_FAMILY_H2) || defined(ESP_FAMILY_P4))
   #define DEVICE_HAS_WIFI 0
 #else
