@@ -5,7 +5,7 @@
 // Usually GPIOs are set in the LABEL SET corresponding to the panel you are building. Pins.h is for place holders or custom Pins
 
 // What would be my TEST pin for default install? (not really used except for TEST label)
-#define TEST_GPIO 6
+#define TEST_GPIO 0
 
 // Caution Advisory GPIOs
 #ifndef CA_DIO_PIN
