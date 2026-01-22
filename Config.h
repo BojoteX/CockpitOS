@@ -241,7 +241,7 @@
 
 // --- Wi-Fi capability guard ---
 // ESP32-H2: no Wi-Fi (BLE + 802.15.4 only) | ESP32-P4: no Wi-Fi / no BT (application MCU)
-#if (defined(ESP_FAMILY_H2) || defined(ESP_FAMILY_P4))
+#if (defined(ESP_FAMILY_H2))
   #define DEVICE_HAS_WIFI 0
 #else
   #define DEVICE_HAS_WIFI 1
