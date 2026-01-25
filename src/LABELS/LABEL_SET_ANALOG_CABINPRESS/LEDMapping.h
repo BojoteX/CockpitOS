@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
+  DEVICE_PCA9555,
+  DEVICE_GPIO,
   DEVICE_TM1637,
+  DEVICE_GN1640T,
   DEVICE_WS2812,
   DEVICE_NONE,
-  DEVICE_GN1640T,
-  DEVICE_PCA9555,
   DEVICE_GAUGE,
-  DEVICE_GPIO,
 };
 
 struct LEDMapping {
@@ -29,11 +29,7 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
-  { "MASTER_MODE_AA_LT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "MASTER_MODE_AG_LT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "MC_DISCH"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "MC_READY"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "MASTER_CAUTION_LT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
+  { "PRESSURE_ALT", DEVICE_GAUGE   , {.gaugeInfo = {36,800,2200,20000}}, true, false }, // GAUGE GPIO 36
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);
@@ -52,36 +48,6 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"MASTER_MODE_AA_LT", &panelLEDs[0]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"MC_DISCH", &panelLEDs[2]},
-  {"MC_READY", &panelLEDs[3]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"MASTER_MODE_AG_LT", &panelLEDs[1]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"MASTER_CAUTION_LT", &panelLEDs[4]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -94,6 +60,36 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"PRESSURE_ALT", &panelLEDs[0]},
 };
 
 // Reuse shared recursive hash implementation
