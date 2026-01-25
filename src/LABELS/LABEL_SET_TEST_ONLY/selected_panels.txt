@@ -9,3 +9,4 @@
 Master Arm Panel
 Communication Panel
 Master Caution Light
+Cockpit Altimeter

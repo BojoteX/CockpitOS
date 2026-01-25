@@ -19,8 +19,8 @@
 // Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. 
 // Bluetooth BLE, Pure Native USB, WIFI or Serial (CDC/Socat). Only ONE can be active 
 #define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included) requires NimBLE-Arduino by h2zero. Uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on ALL ESP32s except S2s and P4s).
-#define USE_DCSBIOS_WIFI                            0 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
-#define USE_DCSBIOS_USB                             1 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
+#define USE_DCSBIOS_WIFI                            1 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
+#define USE_DCSBIOS_USB                             0 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
 #define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 
 // Your personal Wi-Fi network credentials should be stored in .credentials/wifi.h. If file not found or does not exists yet, we use defaults ("TestNetwork" / "TestingOnly")
@@ -35,10 +35,10 @@
 // TinyUSB + Wi-Fi enabled at the same time consume a LOT of memory, so if you decide to enable debugging on S2 devices keep that in mind as compiles will most likely fail if both the WiFi stack (for debug or normal operation) is enabled along USB-OTG (TinyUSB). To avoid, simply use an S3 device or stick to the stack capabilities (e.g) Debug via Serial if using USB or Debug via WiFi if using WiFi as transport.  
 
 // For production, ALL THESE should be set to 0. Use for debugging only.
-#define DEBUG_ENABLED                               0  // Use it ONLY when identifying issues or troubleshooting. Not required when using VERBOSE modes below
+#define DEBUG_ENABLED                               1  // Use it ONLY when identifying issues or troubleshooting. Not required when using VERBOSE modes below
 #define VERBOSE_MODE                                0  // Verbose will output to both WiFi & Serial (Uses a LOT of Memory, might fail compile on S2 devices).
 #define VERBOSE_MODE_SERIAL_ONLY                    0  // Verbose will only output to Serial. 
-#define VERBOSE_MODE_WIFI_ONLY                      0  // Verbose will only output to WiFi.
+#define VERBOSE_MODE_WIFI_ONLY                      1  // Verbose will only output to WiFi.
 #define VERBOSE_PERFORMANCE_ONLY                    0  // This will output perf snapshots ONLY, make sure you pick VERBOSE_MODE_SERIAL_ONLY or VERBOSE_MODE_WIFI_ONLY so that we know where to output those snapshot ONLY messages.
 #define DEBUG_PERFORMANCE_SHOW_TASKS                0  // Includes the current task list with the snapshot. Not really needed.
 #define DEBUG_LISTENERS_AT_STARTUP                  0  // Debug Listeners for ADVANCED troubleshooting! usually not needed.

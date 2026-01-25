@@ -65,7 +65,7 @@ void tickOutputDrivers() {
     if (g_hasTM1637)  tm1637_tick();
     if (g_hasWS2812)  WS2812_tick();
     if (g_hasGN1640)  GN1640_tick();
-    // Note: GAUGE uses task-based updates, no tick needed
+    if (g_hasGauge)   AnalogG_tick();   // service servo gauges
 }
 
 // Blazing fast setLED()
