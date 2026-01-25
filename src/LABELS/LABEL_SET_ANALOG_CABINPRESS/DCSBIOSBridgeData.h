@@ -30,28 +30,19 @@ struct CommandHistoryEntry {
 
 struct DcsOutputEntry { uint16_t addr, mask; uint8_t shift; uint16_t max_value; const char* label; ControlType controlType; };
 static const DcsOutputEntry DcsOutputTable[] = {
-    {0x740C,0x2000,13,1,"MASTER_ARM_SW",CT_SELECTOR},
-    {0x740C,0x0800,11,1,"MASTER_MODE_AA",CT_SELECTOR},
-    {0x740C,0x0200,9,1,"MASTER_MODE_AA_LT",CT_LED},
-    {0x740C,0x1000,12,1,"MASTER_MODE_AG",CT_SELECTOR},
-    {0x740C,0x0400,10,1,"MASTER_MODE_AG_LT",CT_LED},
-    {0x740C,0x4000,14,1,"MC_DISCH",CT_LED},
-    {0x740C,0x8000,15,1,"MC_READY",CT_LED},
-    {0x7408,0x0200,9,1,"MASTER_CAUTION_LT",CT_LED},
-    {0x7408,0x0400,10,1,"MASTER_CAUTION_RESET_SW",CT_SELECTOR},
+    {0x7514,0xFFFF,0,65535,"PRESSURE_ALT",CT_GAUGE},
 };
 static const size_t DcsOutputTableSize = sizeof(DcsOutputTable)/sizeof(DcsOutputTable[0]);
 
 // Static flat address-to-output entry lookup
 struct AddressEntry {
   uint16_t addr;
-  const DcsOutputEntry* entries[7]; // max entries per address
+  const DcsOutputEntry* entries[1]; // max entries per address
   uint8_t count;
 };
 
 static const AddressEntry dcsAddressTable[] = {
-  { 0x740C, { &DcsOutputTable[0], &DcsOutputTable[1], &DcsOutputTable[2], &DcsOutputTable[3], &DcsOutputTable[4], &DcsOutputTable[5], &DcsOutputTable[6] }, 7 },
-  { 0x7408, { &DcsOutputTable[7], &DcsOutputTable[8] }, 2 },
+  { 0x7514, { &DcsOutputTable[0] }, 1 },
 };
 
 // Address hash entry
@@ -85,11 +76,11 @@ static const DcsAddressHashEntry dcsAddressHashTable[53] = {
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
-  { 0x7408, &dcsAddressTable[1] },
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
-  { 0x740C, &dcsAddressTable[0] },
+  { 0x7514, &dcsAddressTable[0] },
+  {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
@@ -134,20 +125,11 @@ inline const AddressEntry* findDcsOutputEntries(uint16_t addr) {
 
 struct SelectorEntry { const char* label; const char* dcsCommand; uint16_t value; const char* controlType; uint16_t group; const char* posLabel; };
 static const SelectorEntry SelectorMap[] = {
-    { "MASTER_ARM_SW_SAFE","MASTER_ARM_SW",0,"selector",1,"SAFE" },
-    { "MASTER_ARM_SW_ARM","MASTER_ARM_SW",1,"selector",1,"ARM" },
-    { "MASTER_MODE_AA","MASTER_MODE_AA",1,"momentary",0,"PRESS" },
-    { "MASTER_MODE_AG","MASTER_MODE_AG",1,"momentary",0,"PRESS" },
-    { "MASTER_CAUTION_RESET_SW","MASTER_CAUTION_RESET_SW",1,"momentary",0,"PRESS" },
 };
 static const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);
 
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
-    { "MASTER_ARM_SW", 0, 0, true, 1, 0,   0, false, {0}, {0}, 0 },
-    { "MASTER_CAUTION_RESET_SW", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "MASTER_MODE_AA", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "MASTER_MODE_AG", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
 };
 static const size_t commandHistorySize = sizeof(commandHistory)/sizeof(CommandHistoryEntry);
 
