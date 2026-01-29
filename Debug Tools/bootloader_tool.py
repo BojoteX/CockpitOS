@@ -127,7 +127,7 @@ def print_device_menu(devices):
         print(f"║{line[:62]:<63}║")
     
     print("║                                                                ║")
-    print("║   [*] Reboot ALL devices (use with caution!)                   ║")
+    print("║   [*] Reboot ALL devices                                       ║")
     print("║   [Q] Quit                                                     ║")
     print("║                                                                ║")
     print("╚════════════════════════════════════════════════════════════════╝")
@@ -144,16 +144,6 @@ def print_standalone_menu():
     print("╚════════════════════════════════════════════════════════════════╝")
 
 
-def confirm_action(target, is_wildcard=False):
-    print()
-    if is_wildcard:
-        print("⚠️  WARNING: This will reboot ALL CockpitOS devices!")
-        return input("Type 'YES' to confirm: ").strip().upper() == 'YES'
-    else:
-        response = input(f"Reboot '{target}'? [Y/n]: ").strip().lower()
-        return response in ('', 'y', 'yes')
-
-
 def run_interactive_with_devices(devices):
     print_header()
     print_device_menu(devices)
@@ -167,16 +157,14 @@ def run_interactive_with_devices(devices):
             return
         
         if choice == '*':
-            if confirm_action('*', is_wildcard=True):
-                send_bootloader_command('*')
+            send_bootloader_command('*')
             return
         
         try:
             idx = int(choice)
             if 1 <= idx <= len(devices):
                 device = devices[idx - 1]
-                if confirm_action(device['name']):
-                    send_bootloader_command(device['name'])
+                send_bootloader_command(device['name'])
                 return
             else:
                 print(f"Invalid. Enter 1-{len(devices)}, *, or Q")
@@ -197,14 +185,13 @@ def run_interactive_standalone():
             return
         
         if choice == '1':
-            if confirm_action('*', is_wildcard=True):
-                send_bootloader_command('*')
+            send_bootloader_command('*')
             return
         
         if choice == '2':
             print("\nEnter LABEL_SET_NAME (e.g., IFEI, HORNET_FRNT_RIGHT):")
             name = input("LABEL_SET_NAME: ").strip()
-            if name and confirm_action(name):
+            if name:
                 send_bootloader_command(name)
             return
         
@@ -230,27 +217,23 @@ Examples:
     parser.add_argument('--device', '-d', metavar='NAME', help='Device LABEL_SET_NAME')
     parser.add_argument('--pid', '-p', metavar='PID', help='Device USB PID (e.g., 0xC8DD)')
     parser.add_argument('--all', '-a', action='store_true', help='Reboot ALL devices')
-    parser.add_argument('--yes', '-y', action='store_true', help='Skip confirmation')
     
     args = parser.parse_args()
     
     # Direct command mode
     if args.all:
-        if args.yes or confirm_action('*', is_wildcard=True):
-            send_bootloader_command('*')
+        send_bootloader_command('*')
         return
     
     if args.device:
-        if args.yes or confirm_action(args.device):
-            send_bootloader_command(args.device)
+        send_bootloader_command(args.device)
         return
     
     if args.pid:
         pid = args.pid.upper()
         if not pid.startswith('0X'):
             pid = '0x' + pid
-        if args.yes or confirm_action(pid):
-            send_bootloader_command(pid)
+        send_bootloader_command(pid)
         return
     
     # Interactive mode

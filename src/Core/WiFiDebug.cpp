@@ -228,7 +228,11 @@ bool tryToSendDcsBiosMessageUDP(const char* msg, const char* arg) {
             ipSnapshot.toString().c_str(), static_cast<unsigned>(DCS_REMOTE_PORT));
         return false;
     }
-	delay(1); // tiny delay to avoid flooding
+
+	// delay(1); // tiny delay to avoid flooding
+	// delayMicroseconds(100); / / tiny delay to avoid flooding
+	yield(); // yield to allow background UDP processing
+    
     return true;
 }
 
