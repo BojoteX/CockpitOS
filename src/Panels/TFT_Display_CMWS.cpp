@@ -76,12 +76,19 @@
 // COMPILE-TIME CONFIGURATION
 // =============================================================================
 static constexpr uint32_t CMWS_REFRESH_INTERVAL_MS = 33;   // ~30 FPS max
-static constexpr uint8_t  CPU_CORE                 = 0;
+
+// Select core (For this gauge, we always use core 0 for all devices)
+#if defined(ESP_FAMILY_S3)
+    static constexpr uint8_t  CPU_CORE = 0;
+#else
+    static constexpr uint8_t  CPU_CORE = 0;
+#endif
+
 static constexpr uint16_t TASK_STACK_SIZE          = 4096;
 static constexpr uint8_t  TASK_PRIORITY            = 2;
 
 // IMPORTANT: These must be macros (not constexpr) because they're used with #if preprocessor
-#define RUN_AS_TASK              1   // 1 = FreeRTOS task, 0 = loop() polling
+#define RUN_AS_TASK              0   // 1 = FreeRTOS task, 0 = loop() polling
 #define USE_REFACTORED_VERSION   1   // Dirty-rect batching (recommended)
 #define RUN_BIT_TEST_ON_INIT     1   // Self-test on boot
 #define ENABLE_PROFILING         0   // Set to 1 to enable timing instrumentation

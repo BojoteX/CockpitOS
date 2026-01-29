@@ -489,8 +489,11 @@ void onAircraftName(const char* str) {
 
     uint32_t now = millis();
     if (now - lastPrintMs >= 2000) {
+
+#if DEBUG_ENABLED
         debugPrintf("[ACFT-DIAG] onAircraftName called %u times, str=\"%.24s\", DCSBIOS_ACFT_NAME=\"%s\"\n",
             callCount, str ? str : "(null)", DCSBIOS_ACFT_NAME);
+#endif
         callCount = 0;
         lastPrintMs = now;
     }
@@ -733,6 +736,12 @@ void parseDcsBiosUdpPacket(const uint8_t* data, size_t len) {
         DcsBios::parser.processChar(data[i]);
     }
     // yield();
+
+    // NEW: Also feed to RS-485 for slave distribution
+#if RS485_MASTER_ENABLED
+    RS485Master_feedExportData(data, len);
+#endif
+
 }
 
 #if USE_DCSBIOS_WIFI || USE_DCSBIOS_USB || USE_DCSBIOS_BLUETOOTH
@@ -789,11 +798,9 @@ void onDcsBiosUdpPacket() {
 
     // Phase 2: Parse all collected UDP frames
     for (size_t n = 0; n < frameCount; ++n) {
-        for (size_t i = 0; i < frames[n].len; ++i) {
-            DcsBios::parser.processChar(frames[n].data[i]);
-        }
-        // yield();
+        parseDcsBiosUdpPacket(frames[n].data, frames[n].len);
     }
+
 }
 #endif
 
@@ -845,10 +852,21 @@ void DcsbiosProtocolReplay() {
         uint16_t len = pgm_read_byte(ptr) | (pgm_read_byte(ptr + 1) << 8);
         ptr += 2;
 
+		/* REPLACED BY parseDcsBiosUdpPacket() CALL
         for (uint16_t i = 0; i < len; i++) {
             uint8_t b = pgm_read_byte(ptr + i);
             DcsBios::parser.processChar(b);
         }
+        */
+
+        // Buffer the frame, then parse through the common path
+        static uint8_t replayFrame[512];  // DCS frames are typically < 512 bytes
+        uint16_t frameLen = (len > sizeof(replayFrame)) ? sizeof(replayFrame) : len;
+        for (uint16_t i = 0; i < frameLen; i++) {
+            replayFrame[i] = pgm_read_byte(ptr + i);
+        }
+        parseDcsBiosUdpPacket(replayFrame, frameLen);
+
         ptr += len;
 
         // Ticks and some of our panels require this.
@@ -1268,6 +1286,13 @@ bool simReady() {
 }
 
 void sendCommand(const char* msg, const char* arg, bool silent) {
+
+#if RS485_SLAVE_ENABLED
+    // In slave mode, queue command for RS-485 transmission
+    RS485Slave_queueCommand(msg, arg);
+    if (!silent) debugPrintf("🛩️ [RS485S] Queued: %s %s\n", msg, arg);
+    return;  // Don't send via WiFi/USB
+#endif
 
 #if USE_DCSBIOS_WIFI
     // We completely bypass Serial+Socat and send our DCSBIOS command via UDP directly to the PC running DCS if mission is active
