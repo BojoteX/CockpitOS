@@ -24,7 +24,7 @@
 //     - Requires DcsOutputTable to be populated with slave addresses
 //
 #ifndef RS485_SMART_MODE
-#define RS485_SMART_MODE        0       // 0=dumb (Arduino-like), 1=smart (filtered)
+#define RS485_SMART_MODE        1       // 0=dumb (Arduino-like), 1=smart (filtered)
 #endif
 
 // ============================================================================
