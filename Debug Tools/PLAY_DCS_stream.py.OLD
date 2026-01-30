@@ -12,68 +12,17 @@ UDP_PORT = 5010
 STREAMS_DIR = "streams"
 FILE_PREFIX = "dcsbios_data.json."
 
-# === FUNCTION: Discover ALL network interface IPs ===
-def get_all_interface_ips():
-    """
-    Discover all IPv4 interface addresses on this machine.
-    Returns list of IP strings, excluding loopback.
-    
-    Uses multiple discovery methods to ensure we find interfaces that may
-    not be on the default route (e.g., WiFi hotspots, secondary NICs).
-    """
-    ips = set()
-    
-    # Method 1: Query hostname - gets IPs registered with DNS/hosts
+# === FUNCTION: Detect local IP ===
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        hostname = socket.gethostname()
-        _, _, ip_list = socket.gethostbyname_ex(hostname)
-        for ip in ip_list:
-            if not ip.startswith('127.'):
-                ips.add(ip)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
     except Exception:
-        pass
-    
-    # Method 2: Probe various subnets to discover routed interfaces
-    # Each connect() reveals which local IP would reach that destination.
-    # This finds interfaces the OS has routes for, even if not default.
-    probe_targets = [
-        ('8.8.8.8', 80),           # Internet (default gateway)
-        ('10.255.255.255', 1),     # Private Class A
-        ('172.16.255.255', 1),     # Private Class B
-        ('192.168.0.1', 1),        # Common home router
-        ('192.168.1.1', 1),        # Common home router
-        ('192.168.137.1', 1),      # Windows Mobile Hotspot default
-        ('192.168.49.1', 1),       # Windows Wi-Fi Direct default
-    ]
-    
-    for target, port in probe_targets:
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.settimeout(0.001)  # Non-blocking, we don't actually send
-            s.connect((target, port))
-            ip = s.getsockname()[0]
-            s.close()
-            if ip and not ip.startswith('127.') and not ip.startswith('0.'):
-                ips.add(ip)
-        except Exception:
-            pass
-    
-    # Fallback: if nothing found, return localhost (will still work for local testing)
-    return sorted(ips) if ips else ['127.0.0.1']
-
-
-# === FUNCTION: Create multicast socket bound to specific interface ===
-def create_multicast_socket(interface_ip, ttl=1):
-    """
-    Create a UDP socket configured to send multicast on a specific interface.
-    Uses IP_MULTICAST_IF to direct outgoing multicast to the specified NIC.
-    """
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-    # Bind multicast output to this specific interface
-    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(interface_ip))
-    return sock
-
+        ip = "127.0.0.1"
+    finally:
+        s.close()
+    return ip
 
 # === FUNCTION: Calculate relative age string ===
 def get_relative_age(file_path):
@@ -185,29 +134,17 @@ else:
 
 identifier, INPUT_JSON_FILE, display_name, age = selected
 
-# === SETUP SOCKETS FOR ALL INTERFACES ===
-interface_ips = get_all_interface_ips()
-multicast_sockets = []
-
-print(f"\n[INFO] Discovering network interfaces...")
-for ip in interface_ips:
-    try:
-        sock = create_multicast_socket(ip)
-        multicast_sockets.append((ip, sock))
-        print(f"       ✓ {ip}")
-    except Exception as e:
-        print(f"       ✗ {ip} (skipped: {e})")
-
-if not multicast_sockets:
-    print("\n❌ No usable network interfaces found!")
-    exit(1)
+# === SETUP SOCKET ===
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
+local_ip = get_local_ip()
 
 # === LOAD DATA ===
 with open(INPUT_JSON_FILE, "r") as f:
     frames = json.load(f)
 
 print(f"\n[INFO] Loaded {len(frames)} frames from {os.path.basename(INPUT_JSON_FILE)}")
-print(f"[INFO] Multicast to {MULTICAST_IP}:{UDP_PORT} on {len(multicast_sockets)} interface(s)")
+print(f"[INFO] Multicast to {MULTICAST_IP}:{UDP_PORT} via {local_ip}")
 
 if args.fps:
     print(f"🔁 Fixed replay at {args.fps:.1f} FPS ({1000/args.fps:.2f}ms/frame)")
@@ -226,38 +163,26 @@ for frame in frames:
 stream_start_time = time.perf_counter()
 cycle = 0
 
-try:
-    while True:
-        for i, frame in enumerate(frames):
-            hex_data = frame.get("data", "")
-            if not hex_data:
-                continue
+while True:
+    for i, frame in enumerate(frames):
+        hex_data = frame.get("data", "")
+        if not hex_data:
+            continue
 
-            target_time = stream_start_time + frame_timestamps[i] + (cycle * accum_time)
-            now = time.perf_counter()
-            wait_time = target_time - now
+        target_time = stream_start_time + frame_timestamps[i] + (cycle * accum_time)
+        now = time.perf_counter()
+        wait_time = target_time - now
 
-            if wait_time > 0:
-                time.sleep(wait_time)
+        if wait_time > 0:
+            time.sleep(wait_time)
 
-            try:
-                binary_data = binascii.unhexlify(hex_data)
-                # Send on ALL interfaces
-                for interface_ip, sock in multicast_sockets:
-                    sock.sendto(binary_data, (MULTICAST_IP, UDP_PORT))
-            except Exception as e:
-                print(f"⚠️ Error sending frame: {e}")
-
-        cycle += 1
-        print(f"✅ Completed cycle {cycle}")
-
-except KeyboardInterrupt:
-    print("\n\n🛑 Stopped by user")
-
-finally:
-    # Clean up all sockets
-    for _, sock in multicast_sockets:
         try:
-            sock.close()
-        except Exception:
-            pass
+            binary_data = binascii.unhexlify(hex_data)
+            sock.sendto(binary_data, (MULTICAST_IP, UDP_PORT))
+        except Exception as e:
+            print(f"⚠️ Error sending frame: {e}")
+
+    cycle += 1
+    print(f"✅ Completed cycle {cycle}")
+
+sock.close()
