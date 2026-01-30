@@ -71,6 +71,10 @@ def main():
         print("|  ERROR: No stream files found!                                |")
         print(f"|  Expected in: {STREAMS_DIR}/".ljust(65) + "|")
         print("+----------------------------------------------------------------+")
+
+        # Press ENTER to exit
+        input("\nPress <ENTER> to exit...")
+
         sys.exit(1)
 
     # Match requested stream
@@ -86,6 +90,10 @@ def main():
         for identifier, _ in available:
             print(f"|    - {identifier}".ljust(65) + "|")
         print("+----------------------------------------------------------------+")
+
+        # Press ENTER to exit
+        input("\nPress <ENTER> to exit...")
+
         sys.exit(1)
 
     identifier, filepath = match
@@ -98,6 +106,10 @@ def main():
             data = json.load(f)
     except Exception as e:
         print(f"\n  ERROR: Failed to load file: {e}")
+
+        # Press ENTER to exit
+        input("\nPress <ENTER> to exit...")
+
         sys.exit(1)
 
     # Handle different JSON structures
@@ -107,6 +119,10 @@ def main():
         frames = data
     else:
         print("\n  ERROR: Unrecognized JSON structure")
+
+        # Press ENTER to exit
+        input("\nPress <ENTER> to exit...")
+
         sys.exit(1)
 
     # Calculate frame sizes (hex string length / 2 = actual bytes)
@@ -119,6 +135,10 @@ def main():
 
     if len(frame_sizes) < 3:
         print("\n  ERROR: Not enough frames to analyze (need at least 3)")
+
+        # Press ENTER to exit
+        input("\nPress <ENTER> to exit...")
+
         sys.exit(1)
 
     # Statistics
