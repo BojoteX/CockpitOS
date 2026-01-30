@@ -10,24 +10,6 @@
 #define RS485_CONFIG_H
 
 // ============================================================================
-// BROADCAST MODE (IMPORTANT!)
-// ============================================================================
-// 0 = DUMB MODE (default): Relay raw DCS-BIOS export stream like Arduino Master
-//     - No change detection, no filtering
-//     - ~370 bytes/frame @ 30Hz = ~11KB/sec bandwidth
-//     - Slaves filter locally (standard DCS-BIOS behavior)
-//     - Maximum compatibility, proven approach
-//
-// 1 = SMART MODE: Broadcast only changed addresses that slaves actually need
-//     - Change detection + address filtering via DCSBIOSBridgeData.h
-//     - ~10-50 bytes/broadcast = ~200-2000x bandwidth reduction
-//     - Requires DcsOutputTable to be populated with slave addresses
-//
-#ifndef RS485_SMART_MODE
-#define RS485_SMART_MODE        0       // 0=dumb (Arduino-like), 1=smart (filtered)
-#endif
-
-// ============================================================================
 // HARDWARE PINS (Waveshare ESP32-S3-RS485-CAN defaults)
 // ============================================================================
 
@@ -69,13 +51,8 @@
 #endif
 
 // Minimum time between broadcasts (milliseconds)
-// DUMB mode needs faster broadcasts to drain ring buffer and keep up with data rate
 #ifndef RS485_MIN_BROADCAST_INTERVAL_MS
-  #if RS485_SMART_MODE
-    #define RS485_MIN_BROADCAST_INTERVAL_MS 100  // Smart mode: only when changes detected
-  #else
-    #define RS485_MIN_BROADCAST_INTERVAL_MS 20    // Dumb mode: drain buffer quickly (~200 broadcasts/sec)
-  #endif
+#define RS485_MIN_BROADCAST_INTERVAL_MS 100
 #endif
 
 // ============================================================================
@@ -105,6 +82,35 @@
 #ifndef RS485_INPUT_BUFFER_SIZE
 #define RS485_INPUT_BUFFER_SIZE 64      // Buffer for slave input commands
 #endif
+
+// ============================================================================
+// SLAVE DISCOVERY SETTINGS
+// ============================================================================
+
+// Enable dynamic slave discovery (Arduino-style zero-config scanning)
+// When enabled, master automatically finds slaves - no need to configure poll range
+#ifndef RS485_DISCOVERY_ENABLED
+#define RS485_DISCOVERY_ENABLED     1
+#endif
+
+// How often to scan for NEW slaves (every N poll cycles)
+// Lower = faster discovery of hot-plugged slaves, slightly more bus overhead
+#ifndef RS485_DISCOVERY_INTERVAL
+#define RS485_DISCOVERY_INTERVAL    10      // Scan once every 10 poll cycles
+#endif
+
+// Discovery scan range (addresses to search for slaves)
+#ifndef RS485_DISCOVERY_MIN_ADDR
+#define RS485_DISCOVERY_MIN_ADDR    1
+#endif
+
+#ifndef RS485_DISCOVERY_MAX_ADDR
+#define RS485_DISCOVERY_MAX_ADDR    RS485_MAX_SLAVES
+#endif
+
+// Optional: Pre-seed with known slave addresses for faster initial connection
+// Uncomment to seed the configured RS485_MIN/MAX_POLL_ADDR range at startup
+// #define RS485_SEED_POLL_RANGE
 
 // ============================================================================
 // DEBUG OPTIONS

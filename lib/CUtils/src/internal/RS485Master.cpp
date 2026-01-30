@@ -1,67 +1,44 @@
 /**
  * @file RS485Master.cpp
- * @brief RS-485 Master Driver for CockpitOS (OpenHornet ABSIS Compatible)
- * 
- * PROTOCOL DERIVED FROM ACTUAL ARDUINO DCS-BIOS LIBRARY SOURCE CODE:
- *   - DcsBiosNgRS485Slave.cpp.inc
- *   - DcsBiosNgRS485Master.cpp.inc
+ * @brief RS-485 Master Driver for CockpitOS - FIX H
  * 
  * ==========================================================================
- * PROTOCOL SUMMARY:
+ * FIX H: MATCH STANDALONE EXACTLY + FIX INPUT HANDLING
  * ==========================================================================
  * 
- * PACKET FORMAT:
- *   [Address] [MsgType] [DataLength] [Data...] [Checksum]
+ * Key insight: Standalone has outputs working, inputs NOT working.
+ * CockpitOS has inputs working, outputs NOT working.
  * 
- * TWO-PHASE POLLING:
- *   1. BROADCAST: Address=0 - All slaves receive export data, none respond
- *   2. POLL: Address=N - Only slave N responds with input commands
+ * This suggests the POLL vs BROADCAST interaction is the problem.
  * 
- * SLAVE RESPONSE:
- *   - No data:  [0x00] (single byte, NO checksum)
- *   - Has data: [Length] [MsgType=0] [Data...] [0x72]
+ * This fix:
+ * 1. Matches standalone's exact broadcast behavior
+ * 2. Fixes the input command parsing bug (was double-processing)
+ * 3. Adds proper input deduplication
+ * 4. 8KB queue to hold full DCS-BIOS frame
  * 
  * ==========================================================================
  */
 
 #if RS485_MASTER_ENABLED
 
-#include <driver/uart.h>
+#include <HardwareSerial.h>
 #include "../RS485Config.h"
 
-// ============================================================================
-// PROTOCOL CONSTANTS
-// ============================================================================
-
-static const uint8_t RS485_ADDR_BROADCAST = 0;
-static const uint8_t RS485_MSGTYPE_POLL = 0;
-static const uint8_t RS485_CHECKSUM_PLACEHOLDER = 0x72;
-
-// Timeout initialization
-static uint8_t rs485_skipTimeoutsAfterBroadcast = 0;
+HardwareSerial RS485(1);
 
 // ============================================================================
-// STATE MACHINE
+// PROTOCOL CONSTANTS - MATCH STANDALONE
 // ============================================================================
 
-enum class RS485State : uint8_t {
-    IDLE,
-    BROADCAST_MSGTYPE, BROADCAST_LENGTH, BROADCAST_DATA, 
-    BROADCAST_CHECKSUM, BROADCAST_WAIT_COMPLETE,
-    POLL_MSGTYPE, POLL_LENGTH, POLL_CHECKSUM, POLL_WAIT_COMPLETE,
-    RX_WAIT_LENGTH, RX_WAIT_MSGTYPE, RX_WAIT_DATA, RX_WAIT_CHECKSUM
-};
+#define RS485_TX_BUFFER_SIZE    128
+#define RS485_MAX_DATA_LEN      (RS485_TX_BUFFER_SIZE - 4)  // 124 bytes
+#define RS485_POLL_TIMEOUT_US   1000   // Match standalone
+#define RS485_DATA_TIMEOUT_US   5000   // Match standalone
 
 // ============================================================================
-// INTERNAL STRUCTURES
+// STRUCTURES
 // ============================================================================
-
-struct SlaveStatus {
-    bool     online;
-    uint32_t responseCount;
-    uint32_t timeoutCount;
-    uint32_t lastResponseUs;
-};
 
 struct MasterStats {
     uint32_t broadcastCount;
@@ -69,234 +46,120 @@ struct MasterStats {
     uint32_t responseCount;
     uint32_t timeoutCount;
     uint32_t inputCmdCount;
-    uint32_t checksumErrors;
     uint32_t exportBytesSent;
-    uint32_t pollCycles;
-    uint32_t changesDetected;
-    uint32_t framesSkipped;
-    uint32_t expectedTimeouts;  // Timeouts after receiving data (expected behavior)
+    uint32_t queueOverflows;
 };
 
 // ============================================================================
-// CHANGE DETECTION PARSER (isolated from DCSBIOSBridge)
+// EXPORT QUEUE - 8KB
 // ============================================================================
 
-enum RS485ParseState : uint8_t {
-    RS485_PARSE_WAIT_FOR_SYNC,
-    RS485_PARSE_ADDRESS_LOW, RS485_PARSE_ADDRESS_HIGH,
-    RS485_PARSE_COUNT_LOW, RS485_PARSE_COUNT_HIGH,
-    RS485_PARSE_DATA_LOW, RS485_PARSE_DATA_HIGH
-};
+#define RS485_EXPORT_QUEUE_SIZE 8192
+static uint8_t rs485_exportQueue[RS485_EXPORT_QUEUE_SIZE];
+static volatile size_t rs485_exportQueueHead = 0;
+static volatile size_t rs485_exportQueueTail = 0;
 
-static RS485ParseState rs485_parseState = RS485_PARSE_WAIT_FOR_SYNC;
-static uint8_t  rs485_syncByteCount = 0;
-static uint16_t rs485_parseAddress = 0;
-static uint16_t rs485_parseCount = 0;
-static uint16_t rs485_parseData = 0;
+static MasterStats rs485_stats = {0};
 
-// Change tracking
-static uint16_t rs485_prevExport[0x4000];  // 32KB for address range 0x0000-0x7FFF
-static bool rs485_prevInitialized = false;
+static inline size_t rs485_exportQueueAvailable() {
+    if (rs485_exportQueueHead >= rs485_exportQueueTail) {
+        return rs485_exportQueueHead - rs485_exportQueueTail;
+    }
+    return RS485_EXPORT_QUEUE_SIZE - rs485_exportQueueTail + rs485_exportQueueHead;
+}
 
-// Change queue
-#define RS485_CHANGE_QUEUE_SIZE 128
-struct RS485Change { uint16_t address; uint16_t value; };
-static RS485Change rs485_changeQueue[RS485_CHANGE_QUEUE_SIZE];
-static volatile uint8_t rs485_changeQueueHead = 0;
-static volatile uint8_t rs485_changeQueueTail = 0;
-static volatile uint8_t rs485_changeCount = 0;
-static bool rs485_frameHasChanges = false;
+static inline bool rs485_exportQueuePut(uint8_t c) {
+    size_t nextHead = (rs485_exportQueueHead + 1) % RS485_EXPORT_QUEUE_SIZE;
+    if (nextHead != rs485_exportQueueTail) {
+        rs485_exportQueue[rs485_exportQueueHead] = c;
+        rs485_exportQueueHead = nextHead;
+        return true;
+    }
+    rs485_stats.queueOverflows++;
+    return false;
+}
+
+static inline uint8_t rs485_exportQueueGet() {
+    uint8_t c = rs485_exportQueue[rs485_exportQueueTail];
+    rs485_exportQueueTail = (rs485_exportQueueTail + 1) % RS485_EXPORT_QUEUE_SIZE;
+    return c;
+}
 
 // ============================================================================
 // INTERNAL STATE
 // ============================================================================
 
-static RS485State rs485_state = RS485State::IDLE;
-static SlaveStatus rs485_slaves[RS485_MAX_SLAVES];
-static MasterStats rs485_stats = {0};
+static uint8_t rs485_txBuffer[RS485_TX_BUFFER_SIZE];
+static uint8_t rs485_rxBuffer[64];
 
-// Polling control
-static uint8_t rs485_currentPollAddr = 0;
-static uint8_t rs485_minPollAddr = RS485_MIN_POLL_ADDR;
-static uint8_t rs485_maxPollAddr = RS485_MAX_POLL_ADDR;
-static bool rs485_broadcastPending = false;
+static bool rs485_slavePresent[RS485_MAX_SLAVES];
+static uint8_t rs485_pollAddressCounter = 1;
+static uint8_t rs485_scanAddressCounter = 1;
+static uint8_t rs485_currentPollAddress = 1;
 
-// Export data ring buffer
-static uint8_t rs485_exportRing[RS485_EXPORT_BUFFER_SIZE];
-static volatile size_t rs485_exportHead = 0;
-static volatile size_t rs485_exportTail = 0;
-static volatile size_t rs485_exportCount = 0;
-
-// TX state
-static uint8_t rs485_txExportData[256];
-static size_t rs485_txExportLen = 0;
-static size_t rs485_txExportIdx = 0;
-static uint8_t rs485_txChecksum = 0;
-
-// RX state
-static uint8_t rs485_rxBuffer[RS485_INPUT_BUFFER_SIZE];
-static size_t rs485_rxLen = 0;
-static size_t rs485_rxExpected = 0;
-static uint8_t rs485_rxMsgType = 0;
-
-// Timing
-static uint32_t rs485_opStartUs = 0;
-static uint32_t rs485_lastPollCompleteUs = 0;
-static uint32_t rs485_lastBroadcastMs = 0;
-
-// Slave tracking
-static uint8_t rs485_consecutiveTimeouts[RS485_MAX_SLAVES] = {0};
-static uint32_t rs485_lastResponseTime[RS485_MAX_SLAVES] = {0};
-static bool rs485_offlineReported[RS485_MAX_SLAVES] = {false};
-static const uint32_t RS485_OFFLINE_TIME_MS = 1000;
-
-// Expected timeout tracking - Arduino slave misses one poll after sending data
-static bool rs485_expectTimeoutAfterData = false;
-
-// Flags
 static bool rs485_initialized = false;
 static bool rs485_enabled = true;
 
-// UART
-static const uart_port_t RS485_UART_NUM = UART_NUM_1;
+static uint32_t rs485_maxQueueSeen = 0;
+
+// Input deduplication
+static char rs485_lastInputCmd[64] = {0};
+static uint32_t rs485_lastInputTimeMs = 0;
+static const uint32_t INPUT_DEDUPE_MS = 100;  // Ignore same command within 100ms
 
 // ============================================================================
-// CHANGE DETECTION FUNCTIONS
+// DIRECTION CONTROL - MATCH STANDALONE
 // ============================================================================
 
-static void rs485_initPrevValues() {
-    for (size_t i = 0; i < 0x4000; ++i) {
-        rs485_prevExport[i] = 0xFFFFu;
-    }
-    rs485_prevInitialized = true;
-    debugPrint("[RS485] 🔄 Prev values initialized\n");
+static inline void rs485_setTxMode() {
+    RS485.flush();
+    digitalWrite(RS485_EN_PIN, HIGH);
 }
 
-static void rs485_queueChange(uint16_t address, uint16_t value) {
-    if (rs485_changeCount >= RS485_CHANGE_QUEUE_SIZE) {
-        rs485_changeQueueTail = (rs485_changeQueueTail + 1) % RS485_CHANGE_QUEUE_SIZE;
-        rs485_changeCount--;
-    }
-    uint8_t head = rs485_changeQueueHead;
-    rs485_changeQueue[head].address = address;
-    rs485_changeQueue[head].value = value;
-    rs485_changeQueueHead = (head + 1) % RS485_CHANGE_QUEUE_SIZE;
-    rs485_changeCount++;
-    rs485_frameHasChanges = true;
-    rs485_stats.changesDetected++;
-    
+static inline void rs485_setRxMode() {
+    RS485.flush();
+    digitalWrite(RS485_EN_PIN, LOW);
 }
 
-static void rs485_processAddressValue(uint16_t address, uint16_t value) {
-    if (address >= 0x8000) return;
-    
-    // FILTER: Only queue addresses that exist in DcsOutputTable
-    // This prevents gauge data from flooding the queue
-    if (findDcsOutputEntries(address) == nullptr) return;
-    
-    uint16_t index = address >> 1;
-    if (rs485_prevExport[index] == value) return;
-    rs485_prevExport[index] = value;
-    rs485_queueChange(address, value);
-}
-
-static void rs485_parseChar(uint8_t c) {
-    switch (rs485_parseState) {
-        case RS485_PARSE_WAIT_FOR_SYNC:
-            break;
-        case RS485_PARSE_ADDRESS_LOW:
-            rs485_parseAddress = c;
-            rs485_parseState = RS485_PARSE_ADDRESS_HIGH;
-            break;
-        case RS485_PARSE_ADDRESS_HIGH:
-            rs485_parseAddress |= ((uint16_t)c << 8);
-            rs485_parseState = (rs485_parseAddress != 0x5555) ? RS485_PARSE_COUNT_LOW : RS485_PARSE_WAIT_FOR_SYNC;
-            break;
-        case RS485_PARSE_COUNT_LOW:
-            rs485_parseCount = c;
-            rs485_parseState = RS485_PARSE_COUNT_HIGH;
-            break;
-        case RS485_PARSE_COUNT_HIGH:
-            rs485_parseCount |= ((uint16_t)c << 8);
-            rs485_parseState = RS485_PARSE_DATA_LOW;
-            break;
-        case RS485_PARSE_DATA_LOW:
-            rs485_parseData = c;
-            rs485_parseCount--;
-            rs485_parseState = RS485_PARSE_DATA_HIGH;
-            break;
-        case RS485_PARSE_DATA_HIGH:
-            rs485_parseData |= ((uint16_t)c << 8);
-            rs485_parseCount--;
-            rs485_processAddressValue(rs485_parseAddress, rs485_parseData);
-            rs485_parseAddress += 2;
-            rs485_parseState = (rs485_parseCount == 0) ? RS485_PARSE_ADDRESS_LOW : RS485_PARSE_DATA_LOW;
-            break;
-    }
-    
-    if (c == 0x55) {
-        rs485_syncByteCount++;
-    } else {
-        rs485_syncByteCount = 0;
-    }
-    
-    if (rs485_syncByteCount >= 4) {
-        rs485_parseState = RS485_PARSE_ADDRESS_LOW;
-        rs485_syncByteCount = 0;
-        
-        if (rs485_frameHasChanges) {
-            rs485_broadcastPending = true;
-            rs485_frameHasChanges = false;
-        }
-    }
+static void rs485_sendBuffer(const uint8_t* data, size_t len) {
+    if (len == 0) return;
+    rs485_setTxMode();
+    RS485.write(data, len);
+    RS485.flush();
+    rs485_setRxMode();
 }
 
 // ============================================================================
-// EXPORT DATA HANDLING
-// ============================================================================
-
-static void rs485_prepareExportData() {
-    rs485_txExportLen = 0;
-    
-    while (rs485_changeCount > 0 && rs485_txExportLen < 240) {
-        RS485Change& change = rs485_changeQueue[rs485_changeQueueTail];
-        
-        // Format: [0x55 0x55 0x55 0x55] [AddrLo AddrHi] [0x02 0x00] [ValLo ValHi]
-        rs485_txExportData[rs485_txExportLen++] = 0x55;
-        rs485_txExportData[rs485_txExportLen++] = 0x55;
-        rs485_txExportData[rs485_txExportLen++] = 0x55;
-        rs485_txExportData[rs485_txExportLen++] = 0x55;
-        rs485_txExportData[rs485_txExportLen++] = change.address & 0xFF;
-        rs485_txExportData[rs485_txExportLen++] = (change.address >> 8) & 0xFF;
-        rs485_txExportData[rs485_txExportLen++] = 0x02;
-        rs485_txExportData[rs485_txExportLen++] = 0x00;
-        rs485_txExportData[rs485_txExportLen++] = change.value & 0xFF;
-        rs485_txExportData[rs485_txExportLen++] = (change.value >> 8) & 0xFF;
-        
-        rs485_changeQueueTail = (rs485_changeQueueTail + 1) % RS485_CHANGE_QUEUE_SIZE;
-        rs485_changeCount--;
-    }
-    
-    rs485_stats.exportBytesSent += rs485_txExportLen;
-}
-
-// ============================================================================
-// INPUT COMMAND PROCESSING
+// INPUT COMMAND PROCESSING - WITH DEDUPLICATION
 // ============================================================================
 
 static void rs485_processInputCommand(const uint8_t* data, size_t len) {
-    if (len == 0) return;
+    if (len == 0 || len >= sizeof(rs485_lastInputCmd)) return;
     
+    // Build command string
     char cmdBuf[64];
-    size_t cmdLen = (len >= sizeof(cmdBuf)) ? sizeof(cmdBuf) - 1 : len;
-    memcpy(cmdBuf, data, cmdLen);
-    cmdBuf[cmdLen] = '\0';
+    memcpy(cmdBuf, data, len);
+    cmdBuf[len] = '\0';
     
-    // Strip trailing newline
-    while (cmdLen > 0 && (cmdBuf[cmdLen-1] == '\n' || cmdBuf[cmdLen-1] == '\r')) {
-        cmdBuf[--cmdLen] = '\0';
+    // Strip trailing newlines/carriage returns
+    while (len > 0 && (cmdBuf[len-1] == '\n' || cmdBuf[len-1] == '\r')) {
+        cmdBuf[--len] = '\0';
     }
     
+    if (len == 0) return;
+    
+    // Deduplication: ignore if same command within dedupe window
+    uint32_t now = millis();
+    if (strcmp(cmdBuf, rs485_lastInputCmd) == 0 && 
+        (now - rs485_lastInputTimeMs) < INPUT_DEDUPE_MS) {
+        return;  // Duplicate, ignore
+    }
+    
+    // Save for deduplication
+    strncpy(rs485_lastInputCmd, cmdBuf, sizeof(rs485_lastInputCmd) - 1);
+    rs485_lastInputTimeMs = now;
+    
+    // Parse "LABEL VALUE" format
     char* space = strchr(cmdBuf, ' ');
     if (!space) {
         debugPrintf("[RS485] ⚠️ Malformed cmd: %s\n", cmdBuf);
@@ -307,455 +170,225 @@ static void rs485_processInputCommand(const uint8_t* data, size_t len) {
     const char* label = cmdBuf;
     const char* value = space + 1;
     
-    debugPrintf("[RS485] 🎚️ SWITCH: %s = %s (from slave %d)\n", label, value, rs485_currentPollAddr);
+    debugPrintf("[RS485] 🎚️ SWITCH: %s = %s\n", label, value);
     rs485_stats.inputCmdCount++;
     
     sendCommand(label, value, false);
 }
 
 // ============================================================================
-// RESPONSE HANDLERS
+// ADVANCE POLL ADDRESS - MATCH STANDALONE
 // ============================================================================
 
-static void rs485_handleResponse() {
-    uint8_t idx = rs485_currentPollAddr - 1;
-    if (idx < RS485_MAX_SLAVES) {
-        if (rs485_offlineReported[idx]) {
-            debugPrintf("[RS485] ✅ Slave %d is ONLINE\n", rs485_currentPollAddr);
-            rs485_offlineReported[idx] = false;
+static void rs485_advancePollAddress() {
+    rs485_pollAddressCounter = (rs485_pollAddressCounter + 1) % RS485_MAX_SLAVES;
+
+    uint8_t startAddr = rs485_pollAddressCounter;
+    while (!rs485_slavePresent[rs485_pollAddressCounter]) {
+        rs485_pollAddressCounter = (rs485_pollAddressCounter + 1) % RS485_MAX_SLAVES;
+        if (rs485_pollAddressCounter == startAddr) break;
+    }
+
+    if (rs485_pollAddressCounter == 0) {
+        rs485_scanAddressCounter = (rs485_scanAddressCounter + 1) % RS485_MAX_SLAVES;
+        if (rs485_scanAddressCounter == 0) rs485_scanAddressCounter = 1;
+
+        uint8_t startScan = rs485_scanAddressCounter;
+        while (rs485_slavePresent[rs485_scanAddressCounter]) {
+            rs485_scanAddressCounter = (rs485_scanAddressCounter + 1) % RS485_MAX_SLAVES;
+            if (rs485_scanAddressCounter == 0) rs485_scanAddressCounter = 1;
+            if (rs485_scanAddressCounter == startScan) break;
         }
-        rs485_slaves[idx].online = true;
-        rs485_slaves[idx].responseCount++;
-        rs485_slaves[idx].lastResponseUs = micros() - rs485_opStartUs;
-        rs485_consecutiveTimeouts[idx] = 0;
-        rs485_lastResponseTime[idx] = millis();
+        rs485_currentPollAddress = rs485_scanAddressCounter;
+    } else {
+        rs485_currentPollAddress = rs485_pollAddressCounter;
+    }
+}
+
+// ============================================================================
+// POLL SLAVE - MATCH STANDALONE EXACTLY
+// ============================================================================
+
+static void rs485_pollSlave(uint8_t address) {
+    if (address == 0) return;
+    
+    rs485_stats.pollCount++;
+    
+    // Build poll: [ADDR][MSGTYPE=0][LENGTH=0]
+    rs485_txBuffer[0] = address;
+    rs485_txBuffer[1] = 0x00;
+    rs485_txBuffer[2] = 0x00;
+    
+    rs485_sendBuffer(rs485_txBuffer, 3);
+    
+    // Wait for response with yield
+    unsigned long startTime = micros();
+    while (!RS485.available()) {
+        if ((micros() - startTime) > RS485_POLL_TIMEOUT_US) {
+            rs485_slavePresent[address] = false;
+            // Standalone sends a single 0x00 on timeout - mimic that
+            rs485_txBuffer[0] = 0x00;
+            rs485_sendBuffer(rs485_txBuffer, 1);
+            rs485_stats.timeoutCount++;
+            return;
+        }
+        yield();
     }
     
+    rs485_slavePresent[address] = true;
     rs485_stats.responseCount++;
     
-    // Process input command if present
-    if (rs485_rxLen > 0 && rs485_rxMsgType == 0) {
-        rs485_processInputCommand(rs485_rxBuffer, rs485_rxLen);
-        // After receiving data, slave will miss next poll (expected Arduino behavior)
-        rs485_expectTimeoutAfterData = true;
-    }
-}
-
-static void rs485_handleTimeout() {
-    // Expected timeout after receiving data - don't count as error
-    if (rs485_expectTimeoutAfterData) {
-        rs485_expectTimeoutAfterData = false;
-        rs485_stats.expectedTimeouts++;
-        rs485_stats.responseCount++;  // Count as "response" since it's expected behavior
-        return;
-    }
-    else if (rs485_skipTimeoutsAfterBroadcast > 0) {
-        rs485_skipTimeoutsAfterBroadcast--;
-        rs485_stats.expectedTimeouts++;
-        rs485_stats.responseCount++;
-        return;
+    uint8_t dataLen = RS485.read();
+    
+    if (dataLen == 0) return;  // Empty response, slave has nothing
+    if (dataLen > sizeof(rs485_rxBuffer)) dataLen = sizeof(rs485_rxBuffer);
+    
+    // Read: [MSGTYPE][DATA...][CHECKSUM]
+    size_t bytesRead = 0;
+    size_t expectedBytes = dataLen + 2;
+    if (expectedBytes > sizeof(rs485_rxBuffer)) expectedBytes = sizeof(rs485_rxBuffer);
+    
+    startTime = micros();
+    while (bytesRead < expectedBytes) {
+        if (RS485.available()) {
+            rs485_rxBuffer[bytesRead++] = RS485.read();
+        } else if ((micros() - startTime) > RS485_DATA_TIMEOUT_US) {
+            return;  // Incomplete response, abort
+        }
+        yield();
     }
     
-    uint8_t idx = rs485_currentPollAddr - 1;
-    if (idx < RS485_MAX_SLAVES) {
-        rs485_slaves[idx].timeoutCount++;
-        rs485_consecutiveTimeouts[idx]++;
-        
-        uint32_t timeSinceResponse = millis() - rs485_lastResponseTime[idx];
-        if (timeSinceResponse > RS485_OFFLINE_TIME_MS && 
-            rs485_lastResponseTime[idx] != 0 &&
-            !rs485_offlineReported[idx]) {
-            rs485_slaves[idx].online = false;
-            rs485_offlineReported[idx] = true;
-            debugPrintf("[RS485] ⚠️ Slave %d OFFLINE (no response for %lu ms)\n", 
-                       rs485_currentPollAddr, timeSinceResponse);
-        }
+    // Process input data (skip msgtype byte at [0] and checksum at end)
+    if (bytesRead >= 2) {
+        // Data starts at rs485_rxBuffer[1], length is bytesRead - 2 (skip msgtype + checksum)
+        rs485_processInputCommand(rs485_rxBuffer + 1, bytesRead - 2);
     }
-    
-    rs485_stats.timeoutCount++;
-}
-
-static void rs485_advanceToNextSlave() {
-    rs485_currentPollAddr++;
-    if (rs485_currentPollAddr > rs485_maxPollAddr) {
-        rs485_currentPollAddr = rs485_minPollAddr;
-        rs485_stats.pollCycles++;
-        if (rs485_changeCount > 0) {
-            rs485_broadcastPending = true;
-        }
-    }
-    rs485_lastPollCompleteUs = micros();
-    rs485_state = RS485State::IDLE;
 }
 
 // ============================================================================
-// BROADCAST STATE MACHINE
+// BROADCAST EXPORT DATA - MATCH STANDALONE EXACTLY
 // ============================================================================
 
-static void rs485_startBroadcast() {
-    rs485_prepareExportData();
+static void rs485_broadcastExportData() {
+    size_t available = rs485_exportQueueAvailable();
+    if (available == 0) return;
     
-    if (rs485_txExportLen == 0) {
-        rs485_broadcastPending = false;
-        rs485_state = RS485State::IDLE;
-        return;
+    if (available > rs485_maxQueueSeen) {
+        rs485_maxQueueSeen = available;
     }
     
-    rs485_opStartUs = micros();
-    rs485_broadcastPending = false;
+    // Limit chunk size - match standalone
+    size_t dataLen = available;
+    if (dataLen > RS485_MAX_DATA_LEN) dataLen = RS485_MAX_DATA_LEN;
     
-    rs485_txChecksum = RS485_ADDR_BROADCAST ^ RS485_MSGTYPE_POLL ^ (uint8_t)rs485_txExportLen;
-    for (size_t i = 0; i < rs485_txExportLen; i++) {
-        rs485_txChecksum ^= rs485_txExportData[i];
-    }
+    // Build: [ADDR=0][MSGTYPE=0][LENGTH][DATA...][CHECKSUM]
+    rs485_txBuffer[0] = 0x00;
+    rs485_txBuffer[1] = 0x00;
+    rs485_txBuffer[2] = (uint8_t)dataLen;
     
-    // DEBUG: Log broadcast packet details
-#if DEBUG_ENABLED
-    debugPrintf("[RS485-BCAST] 📡 Sending %d bytes, checksum=0x%02X\n", rs485_txExportLen, rs485_txChecksum);
-    debugPrintf("[RS485-BCAST] Wire format: [Addr=0x00] [MsgType=0x00] [Len=0x%02X] [Data...] [Chk=0x%02X]\n", 
-                (uint8_t)rs485_txExportLen, rs485_txChecksum);
-#endif
-
-    // Parse and show each change in the packet (max 5 to avoid log spam)
-    int shown = 0;
-    for (size_t i = 0; i + 9 < rs485_txExportLen && shown < 5; i += 10) {
-        // Each change: [55 55 55 55] [AddrLo AddrHi] [02 00] [ValLo ValHi]
-        if (rs485_txExportData[i] == 0x55 && rs485_txExportData[i+1] == 0x55) {
-            uint16_t addr = rs485_txExportData[i+4] | (rs485_txExportData[i+5] << 8);
-            uint16_t val  = rs485_txExportData[i+8] | (rs485_txExportData[i+9] << 8);
-#if DEBUG_ENABLED
-            debugPrintf("[RS485-BCAST]   -> DCS Addr=0x%04X (%u) Val=0x%04X (%u)\n", addr, addr, val, val);
-#endif
-            shown++;
-        }
-    }
-    if (rs485_txExportLen > 50) {
-#if DEBUG_ENABLED
-        debugPrintf("[RS485-BCAST]   ... and more (total %d bytes)\n", rs485_txExportLen);
-#endif
-    }
+    uint8_t checksum = 0 ^ 0 ^ (uint8_t)dataLen;
     
-    uint8_t addr = RS485_ADDR_BROADCAST;
-    uart_write_bytes(RS485_UART_NUM, (const char*)&addr, 1);
-    rs485_state = RS485State::BROADCAST_MSGTYPE;
+    for (size_t i = 0; i < dataLen; i++) {
+        uint8_t c = rs485_exportQueueGet();
+        rs485_txBuffer[3 + i] = c;
+        checksum ^= c;
+    }
+    rs485_txBuffer[3 + dataLen] = checksum;
+    
+    rs485_sendBuffer(rs485_txBuffer, 4 + dataLen);
+    
     rs485_stats.broadcastCount++;
-    rs485_lastBroadcastMs = millis();
-
-    rs485_skipTimeoutsAfterBroadcast = 10;  // Skip next 10 timeouts
-}
-
-static void rs485_processBroadcastTx() {
-    switch (rs485_state) {
-        case RS485State::BROADCAST_MSGTYPE: {
-            uint8_t msgtype = RS485_MSGTYPE_POLL;
-            uart_write_bytes(RS485_UART_NUM, (const char*)&msgtype, 1);
-            rs485_state = RS485State::BROADCAST_LENGTH;
-            break;
-        }
-        case RS485State::BROADCAST_LENGTH: {
-            uint8_t len = (uint8_t)rs485_txExportLen;
-            uart_write_bytes(RS485_UART_NUM, (const char*)&len, 1);
-            rs485_txExportIdx = 0;
-            rs485_state = RS485State::BROADCAST_DATA;
-            break;
-        }
-        case RS485State::BROADCAST_DATA: {
-            size_t txFree = 0;
-            uart_get_tx_buffer_free_size(RS485_UART_NUM, &txFree);
-            while (rs485_txExportIdx < rs485_txExportLen && txFree > 1) {
-                uart_write_bytes(RS485_UART_NUM, (const char*)&rs485_txExportData[rs485_txExportIdx], 1);
-                rs485_txExportIdx++;
-                txFree--;
-            }
-            if (rs485_txExportIdx >= rs485_txExportLen) {
-                rs485_state = RS485State::BROADCAST_CHECKSUM;
-            }
-            break;
-        }
-        case RS485State::BROADCAST_CHECKSUM: {
-            uart_write_bytes(RS485_UART_NUM, (const char*)&rs485_txChecksum, 1);
-            rs485_state = RS485State::BROADCAST_WAIT_COMPLETE;
-            break;
-        }
-        case RS485State::BROADCAST_WAIT_COMPLETE: {
-            uart_wait_tx_done(RS485_UART_NUM, 1);
-            #if RS485_POST_BROADCAST_DELAY_US > 0
-            delayMicroseconds(RS485_POST_BROADCAST_DELAY_US);
-            #endif
-            rs485_state = RS485State::IDLE;
-            break;
-        }
-        default:
-            break;
-    }
+    rs485_stats.exportBytesSent += dataLen;
 }
 
 // ============================================================================
-// POLL STATE MACHINE
-// ============================================================================
-
-static void rs485_startPoll(uint8_t addr) {
-    rs485_currentPollAddr = addr;
-    rs485_opStartUs = micros();
-    
-    uart_write_bytes(RS485_UART_NUM, (const char*)&addr, 1);
-    rs485_state = RS485State::POLL_MSGTYPE;
-    rs485_stats.pollCount++;
-}
-
-static void rs485_processPollTx() {
-    switch (rs485_state) {
-        case RS485State::POLL_MSGTYPE: {
-            uint8_t msgtype = RS485_MSGTYPE_POLL;
-            uart_write_bytes(RS485_UART_NUM, (const char*)&msgtype, 1);
-            rs485_state = RS485State::POLL_LENGTH;
-            break;
-        }
-        case RS485State::POLL_LENGTH: {
-            uint8_t len = 0;
-            uart_write_bytes(RS485_UART_NUM, (const char*)&len, 1);
-            rs485_state = RS485State::POLL_WAIT_COMPLETE;
-            break;
-        }
-        case RS485State::POLL_WAIT_COMPLETE: {
-            uart_wait_tx_done(RS485_UART_NUM, 1);
-            rs485_rxLen = 0;
-            rs485_rxExpected = 0;
-            rs485_rxMsgType = 0;
-            rs485_opStartUs = micros();  // Reset timer for RX timeout
-            rs485_state = RS485State::RX_WAIT_LENGTH;
-            break;
-        }
-        default:
-            break;
-    }
-}
-
-// ============================================================================
-// RESPONSE STATE MACHINE
-// ============================================================================
-
-static void rs485_processRx() {
-    size_t available = 0;
-    uart_get_buffered_data_len(RS485_UART_NUM, &available);
-
-    if (available == 0) {
-        uint32_t elapsed = micros() - rs485_opStartUs;
-        if (elapsed > RS485_POLL_TIMEOUT_US) {
-            rs485_handleTimeout();
-            rs485_advanceToNextSlave();
-        }
-        return;
-    }
-
-    // Data available - process it
-    uint8_t byte;
-
-    switch (rs485_state) {
-        case RS485State::RX_WAIT_LENGTH: {
-            uart_read_bytes(RS485_UART_NUM, &byte, 1, 0);
-            rs485_rxExpected = byte;
-            if (rs485_rxExpected == 0) {
-                rs485_rxLen = 0;
-                rs485_handleResponse();
-                rs485_advanceToNextSlave();
-            } else {
-                rs485_state = RS485State::RX_WAIT_MSGTYPE;
-            }
-            break;
-        }
-        case RS485State::RX_WAIT_MSGTYPE: {
-            uart_read_bytes(RS485_UART_NUM, &byte, 1, 0);
-            rs485_rxMsgType = byte;
-            rs485_rxLen = 0;
-            rs485_rxExpected--;
-            rs485_state = (rs485_rxExpected == 0) ? RS485State::RX_WAIT_CHECKSUM : RS485State::RX_WAIT_DATA;
-            break;
-        }
-        case RS485State::RX_WAIT_DATA: {
-            while (available > 0 && rs485_rxLen < rs485_rxExpected) {
-                if (rs485_rxLen >= sizeof(rs485_rxBuffer)) break;
-                uart_read_bytes(RS485_UART_NUM, &byte, 1, 0);
-                rs485_rxBuffer[rs485_rxLen++] = byte;
-                available--;
-            }
-            if (rs485_rxLen >= rs485_rxExpected) {
-                rs485_state = RS485State::RX_WAIT_CHECKSUM;
-            }
-            break;
-        }
-        case RS485State::RX_WAIT_CHECKSUM: {
-            uart_read_bytes(RS485_UART_NUM, &byte, 1, 0);
-            rs485_handleResponse();
-            rs485_advanceToNextSlave();
-            break;
-        }
-        default:
-            break;
-    }
-}
-
-// ============================================================================
-// PUBLIC API
+// PUBLIC INTERFACE
 // ============================================================================
 
 bool RS485Master_init() {
     if (rs485_initialized) return true;
     
-    debugPrintln("[RS485] Initializing RS-485 Master...");
-    rs485_initPrevValues();
+    pinMode(RS485_EN_PIN, OUTPUT);
+    digitalWrite(RS485_EN_PIN, LOW);
     
-    uart_config_t uart_config = {
-        .baud_rate = RS485_BAUD,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-        .rx_flow_ctrl_thresh = 0,
-        .source_clk = UART_SCLK_DEFAULT,
-    };
+    RS485.begin(RS485_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
     
-    esp_err_t err = uart_driver_install(RS485_UART_NUM, 256, 256, 0, NULL, 0);
-    if (err != ESP_OK) {
-        debugPrintf("[RS485] ❌ UART driver install failed: %d\n", err);
-        return false;
+    // Initialize slave presence - match standalone
+    rs485_slavePresent[0] = true;  // Broadcast address always "present"
+    for (int i = 1; i < RS485_MAX_SLAVES; i++) {
+        rs485_slavePresent[i] = false;
     }
     
-    err = uart_param_config(RS485_UART_NUM, &uart_config);
-    if (err != ESP_OK) {
-        debugPrintf("[RS485] ❌ UART param config failed: %d\n", err);
-        return false;
-    }
-    
-    err = uart_set_pin(RS485_UART_NUM, RS485_TX_PIN, RS485_RX_PIN, RS485_EN_PIN, UART_PIN_NO_CHANGE);
-    if (err != ESP_OK) {
-        debugPrintf("[RS485] ❌ UART set pin failed: %d\n", err);
-        return false;
-    }
-    
-    err = uart_set_mode(RS485_UART_NUM, UART_MODE_RS485_HALF_DUPLEX);
-    if (err != ESP_OK) {
-        debugPrintf("[RS485] ❌ RS-485 mode failed: %d\n", err);
-        return false;
-    }
-    
-    // Initialize slave tracking
-    for (int i = 0; i < RS485_MAX_SLAVES; i++) {
-        rs485_slaves[i] = {false, 0, 0, 0};
-        rs485_consecutiveTimeouts[i] = 0;
-        rs485_lastResponseTime[i] = 0;
-        rs485_offlineReported[i] = false;
-    }
-    
-    rs485_exportHead = rs485_exportTail = rs485_exportCount = 0;
-    rs485_changeQueueHead = rs485_changeQueueTail = rs485_changeCount = 0;
+    rs485_exportQueueHead = rs485_exportQueueTail = 0;
+    rs485_maxQueueSeen = 0;
+    memset(&rs485_stats, 0, sizeof(rs485_stats));
+    memset(rs485_lastInputCmd, 0, sizeof(rs485_lastInputCmd));
+    rs485_lastInputTimeMs = 0;
     
     rs485_initialized = true;
     rs485_enabled = true;
-    rs485_state = RS485State::IDLE;
-    rs485_currentPollAddr = rs485_minPollAddr;
-    rs485_broadcastPending = false;
-    rs485_lastPollCompleteUs = micros();
-    rs485_lastBroadcastMs = 0;
-    rs485_expectTimeoutAfterData = false;
     
-    debugPrintf("[RS485] ✅ Init OK: %d baud, TX=%d, RX=%d, EN=%d\n",
+    debugPrintf("[RS485] ✅ Init OK (FIX H): %d baud, TX=%d, RX=%d, EN=%d\n",
                 RS485_BAUD, RS485_TX_PIN, RS485_RX_PIN, RS485_EN_PIN);
-    debugPrintf("[RS485] Poll range: %d-%d\n", rs485_minPollAddr, rs485_maxPollAddr);
+    debugPrintf("[RS485] Queue: %d bytes, Max broadcast: %d bytes\n", 
+                RS485_EXPORT_QUEUE_SIZE, RS485_MAX_DATA_LEN);
     
     return true;
 }
 
 void RS485Master_loop() {
     if (!rs485_initialized || !rs485_enabled) return;
-
-    // Don't poll unless DCS-BIOS is active - follows CockpitOS pattern
     if (!simReady()) return;
     
     // Status every 10 seconds
     static uint32_t lastStatusPrint = 0;
     if (millis() - lastStatusPrint > 10000) {
         lastStatusPrint = millis();
-        uint32_t missed = rs485_stats.pollCount - rs485_stats.responseCount;
         float responseRate = rs485_stats.pollCount > 0 ?
             100.0f * rs485_stats.responseCount / rs485_stats.pollCount : 0;
-        debugPrintf("[RS485] 📊 Status: Polls=%lu | Resp=%lu (%.1f%%) | Missed=%lu | Bcasts=%lu | Changes=%lu\n",
-            rs485_stats.pollCount, rs485_stats.responseCount, responseRate, missed,
-            rs485_stats.broadcastCount, rs485_stats.changesDetected);
+        debugPrintf("[RS485] 📊 Polls=%lu | Resp=%lu (%.1f%%) | Bcasts=%lu | Cmds=%lu\n",
+            rs485_stats.pollCount, rs485_stats.responseCount, responseRate,
+            rs485_stats.broadcastCount, rs485_stats.inputCmdCount);
+        debugPrintf("[RS485] 📊 Queue: %d, peak=%d, overflow=%lu\n",
+            rs485_exportQueueAvailable(), rs485_maxQueueSeen, rs485_stats.queueOverflows);
     }
     
-    switch (rs485_state) {
-        case RS485State::IDLE: {
-            bool canBroadcast = rs485_broadcastPending && rs485_changeCount > 0;
-            
-            #ifdef RS485_DISABLE_BROADCASTS
-            canBroadcast = false;
-            rs485_changeCount = 0;
-            #endif
-            
-            #if RS485_MIN_BROADCAST_INTERVAL_MS > 0
-            if (canBroadcast && (millis() - rs485_lastBroadcastMs < RS485_MIN_BROADCAST_INTERVAL_MS)) {
-                canBroadcast = false;
-            }
-            #endif
-            
-            if (canBroadcast) {
-                rs485_startBroadcast();
-            } else {
-                rs485_broadcastPending = false;
-                rs485_startPoll(rs485_currentPollAddr);
-            }
-            break;
-        }
-        case RS485State::BROADCAST_MSGTYPE:
-        case RS485State::BROADCAST_LENGTH:
-        case RS485State::BROADCAST_DATA:
-        case RS485State::BROADCAST_CHECKSUM:
-        case RS485State::BROADCAST_WAIT_COMPLETE:
-            rs485_processBroadcastTx();
-            break;
-        case RS485State::POLL_MSGTYPE:
-        case RS485State::POLL_LENGTH:
-        case RS485State::POLL_WAIT_COMPLETE:
-            rs485_processPollTx();
-            break;
-        case RS485State::RX_WAIT_LENGTH:
-        case RS485State::RX_WAIT_MSGTYPE:
-        case RS485State::RX_WAIT_DATA:
-        case RS485State::RX_WAIT_CHECKSUM:
-            rs485_processRx();
-            break;
-        default:
-            rs485_state = RS485State::IDLE;
-            break;
+    // ==========================================================================
+    // MATCH STANDALONE LOOP EXACTLY:
+    // 1. If we have export data -> broadcast and return (skip polling)
+    // 2. Otherwise -> poll next slave
+    // ==========================================================================
+    
+    if (rs485_exportQueueAvailable() > 0) {
+        rs485_broadcastExportData();
+        yield();
+        return;  // Skip polling this iteration
     }
+    
+    // Poll next slave
+    rs485_advancePollAddress();
+    rs485_pollSlave(rs485_currentPollAddress);
+    
+    yield();
 }
 
 void RS485Master_feedExportData(const uint8_t* data, size_t len) {
     if (!rs485_initialized) return;
     
-    #ifdef RS485_DISABLE_BROADCASTS
-    (void)data; (void)len;
-    return;
-    #endif
-    
-    if (!rs485_prevInitialized) rs485_initPrevValues();
     for (size_t i = 0; i < len; i++) {
-        rs485_parseChar(data[i]);
+        rs485_exportQueuePut(data[i]);
     }
 }
 
 void RS485Master_forceFullSync() {
-    rs485_initPrevValues();
-    rs485_broadcastPending = true;
+    rs485_exportQueueHead = rs485_exportQueueTail = 0;
+    rs485_maxQueueSeen = 0;
     debugPrint("[RS485] 🔄 Forced full sync\n");
 }
 
 void RS485Master_setPollingRange(uint8_t minAddr, uint8_t maxAddr) {
-    rs485_minPollAddr = constrain(minAddr, 1, RS485_MAX_SLAVES);
-    rs485_maxPollAddr = constrain(maxAddr, rs485_minPollAddr, RS485_MAX_SLAVES);
-    rs485_currentPollAddr = rs485_minPollAddr;
-    debugPrintf("[RS485] Poll range: %d-%d\n", rs485_minPollAddr, rs485_maxPollAddr);
+    // Not used in standalone-matching mode
+    debugPrintf("[RS485] Poll range request ignored (using standalone algorithm)\n");
 }
 
 void RS485Master_setEnabled(bool en) {
@@ -764,28 +397,31 @@ void RS485Master_setEnabled(bool en) {
 }
 
 bool RS485Master_isSlaveOnline(uint8_t address) {
-    if (address < 1 || address > RS485_MAX_SLAVES) return false;
-    return rs485_slaves[address - 1].online;
+    if (address < 1 || address >= RS485_MAX_SLAVES) return false;
+    return rs485_slavePresent[address];
 }
 
 uint8_t RS485Master_getOnlineSlaveCount() {
     uint8_t count = 0;
-    for (uint8_t i = rs485_minPollAddr; i <= rs485_maxPollAddr; i++) {
-        if (rs485_slaves[i - 1].online) count++;
+    for (uint8_t i = 1; i < RS485_MAX_SLAVES; i++) {
+        if (rs485_slavePresent[i]) count++;
     }
     return count;
 }
 
 void RS485Master_printStatus() {
     debugPrintln("\n[RS485] ========== STATUS ==========");
+    debugPrintln("[RS485] Mode: FIX H (standalone-matching)");
     float responseRate = rs485_stats.pollCount > 0 ? 
         100.0f * rs485_stats.responseCount / rs485_stats.pollCount : 0;
     debugPrintf("[RS485] Polls: %lu, Responses: %lu (%.1f%%)\n",
                 rs485_stats.pollCount, rs485_stats.responseCount, responseRate);
-    debugPrintf("[RS485] Timeouts: %lu (+ %lu expected)\n", 
-                rs485_stats.timeoutCount, rs485_stats.expectedTimeouts);
+    debugPrintf("[RS485] Timeouts: %lu\n", rs485_stats.timeoutCount);
     debugPrintf("[RS485] Input cmds: %lu\n", rs485_stats.inputCmdCount);
-    debugPrintf("[RS485] Broadcasts: %lu\n", rs485_stats.broadcastCount);
+    debugPrintf("[RS485] Broadcasts: %lu, Bytes: %lu\n", 
+                rs485_stats.broadcastCount, rs485_stats.exportBytesSent);
+    debugPrintf("[RS485] Queue peak: %lu, Overflows: %lu\n",
+                rs485_maxQueueSeen, rs485_stats.queueOverflows);
     debugPrintln("[RS485] ================================\n");
 }
 
