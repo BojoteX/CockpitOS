@@ -22,9 +22,9 @@
 // Here is where you tell the firmware which feature to use to SEND and RECEIVE data to DCS. 
 // Bluetooth BLE, Pure Native USB, WIFI, Serial (CDC/Socat) or as an RS485 slave. Only ONE can be active 
 #define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included) requires NimBLE-Arduino by h2zero. Uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on ALL ESP32s except S2s and P4s).
-#define USE_DCSBIOS_WIFI                            0 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
+#define USE_DCSBIOS_WIFI                            1 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
 #define USE_DCSBIOS_USB                             0 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
-#define USE_DCSBIOS_SERIAL                          1 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
+#define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 #define RS485_SLAVE_ENABLED                         0 // Set as RS-485 Slave transport. This is EXPERIMENTAL only for Open Hornet cockpits. 
 
 // RS485 Configuration (Only use for Open Hornet setups as this is experimental and not needed for CockpitOS normal operation)
