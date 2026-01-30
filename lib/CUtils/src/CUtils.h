@@ -237,6 +237,13 @@ void RS485Slave_loop();
 bool RS485Slave_queueCommand(const char* label, const char* value);
 void RS485Slave_setEnabled(bool enabled);
 bool RS485Slave_isEnabled();
+bool RS485Slave_isInitialized();
 uint32_t RS485Slave_getPollCount();
+uint32_t RS485Slave_getBroadcastCount();
+uint32_t RS485Slave_getExportBytesReceived();
+uint32_t RS485Slave_getCommandsSent();
+uint32_t RS485Slave_getChecksumErrors();
+size_t RS485Slave_getTxBufferPending();
+uint32_t RS485Slave_getTimeSinceLastPoll();
 void RS485Slave_printStatus();
 #endif
