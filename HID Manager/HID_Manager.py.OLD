@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-CockpitOS HID Manager v5.1 - Multi-Interface Multicast Fix
-============================================================
+CockpitOS HID Manager v5 - Fixed Architecture
+==============================================
 
 Combines the PROVEN patterns from the original with clean code structure.
-Now joins multicast on ALL network interfaces for universal compatibility.
 
 Key Design (borrowed from working original):
 --------------------------------------------
@@ -12,7 +11,13 @@ Key Design (borrowed from working original):
 2. TX: Per-device workers with Condition variable wake - NO LOCKS during write
 3. UDP: Direct blocking recvfrom() - no select() overhead
 4. Single writer per HID handle - no lock contention
-5. NEW: Multicast join on all interfaces (fixes multi-NIC Windows issue)
+
+What was wrong with v4 (experimental):
+--------------------------------------
+- Held lock during blocking read() → TX completely blocked
+- Held lock during feature drain → more blocking
+- Sharded TX pool added lookup overhead
+- select() wrapper added syscall overhead
 
 Author: CockpitOS Project
 License: MIT
@@ -51,7 +56,6 @@ REQUIRED_MODULES = {
     "hid": "hidapi",
     "filelock": "filelock",
     "curses": "windows-curses" if IS_WINDOWS else None,
-    "ifaddr": "ifaddr",  # NEW: Required for multi-interface multicast
 }
 
 missing = []
@@ -76,7 +80,6 @@ if missing:
 
 import hid
 import curses
-import ifaddr
 from filelock import FileLock, Timeout
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -132,31 +135,6 @@ HOTPLUG_INTERVAL_S     = 3    # Scan every 3 seconds (reduce CPU spikes)
 
 # Settings file
 SETTINGS_PATH = os.path.join(SCRIPT_DIR, "settings.ini")
-
-# ══════════════════════════════════════════════════════════════════════════════
-# MULTI-INTERFACE SUPPORT
-# ══════════════════════════════════════════════════════════════════════════════
-
-def get_all_interface_ips() -> List[Tuple[str, str]]:
-    """
-    Discover all usable IPv4 interface addresses on this machine.
-    Returns list of (interface_name, ip_address) tuples.
-    
-    Filters out:
-      - Loopback (127.x.x.x)
-      - APIPA/link-local (169.254.x.x) - indicates no network config
-    """
-    interfaces = []
-    
-    for adapter in ifaddr.get_adapters():
-        for ip in adapter.ips:
-            if isinstance(ip.ip, str):
-                if ip.ip.startswith('127.') or ip.ip.startswith('169.254.'):
-                    continue
-                short_name = adapter.nice_name[:30]
-                interfaces.append((short_name, ip.ip))
-    
-    return interfaces
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SETTINGS
@@ -439,8 +417,6 @@ class NetworkManager:
     - Only that worker writes to that device's HID handle
     - No lock contention with reader thread
     - Uses Condition variable for efficient wake (not polling)
-    
-    NEW in v5.1: Joins multicast on ALL network interfaces!
     """
 
     class _DeviceTxWorker(threading.Thread):
@@ -505,7 +481,6 @@ class NetworkManager:
         self._running = threading.Event()
         self._ip_committed = False
         self._workers: Dict[int, NetworkManager._DeviceTxWorker] = {}
-        self._joined_interfaces: List[str] = []  # Track which interfaces we joined
 
     def start(self) -> None:
         self._running.set()
@@ -544,37 +519,6 @@ class NetworkManager:
             w.start()
         return w
 
-    def _join_multicast_all_interfaces(self, sock: socket.socket) -> List[str]:
-        """
-        Join multicast group on ALL network interfaces.
-        Returns list of successfully joined interface IPs.
-        
-        This is critical for Windows multi-NIC setups (e.g., wired + WiFi hotspot).
-        """
-        joined = []
-        interfaces = get_all_interface_ips()
-        
-        if not interfaces:
-            # Fallback: join on default interface
-            try:
-                mreq = struct.pack("=4sl", socket.inet_aton(DEFAULT_MULTICAST_IP), socket.INADDR_ANY)
-                sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-                joined.append("default")
-                self.uiq.put(('log', "UDP", "Joined multicast on default interface"))
-            except Exception as e:
-                self.uiq.put(('log', "UDP", f"Failed to join multicast: {e}"))
-        else:
-            for iface_name, ip in interfaces:
-                try:
-                    mreq = socket.inet_aton(DEFAULT_MULTICAST_IP) + socket.inet_aton(ip)
-                    sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-                    joined.append(ip)
-                    self.uiq.put(('log', "UDP", f"Joined multicast on {ip} ({iface_name})"))
-                except Exception:
-                    pass  # Silently skip interfaces that fail
-        
-        return joined
-
     def _udp_rx_processor(self) -> None:
         """UDP receiver - direct blocking recvfrom (from original)."""
         try:
@@ -585,12 +529,8 @@ class NetworkManager:
             except Exception:
                 pass
             self.udp_rx_sock.bind(('', DEFAULT_UDP_PORT))
-            
-            # NEW: Join multicast on ALL interfaces
-            self._joined_interfaces = self._join_multicast_all_interfaces(self.udp_rx_sock)
-            
-            if not self._joined_interfaces:
-                self.uiq.put(('log', "UDP", "WARNING: Could not join multicast on any interface!"))
+            mreq = struct.pack("=4sl", socket.inet_aton(DEFAULT_MULTICAST_IP), socket.INADDR_ANY)
+            self.udp_rx_sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
             while self._running.is_set():
                 # Direct blocking recvfrom - NO select() overhead
@@ -859,7 +799,7 @@ def main() -> None:
     acquire_instance_lock()
 
     try:
-        print("CockpitOS HID Bridge v5.1 - Multi-Interface Multicast Fix")
+        print("CockpitOS HID Bridge v5 - Fixed Architecture")
         print(f"VID: 0x{USB_VID:04X}, PID: {'Any' if USB_PID is None else f'0x{USB_PID:04X}'}")
         print(f"Max Devices: {MAX_DEVICES}")
         print("Starting...")

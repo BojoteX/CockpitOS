@@ -5,6 +5,7 @@ CockpitOS Remote Bootloader Tool
 
 Sends a magic UDP packet to trigger ESP32 devices into bootloader mode.
 Works for both WiFi and USB devices (HID Manager forwards UDP to USB).
+Sends on ALL network interfaces for universal compatibility.
 
 Usage:
     python bootloader_tool.py                    # Interactive menu
@@ -23,6 +24,30 @@ import argparse
 from pathlib import Path
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# DEPENDENCY CHECK
+# ═══════════════════════════════════════════════════════════════════════════════
+
+try:
+    import ifaddr
+except ImportError:
+    print()
+    print("╔════════════════════════════════════════════════════════════════╗")
+    print("║  ❌ Missing Required Module: ifaddr                            ║")
+    print("╠════════════════════════════════════════════════════════════════╣")
+    print("║                                                                ║")
+    print("║  This tool requires 'ifaddr' for network interface discovery. ║")
+    print("║                                                                ║")
+    print("║  Install it with:                                              ║")
+    print("║                                                                ║")
+    print("║      pip install ifaddr                                        ║")
+    print("║                                                                ║")
+    print("║  Then run this script again.                                   ║")
+    print("║                                                                ║")
+    print("╚════════════════════════════════════════════════════════════════╝")
+    print()
+    sys.exit(1)
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -36,51 +61,54 @@ MAGIC_PREFIX = "COCKPITOS:REBOOT:"
 
 def get_all_interface_ips():
     """
-    Discover all IPv4 interface addresses on this machine.
-    Returns list of IP strings, excluding loopback.
+    Discover all usable IPv4 interface addresses on this machine.
+    Returns list of (interface_name, ip_address) tuples.
     
-    Uses multiple discovery methods to ensure we find interfaces that may
-    not be on the default route (e.g., WiFi hotspots, secondary NICs).
+    Filters out:
+      - Loopback (127.x.x.x)
+      - APIPA/link-local (169.254.x.x) - indicates no network config
+    
+    Uses ifaddr for bulletproof cross-platform interface enumeration.
     """
-    ips = set()
+    interfaces = []
     
-    # Method 1: Query hostname - gets IPs registered with DNS/hosts
-    try:
-        hostname = socket.gethostname()
-        _, _, ip_list = socket.gethostbyname_ex(hostname)
-        for ip in ip_list:
-            if not ip.startswith('127.'):
-                ips.add(ip)
-    except Exception:
-        pass
+    for adapter in ifaddr.get_adapters():
+        for ip in adapter.ips:
+            # Only IPv4 addresses (ip.ip is a string for IPv4, tuple for IPv6)
+            if isinstance(ip.ip, str):
+                # Skip loopback and APIPA (link-local) addresses
+                if ip.ip.startswith('127.') or ip.ip.startswith('169.254.'):
+                    continue
+                # Shorten the adapter name for cleaner output
+                short_name = shorten_adapter_name(adapter.nice_name)
+                interfaces.append((short_name, ip.ip))
     
-    # Method 2: Probe various subnets to discover routed interfaces
-    # Each connect() reveals which local IP would reach that destination.
-    # This finds interfaces the OS has routes for, even if not default.
-    probe_targets = [
-        ('8.8.8.8', 80),           # Internet (default gateway)
-        ('10.255.255.255', 1),     # Private Class A
-        ('172.16.255.255', 1),     # Private Class B
-        ('192.168.0.1', 1),        # Common home router
-        ('192.168.1.1', 1),        # Common home router
-        ('192.168.137.1', 1),      # Windows Mobile Hotspot default
-        ('192.168.49.1', 1),       # Windows Wi-Fi Direct default
+    return interfaces
+
+
+def shorten_adapter_name(name):
+    """Shorten long Windows adapter names to something readable."""
+    # Common substitutions
+    replacements = [
+        ("Network Adapter", ""),
+        ("Dual Band Simultaneous (DBS)", ""),
+        ("Wi-Fi 7", "WiFi7"),
+        ("Wi-Fi 6", "WiFi6"),
+        ("Wi-Fi", "WiFi"),
+        ("Qualcomm FastConnect 7800", "Qualcomm"),
+        ("Intel(R)", "Intel"),
+        ("Realtek", "Realtek"),
+        ("Virtual", "Virt"),
+        ("Ethernet", "Eth"),
+        ("Wireless", "WiFi"),
+        ("  ", " "),  # collapse double spaces
     ]
     
-    for target, port in probe_targets:
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.settimeout(0.001)  # Non-blocking, we don't actually send
-            s.connect((target, port))
-            ip = s.getsockname()[0]
-            s.close()
-            if ip and not ip.startswith('127.') and not ip.startswith('0.'):
-                ips.add(ip)
-        except Exception:
-            pass
+    result = name
+    for old, new in replacements:
+        result = result.replace(old, new)
     
-    # Fallback: if nothing found, return localhost (will still work for local testing)
-    return sorted(ips) if ips else ['127.0.0.1']
+    return result.strip()[:30]  # Max 30 chars
 
 
 def create_multicast_socket(interface_ip, ttl=2):
@@ -90,7 +118,6 @@ def create_multicast_socket(interface_ip, ttl=2):
     """
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-    # Bind multicast output to this specific interface
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(interface_ip))
     return sock
 
@@ -156,34 +183,39 @@ def send_bootloader_command(target):
     message = f"{MAGIC_PREFIX}{target}\n".encode('utf-8')
     
     # Discover all network interfaces
-    interface_ips = get_all_interface_ips()
+    interfaces = get_all_interface_ips()
     
-    success_count = 0
-    fail_count = 0
+    successful_interfaces = []
     
-    print(f"\n📡 Sending bootloader command on {len(interface_ips)} interface(s)...")
-    
-    for ip in interface_ips:
+    # Try each interface
+    for iface_name, ip in interfaces:
         try:
             sock = create_multicast_socket(ip)
-            
-            # Send multiple times for reliability
+            for _ in range(3):  # Send multiple times for reliability
+                sock.sendto(message, (MULTICAST_IP, MULTICAST_PORT))
+            sock.close()
+            successful_interfaces.append((ip, iface_name))
+        except Exception:
+            pass  # Silently skip interfaces that fail
+    
+    # Fallback if no interfaces worked
+    if not successful_interfaces:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+            sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
             for _ in range(3):
                 sock.sendto(message, (MULTICAST_IP, MULTICAST_PORT))
-            
             sock.close()
-            print(f"   ✓ {ip}")
-            success_count += 1
+            successful_interfaces.append(("default", "default route"))
         except Exception as e:
-            print(f"   ✗ {ip} ({e})")
-            fail_count += 1
+            print(f"\n❌ Failed to send on any interface: {e}")
+            return False
     
-    if success_count > 0:
-        print(f"\n✅ Sent: {MAGIC_PREFIX}{target}")
-        return True
-    else:
-        print(f"\n❌ Failed to send on any interface")
-        return False
+    # Report success
+    iface_list = ", ".join(f"{ip} ({name})" for ip, name in successful_interfaces)
+    print(f"\n✅ Sent: {MAGIC_PREFIX}{target}")
+    print(f"   via: {iface_list}")
+    return True
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # USER INTERFACE

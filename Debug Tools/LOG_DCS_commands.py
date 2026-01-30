@@ -1,3 +1,19 @@
+#!/usr/bin/env python3
+"""
+CockpitOS DCS Command Logger
+=============================
+
+Listens for DCS-BIOS commands sent by panels (UDP port 7778).
+Useful for debugging what commands your panel is sending.
+
+WARNING: Do NOT run this while DCS is running - it will intercept commands!
+
+Usage:
+    python LOG_DCS_commands.py
+
+Author: CockpitOS Project
+"""
+
 import socket
 import os
 from datetime import datetime
@@ -5,34 +21,55 @@ from datetime import datetime
 # Change to script directory
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-# Discover our local IP address
-def get_local_ip():
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+PORT = 7778  # DCS-BIOS command import port
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MAIN
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def main():
+    # Setup socket - bind to all interfaces
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.settimeout(0.5)  # 500ms timeout so Ctrl+C works on Windows
+    sock.bind(('0.0.0.0', PORT))
+
+    # Header
+    print()
+    print("+----------------------------------------------------------------+")
+    print("|            CockpitOS DCS Command Logger                        |")
+    print("+----------------------------------------------------------------+")
+    print("|  WARNING: Do NOT run while DCS is running!                     |")
+    print("|           This will intercept commands meant for DCS.          |")
+    print("+----------------------------------------------------------------+")
+    print(f"|  Listening on port {PORT} (all interfaces)                       |")
+    print("|  Press Ctrl+C to stop                                          |")
+    print("+----------------------------------------------------------------+")
+    print()
+
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        # Connect to a non-routable IP, no traffic actually sent
-        s.connect(("8.8.8.8", 80))
-        return s.getsockname()[0]
-    except:
-        return "127.0.0.1"
+        while True:
+            try:
+                data, addr = sock.recvfrom(1024)
+            except socket.timeout:
+                continue  # Check for Ctrl+C, then loop back
 
-LOCAL_IP = get_local_ip()
-PORT = 7778
+            sender_ip, sender_port = addr
+            msg = data.decode('utf-8', errors='ignore').strip()
+            timestamp = datetime.now().strftime('%H:%M:%S')
 
-# Setup socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind(('0.0.0.0', PORT))
-# sock.bind((LOCAL_IP, PORT))
+            print(f"[{timestamp}] [{sender_ip}] {msg}")
 
-print(f"⚠️ *** DO NOT run this while DCS is also running as it will prevent commands from reaching DCS ***")
-print(f"🔭 Listening for DCS Commands on {LOCAL_IP} port {PORT}...\n")
+    except KeyboardInterrupt:
+        print("\n\nStopped by user")
 
-while True:
-    try:
-        data, addr = sock.recvfrom(1024)
-        sender_ip, sender_port = addr
-        msg = data.decode('utf-8', errors='ignore').strip()
-        timestamp = datetime.now().strftime('%H:%M:%S')
+    finally:
+        sock.close()
 
-        print(f"[{timestamp} - {sender_ip}] {msg}")
-    except Exception as e:
-        print(f"[ERROR] {e}")
+
+if __name__ == "__main__":
+    main()

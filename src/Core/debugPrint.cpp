@@ -28,7 +28,7 @@ void debugInit() {
     // Our debugPrint routing logic based on Config.h
 #if DEBUG_ENABLED
     DEBUG = true;
-    debugToSerial = true;
+    // debugToSerial = true;
 #if DEBUG_USE_WIFI
     debugToUDP = true;
 #endif
