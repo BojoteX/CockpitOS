@@ -758,33 +758,17 @@ bool RS485Master_init() {
         return false;
     }
     
-    // Set UART pins
-    // RS485_EN_PIN can be:
-    //   - A valid GPIO (0-48): ESP32 controls direction via this pin
-    //   - UART_PIN_NO_CHANGE (-1): Auto-direction board, hardware handles TX/RX switching
     err = uart_set_pin(RS485_UART_NUM, RS485_TX_PIN, RS485_RX_PIN, RS485_EN_PIN, UART_PIN_NO_CHANGE);
     if (err != ESP_OK) {
         debugPrintf("[RS485] ❌ UART set pin failed: %d\n", err);
         return false;
     }
     
-    // Set UART mode based on whether we have a direction control pin
-    #if RS485_EN_PIN >= 0
-        // Manual direction control - ESP32 drives EN pin for TX/RX switching
-        err = uart_set_mode(RS485_UART_NUM, UART_MODE_RS485_HALF_DUPLEX);
-        if (err != ESP_OK) {
-            debugPrintf("[RS485] ❌ RS-485 half-duplex mode failed: %d\n", err);
-            return false;
-        }
-    #else
-        // Auto-direction board - hardware handles TX/RX switching automatically
-        // Use normal UART mode, the RS-485 transceiver detects direction from data flow
-        err = uart_set_mode(RS485_UART_NUM, UART_MODE_UART);
-        if (err != ESP_OK) {
-            debugPrintf("[RS485] ❌ UART mode failed: %d\n", err);
-            return false;
-        }
-    #endif
+    err = uart_set_mode(RS485_UART_NUM, UART_MODE_RS485_HALF_DUPLEX);
+    if (err != ESP_OK) {
+        debugPrintf("[RS485] ❌ RS-485 mode failed: %d\n", err);
+        return false;
+    }
     
     // Initialize slave tracking
     for (int i = 0; i < RS485_MAX_SLAVES; i++) {
@@ -814,11 +798,6 @@ bool RS485Master_init() {
     
     debugPrintf("[RS485] ✅ Init OK: %d baud, TX=%d, RX=%d, EN=%d\n",
                 RS485_BAUD, RS485_TX_PIN, RS485_RX_PIN, RS485_EN_PIN);
-    #if RS485_EN_PIN >= 0
-    debugPrintln("[RS485] Direction: Manual (ESP32 controls EN pin)");
-    #else
-    debugPrintln("[RS485] Direction: Auto (hardware handles TX/RX switching)");
-    #endif
     debugPrintf("[RS485] Poll range: %d-%d\n", rs485_minPollAddr, rs485_maxPollAddr);
     #if RS485_SMART_MODE
     debugPrintln("[RS485] Mode: SMART (change detection + filtering)");

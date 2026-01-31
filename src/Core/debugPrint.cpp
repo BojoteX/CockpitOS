@@ -25,6 +25,7 @@ static SerialDebugMsg serialBuf[SERIAL_RINGBUF_SIZE];
 static volatile uint8_t serialHead = 0, serialTail = 0;
 
 void debugInit() {
+
     // Our debugPrint routing logic based on Config.h
 #if DEBUG_ENABLED
     DEBUG = true;

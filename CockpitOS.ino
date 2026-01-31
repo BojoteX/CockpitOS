@@ -34,6 +34,70 @@ volatile bool mainLoopStarted = false;
 // Force compilation of all CUtils internals (Arduino IDE won't compile .cpps in lib automatically)
 #include "lib/CUtils/src/CUtils.cpp"
 
+// Helper to show real LED GPIOs
+static int decode_builtin_pin(int pin)
+{
+  if (pin < 0) return -1;
+
+  // Normal GPIO (already real)
+  if (pin < (int)SOC_GPIO_PIN_COUNT) return pin;
+
+  // Encoded "virtual pin" (NeoPixel) => decode to physical GPIO
+  return pin - (int)SOC_GPIO_PIN_COUNT;
+}
+
+static bool is_encoded_builtin(int pin)
+{
+  return (pin >= (int)SOC_GPIO_PIN_COUNT);
+}
+
+void print_builtin_led_info()
+{
+  int led_raw = -1, led_gpio = -1;
+  int rgb_raw = -1, rgb_gpio = -1;
+
+#if defined(LED_BUILTIN)
+  led_raw  = (int)LED_BUILTIN;
+  led_gpio = decode_builtin_pin(led_raw);
+
+  if (led_gpio >= 0) {
+    debugPrintf("LED_BUILTIN: raw=%d -> gpio=%d (%s)\n",
+                led_raw, led_gpio,
+                is_encoded_builtin(led_raw) ? "encoded/virtual" : "direct gpio");
+  } else {
+    debugPrintf("LED_BUILTIN: raw=%d -> gpio=INVALID\n", led_raw);
+  }
+#else
+  debugPrintln("LED_BUILTIN: not defined");
+#endif
+
+#if defined(RGB_BUILTIN)
+  rgb_raw  = (int)RGB_BUILTIN;
+  rgb_gpio = decode_builtin_pin(rgb_raw);
+
+  if (rgb_gpio >= 0) {
+    debugPrintf("RGB_BUILTIN: raw=%d -> gpio=%d (%s)\n",
+                rgb_raw, rgb_gpio,
+                is_encoded_builtin(rgb_raw) ? "encoded/virtual" : "direct gpio");
+  } else {
+    debugPrintf("RGB_BUILTIN: raw=%d -> gpio=INVALID\n", rgb_raw);
+  }
+#else
+  debugPrintln("RGB_BUILTIN: not defined");
+#endif
+
+  // Relationship analysis (only if both exist and decode cleanly)
+  if (led_gpio >= 0 && rgb_gpio >= 0) {
+    if (led_gpio == rgb_gpio) {
+      // Same physical data pin. Likely a single NeoPixel used as "LED_BUILTIN" + "RGB_BUILTIN".
+      debugPrintln("Note: LED_BUILTIN and RGB_BUILTIN resolve to the SAME physical GPIO.");
+      debugPrintln("This board likely has ONLY a single built-in LED and it is an addressable RGB (NeoPixel/WS2812).");
+    } else {
+      debugPrintln("Note: Board exposes separate physical pins for LED_BUILTIN and RGB_BUILTIN.");
+    }
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // STARTUP WATCHDOG TASK
 // Enters bootloader mode if main loop is not reached within timeout.
@@ -277,6 +341,9 @@ void setup() {
         }  
     }    
 
+    // Show active LED
+    print_builtin_led_info();
+
     // What version compiled this?
     debugPrintf("CockpitOS version is %s\n", VERSION_CURRENT);
 
@@ -315,7 +382,7 @@ void setup() {
 #endif
 
     // Raw device name
-    debugPrintf("Current LABEL SET is: \"%s\"\n", LABEL_SET_STR);
+    debugPrintf("Current LABEL SET is LABEL_SET_%s and device friendly name is \"%s\"\n", LABEL_SET_STR, LABEL_SET_FULLNAME);
 
 }
 

@@ -24,44 +24,23 @@
 //     - Requires DcsOutputTable to be populated with slave addresses
 //
 #ifndef RS485_SMART_MODE
-#define RS485_SMART_MODE        1       // 0=dumb (Arduino-like), 1=smart (filtered)
+#define RS485_SMART_MODE        0       // 0=dumb (Arduino-like), 1=smart (filtered)
 #endif
 
 // ============================================================================
-// HARDWARE PINS
+// HARDWARE PINS (Waveshare ESP32-S3-RS485-CAN defaults)
 // ============================================================================
-// 
-// OPTION 1: Built-in RS485 (Waveshare ESP32-S3-RS485-CAN, etc.)
-//   TX = GPIO17, RX = GPIO18, EN = GPIO21
-//   Set RS485_EN_PIN to the board's direction control pin
-//
-// OPTION 2: Manual direction control (MAX485 or similar)
-//   ESP32 TX -> MAX485 DI
-//   ESP32 RX <- MAX485 RO  
-//   ESP32 GPIO -> MAX485 DE+RE (tied together)
-//   Set RS485_EN_PIN to the GPIO controlling DE/RE
-//
-// OPTION 3: Auto-direction board (TTL-RS485 Auto Module, etc.)
-//   These boards automatically detect TX/RX direction from data flow.
-//   Only TX and RX pins needed - no direction control!
-//   Set RS485_EN_PIN to UART_PIN_NO_CHANGE (or -1)
-//
-// Example for ESP32 S2 Mini + TTL-RS485 Auto-Direction Module:
-//   #define RS485_TX_PIN  39
-//   #define RS485_RX_PIN  37
-//   #define RS485_EN_PIN  UART_PIN_NO_CHANGE  // Auto-direction, no EN needed!
 
 #ifndef RS485_TX_PIN
-#define RS485_TX_PIN            17      // UART TX -> RS485 DI
+#define RS485_TX_PIN            17      // UART1 TX -> RS-485 Driver DI
 #endif
 
 #ifndef RS485_RX_PIN
-#define RS485_RX_PIN            18      // UART RX <- RS485 RO
+#define RS485_RX_PIN            18      // UART1 RX <- RS-485 Driver RO
 #endif
 
 #ifndef RS485_EN_PIN
-#define RS485_EN_PIN            21      // Direction control (or UART_PIN_NO_CHANGE for auto)
-// #define RS485_EN_PIN            UART_PIN_NO_CHANGE      // Direction control (or UART_PIN_NO_CHANGE for auto)
+#define RS485_EN_PIN            21      // Direction control (directly connected)
 #endif
 
 // ============================================================================

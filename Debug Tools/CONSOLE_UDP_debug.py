@@ -20,6 +20,9 @@ import argparse
 from datetime import datetime
 import shutil
 
+# IP to device name mapping
+ip_to_name = {}
+
 # Change to script directory
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -100,8 +103,20 @@ def main():
                 continue
 
             msg = data.decode('utf-8', errors='ignore').strip()
+            
+            # Handle registration packets
+            if msg.startswith("@@REGISTER:"):
+                device_name = msg[11:]
+                ip_to_name[sender_ip] = device_name
+                timestamp = datetime.now().strftime('%H:%M:%S')
+                line = f"[{timestamp}] ✅ Registered: {sender_ip} → {device_name}"
+                print(line)
+                log_write(line)
+                continue
+            
             timestamp = datetime.now().strftime('%H:%M:%S')
-            line = f"[{timestamp}] [{sender_ip}] {msg}"
+            display_name = ip_to_name.get(sender_ip, sender_ip)
+            line = f"[{timestamp}] [{display_name}] {msg}"
             print(line)
             log_write(line)
 
