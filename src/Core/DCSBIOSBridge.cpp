@@ -1442,6 +1442,10 @@ void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
 
     const unsigned long now = millis();
 
+#if RS485_SLAVE_ENABLED
+    // Slaves don't track sim readiness locally - master handles that
+    // Just proceed to queue command for RS-485 transmission
+#else
     if (!simReady()) {
         debugPrintf("⚠️ [DCS] NOT READY! ignoring command \"%s %u\" (force=%u)\n", label, value, force);
 
@@ -1453,6 +1457,7 @@ void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
         }
         return;
     }
+#endif
 
     static char buf[10];
     snprintf(buf, sizeof(buf), "%u", value);
@@ -1641,7 +1646,8 @@ void DCSBIOSBridge_setup() {
 
 void DCSBIOSBridge_loop() { 
 
-	// Check if sim is ready
+#if !RS485_SLAVE_ENABLED
+    // Only check sim readiness for masters - slaves rely on master for sim state
     bool sr = simReady();
     if (!sr) {
         unsigned long now = millis();
@@ -1653,6 +1659,7 @@ void DCSBIOSBridge_loop() {
     else {
         lastNotReadyPrint = millis();
     }
+#endif
 
     #if DEBUG_PERFORMANCE
     beginProfiling(PERF_DCSBIOS);

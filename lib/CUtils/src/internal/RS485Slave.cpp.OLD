@@ -129,12 +129,6 @@ static uint32_t rs485s_commandsSent = 0;
 static uint32_t rs485s_checksumErrors = 0;
 static uint32_t rs485s_syncResets = 0;
 
-// DIAGNOSTIC COUNTERS (for comparing good.txt vs bad.txt)
-static uint32_t rs485s_bcastWithData = 0;    // addr=0, len>0 (EXPECTED)
-static uint32_t rs485s_pollWithData = 0;     // addr>0, len>0 (BUG!)
-static uint32_t rs485s_pollEmpty = 0;        // addr>0, len=0 (normal)
-static uint32_t rs485s_diagLastPrint = 0;
-
 // ============================================================================
 // TIMING
 // ============================================================================
@@ -411,14 +405,6 @@ static void rs485s_processRx() {
                     rs485s_broadcastsReceived++;
 
                     if (rs485s_rxMsgType == RS485_MSGTYPE_EXPORT && rs485s_rxLen > 0) {
-                        rs485s_bcastWithData++;  // DIAGNOSTIC
-                        // Log broadcast with data (EXPECTED for export)
-                        debugPrintf("[BCAST] len=%d first=[%02X %02X %02X %02X]\n",
-                                   rs485s_rxLen,
-                                   rs485s_rxLen > 0 ? rs485s_rxBuffer[0] : 0,
-                                   rs485s_rxLen > 1 ? rs485s_rxBuffer[1] : 0,
-                                   rs485s_rxLen > 2 ? rs485s_rxBuffer[2] : 0,
-                                   rs485s_rxLen > 3 ? rs485s_rxBuffer[3] : 0);
                         // Clamp to buffer size
                         if (rs485s_rxLen > sizeof(rs485s_rxBuffer)) {
                             rs485s_rxLen = sizeof(rs485s_rxBuffer);
@@ -434,18 +420,9 @@ static void rs485s_processRx() {
                     rs485s_pollsReceived++;
                     rs485s_lastPollTime = millis();
 
-                    // DIAGNOSTIC: Track poll type
-                    if (rs485s_rxLen > 0) {
-                        rs485s_pollWithData++;  // THIS IS THE BUG INDICATOR!
-                        debugPrintf("[POLL+DATA] addr=%d len=%d first=[%02X %02X %02X %02X]\n",
-                                   rs485s_rxAddress, rs485s_rxLen,
-                                   rs485s_rxLen > 0 ? rs485s_rxBuffer[0] : 0,
-                                   rs485s_rxLen > 1 ? rs485s_rxBuffer[1] : 0,
-                                   rs485s_rxLen > 2 ? rs485s_rxBuffer[2] : 0,
-                                   rs485s_rxLen > 3 ? rs485s_rxBuffer[3] : 0);
-                    } else {
-                        rs485s_pollEmpty++;  // Normal - polls should be empty
-                    }
+                    #if RS485_SLAVE_DEBUG_VERBOSE
+                    debugPrintf("[RS485S] 📨 Poll received (addr %d)\n", rs485s_rxAddress);
+                    #endif
 
                     // Process export data if present (some masters send data with poll)
                     if (rs485s_rxMsgType == RS485_MSGTYPE_EXPORT && rs485s_rxLen > 0) {
@@ -640,33 +617,17 @@ bool RS485Slave_init() {
         return false;
     }
 
-    // Set UART pins
-    // RS485_EN_PIN can be:
-    //   - A valid GPIO (0-48): ESP32 controls direction via this pin
-    //   - UART_PIN_NO_CHANGE (-1): Auto-direction board, hardware handles TX/RX switching
     err = uart_set_pin(RS485S_UART_NUM, RS485_TX_PIN, RS485_RX_PIN, RS485_EN_PIN, UART_PIN_NO_CHANGE);
     if (err != ESP_OK) {
         debugPrintf("[RS485S] ❌ UART set pin failed: %d\n", err);
         return false;
     }
 
-    // Set UART mode based on whether we have a direction control pin
-    #if RS485_EN_PIN >= 0
-        // Manual direction control - ESP32 drives EN pin for TX/RX switching
-        err = uart_set_mode(RS485S_UART_NUM, UART_MODE_RS485_HALF_DUPLEX);
-        if (err != ESP_OK) {
-            debugPrintf("[RS485S] ❌ RS-485 half-duplex mode failed: %d\n", err);
-            return false;
-        }
-    #else
-        // Auto-direction board - hardware handles TX/RX switching automatically
-        // Use normal UART mode, the RS-485 transceiver detects direction from data flow
-        err = uart_set_mode(RS485S_UART_NUM, UART_MODE_UART);
-        if (err != ESP_OK) {
-            debugPrintf("[RS485S] ❌ UART mode failed: %d\n", err);
-            return false;
-        }
-    #endif
+    err = uart_set_mode(RS485S_UART_NUM, UART_MODE_RS485_HALF_DUPLEX);
+    if (err != ESP_OK) {
+        debugPrintf("[RS485S] ❌ RS-485 mode failed: %d\n", err);
+        return false;
+    }
 
     // Clear buffers
     rs485s_txHead = 0;
@@ -694,11 +655,6 @@ bool RS485Slave_init() {
 
     debugPrintf("[RS485S] ✅ Initialized: addr=%d, %d baud, TX=%d, RX=%d, EN=%d\n",
                 RS485_SLAVE_ADDRESS, RS485_BAUD, RS485_TX_PIN, RS485_RX_PIN, RS485_EN_PIN);
-    #if RS485_EN_PIN >= 0
-    debugPrintln("[RS485S] Direction: Manual (ESP32 controls EN pin)");
-    #else
-    debugPrintln("[RS485S] Direction: Auto (hardware handles TX/RX switching)");
-    #endif
     #if RS485_SLAVE_ARDUINO_COMPAT
     debugPrintln("[RS485S] Mode: Arduino-compatible (fixed 0x72 checksum)");
     #else
@@ -740,22 +696,8 @@ void RS485Slave_loop() {
             break;
     }
 
-    // 5-SECOND DIAGNOSTIC SUMMARY (always prints - for good.txt vs bad.txt comparison)
-    if (millis() - rs485s_diagLastPrint >= 5000) {
-        rs485s_diagLastPrint = millis();
-
-#if RS485_SLAVE_DEBUG_VERBOSE && DEBUG_ENABLED
-        debugPrintln("--- 5-SEC SUMMARY ---");
-        debugPrintf("BCAST+data: %lu | POLL+data: %lu | POLL empty: %lu\n",
-                   rs485s_bcastWithData, rs485s_pollWithData, rs485s_pollEmpty);
-        debugPrintf("Export bytes: %lu | ChkErr: %lu\n",
-                   rs485s_exportBytesRx, rs485s_checksumErrors);
-        debugPrintln("---------------------");
-#endif
-    }
-
-    // Periodic status (every 10 seconds, if debug)
-    #if DEBUG_ENABLED
+    // Periodic status (every 10 seconds, if debug verbose)
+    #if RS485_SLAVE_DEBUG_VERBOSE
     static uint32_t lastStatusTime = 0;
     if (millis() - lastStatusTime > 10000) {
         lastStatusTime = millis();

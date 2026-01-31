@@ -1,0 +1,119 @@
+/**
+ * @file RS485SlaveConfig.h
+ * @brief RS-485 Slave Configuration for Lolin S2 Mini + Auto-Direction Module
+ *
+ * Hardware Setup:
+ *   Lolin S2 Mini + TTL-RS485 Auto-Direction Module
+ *   
+ *   Wiring:
+ *     Lolin GPIO37 (RX) <- Module TXD (data FROM RS-485 bus)
+ *     Lolin GPIO38 (TX) -> Module RXD (data TO RS-485 bus)
+ *     Lolin 3.3V       -> Module VCC
+ *     Lolin GND        -> Module GND
+ *     Module A         -> Master A (Waveshare)
+ *     Module B         -> Master B (Waveshare)
+ *     Lolin GND        -> Master GND (IMPORTANT!)
+ *
+ * Enable in Config.h:
+ *   #define RS485_SLAVE_ENABLED 1
+ *   #define RS485_SLAVE_ADDRESS 1    // Unique address 1-126
+ */
+
+#ifndef RS485_SLAVE_CONFIG_H
+#define RS485_SLAVE_CONFIG_H
+
+// ============================================================================
+// SLAVE ADDRESS (REQUIRED - must be unique on the bus!)
+// ============================================================================
+
+#ifndef RS485_SLAVE_ADDRESS
+#define RS485_SLAVE_ADDRESS     1       // Valid range: 1-126
+#endif
+
+#if RS485_SLAVE_ADDRESS < 1 || RS485_SLAVE_ADDRESS > 126
+#error "RS485_SLAVE_ADDRESS must be between 1 and 126"
+#endif
+
+// ============================================================================
+// HARDWARE PINS - Lolin S2 Mini + Auto-Direction TTL-RS485 Module
+// ============================================================================
+
+#ifndef RS485_TX_PIN
+#define RS485_TX_PIN            38      // Lolin TX -> Module RXD
+#endif
+
+#ifndef RS485_RX_PIN
+#define RS485_RX_PIN            37      // Lolin RX <- Module TXD
+#endif
+
+// AUTO-DIRECTION MODULE: No EN pin needed!
+// Set to UART_PIN_NO_CHANGE (-1) to indicate no direction control
+#ifndef RS485_EN_PIN
+#define RS485_EN_PIN            UART_PIN_NO_CHANGE  // Auto-direction, no EN needed
+#endif
+
+// ============================================================================
+// AUTO-DIRECTION MODE
+// ============================================================================
+// Set to 1 for auto-direction modules (no DE/RE control needed)
+// Set to 0 for modules requiring manual direction control via EN pin
+#ifndef RS485_AUTO_DIRECTION
+#define RS485_AUTO_DIRECTION    1       // 1 = auto-direction module
+#endif
+
+// ============================================================================
+// PROTOCOL SETTINGS (must match master - do not change!)
+// ============================================================================
+
+#ifndef RS485_BAUD
+#define RS485_BAUD              250000  // 250kbps - DCS-BIOS standard
+#endif
+
+// ============================================================================
+// COMPATIBILITY MODE
+// ============================================================================
+// Arduino DCS-BIOS slave uses fixed 0x72 as checksum placeholder.
+// Set to 1 for maximum compatibility with Arduino masters.
+// Set to 0 to use proper calculated XOR checksum.
+
+#ifndef RS485_SLAVE_ARDUINO_COMPAT
+#define RS485_SLAVE_ARDUINO_COMPAT  1   // 1 = Arduino compatible (0x72 checksum)
+#endif
+
+// ============================================================================
+// BUFFER SIZES
+// ============================================================================
+
+#ifndef RS485_TX_BUFFER_SIZE
+#define RS485_TX_BUFFER_SIZE    128     // Buffer for outgoing input commands
+#endif
+
+// ============================================================================
+// TIMING SETTINGS
+// ============================================================================
+
+#ifndef RS485_SLAVE_SYNC_GAP_US
+#define RS485_SLAVE_SYNC_GAP_US     500     // Gap > this = new packet
+#endif
+
+#ifndef RS485_SLAVE_RX_TIMEOUT_US
+#define RS485_SLAVE_RX_TIMEOUT_US   5000    // Max time for packet completion
+#endif
+
+// ============================================================================
+// DEBUG OPTIONS - ENABLE VERBOSE FOR DIAGNOSTICS!
+// ============================================================================
+
+#ifndef RS485_SLAVE_DEBUG_VERBOSE
+#define RS485_SLAVE_DEBUG_VERBOSE   0   // 1 = Log packets (for debugging!)
+#endif
+
+// ============================================================================
+// DIAGNOSTIC MODE - Extra logging for debugging master issues
+// ============================================================================
+
+#ifndef RS485_SLAVE_DIAGNOSTIC_MODE
+#define RS485_SLAVE_DIAGNOSTIC_MODE 0   // 1 = Extra packet dumps
+#endif
+
+#endif // RS485_SLAVE_CONFIG_H

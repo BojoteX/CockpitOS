@@ -205,9 +205,11 @@ void setLED(const char* label, bool state, uint8_t intensity, uint16_t rawValue,
         default:
             #if DEBUG_PERFORMANCE
             beginProfiling(PERF_LED_UNKNOWN);
-            #endif        
-            if(DEBUG) debugPrintf("⚠️ '%s' is NOT a LED or has not being configured yet\n", label);
-            #if DEBUG_PERFORMANCE
+            #endif
+
+            // if(DEBUG) debugPrintf("⚠️ '%s' is NOT a LED or has not being configured yet\n", label);
+            
+#if DEBUG_PERFORMANCE
             endProfiling(PERF_LED_UNKNOWN);
             #endif            
             break;
