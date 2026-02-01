@@ -104,15 +104,7 @@
 // ============================================================================
 
 #ifndef RS485_MAX_SLAVES
-#define RS485_MAX_SLAVES        32      // Max slave addresses to track
-#endif
-
-#ifndef RS485_MIN_POLL_ADDR
-#define RS485_MIN_POLL_ADDR     1       // First address to poll
-#endif
-
-#ifndef RS485_MAX_POLL_ADDR
-#define RS485_MAX_POLL_ADDR     1       // Last address to poll
+#define RS485_MAX_SLAVES        126      // Max slave addresses to track
 #endif
 
 // ============================================================================

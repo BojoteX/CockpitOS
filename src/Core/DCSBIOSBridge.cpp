@@ -925,8 +925,13 @@ CommandHistoryEntry* findCmdEntry(const char* label) {
 
 static void flushBufferedDcsCommands() {
 
-    // Gate at function entry
-    if (!isModeSelectorDCS() || !simReady()) return;  // Exclusive: only in DCS mode and sim ready
+#if RS485_SLAVE_ENABLED
+    // Slaves don't check simReady - master handles DCS connection state
+    // But we still do dwell/group arbitration locally to prevent bus flooding
+    if (!isModeSelectorDCS()) return;
+#else
+    if (!isModeSelectorDCS() || !simReady()) return;
+#endif
 
     unsigned long now = millis();
 
@@ -1290,7 +1295,8 @@ void sendCommand(const char* msg, const char* arg, bool silent) {
 #if RS485_SLAVE_ENABLED
     // In slave mode, queue command for RS-485 transmission
     RS485Slave_queueCommand(msg, arg);
-    if (!silent) debugPrintf("🛩️ [RS485S] Queued: %s %s\n", msg, arg);
+    // if (!silent) debugPrintf("🛩️ [RS485S] Queued: %s %s\n", msg, arg);
+    debugPrintf("🛩️ [RS485S] Queued: %s %s\n", msg, arg);
     return;  // Don't send via WiFi/USB
 #endif
 
