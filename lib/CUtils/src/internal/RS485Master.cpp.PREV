@@ -22,16 +22,6 @@
  *   - Has data: [Length] [MsgType=0] [Data...] [0x72]
  * 
  * ==========================================================================
- * AUTO-DISCOVERY:
- * ==========================================================================
- * 
- * The master automatically discovers slaves on the bus:
- *   - Polls only known-present slaves for fast response
- *   - Periodically probes one unknown address to find new slaves
- *   - Marks slaves as not-present after consecutive timeouts
- *   - No manual configuration of RS485_MIN/MAX_POLL_ADDR needed
- * 
- * ==========================================================================
  * BROADCAST MODES:
  * ==========================================================================
  * 
@@ -162,27 +152,10 @@ static RS485State rs485_state = RS485State::IDLE;
 static SlaveStatus rs485_slaves[RS485_MAX_SLAVES];
 static MasterStats rs485_stats = {0};
 
-// ============================================================================
-// AUTO-DISCOVERY STATE
-// ============================================================================
-
-// Tracks which slave addresses have responded at least once
-static bool rs485_slavePresent[RS485_MAX_SLAVES + 1];  // Index 0 unused (broadcast addr)
-
-// Current poll address counter (cycles through present slaves)
-static uint8_t rs485_pollAddrCounter = 1;
-
-// Scan address counter (probes for new slaves)
-static uint8_t rs485_scanAddrCounter = 1;
-
-// Flag: true when we're probing an unknown address (vs polling a known slave)
-static bool rs485_isScanning = false;
-
-// ============================================================================
-// POLLING CONTROL (legacy - kept for compatibility)
-// ============================================================================
-
+// Polling control
 static uint8_t rs485_currentPollAddr = 0;
+static uint8_t rs485_minPollAddr = RS485_MIN_POLL_ADDR;
+static uint8_t rs485_maxPollAddr = RS485_MAX_POLL_ADDR;
 static bool rs485_broadcastPending = false;
 
 // Export data ring buffer (used for overflow protection in dumb mode)
@@ -446,9 +419,6 @@ static void rs485_handleResponse() {
         rs485_slaves[idx].lastResponseUs = micros() - rs485_opStartUs;
         rs485_consecutiveTimeouts[idx] = 0;
         rs485_lastResponseTime[idx] = millis();
-        
-        // AUTO-DISCOVERY: Mark this slave as present
-        rs485_slavePresent[rs485_currentPollAddr] = true;
     }
 
     rs485_stats.responseCount++;
@@ -487,19 +457,12 @@ static void rs485_handleTimeout() {
         rs485_slaves[idx].timeoutCount++;
         rs485_consecutiveTimeouts[idx]++;
         
-        // AUTO-DISCOVERY: If scanning and got timeout, this address has no slave
-        if (rs485_isScanning) {
-            rs485_slavePresent[rs485_currentPollAddr] = false;
-        }
-        
         uint32_t timeSinceResponse = millis() - rs485_lastResponseTime[idx];
         if (timeSinceResponse > RS485_OFFLINE_TIME_MS && 
             rs485_lastResponseTime[idx] != 0 &&
             !rs485_offlineReported[idx]) {
             rs485_slaves[idx].online = false;
             rs485_offlineReported[idx] = true;
-            // Also mark as not present for auto-discovery
-            rs485_slavePresent[rs485_currentPollAddr] = false;
             debugPrintf("[RS485] ⚠️ Slave %d OFFLINE (no response for %lu ms)\n", 
                        rs485_currentPollAddr, timeSinceResponse);
         }
@@ -508,67 +471,26 @@ static void rs485_handleTimeout() {
     rs485_stats.timeoutCount++;
 }
 
-// ============================================================================
-// AUTO-DISCOVERY: ADVANCE POLL ADDRESS
-// ============================================================================
-
-/**
- * @brief Advance to next slave address using auto-discovery
- * 
- * This implements the same algorithm as Arduino DCS-BIOS master:
- * 1. Normally polls only known-present slaves (fast)
- * 2. When poll counter wraps to 0, instead of polling addr 0 (broadcast),
- *    probe one unknown address to discover new slaves
- * 3. Cycles through all addresses over time to find new slaves
- */
 static void rs485_advanceToNextSlave() {
-    rs485_isScanning = false;  // Reset scanning flag
-    
-    // Advance poll address counter, wrapping at RS485_MAX_SLAVES
-    rs485_pollAddrCounter = (rs485_pollAddrCounter % RS485_MAX_SLAVES) + 1;
-    
-    // Skip addresses that aren't present (fast poll of known slaves)
-    uint8_t startAddr = rs485_pollAddrCounter;
-    while (!rs485_slavePresent[rs485_pollAddrCounter]) {
-        rs485_pollAddrCounter = (rs485_pollAddrCounter % RS485_MAX_SLAVES) + 1;
-        
-        // If we've wrapped all the way around, no slaves are present
-        if (rs485_pollAddrCounter == startAddr) {
-            rs485_pollAddrCounter = 0;  // Will trigger scan below
-            break;
-        }
-    }
-    
-    // If poll counter is 0 (or no slaves found), scan for new slaves instead
-    if (rs485_pollAddrCounter == 0 || !rs485_slavePresent[rs485_pollAddrCounter]) {
-        // Find next address to scan (one that isn't already known present)
-        uint8_t scanStart = rs485_scanAddrCounter;
-        do {
-            rs485_scanAddrCounter = (rs485_scanAddrCounter % RS485_MAX_SLAVES) + 1;
-            if (!rs485_slavePresent[rs485_scanAddrCounter]) {
-                break;  // Found an unknown address to probe
-            }
-        } while (rs485_scanAddrCounter != scanStart);
-        
-        // Use scan address for this poll
-        rs485_currentPollAddr = rs485_scanAddrCounter;
-        rs485_isScanning = true;
+    rs485_currentPollAddr++;
+    if (rs485_currentPollAddr > rs485_maxPollAddr) {
+        rs485_currentPollAddr = rs485_minPollAddr;
         rs485_stats.pollCycles++;
         
-        // Schedule broadcast if data available (poll cycle complete)
+        // Poll cycle complete - schedule broadcast if data available
+        // This is the ONLY place broadcastPending should be set (besides SMART mode's frame detection)
         #if RS485_SMART_MODE
         if (rs485_changeCount > 0) {
             rs485_broadcastPending = true;
         }
         #else
+        // DUMB MODE: Broadcast after completing poll cycle if data available
+        // This matches Arduino master behavior: poll all slaves, then broadcast, repeat
         if (rs485_rawCount > 0) {
             rs485_broadcastPending = true;
         }
         #endif
-    } else {
-        rs485_currentPollAddr = rs485_pollAddrCounter;
     }
-    
     rs485_lastPollCompleteUs = micros();
     rs485_state = RS485State::IDLE;
 }
@@ -893,15 +815,6 @@ bool RS485Master_init() {
         rs485_offlineReported[i] = false;
     }
     
-    // Initialize auto-discovery arrays
-    for (int i = 0; i <= RS485_MAX_SLAVES; i++) {
-        rs485_slavePresent[i] = false;
-    }
-    rs485_slavePresent[0] = true;  // Address 0 is broadcast, always "present" to avoid polling it
-    rs485_pollAddrCounter = 1;
-    rs485_scanAddrCounter = 1;
-    rs485_isScanning = false;
-    
     rs485_exportHead = rs485_exportTail = rs485_exportCount = 0;
     
     #if RS485_SMART_MODE
@@ -914,7 +827,7 @@ bool RS485Master_init() {
     rs485_initialized = true;
     rs485_enabled = true;
     rs485_state = RS485State::IDLE;
-    rs485_currentPollAddr = 1;  // Start at address 1
+    rs485_currentPollAddr = rs485_minPollAddr;
     rs485_broadcastPending = false;
     rs485_lastPollCompleteUs = micros();
     rs485_lastBroadcastMs = 0;
@@ -927,7 +840,7 @@ bool RS485Master_init() {
     #else
     debugPrintln("[RS485] Direction: Auto (hardware handles TX/RX switching)");
     #endif
-    debugPrintf("[RS485] Auto-discovery enabled, scanning addresses 1-%d\n", RS485_MAX_SLAVES);
+    debugPrintf("[RS485] Poll range: %d-%d\n", rs485_minPollAddr, rs485_maxPollAddr);
     #if RS485_SMART_MODE
     debugPrintln("[RS485] Mode: SMART (change detection + filtering)");
     #else
@@ -950,22 +863,15 @@ void RS485Master_loop() {
         uint32_t missed = rs485_stats.pollCount - rs485_stats.responseCount;
         float responseRate = rs485_stats.pollCount > 0 ?
             100.0f * rs485_stats.responseCount / rs485_stats.pollCount : 0;
-        
-        // Count discovered slaves
-        uint8_t discoveredCount = 0;
-        for (int i = 1; i <= RS485_MAX_SLAVES; i++) {
-            if (rs485_slavePresent[i]) discoveredCount++;
-        }
-        
         #if RS485_SMART_MODE
-        debugPrintf("[RS485] 📊 SMART: Polls=%lu | Resp=%lu (%.1f%%) | Missed=%lu | Bcasts=%lu | Changes=%lu | Bytes=%lu | Slaves=%d\n",
+        debugPrintf("[RS485] 📊 SMART: Polls=%lu | Resp=%lu (%.1f%%) | Missed=%lu | Bcasts=%lu | Changes=%lu | Bytes=%lu\n",
             rs485_stats.pollCount, rs485_stats.responseCount, responseRate, missed,
-            rs485_stats.broadcastCount, rs485_stats.changesDetected, rs485_stats.exportBytesSent, discoveredCount);
+            rs485_stats.broadcastCount, rs485_stats.changesDetected, rs485_stats.exportBytesSent);
         #else
-        debugPrintf("[RS485] 📊 DUMB: Polls=%lu | Resp=%lu (%.1f%%) | Bcasts=%lu | Bytes=%lu | FIFO=%u | Overflow=%lu | Slaves=%d\n",
+        debugPrintf("[RS485] 📊 DUMB: Polls=%lu | Resp=%lu (%.1f%%) | Bcasts=%lu | Bytes=%lu | FIFO=%u | Overflow=%lu\n",
             rs485_stats.pollCount, rs485_stats.responseCount, responseRate,
             rs485_stats.broadcastCount, rs485_stats.exportBytesSent, 
-            (unsigned)rs485_rawCount, rs485_fifoOverflows, discoveredCount);
+            (unsigned)rs485_rawCount, rs485_fifoOverflows);
         #endif
     }
     
@@ -1062,8 +968,10 @@ void RS485Master_forceFullSync() {
 }
 
 void RS485Master_setPollingRange(uint8_t minAddr, uint8_t maxAddr) {
-    // Legacy function - now just logs a warning since auto-discovery handles this
-    debugPrintf("[RS485] ⚠️ setPollingRange(%d-%d) ignored - using auto-discovery\n", minAddr, maxAddr);
+    rs485_minPollAddr = constrain(minAddr, 1, RS485_MAX_SLAVES);
+    rs485_maxPollAddr = constrain(maxAddr, rs485_minPollAddr, RS485_MAX_SLAVES);
+    rs485_currentPollAddr = rs485_minPollAddr;
+    debugPrintf("[RS485] Poll range: %d-%d\n", rs485_minPollAddr, rs485_maxPollAddr);
 }
 
 void RS485Master_setEnabled(bool en) {
@@ -1073,13 +981,13 @@ void RS485Master_setEnabled(bool en) {
 
 bool RS485Master_isSlaveOnline(uint8_t address) {
     if (address < 1 || address > RS485_MAX_SLAVES) return false;
-    return rs485_slavePresent[address] && rs485_slaves[address - 1].online;
+    return rs485_slaves[address - 1].online;
 }
 
 uint8_t RS485Master_getOnlineSlaveCount() {
     uint8_t count = 0;
-    for (uint8_t i = 1; i <= RS485_MAX_SLAVES; i++) {
-        if (rs485_slavePresent[i] && rs485_slaves[i - 1].online) count++;
+    for (uint8_t i = rs485_minPollAddr; i <= rs485_maxPollAddr; i++) {
+        if (rs485_slaves[i - 1].online) count++;
     }
     return count;
 }
@@ -1091,20 +999,6 @@ void RS485Master_printStatus() {
     #else
     debugPrintln("[RS485] Mode: DUMB (raw relay, Arduino-compatible)");
     #endif
-    
-    // List discovered slaves
-    debugPrint("[RS485] Discovered slaves: ");
-    bool first = true;
-    for (int i = 1; i <= RS485_MAX_SLAVES; i++) {
-        if (rs485_slavePresent[i]) {
-            if (!first) debugPrint(", ");
-            debugPrintf("%d", i);
-            first = false;
-        }
-    }
-    if (first) debugPrint("(none)");
-    debugPrintln("");
-    
     float responseRate = rs485_stats.pollCount > 0 ? 
         100.0f * rs485_stats.responseCount / rs485_stats.pollCount : 0;
     debugPrintf("[RS485] Polls: %lu, Responses: %lu (%.1f%%)\n",

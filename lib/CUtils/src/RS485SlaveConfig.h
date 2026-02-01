@@ -23,16 +23,16 @@
 // ============================================================================
 // SLAVE ADDRESS (REQUIRED - must be unique on the bus!)
 // ============================================================================
+// Set RS485_SLAVE_ADDRESS in Config.h, not here.
+// Valid range: 1-126 (address 0 is reserved for broadcast)
 
-/* we set this in Config.h now
 #ifndef RS485_SLAVE_ADDRESS
-#define RS485_SLAVE_ADDRESS     1       // Valid range: 1-126
+#error "RS485_SLAVE_ADDRESS must be defined in Config.h (valid range: 1-126)"
 #endif
-*/
 
 // Sanity check
-#if RS485_SLAVE_ADDRESS < 1 || RS485_SLAVE_ADDRESS > 32
-#error "RS485_SLAVE_ADDRESS must be between 1 and 32"
+#if RS485_SLAVE_ADDRESS < 1 || RS485_SLAVE_ADDRESS > 126
+#error "RS485_SLAVE_ADDRESS must be between 1 and 126"
 #endif
 
 // ============================================================================
@@ -40,9 +40,9 @@
 // ============================================================================
 // 
 // OPTION 1: Manual direction control (MAX485 or similar)
-//   ESP32 TX (GPIO17) -> MAX485 DI
-//   ESP32 RX (GPIO16) -> MAX485 RO  
-//   ESP32 GPIO (GPIO4) -> MAX485 DE+RE (tied together)
+//   ESP32 TX -> MAX485 DI
+//   ESP32 RX <- MAX485 RO  
+//   ESP32 GPIO -> MAX485 DE+RE (tied together)
 //   Set RS485_EN_PIN to the GPIO controlling DE/RE
 //
 // OPTION 2: Built-in RS485 (Waveshare ESP32-S3-RS485-CAN, etc.)
@@ -52,12 +52,19 @@
 // OPTION 3: Auto-direction board (TTL-RS485 Auto Module, etc.)
 //   These boards automatically detect TX/RX direction from data flow.
 //   Only TX and RX pins needed - no direction control!
-//   Set RS485_EN_PIN to UART_PIN_NO_CHANGE (or -1)
+//   Set RS485_EN_PIN to -1 (auto-direction mode)
 //
-// Example for Lolin S2 Mini + TTL-RS485 Auto-Direction Module:
-//   #define RS485_TX_PIN  39
-//   #define RS485_RX_PIN  37
-//   #define RS485_EN_PIN  UART_PIN_NO_CHANGE  // Auto-direction, no EN needed!
+// Example configurations:
+//
+// Waveshare ESP32-S3-RS485-CAN (built-in transceiver):
+//   #define RS485_TX_PIN  17
+//   #define RS485_RX_PIN  18
+//   #define RS485_EN_PIN  21
+//
+// LOLIN S3 Mini + TTL-RS485 Auto-Direction Module:
+//   #define RS485_TX_PIN  17
+//   #define RS485_RX_PIN  18
+//   #define RS485_EN_PIN  -1   // Auto-direction, no EN needed!
 
 #ifndef RS485_TX_PIN
 #define RS485_TX_PIN            17      // UART TX -> RS485 DI
@@ -68,8 +75,9 @@
 #endif
 
 #ifndef RS485_EN_PIN
-// #define RS485_EN_PIN            21      // Direction control (or UART_PIN_NO_CHANGE for auto)
-#define RS485_EN_PIN            UART_PIN_NO_CHANGE      // Direction control (or UART_PIN_NO_CHANGE for auto)
+// -1 = Auto-direction board (hardware handles TX/RX switching)
+// >=0 = Manual direction control via GPIO (ESP32 drives EN pin)
+#define RS485_EN_PIN            -1      // Auto-direction by default
 #endif
 
 // ============================================================================
