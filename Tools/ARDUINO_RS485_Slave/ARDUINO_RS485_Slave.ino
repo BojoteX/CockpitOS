@@ -85,7 +85,7 @@ static const uint32_t TX_LED_FLASH_MS = 50;
 // =============================================================================
 
 // Use the REAL DcsBios::Switch2Pos - it handles message queuing correctly
-DcsBios::Switch2Pos masterCautionBtn("UFC_MASTER_CAUTION", SWITCH_PIN);
+DcsBios::Switch2Pos masterCautionBtn("MASTER_ARM_SW", SWITCH_PIN);
 
 // =============================================================================
 // DCS-BIOS OUTPUTS (Sim state -> LEDs)

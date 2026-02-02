@@ -199,10 +199,13 @@ static bool rs485s_checkRxTimeout() {
         rs485s_state != RS485SlaveState::RX_WAIT_ADDRESS) {
         uint32_t elapsed = micros() - rs485s_rxStartTime;
         if (elapsed > RS485_SLAVE_RX_TIMEOUT_US) {
-            #if RS485_SLAVE_DEBUG_VERBOSE
-            debugPrintf("[RS485S] ⚠️ RX timeout in state %s after %luµs, resync\n", 
-                       rs485s_stateName(rs485s_state), elapsed);
-            #endif
+            // For SKIP states: other slave probably doesn't exist, just wait for next packet
+            if (rs485s_state >= RS485SlaveState::RX_SKIP_RESPONSE_LENGTH &&
+                rs485s_state <= RS485SlaveState::RX_SKIP_RESPONSE_CHECKSUM) {
+                rs485s_state = RS485SlaveState::RX_WAIT_ADDRESS;
+                return true;
+            }
+            // For other states: full resync
             rs485s_resetToSync();
             return true;
         }
@@ -612,7 +615,10 @@ static void rs485s_processTx() {
         case RS485SlaveState::TX_SEND_LENGTH: {
             // Length byte: includes MsgType + data bytes
             // If no data: send 0x00 and we're done (no checksum needed!)
-            uint8_t len = (rs485s_txSendLen > 0) ? (uint8_t)(rs485s_txSendLen + 1) : 0;
+            // uint8_t len = (rs485s_txSendLen > 0) ? (uint8_t)(rs485s_txSendLen + 1) : 0;
+            
+            uint8_t len = (uint8_t)rs485s_txSendLen;  // Match Arduino: Length = data bytes only
+
             uart_write_bytes(RS485S_UART_NUM, (const char*)&len, 1);
             rs485s_txChecksum = len;
 
@@ -621,6 +627,8 @@ static void rs485s_processTx() {
             } else {
                 // No data - single 0x00 byte response, NO CHECKSUM!
                 uart_wait_tx_done(RS485S_UART_NUM, 10);
+
+                uart_flush_input(RS485S_UART_NUM);  // Clear any echo
                 rs485s_responseComplete();
                 rs485s_state = RS485SlaveState::RX_WAIT_ADDRESS;
                 #if RS485_SLAVE_DEBUG_VERBOSE
@@ -669,6 +677,8 @@ static void rs485s_processTx() {
 
             uart_write_bytes(RS485S_UART_NUM, (const char*)&checksum, 1);
             uart_wait_tx_done(RS485S_UART_NUM, 10);
+
+            uart_flush_input(RS485S_UART_NUM);
 
             rs485s_responseComplete();
 

@@ -17,18 +17,18 @@
 #define VERSION_CURRENT                            "R.1.1.4_01-19-26" // Just to troubleshoot instalations
 
 // Is this an RS-485 Master? leave to 0 for normal operation.
-#define RS485_MASTER_ENABLED                        0 // Set as RS-485 Master. Polls slaves. Forwards data, you still need to choose a transport above (WiFi, Serial, USB etc)
+#define RS485_MASTER_ENABLED                        1 // Set as RS-485 Master. Polls slaves. Forwards data, you still need to choose a transport above (WiFi, Serial, USB etc)
 
 // Here is where you tell the firmware which 'transport' will be used to SEND and RECEIVE data to/from DCS. 
 // Bluetooth BLE, Pure Native USB, WIFI, Serial (CDC/Socat) or as an RS485 slave. ** Only ONE ** can be active 
 #define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included) requires NimBLE-Arduino by h2zero. Uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on ALL ESP32s except S2s and P4s).
-#define USE_DCSBIOS_WIFI                            0 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
+#define USE_DCSBIOS_WIFI                            1 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
 #define USE_DCSBIOS_USB                             0 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
 #define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
-#define RS485_SLAVE_ENABLED                         1 // Set as RS-485 Slave transport. This is EXPERIMENTAL only for Open Hornet cockpits. 
+#define RS485_SLAVE_ENABLED                         0 // Set as RS-485 Slave transport. This is EXPERIMENTAL only for Open Hornet cockpits. 
 
 // RS485 Configuration (Only use for Open Hornet setups as this is experimental and not needed for CockpitOS normal operation)
-#define RS485_SLAVE_ADDRESS                         64 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
+#define RS485_SLAVE_ADDRESS                         1 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
 
 // Your personal Wi-Fi network credentials should be stored in .credentials/wifi.h. If file not found or does not exists yet, we use defaults ("TestNetwork" / "TestingOnly")
 #if __has_include(".credentials/wifi.h")
@@ -134,8 +134,8 @@
 #define DCS_USB_PACKET_MAXLEN   GAMEPAD_REPORT_SIZE  // Max USB packet size safe for DCS-BIOS (to match HID report size)
 
 // DCS UDP/USB Receive Ring Buffer (incoming packets) - *MANDATORY* when using USB mode, optional in WiFi UDP mode.
-// #define MAX_UDP_FRAMES_PER_DRAIN               1  // Max number to hold in buffer before parsing (increase for bursty processing) 1 is deterministic, best.
-#define MAX_UDP_FRAMES_PER_DRAIN                  4  // Max number to hold in buffer before parsing (testing this value).
+#define MAX_UDP_FRAMES_PER_DRAIN               1  // Max number to hold in buffer before parsing (increase for bursty processing) 1 is deterministic, best.
+// #define MAX_UDP_FRAMES_PER_DRAIN                  4  // Max number to hold in buffer before parsing (testing this value).
 
 #if USE_DCSBIOS_USB
   #define DCS_USE_RINGBUFFER                      1  // Should ALWAYS be 1 when USE_DCSBIOS_USB. DO NOT CHANGE 
@@ -145,7 +145,7 @@
   #if USE_DCSBIOS_WIFI || USE_DCSBIOS_BLUETOOTH
     #define DCS_USE_RINGBUFFER                    1  // Enforces WiFi/BLE use of a ring buffer for the incoming DCS Stream data (otherwise it will crash)
     #define DCS_UDP_RINGBUF_SIZE                 32  // Number of UDP packets buffered (tune as needed)
-    #define DCS_UDP_PACKET_MAXLEN               128  // Max UDP packet size (safe for Incoming UDP from DCS-BIOS)
+    #define DCS_UDP_PACKET_MAXLEN                64  // Max UDP packet size (safe for Incoming UDP from DCS-BIOS)
   #else 
     #define DCS_USE_RINGBUFFER                    0  // No need for it as Wi-Fi/BLE for DCS-BIOS is not active.
     #define DCS_UDP_RINGBUF_SIZE                  0  // Number of BLE packets buffered (tune as needed)

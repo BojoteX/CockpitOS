@@ -32,7 +32,7 @@ static const LEDMapping panelLEDs[] = {
   { "MASTER_MODE_AA_LT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MASTER_MODE_AG_LT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MC_DISCH"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "MC_READY"         , DEVICE_WS2812  , {.ws2812Info = {0,47,0,0,255,255}}, true, false }, // WS2812 Index 0,
+  { "MC_READY"         , DEVICE_WS2812  , {.ws2812Info = {0,47,0,0,128,128}}, true, false }, // LED,
   { "MASTER_CAUTION_LT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 
