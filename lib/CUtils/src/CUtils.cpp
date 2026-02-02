@@ -50,6 +50,17 @@ uint8_t PCA9555_cachedPortStates[8][2] = {{0}};
 #include "internal/HC165.cpp"
 #include "internal/AnalogG.cpp"
 
+// RS-485 Master (bus controller)
+#if RS485_MASTER_ENABLED
+#include "internal/RS485Master.cpp"
+#endif
+
+// RS-485 Slave (on existing bus)
+#if RS485_SLAVE_ENABLED
+#include "internal/RS485Slave.cpp"
+#endif
+
+
 bool panelExists(uint8_t targetAddr) {
   for (uint8_t i = 0; i < discoveredDeviceCount; ++i)
     if (discoveredDevices[i].address == targetAddr) return true;
