@@ -37,7 +37,7 @@
 
 // Select core (For this gauge, we always use core 0 for all devices)
 #if defined(ESP_FAMILY_S3)
-#define RA_CPU_CORE 0
+#define RA_CPU_CORE 1
 #else
 #define RA_CPU_CORE 0
 #endif

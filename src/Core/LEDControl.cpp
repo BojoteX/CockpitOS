@@ -65,7 +65,7 @@ void tickOutputDrivers() {
     if (g_hasTM1637)  tm1637_tick();
     if (g_hasWS2812)  WS2812_tick();
     if (g_hasGN1640)  GN1640_tick();
-    // Note: GAUGE uses task-based updates, no tick needed
+    if (g_hasGauge)   AnalogG_tick();   // service servo gauges
 }
 
 // Blazing fast setLED()
@@ -205,9 +205,11 @@ void setLED(const char* label, bool state, uint8_t intensity, uint16_t rawValue,
         default:
             #if DEBUG_PERFORMANCE
             beginProfiling(PERF_LED_UNKNOWN);
-            #endif        
-            if(DEBUG) debugPrintf("⚠️ '%s' is NOT a LED or has not being configured yet\n", label);
-            #if DEBUG_PERFORMANCE
+            #endif
+
+            // if(DEBUG) debugPrintf("⚠️ '%s' is NOT a LED or has not being configured yet\n", label);
+            
+#if DEBUG_PERFORMANCE
             endProfiling(PERF_LED_UNKNOWN);
             #endif            
             break;

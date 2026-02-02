@@ -5,6 +5,7 @@ CockpitOS Remote Bootloader Tool
 
 Sends a magic UDP packet to trigger ESP32 devices into bootloader mode.
 Works for both WiFi and USB devices (HID Manager forwards UDP to USB).
+Sends on ALL network interfaces for universal compatibility.
 
 Usage:
     python bootloader_tool.py                    # Interactive menu
@@ -23,12 +24,106 @@ import argparse
 from pathlib import Path
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# DEPENDENCY CHECK
+# ═══════════════════════════════════════════════════════════════════════════════
+
+try:
+    import ifaddr
+except ImportError:
+    print()
+    print("╔════════════════════════════════════════════════════════════════╗")
+    print("║  ❌ Missing Required Module: ifaddr                            ║")
+    print("╠════════════════════════════════════════════════════════════════╣")
+    print("║                                                                ║")
+    print("║  This tool requires 'ifaddr' for network interface discovery. ║")
+    print("║                                                                ║")
+    print("║  Install it with:                                              ║")
+    print("║                                                                ║")
+    print("║      pip install ifaddr                                        ║")
+    print("║                                                                ║")
+    print("║  Then run this script again.                                   ║")
+    print("║                                                                ║")
+    print("╚════════════════════════════════════════════════════════════════╝")
+    print()
+
+    # Press ENTER to exit
+    input("\nPress <ENTER> to exit...")
+
+    sys.exit(1)
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
 MULTICAST_IP = "239.255.50.10"
 MULTICAST_PORT = 5010
 MAGIC_PREFIX = "COCKPITOS:REBOOT:"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MULTI-INTERFACE NETWORK SUPPORT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def get_all_interface_ips():
+    """
+    Discover all usable IPv4 interface addresses on this machine.
+    Returns list of (interface_name, ip_address) tuples.
+    
+    Filters out:
+      - Loopback (127.x.x.x)
+      - APIPA/link-local (169.254.x.x) - indicates no network config
+    
+    Uses ifaddr for bulletproof cross-platform interface enumeration.
+    """
+    interfaces = []
+    
+    for adapter in ifaddr.get_adapters():
+        for ip in adapter.ips:
+            # Only IPv4 addresses (ip.ip is a string for IPv4, tuple for IPv6)
+            if isinstance(ip.ip, str):
+                # Skip loopback and APIPA (link-local) addresses
+                if ip.ip.startswith('127.') or ip.ip.startswith('169.254.'):
+                    continue
+                # Shorten the adapter name for cleaner output
+                short_name = shorten_adapter_name(adapter.nice_name)
+                interfaces.append((short_name, ip.ip))
+    
+    return interfaces
+
+
+def shorten_adapter_name(name):
+    """Shorten long Windows adapter names to something readable."""
+    # Common substitutions
+    replacements = [
+        ("Network Adapter", ""),
+        ("Dual Band Simultaneous (DBS)", ""),
+        ("Wi-Fi 7", "WiFi7"),
+        ("Wi-Fi 6", "WiFi6"),
+        ("Wi-Fi", "WiFi"),
+        ("Qualcomm FastConnect 7800", "Qualcomm"),
+        ("Intel(R)", "Intel"),
+        ("Realtek", "Realtek"),
+        ("Virtual", "Virt"),
+        ("Ethernet", "Eth"),
+        ("Wireless", "WiFi"),
+        ("  ", " "),  # collapse double spaces
+    ]
+    
+    result = name
+    for old, new in replacements:
+        result = result.replace(old, new)
+    
+    return result.strip()[:30]  # Max 30 chars
+
+
+def create_multicast_socket(interface_ip, ttl=2):
+    """
+    Create a UDP socket configured to send multicast on a specific interface.
+    Uses IP_MULTICAST_IF to direct outgoing multicast to the specified NIC.
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
+    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(interface_ip))
+    return sock
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # LABEL SET DISCOVERY
@@ -88,23 +183,43 @@ def discover_label_sets(labels_dir):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def send_bootloader_command(target):
-    """Send the magic bootloader packet via UDP multicast."""
+    """Send the magic bootloader packet via UDP multicast on ALL interfaces."""
     message = f"{MAGIC_PREFIX}{target}\n".encode('utf-8')
     
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
-        
-        # Send multiple times for reliability
-        for _ in range(3):
-            sock.sendto(message, (MULTICAST_IP, MULTICAST_PORT))
-        
-        sock.close()
-        print(f"✅ Sent: {MAGIC_PREFIX}{target}")
-        return True
-    except Exception as e:
-        print(f"❌ Network error: {e}")
-        return False
+    # Discover all network interfaces
+    interfaces = get_all_interface_ips()
+    
+    successful_interfaces = []
+    
+    # Try each interface
+    for iface_name, ip in interfaces:
+        try:
+            sock = create_multicast_socket(ip)
+            for _ in range(3):  # Send multiple times for reliability
+                sock.sendto(message, (MULTICAST_IP, MULTICAST_PORT))
+            sock.close()
+            successful_interfaces.append((ip, iface_name))
+        except Exception:
+            pass  # Silently skip interfaces that fail
+    
+    # Fallback if no interfaces worked
+    if not successful_interfaces:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+            sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+            for _ in range(3):
+                sock.sendto(message, (MULTICAST_IP, MULTICAST_PORT))
+            sock.close()
+            successful_interfaces.append(("default", "default route"))
+        except Exception as e:
+            print(f"\n❌ Failed to send on any interface: {e}")
+            return False
+    
+    # Report success
+    iface_list = ", ".join(f"{ip} ({name})" for ip, name in successful_interfaces)
+    print(f"\n✅ Sent: {MAGIC_PREFIX}{target}")
+    print(f"   via: {iface_list}")
+    return True
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # USER INTERFACE
@@ -127,7 +242,7 @@ def print_device_menu(devices):
         print(f"║{line[:62]:<63}║")
     
     print("║                                                                ║")
-    print("║   [*] Reboot ALL devices (use with caution!)                   ║")
+    print("║   [*] Reboot ALL devices                                       ║")
     print("║   [Q] Quit                                                     ║")
     print("║                                                                ║")
     print("╚════════════════════════════════════════════════════════════════╝")
@@ -144,16 +259,6 @@ def print_standalone_menu():
     print("╚════════════════════════════════════════════════════════════════╝")
 
 
-def confirm_action(target, is_wildcard=False):
-    print()
-    if is_wildcard:
-        print("⚠️  WARNING: This will reboot ALL CockpitOS devices!")
-        return input("Type 'YES' to confirm: ").strip().upper() == 'YES'
-    else:
-        response = input(f"Reboot '{target}'? [Y/n]: ").strip().lower()
-        return response in ('', 'y', 'yes')
-
-
 def run_interactive_with_devices(devices):
     print_header()
     print_device_menu(devices)
@@ -167,16 +272,14 @@ def run_interactive_with_devices(devices):
             return
         
         if choice == '*':
-            if confirm_action('*', is_wildcard=True):
-                send_bootloader_command('*')
+            send_bootloader_command('*')
             return
         
         try:
             idx = int(choice)
             if 1 <= idx <= len(devices):
                 device = devices[idx - 1]
-                if confirm_action(device['name']):
-                    send_bootloader_command(device['name'])
+                send_bootloader_command(device['name'])
                 return
             else:
                 print(f"Invalid. Enter 1-{len(devices)}, *, or Q")
@@ -197,14 +300,13 @@ def run_interactive_standalone():
             return
         
         if choice == '1':
-            if confirm_action('*', is_wildcard=True):
-                send_bootloader_command('*')
+            send_bootloader_command('*')
             return
         
         if choice == '2':
             print("\nEnter LABEL_SET_NAME (e.g., IFEI, HORNET_FRNT_RIGHT):")
             name = input("LABEL_SET_NAME: ").strip()
-            if name and confirm_action(name):
+            if name:
                 send_bootloader_command(name)
             return
         
@@ -230,27 +332,23 @@ Examples:
     parser.add_argument('--device', '-d', metavar='NAME', help='Device LABEL_SET_NAME')
     parser.add_argument('--pid', '-p', metavar='PID', help='Device USB PID (e.g., 0xC8DD)')
     parser.add_argument('--all', '-a', action='store_true', help='Reboot ALL devices')
-    parser.add_argument('--yes', '-y', action='store_true', help='Skip confirmation')
     
     args = parser.parse_args()
     
     # Direct command mode
     if args.all:
-        if args.yes or confirm_action('*', is_wildcard=True):
-            send_bootloader_command('*')
+        send_bootloader_command('*')
         return
     
     if args.device:
-        if args.yes or confirm_action(args.device):
-            send_bootloader_command(args.device)
+        send_bootloader_command(args.device)
         return
     
     if args.pid:
         pid = args.pid.upper()
         if not pid.startswith('0X'):
             pid = '0x' + pid
-        if args.yes or confirm_action(pid):
-            send_bootloader_command(pid)
+        send_bootloader_command(pid)
         return
     
     # Interactive mode

@@ -11,6 +11,35 @@ static AsyncUDP udp;
 IPAddress dcsSourceIP;      // Last source IP seen
 static volatile bool dcsSourceIPValid = false;
 
+
+
+
+
+
+
+
+static char g_deviceName[32] = "UNKNOWN";
+
+#define _STRINGIFY(x) #x
+#define STRINGIFY(x) _STRINGIFY(x)
+
+static void buildDeviceName() {
+#if defined(RS485_MASTER_ENABLED) && RS485_MASTER_ENABLED
+    snprintf(g_deviceName, sizeof(g_deviceName), "MASTER-%s", LABEL_SET_FULLNAME);
+#elif defined(RS485_SLAVE_ENABLED) && RS485_SLAVE_ENABLED
+    snprintf(g_deviceName, sizeof(g_deviceName), "SLAVE-%02d-%s", RS485_SLAVE_ADDRESS, LABEL_SET_FULLNAME);
+#else
+    snprintf(g_deviceName, sizeof(g_deviceName), "%s", LABEL_SET_FULLNAME);
+#endif
+}
+
+
+
+
+
+
+
+
 // ═══════════════════════════════════════════════════════════════════════════
 // RING BUFFER MODE — Only compiled when WIFI_DEBUG_USE_RINGBUFFER is enabled
 // ═══════════════════════════════════════════════════════════════════════════
@@ -228,7 +257,11 @@ bool tryToSendDcsBiosMessageUDP(const char* msg, const char* arg) {
             ipSnapshot.toString().c_str(), static_cast<unsigned>(DCS_REMOTE_PORT));
         return false;
     }
-	delay(1); // tiny delay to avoid flooding
+
+	// delay(1); // tiny delay to avoid flooding
+	// delayMicroseconds(100); / / tiny delay to avoid flooding
+	yield(); // yield to allow background UDP processing
+    
     return true;
 }
 
@@ -251,6 +284,11 @@ void wifi_setup() {
     serialDebugPrintf(" '%s' Connected to WiFi network %s with IP %s\n", USB_PRODUCT, WIFI_SSID, ipbuf);
     wifiDebugInit(DEBUG_LOCAL_PORT);
     delay(100);
+
+	// Send registration message
+    buildDeviceName();
+    wifiDebugPrintf("@@REGISTER:%s\n", g_deviceName);
+
     wifiDebugPrintf(" '%s' Connected to WiFi network %s with IP %s\n", USB_PRODUCT, WIFI_SSID, ipbuf);
 }
 
