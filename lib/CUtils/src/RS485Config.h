@@ -4,52 +4,82 @@
  * 
  * To enable RS-485 master mode, add to Config.h:
  *   #define RS485_MASTER_ENABLED 1
+ * 
+ * ==========================================================================
+ * OPERATING MODES
+ * ==========================================================================
+ * 
+ * RS485_FILTER_ADDRESSES selects the fundamental operating mode:
+ * 
+ *   ┌─────────────────────────────────────────────────────────────────────┐
+ *   │ FILTER=1 "SMART MODE" (default)                                    │
+ *   ├─────────────────────────────────────────────────────────────────────┤
+ *   │ • Parses DCS-BIOS stream, extracts address/value pairs             │
+ *   │ • Filters by DcsOutputTable (only addresses your panels need)      │
+ *   │ • Change detection reduces bandwidth dramatically                  │
+ *   │ • Reconstructs complete frames for broadcast                       │
+ *   │ • Best for production with known panel configurations              │
+ *   │ • Uses: 32KB RAM for change tracking + 128-entry queue             │
+ *   └─────────────────────────────────────────────────────────────────────┘
+ * 
+ *   ┌─────────────────────────────────────────────────────────────────────┐
+ *   │ FILTER=0 "RELAY MODE" (Arduino-compatible)                         │
+ *   ├─────────────────────────────────────────────────────────────────────┤
+ *   │ • Raw byte relay, exactly like Arduino Mega master                 │
+ *   │ • NO parsing, NO filtering - bytes in, bytes out                   │
+ *   │ • Small ring buffer (256 bytes), continuous drain                  │
+ *   │ • Works with ANY sim, ANY aircraft, ANY address                    │
+ *   │ • Use for debugging or when you don't know addresses yet           │
+ *   │ • Uses: 256 bytes RAM (minimal!)                                   │
+ *   └─────────────────────────────────────────────────────────────────────┘
+ * 
  */
 
 #ifndef RS485_CONFIG_H
 #define RS485_CONFIG_H
 
 // ============================================================================
-// BROADCAST MODE (IMPORTANT!)
+// OPERATING MODE - CHOOSE ONE
 // ============================================================================
-// 0 = DUMB MODE (default): Relay raw DCS-BIOS export stream like Arduino Master
-//     - No change detection, no filtering
-//     - ~370 bytes/frame @ 30Hz = ~11KB/sec bandwidth
-//     - Slaves filter locally (standard DCS-BIOS behavior)
-//     - Maximum compatibility, proven approach
+// 1 = SMART MODE: Parse + filter + change detect + rebuild frames
+//     Best bandwidth, requires DcsOutputTable configuration
 //
-// 1 = SMART MODE: Broadcast only changed addresses that slaves actually need
-//     - Change detection + address filtering via DCSBIOSBridgeData.h
-//     - ~10-50 bytes/broadcast = ~200-2000x bandwidth reduction
-//     - Requires DcsOutputTable to be populated with slave addresses
+// 0 = RELAY MODE: Raw byte pump like Arduino Mega master
+//     Maximum compatibility, works without any configuration
 //
-#ifndef RS485_SMART_MODE
-#define RS485_SMART_MODE        1       // 0=dumb (Arduino-like), 1=smart (filtered)
+#ifndef RS485_FILTER_ADDRESSES
+#define RS485_FILTER_ADDRESSES  0
 #endif
 
 // ============================================================================
-// HARDWARE PINS
+// SMART MODE OPTIONS (only apply when FILTER_ADDRESSES=1)
 // ============================================================================
-// 
-// OPTION 1: Built-in RS485 (Waveshare ESP32-S3-RS485-CAN, etc.)
-//   TX = GPIO17, RX = GPIO18, EN = GPIO21
-//   Set RS485_EN_PIN to the board's direction control pin
-//
-// OPTION 2: Manual direction control (MAX485 or similar)
-//   ESP32 TX -> MAX485 DI
-//   ESP32 RX <- MAX485 RO  
-//   ESP32 GPIO -> MAX485 DE+RE (tied together)
-//   Set RS485_EN_PIN to the GPIO controlling DE/RE
-//
-// OPTION 3: Auto-direction board (TTL-RS485 Auto Module, etc.)
-//   These boards automatically detect TX/RX direction from data flow.
-//   Only TX and RX pins needed - no direction control!
-//   Set RS485_EN_PIN to UART_PIN_NO_CHANGE (or -1)
-//
-// Example for ESP32 S2 Mini + TTL-RS485 Auto-Direction Module:
-//   #define RS485_TX_PIN  39
-//   #define RS485_RX_PIN  37
-//   #define RS485_EN_PIN  UART_PIN_NO_CHANGE  // Auto-direction, no EN needed!
+#if RS485_FILTER_ADDRESSES
+
+// Change detection (delta compression)
+// 1 = Only broadcast changed values (recommended - huge bandwidth savings)
+// 0 = Broadcast all filtered values every frame (rarely useful)
+#ifndef RS485_CHANGE_DETECT
+#define RS485_CHANGE_DETECT     1
+#endif
+
+// Change queue size (address/value pairs)
+// Each change = 10 bytes on wire (sync + addr + count + value)
+#ifndef RS485_CHANGE_QUEUE_SIZE
+#define RS485_CHANGE_QUEUE_SIZE 128
+#endif
+
+// Minimum time between broadcasts (milliseconds)
+// Batches changes for efficiency
+#ifndef RS485_MIN_BROADCAST_INTERVAL_MS
+#define RS485_MIN_BROADCAST_INTERVAL_MS 100
+#endif
+
+#endif // RS485_FILTER_ADDRESSES
+
+// ============================================================================
+// HARDWARE PINS (Waveshare ESP32-S3-RS485-CAN defaults)
+// ============================================================================
 
 #ifndef RS485_TX_PIN
 #define RS485_TX_PIN            17      // UART TX -> RS485 DI
@@ -59,9 +89,11 @@
 #define RS485_RX_PIN            18      // UART RX <- RS485 RO
 #endif
 
+// Direction control pin:
+//   >= 0 : GPIO number for manual DE/RE control (half-duplex mode)
+//   -1   : Auto-direction hardware (no pin needed)
 #ifndef RS485_EN_PIN
-// #define RS485_EN_PIN            21      // Direction control (or UART_PIN_NO_CHANGE for auto)
-#define RS485_EN_PIN            -1      // Direction control (or UART_PIN_NO_CHANGE for auto)
+#define RS485_EN_PIN            -1
 #endif
 
 // ============================================================================
@@ -77,60 +109,49 @@
 #endif
 
 // ============================================================================
-// BROADCAST SETTINGS (Export data to slaves)
+// BROADCAST SETTINGS
 // ============================================================================
 
-// Disable broadcasts for testing (slave input still works)
+// Uncomment to disable broadcasts entirely (for input-only testing)
 // #define RS485_DISABLE_BROADCASTS 1
 
 // Delay after broadcast before polling (microseconds)
-// Gives slave time to process received export data
+// Gives slaves time to process received export data
 #ifndef RS485_POST_BROADCAST_DELAY_US
 #define RS485_POST_BROADCAST_DELAY_US 3000
-#endif
-
-// Minimum time between broadcasts (milliseconds)
-// DUMB mode needs faster broadcasts to drain ring buffer and keep up with data rate
-#ifndef RS485_MIN_BROADCAST_INTERVAL_MS
-  #if RS485_SMART_MODE
-    #define RS485_MIN_BROADCAST_INTERVAL_MS 100  // Smart mode: only when changes detected
-  #else
-    #define RS485_MIN_BROADCAST_INTERVAL_MS 5    // Dumb mode: drain buffer fast to prevent overflow
-  #endif
 #endif
 
 // ============================================================================
 // POLLING CONFIGURATION
 // ============================================================================
 
+// Maximum slave addresses to poll (valid range: 1-126)
+// Set to expected max to reduce discovery scan time
 #ifndef RS485_MAX_SLAVES
-// #define RS485_MAX_SLAVES        1      // Max slave addresses to track
-// #define RS485_MAX_SLAVES        126      // Max slave addresses to track
-#define RS485_MAX_SLAVES        32      // Max slave addresses to track
+#define RS485_MAX_SLAVES        32
 #endif
 
 // ============================================================================
 // BUFFER SIZES
 // ============================================================================
 
-#ifndef RS485_EXPORT_BUFFER_SIZE
-#define RS485_EXPORT_BUFFER_SIZE 512    // Ring buffer for DCS-BIOS export data
-#endif
-
+// Buffer for slave input commands (switch/encoder strings)
 #ifndef RS485_INPUT_BUFFER_SIZE
-#define RS485_INPUT_BUFFER_SIZE 64      // Buffer for slave input commands
+#define RS485_INPUT_BUFFER_SIZE 64
 #endif
 
 // ============================================================================
 // DEBUG OPTIONS
 // ============================================================================
 
+// Log every poll/response (VERY verbose - for debugging only)
 #ifndef RS485_DEBUG_VERBOSE
-#define RS485_DEBUG_VERBOSE     0       // Log every poll (very verbose!)
+#define RS485_DEBUG_VERBOSE     0
 #endif
 
+// Log only errors (suppresses normal status messages)
 #ifndef RS485_DEBUG_ERRORS_ONLY
-#define RS485_DEBUG_ERRORS_ONLY 0       // Log only errors
+#define RS485_DEBUG_ERRORS_ONLY 0
 #endif
 
 #endif // RS485_CONFIG_H

@@ -22,30 +22,24 @@
  *   - Has data: [Length] [MsgType=0] [Data...] [0x72]
  * 
  * ==========================================================================
- * AUTO-DISCOVERY:
+ * BROADCAST MODES (configured in RS485Config.h):
  * ==========================================================================
  * 
- * The master automatically discovers slaves on the bus:
- *   - Polls only known-present slaves for fast response
- *   - Periodically probes one unknown address to find new slaves
- *   - Marks slaves as not-present after consecutive timeouts
- *   - No manual configuration of RS485_MIN/MAX_POLL_ADDR needed
+ * RS485_FILTER_ADDRESSES=1 (SMART MODE):
+ *   - Parses DCS-BIOS stream, extracts address/value pairs
+ *   - Queues changes, reconstructs complete frames for broadcast
+ *   - Filtered by DcsOutputTable (only addresses slaves care about)
+ *   - Minimal bandwidth, maximum reliability
  * 
- * ==========================================================================
- * BROADCAST MODES:
- * ==========================================================================
+ * RS485_FILTER_ADDRESSES=0 (RELAY MODE):
+ *   - Raw byte relay, exactly like Arduino Mega master
+ *   - NO parsing, NO queuing - bytes in, bytes out
+ *   - Small buffer, continuous drain, accepts overflow
+ *   - Maximum compatibility, works with any sim
  * 
- * RS485_SMART_MODE = 0 (DUMB MODE - default):
- *   - Relays raw DCS-BIOS export stream exactly like Arduino Mega master
- *   - No change detection, no filtering
- *   - Slaves use their local ExportStreamListener to filter
- *   - ~128 bytes max per broadcast (matches Arduino ring buffer size)
- *   - Broadcasts once per poll cycle (after polling all slaves)
- * 
- * RS485_SMART_MODE = 1 (SMART MODE):
- *   - Change detection + address filtering
- *   - Only broadcasts addresses present in DCSBIOSBridgeData.h
- *   - ~10-50 bytes/broadcast, massive bandwidth savings
+ * RS485_CHANGE_DETECT (only applies when FILTER=1):
+ *   - 1 = Only broadcast changed values (delta compression)
+ *   - 0 = Broadcast all values every frame
  * 
  * ==========================================================================
  */
@@ -63,7 +57,7 @@ static const uint8_t RS485_ADDR_BROADCAST = 0;
 static const uint8_t RS485_MSGTYPE_POLL = 0;
 static const uint8_t RS485_CHECKSUM_PLACEHOLDER = 0x72;
 
-// Timeout initialization
+// Timeout tracking
 static uint8_t rs485_skipTimeoutsAfterBroadcast = 0;
 
 // ============================================================================
@@ -99,15 +93,19 @@ struct MasterStats {
     uint32_t exportBytesSent;
     uint32_t pollCycles;
     uint32_t changesDetected;
-    uint32_t framesSkipped;
-    uint32_t expectedTimeouts;  // Timeouts after receiving data (expected behavior)
+    uint32_t addressesFiltered;
+    uint32_t expectedTimeouts;
+    uint32_t bufferOverflows;
 };
 
 // ============================================================================
-// SMART MODE: CHANGE DETECTION PARSER (only used when RS485_SMART_MODE=1)
+// MODE-SPECIFIC DATA STRUCTURES
 // ============================================================================
 
-#if RS485_SMART_MODE
+#if RS485_FILTER_ADDRESSES
+// ============================================================================
+// SMART MODE: Parse stream, queue address/value changes
+// ============================================================================
 
 enum RS485ParseState : uint8_t {
     RS485_PARSE_WAIT_FOR_SYNC,
@@ -122,12 +120,17 @@ static uint16_t rs485_parseAddress = 0;
 static uint16_t rs485_parseCount = 0;
 static uint16_t rs485_parseData = 0;
 
-// Change tracking
+// Change tracking (for delta compression)
+#if RS485_CHANGE_DETECT
 static uint16_t rs485_prevExport[0x4000];  // 32KB for address range 0x0000-0x7FFF
 static bool rs485_prevInitialized = false;
+#endif
 
 // Change queue
+#ifndef RS485_CHANGE_QUEUE_SIZE
 #define RS485_CHANGE_QUEUE_SIZE 128
+#endif
+
 struct RS485Change { uint16_t address; uint16_t value; };
 static RS485Change rs485_changeQueue[RS485_CHANGE_QUEUE_SIZE];
 static volatile uint8_t rs485_changeQueueHead = 0;
@@ -135,62 +138,50 @@ static volatile uint8_t rs485_changeQueueTail = 0;
 static volatile uint8_t rs485_changeCount = 0;
 static bool rs485_frameHasChanges = false;
 
-#endif // RS485_SMART_MODE
+#else
+// ============================================================================
+// RELAY MODE: Raw byte FIFO, no parsing (like Arduino master)
+// ============================================================================
+
+// Small ring buffer - matches Arduino's approach
+// Arduino uses 128 bytes, we use 256 for safety margin
+#define RS485_RAW_RING_SIZE 256
+static uint8_t rs485_rawRing[RS485_RAW_RING_SIZE];
+static volatile uint8_t rs485_rawHead = 0;  // Write position
+static volatile uint8_t rs485_rawTail = 0;  // Read position
+// Note: Count derived from head/tail, no separate counter needed
+
+static inline uint8_t rs485_rawCount() {
+    return (uint8_t)(rs485_rawHead - rs485_rawTail);  // Works with wrap-around
+}
+
+static inline bool rs485_rawEmpty() {
+    return rs485_rawHead == rs485_rawTail;
+}
+
+static inline bool rs485_rawFull() {
+    return rs485_rawCount() >= (RS485_RAW_RING_SIZE - 1);
+}
+
+#endif // RS485_FILTER_ADDRESSES
 
 // ============================================================================
-// DUMB MODE: RAW EXPORT FIFO BUFFER (only used when RS485_SMART_MODE=0)
-// ============================================================================
-
-#if !RS485_SMART_MODE
-
-// FIFO buffer for raw export data
-// Size: 16KB to handle bursty UDP arrivals
-#define RS485_RAW_FIFO_SIZE 16384
-// #define RS485_RAW_FIFO_SIZE 128
-static uint8_t rs485_rawFifo[RS485_RAW_FIFO_SIZE];
-static volatile size_t rs485_rawHead = 0;   // Write position
-static volatile size_t rs485_rawTail = 0;   // Read position  
-static volatile size_t rs485_rawCount = 0;  // Bytes in buffer
-static uint32_t rs485_fifoOverflows = 0;    // Track overflows for debugging
-
-#endif // !RS485_SMART_MODE
-
-// ============================================================================
-// INTERNAL STATE
+// COMMON STATE VARIABLES
 // ============================================================================
 
 static RS485State rs485_state = RS485State::IDLE;
 static SlaveStatus rs485_slaves[RS485_MAX_SLAVES];
 static MasterStats rs485_stats = {0};
 
-// ============================================================================
-// AUTO-DISCOVERY STATE
-// ============================================================================
-
-// Tracks which slave addresses have responded at least once
-static bool rs485_slavePresent[RS485_MAX_SLAVES + 1];  // Index 0 unused (broadcast addr)
-
-// Current poll address counter (cycles through present slaves)
+// Auto-discovery
+static bool rs485_slavePresent[RS485_MAX_SLAVES + 1];
 static uint8_t rs485_pollAddrCounter = 1;
-
-// Scan address counter (probes for new slaves)
 static uint8_t rs485_scanAddrCounter = 1;
-
-// Flag: true when we're probing an unknown address (vs polling a known slave)
 static bool rs485_isScanning = false;
 
-// ============================================================================
-// POLLING CONTROL (legacy - kept for compatibility)
-// ============================================================================
-
+// Polling control
 static uint8_t rs485_currentPollAddr = 0;
 static bool rs485_broadcastPending = false;
-
-// Export data ring buffer (used for overflow protection in dumb mode)
-static uint8_t rs485_exportRing[RS485_EXPORT_BUFFER_SIZE];
-static volatile size_t rs485_exportHead = 0;
-static volatile size_t rs485_exportTail = 0;
-static volatile size_t rs485_exportCount = 0;
 
 // TX state
 static uint8_t rs485_txExportData[512];
@@ -215,7 +206,7 @@ static uint32_t rs485_lastResponseTime[RS485_MAX_SLAVES] = {0};
 static bool rs485_offlineReported[RS485_MAX_SLAVES] = {false};
 static const uint32_t RS485_OFFLINE_TIME_MS = 1000;
 
-// Expected timeout tracking - Arduino slave misses one poll after sending data
+// Expected timeout tracking
 static bool rs485_expectTimeoutAfterData = false;
 
 // Flags
@@ -226,24 +217,29 @@ static bool rs485_enabled = true;
 static const uart_port_t RS485_UART_NUM = UART_NUM_1;
 
 // ============================================================================
-// SMART MODE: CHANGE DETECTION FUNCTIONS
+// SMART MODE FUNCTIONS (FILTER_ADDRESSES=1)
 // ============================================================================
 
-#if RS485_SMART_MODE
+#if RS485_FILTER_ADDRESSES
 
+#if RS485_CHANGE_DETECT
 static void rs485_initPrevValues() {
     for (size_t i = 0; i < 0x4000; ++i) {
         rs485_prevExport[i] = 0xFFFFu;
     }
     rs485_prevInitialized = true;
-    debugPrint("[RS485] 🔄 Prev values initialized (SMART MODE)\n");
+    debugPrint("[RS485] 🔄 Change tracking initialized\n");
 }
+#endif
 
 static void rs485_queueChange(uint16_t address, uint16_t value) {
     if (rs485_changeCount >= RS485_CHANGE_QUEUE_SIZE) {
+        // Queue full - drop oldest to make room (like Arduino ring buffer)
         rs485_changeQueueTail = (rs485_changeQueueTail + 1) % RS485_CHANGE_QUEUE_SIZE;
         rs485_changeCount--;
+        rs485_stats.bufferOverflows++;
     }
+    
     uint8_t head = rs485_changeQueueHead;
     rs485_changeQueue[head].address = address;
     rs485_changeQueue[head].value = value;
@@ -256,13 +252,18 @@ static void rs485_queueChange(uint16_t address, uint16_t value) {
 static void rs485_processAddressValue(uint16_t address, uint16_t value) {
     if (address >= 0x8000) return;
     
-    // FILTER: Only queue addresses that exist in DcsOutputTable
-    // This prevents gauge data from flooding the queue
-    if (findDcsOutputEntries(address) == nullptr) return;
+    // Filter by DcsOutputTable
+    if (findDcsOutputEntries(address) == nullptr) {
+        rs485_stats.addressesFiltered++;
+        return;
+    }
     
+    #if RS485_CHANGE_DETECT
     uint16_t index = address >> 1;
     if (rs485_prevExport[index] == value) return;
     rs485_prevExport[index] = value;
+    #endif
+    
     rs485_queueChange(address, value);
 }
 
@@ -317,14 +318,14 @@ static void rs485_parseChar(uint8_t c) {
     }
 }
 
-// SMART MODE: Prepare export data from change queue
+// SMART MODE: Build complete DCS-BIOS frames from change queue
 static void rs485_prepareExportData() {
     rs485_txExportLen = 0;
     
     while (rs485_changeCount > 0 && rs485_txExportLen < 240) {
         RS485Change& change = rs485_changeQueue[rs485_changeQueueTail];
         
-        // Format: [0x55 0x55 0x55 0x55] [AddrLo AddrHi] [0x02 0x00] [ValLo ValHi]
+        // Build complete DCS-BIOS frame
         rs485_txExportData[rs485_txExportLen++] = 0x55;
         rs485_txExportData[rs485_txExportLen++] = 0x55;
         rs485_txExportData[rs485_txExportLen++] = 0x55;
@@ -343,63 +344,49 @@ static void rs485_prepareExportData() {
     rs485_stats.exportBytesSent += rs485_txExportLen;
 }
 
-#endif // RS485_SMART_MODE
-
+#else
 // ============================================================================
-// DUMB MODE: RAW RELAY FUNCTIONS (FIFO - preserves stream order)
+// RELAY MODE FUNCTIONS (FILTER_ADDRESSES=0)
 // ============================================================================
 
-#if !RS485_SMART_MODE
-
-// DUMB MODE: Buffer raw DCS-BIOS byte into FIFO
-// Simple circular buffer - when full, discard oldest to make room for newest
-// No sync detection needed - we're a dumb pipe, slave handles parsing
+// Buffer a single raw byte - Arduino-style ring buffer
+// When full, discard oldest (overwrite) - this matches Arduino behavior
 static void rs485_bufferRawByte(uint8_t byte) {
-    // Keep buffer bounded - discard oldest if approaching full
-    // Use 512 as soft limit to leave headroom
-    while (rs485_rawCount >= 512) {
-        rs485_rawTail = (rs485_rawTail + 1) % RS485_RAW_FIFO_SIZE;
-        rs485_rawCount--;
-        rs485_fifoOverflows++;
+    // Check if buffer is full
+    if (rs485_rawFull()) {
+        // Discard oldest byte by advancing tail
+        rs485_rawTail++;
+        rs485_stats.bufferOverflows++;
     }
-
-    // Add new byte at head
-    rs485_rawFifo[rs485_rawHead] = byte;
-    rs485_rawHead = (rs485_rawHead + 1) % RS485_RAW_FIFO_SIZE;
-    rs485_rawCount++;
+    
+    // Store byte and advance head
+    rs485_rawRing[rs485_rawHead & (RS485_RAW_RING_SIZE - 1)] = byte;
+    rs485_rawHead++;
 }
 
-// DUMB MODE: Prepare export data - FIFO drain, NO sync scanning!
-// Arduino master is a dumb byte pump: bytes in → bytes out, in order.
-// Slave parsers handle synchronization - that's their job, not ours.
-// 
-// CRITICAL FIX: Previous implementation scanned for sync pattern and DISCARDED
-// all bytes before it. This threw away HIGH addresses (0x7400+ = LEDs/outputs)
-// which appear at the END of frames, right before the next sync.
+// RELAY MODE: Drain raw bytes from FIFO
+// Send whatever we have, up to ~128 bytes (Arduino uses 128-byte ring)
 static void rs485_prepareExportData() {
     rs485_txExportLen = 0;
     
-    if (rs485_rawCount == 0) {
-        return;
-    }
-
-    // Drain FIFO in order, cap at ~250 bytes per broadcast (like Arduino's 128-byte buffer)
-    // No sync scanning! Just send bytes in the order they arrived.
-    size_t bytesToSend = (rs485_rawCount > 250) ? 250 : rs485_rawCount;
+    uint8_t available = rs485_rawCount();
+    if (available == 0) return;
     
-    for (size_t i = 0; i < bytesToSend; i++) {
-        rs485_txExportData[rs485_txExportLen++] = rs485_rawFifo[rs485_rawTail];
-        rs485_rawTail = (rs485_rawTail + 1) % RS485_RAW_FIFO_SIZE;
-        rs485_rawCount--;
+    // Limit to ~128 bytes per broadcast (like Arduino)
+    uint8_t toSend = (available > 128) ? 128 : available;
+    
+    for (uint8_t i = 0; i < toSend; i++) {
+        rs485_txExportData[rs485_txExportLen++] = rs485_rawRing[rs485_rawTail & (RS485_RAW_RING_SIZE - 1)];
+        rs485_rawTail++;
     }
-
+    
     rs485_stats.exportBytesSent += rs485_txExportLen;
 }
 
-#endif // !RS485_SMART_MODE
+#endif // RS485_FILTER_ADDRESSES
 
 // ============================================================================
-// INPUT COMMAND PROCESSING
+// INPUT COMMAND PROCESSING (common to both modes)
 // ============================================================================
 
 static void rs485_processInputCommand(const uint8_t* data, size_t len) {
@@ -410,7 +397,6 @@ static void rs485_processInputCommand(const uint8_t* data, size_t len) {
     memcpy(cmdBuf, data, cmdLen);
     cmdBuf[cmdLen] = '\0';
     
-    // Strip trailing newline
     while (cmdLen > 0 && (cmdBuf[cmdLen-1] == '\n' || cmdBuf[cmdLen-1] == '\r')) {
         cmdBuf[--cmdLen] = '\0';
     }
@@ -432,7 +418,7 @@ static void rs485_processInputCommand(const uint8_t* data, size_t len) {
 }
 
 // ============================================================================
-// RESPONSE HANDLERS
+// RESPONSE HANDLERS (common to both modes)
 // ============================================================================
 
 static void rs485_handleResponse() {
@@ -448,44 +434,29 @@ static void rs485_handleResponse() {
         rs485_consecutiveTimeouts[idx] = 0;
         rs485_lastResponseTime[idx] = millis();
         
-        // AUTO-DISCOVERY: Mark this slave as present
         rs485_slavePresent[rs485_currentPollAddr] = true;
     }
 
     rs485_stats.responseCount++;
 
-#if DEBUG_ENABLED
-    // DEBUG: See what we actually received
-    if (rs485_rxLen > 0) {
-        debugPrintf("[RS485-RX] handleResponse: rxLen=%d, rxMsgType=%d\n", rs485_rxLen, rs485_rxMsgType);
-    }
-#endif
-
-    // Process input command if present
     if (rs485_rxLen > 0 && rs485_rxMsgType == 0) {
         rs485_processInputCommand(rs485_rxBuffer, rs485_rxLen);
         rs485_expectTimeoutAfterData = true;
     }
 }
 
-
 static void rs485_handleTimeout() {
-
-    // Send 0x00 on behalf of non-responding slave (Arduino master does this!)
-    // This tells other slaves "that slave had nothing to say"
     uint8_t zero = 0x00;
     uart_write_bytes(RS485_UART_NUM, (const char*)&zero, 1);
     uart_wait_tx_done(RS485_UART_NUM, 1);
 
-    // Expected timeout after receiving data - don't count as error
     if (rs485_expectTimeoutAfterData) {
         rs485_expectTimeoutAfterData = false;
         rs485_stats.expectedTimeouts++;
-        rs485_stats.responseCount++;  // Count as "response" since it's expected behavior
+        rs485_stats.responseCount++;
         return;
     }
     else if (rs485_skipTimeoutsAfterBroadcast > 0 && !rs485_isScanning) {
-    // else if (rs485_skipTimeoutsAfterBroadcast > 0) {
         rs485_skipTimeoutsAfterBroadcast--;
         rs485_stats.expectedTimeouts++;
         rs485_stats.responseCount++;
@@ -497,7 +468,6 @@ static void rs485_handleTimeout() {
         rs485_slaves[idx].timeoutCount++;
         rs485_consecutiveTimeouts[idx]++;
         
-        // AUTO-DISCOVERY: If scanning and got timeout, this address has no slave
         if (rs485_isScanning) {
             rs485_slavePresent[rs485_currentPollAddr] = false;
         }
@@ -508,8 +478,6 @@ static void rs485_handleTimeout() {
             !rs485_offlineReported[idx]) {
             rs485_slaves[idx].online = false;
             rs485_offlineReported[idx] = true;
-            // Also mark as not present for auto-discovery
-            // rs485_slavePresent[rs485_currentPollAddr] = false;
             debugPrintf("[RS485] ⚠️ Slave %d OFFLINE (no response for %lu ms)\n", 
                        rs485_currentPollAddr, timeSinceResponse);
         }
@@ -522,26 +490,14 @@ static void rs485_handleTimeout() {
 // AUTO-DISCOVERY: ADVANCE POLL ADDRESS
 // ============================================================================
 
-/**
- * @brief Advance to next slave address using auto-discovery
- * 
- * This implements the same algorithm as Arduino DCS-BIOS master:
- * 1. Normally polls only known-present slaves (fast)
- * 2. When poll counter wraps to 0, instead of polling addr 0 (broadcast),
- *    probe one unknown address to discover new slaves
- * 3. Cycles through all addresses over time to find new slaves
- */
-
 static void rs485_advanceToNextSlave() {
     static uint8_t scanCounter = 0;
     rs485_isScanning = false;
 
-    // Every ~50 polls, probe an unknown address to discover new slaves
     scanCounter++;
     if (scanCounter >= 50) {
         scanCounter = 0;
 
-        // Find an unknown address to probe
         for (uint8_t i = 1; i <= RS485_MAX_SLAVES; i++) {
             rs485_scanAddrCounter++;
             if (rs485_scanAddrCounter > RS485_MAX_SLAVES) rs485_scanAddrCounter = 1;
@@ -554,81 +510,26 @@ static void rs485_advanceToNextSlave() {
                 return;
             }
         }
-        // All addresses already known, fall through to normal polling
     }
 
-    // Normal polling - find next known-present slave
     for (uint8_t i = 0; i < RS485_MAX_SLAVES; i++) {
         rs485_currentPollAddr++;
         if (rs485_currentPollAddr > RS485_MAX_SLAVES) {
             rs485_currentPollAddr = 1;
             rs485_stats.pollCycles++;
 
-            // Schedule broadcast at end of cycle
-#if RS485_SMART_MODE
+            #if RS485_FILTER_ADDRESSES
             if (rs485_changeCount > 0) rs485_broadcastPending = true;
-#else
-            if (rs485_rawCount > 0) rs485_broadcastPending = true;
-#endif
+            #else
+            if (!rs485_rawEmpty()) rs485_broadcastPending = true;
+            #endif
         }
 
         if (rs485_slavePresent[rs485_currentPollAddr]) {
-            break;  // Found a known slave
-        }
-    }
-
-    rs485_lastPollCompleteUs = micros();
-    rs485_state = RS485State::IDLE;
-}
-
-static void rs485_advanceToNextSlaveWORKS() {
-    rs485_isScanning = false;  // Reset scanning flag
-    
-    // Advance poll address counter, wrapping at RS485_MAX_SLAVES
-    rs485_pollAddrCounter = (rs485_pollAddrCounter % RS485_MAX_SLAVES) + 1;
-    
-    // Skip addresses that aren't present (fast poll of known slaves)
-    uint8_t startAddr = rs485_pollAddrCounter;
-    while (!rs485_slavePresent[rs485_pollAddrCounter]) {
-        rs485_pollAddrCounter = (rs485_pollAddrCounter % RS485_MAX_SLAVES) + 1;
-        
-        // If we've wrapped all the way around, no slaves are present
-        if (rs485_pollAddrCounter == startAddr) {
-            rs485_pollAddrCounter = 0;  // Will trigger scan below
             break;
         }
     }
-    
-    // If poll counter is 0 (or no slaves found), scan for new slaves instead
-    if (rs485_pollAddrCounter == 0 || !rs485_slavePresent[rs485_pollAddrCounter]) {
-        // Find next address to scan (one that isn't already known present)
-        uint8_t scanStart = rs485_scanAddrCounter;
-        do {
-            rs485_scanAddrCounter = (rs485_scanAddrCounter % RS485_MAX_SLAVES) + 1;
-            if (!rs485_slavePresent[rs485_scanAddrCounter]) {
-                break;  // Found an unknown address to probe
-            }
-        } while (rs485_scanAddrCounter != scanStart);
-        
-        // Use scan address for this poll
-        rs485_currentPollAddr = rs485_scanAddrCounter;
-        rs485_isScanning = true;
-        rs485_stats.pollCycles++;
-        
-        // Schedule broadcast if data available (poll cycle complete)
-        #if RS485_SMART_MODE
-        if (rs485_changeCount > 0) {
-            rs485_broadcastPending = true;
-        }
-        #else
-        if (rs485_rawCount > 0) {
-            rs485_broadcastPending = true;
-        }
-        #endif
-    } else {
-        rs485_currentPollAddr = rs485_pollAddrCounter;
-    }
-    
+
     rs485_lastPollCompleteUs = micros();
     rs485_state = RS485State::IDLE;
 }
@@ -638,10 +539,7 @@ static void rs485_advanceToNextSlaveWORKS() {
 // ============================================================================
 
 static void rs485_startBroadcast() {
-
-    // Allow slave to resync after potential scan timeout
-    // Slave needs 500µs of silence to detect SYNC state
-    delayMicroseconds(500);
+    delayMicroseconds(500);  // Let slaves resync
 
     rs485_prepareExportData();
     
@@ -654,43 +552,11 @@ static void rs485_startBroadcast() {
     rs485_opStartUs = micros();
     rs485_broadcastPending = false;
     
+    // Calculate checksum
     rs485_txChecksum = RS485_ADDR_BROADCAST ^ RS485_MSGTYPE_POLL ^ (uint8_t)rs485_txExportLen;
     for (size_t i = 0; i < rs485_txExportLen; i++) {
         rs485_txChecksum ^= rs485_txExportData[i];
     }
-    
-    // DEBUG: Log broadcast packet details
-#if DEBUG_ENABLED
-    #if RS485_SMART_MODE
-    // debugPrintf("[RS485-BCAST] 📡 SMART: Sending %d bytes, checksum=0x%02X\n", rs485_txExportLen, rs485_txChecksum);
-    // Show first few addresses from change queue format
-    int shown = 0;
-    for (size_t i = 0; i + 9 < rs485_txExportLen && shown < 3; i += 10) {
-        if (rs485_txExportData[i] == 0x55 && rs485_txExportData[i+1] == 0x55) {
-            uint16_t addr = rs485_txExportData[i+4] | (rs485_txExportData[i+5] << 8);
-            uint16_t val  = rs485_txExportData[i+8] | (rs485_txExportData[i+9] << 8);
-            // debugPrintf("[RS485-BCAST]   -> Addr=0x%04X Val=0x%04X\n", addr, val);
-            shown++;
-        }
-    }
-    #else
-    // DUMB mode: Just show raw byte range (don't try to parse)
-
-    /*
-    debugPrintf("[RS485-BCAST] 📡 DUMB: Relaying %d raw bytes (first 8: %02X %02X %02X %02X %02X %02X %02X %02X)\n", 
-        rs485_txExportLen,
-        rs485_txExportLen > 0 ? rs485_txExportData[0] : 0,
-        rs485_txExportLen > 1 ? rs485_txExportData[1] : 0,
-        rs485_txExportLen > 2 ? rs485_txExportData[2] : 0,
-        rs485_txExportLen > 3 ? rs485_txExportData[3] : 0,
-        rs485_txExportLen > 4 ? rs485_txExportData[4] : 0,
-        rs485_txExportLen > 5 ? rs485_txExportData[5] : 0,
-        rs485_txExportLen > 6 ? rs485_txExportData[6] : 0,
-        rs485_txExportLen > 7 ? rs485_txExportData[7] : 0);
-    */
-
-    #endif
-#endif
     
     uint8_t addr = RS485_ADDR_BROADCAST;
     uart_write_bytes(RS485_UART_NUM, (const char*)&addr, 1);
@@ -698,7 +564,11 @@ static void rs485_startBroadcast() {
     rs485_stats.broadcastCount++;
     rs485_lastBroadcastMs = millis();
 
-    rs485_skipTimeoutsAfterBroadcast = 10;  // Skip next 10 timeouts
+    #if RS485_FILTER_ADDRESSES
+    rs485_skipTimeoutsAfterBroadcast = 10;
+    #else
+    rs485_skipTimeoutsAfterBroadcast = 3;  // Less for relay mode (smaller packets)
+    #endif
 }
 
 static void rs485_processBroadcastTx() {
@@ -736,13 +606,6 @@ static void rs485_processBroadcastTx() {
         }
         case RS485State::BROADCAST_WAIT_COMPLETE: {
             uart_wait_tx_done(RS485_UART_NUM, 1);
-
-            // AUTO-DIRECTION BOARDS: Need settling time after TX completes
-// #if RS485_EN_PIN < 0
-            // delayMicroseconds(200);
-// #endif
-
-			// Flush any echo/garbage that may have come back
             uart_flush_input(RS485_UART_NUM);
 
             #if RS485_POST_BROADCAST_DELAY_US > 0
@@ -764,8 +627,6 @@ static void rs485_startPoll(uint8_t addr) {
     rs485_currentPollAddr = addr;
     rs485_opStartUs = micros();
     
-    // BOTH MODES: Polls are EMPTY (len=0), no data attached
-    // Export data goes via BROADCAST (addr=0) separately
     uart_write_bytes(RS485_UART_NUM, (const char*)&addr, 1);
     rs485_state = RS485State::POLL_MSGTYPE;
     rs485_stats.pollCount++;
@@ -780,8 +641,6 @@ static void rs485_processPollTx() {
             break;
         }
         case RS485State::POLL_LENGTH: {
-            // BOTH MODES: Polls have NO data (len=0)
-            // Export data goes via BROADCAST (addr=0) separately
             uint8_t len = 0;
             uart_write_bytes(RS485_UART_NUM, (const char*)&len, 1);
             rs485_state = RS485State::POLL_WAIT_COMPLETE;
@@ -789,20 +648,11 @@ static void rs485_processPollTx() {
         }
         case RS485State::POLL_WAIT_COMPLETE: {
             uart_wait_tx_done(RS485_UART_NUM, 1);
-            
-            // AUTO-DIRECTION BOARDS: Need settling time after TX completes
-            // before the hardware switches to RX mode
-// #if RS485_EN_PIN < 0
-            // delayMicroseconds(500);
-// #endif
-
-            // Flush any echo/garbage that may have come back
-            // uart_flush_input(RS485_UART_NUM);
 
             rs485_rxLen = 0;
             rs485_rxExpected = 0;
             rs485_rxMsgType = 0;
-            rs485_opStartUs = micros();  // Reset timer for RX timeout
+            rs485_opStartUs = micros();
             rs485_state = RS485State::RX_WAIT_LENGTH;
             break;
         }
@@ -814,6 +664,7 @@ static void rs485_processPollTx() {
 // ============================================================================
 // RESPONSE STATE MACHINE
 // ============================================================================
+
 static void rs485_processRx() {
     size_t available = 0;
     uart_get_buffered_data_len(RS485_UART_NUM, &available);
@@ -821,17 +672,11 @@ static void rs485_processRx() {
         uint32_t elapsed = micros() - rs485_opStartUs;
         if (elapsed > RS485_POLL_TIMEOUT_US) {
             rs485_handleTimeout();
-
-// #if RS485_EN_PIN < 0
-            // delayMicroseconds(500);  // Let auto-direction circuit settle before next TX
-// #endif
-
             rs485_advanceToNextSlave();
         }
         return;
     }
 
-    // Data available - process it
     uint8_t byte;
     int n;
 
@@ -841,18 +686,12 @@ static void rs485_processRx() {
         if (n != 1) break;
 
         if (byte == 0x00) {
-            // Empty response - slave has no data
             rs485_handleResponse();
-            uart_flush_input(RS485_UART_NUM);  // Clear any leftover/echo
+            uart_flush_input(RS485_UART_NUM);
             rs485_advanceToNextSlave();
             return;
         }
 
-#if DEBUG_ENABLED
-        debugPrintf("[RS485-RX] Got Length=%d from slave %d\n", byte, rs485_currentPollAddr);
-#endif
-
-        // rs485_rxExpected = byte - 1;
         rs485_rxExpected = byte;
         rs485_rxLen = 0;
         rs485_state = RS485State::RX_WAIT_MSGTYPE;
@@ -866,9 +705,7 @@ static void rs485_processRx() {
         rs485_rxMsgType = byte;
         if (rs485_rxExpected > 0) {
             rs485_state = RS485State::RX_WAIT_DATA;
-        }
-        else {
-            // No data bytes, go straight to checksum
+        } else {
             rs485_state = RS485State::RX_WAIT_CHECKSUM;
         }
         break;
@@ -896,37 +733,36 @@ static void rs485_processRx() {
         n = uart_read_bytes(RS485_UART_NUM, &byte, 1, 0);
         if (n != 1) break;
 
-        // Verify checksum (0x72 placeholder for now)
         if (byte == RS485_CHECKSUM_PLACEHOLDER) {
             rs485_handleResponse();
-        }
-        else {
+        } else {
             rs485_stats.checksumErrors++;
-#if DEBUG_ENABLED
-            debugPrintf("[RS485] ⚠️ Checksum error from slave %d: got 0x%02X, expected 0x%02X\n",
-                rs485_currentPollAddr, byte, RS485_CHECKSUM_PLACEHOLDER);
-#endif
+            debugPrintf("[RS485] ⚠️ Checksum error from slave %d (got 0x%02X)\n", 
+                       rs485_currentPollAddr, byte);
         }
-
-        // FLUSH BEFORE NEXT POLL - clear any leftover/echo bytes
+        
         uart_flush_input(RS485_UART_NUM);
-
         rs485_advanceToNextSlave();
         break;
     }
 
     default:
-        rs485_state = RS485State::IDLE;
         break;
     }
 }
 
 // ============================================================================
-// PUBLIC INTERFACE
+// PUBLIC API
 // ============================================================================
 
 bool RS485Master_init() {
     if (rs485_initialized) return true;
+    
+    memset(rs485_slaves, 0, sizeof(rs485_slaves));
+    memset(rs485_slavePresent, 0, sizeof(rs485_slavePresent));
+    memset(rs485_consecutiveTimeouts, 0, sizeof(rs485_consecutiveTimeouts));
+    memset(rs485_lastResponseTime, 0, sizeof(rs485_lastResponseTime));
+    memset(rs485_offlineReported, 0, sizeof(rs485_offlineReported));
     
     uart_config_t uart_config = {
         .baud_rate = RS485_BAUD,
@@ -938,7 +774,9 @@ bool RS485Master_init() {
         .source_clk = UART_SCLK_DEFAULT
     };
     
-    esp_err_t err = uart_driver_install(RS485_UART_NUM, 256, 256, 0, NULL, 0);
+    esp_err_t err;
+    
+    err = uart_driver_install(RS485_UART_NUM, 256, 256, 0, NULL, 0);
     if (err != ESP_OK) {
         debugPrintf("[RS485] ❌ UART driver install failed: %d\n", err);
         return false;
@@ -950,64 +788,37 @@ bool RS485Master_init() {
         return false;
     }
     
-    // Set UART pins
-    // RS485_EN_PIN can be:
-    //   - A valid GPIO (0-48): ESP32 controls direction via this pin
-    //   - UART_PIN_NO_CHANGE (-1): Auto-direction board, hardware handles TX/RX switching
-    err = uart_set_pin(RS485_UART_NUM, RS485_TX_PIN, RS485_RX_PIN, RS485_EN_PIN, UART_PIN_NO_CHANGE);
+    err = uart_set_pin(RS485_UART_NUM, RS485_TX_PIN, RS485_RX_PIN, 
+                       (RS485_EN_PIN >= 0) ? RS485_EN_PIN : UART_PIN_NO_CHANGE, 
+                       UART_PIN_NO_CHANGE);
     if (err != ESP_OK) {
         debugPrintf("[RS485] ❌ UART set pin failed: %d\n", err);
         return false;
     }
     
-    // Set UART mode based on whether we have a direction control pin
-    #if RS485_EN_PIN >= 0
-        // Manual direction control - ESP32 drives EN pin for TX/RX switching
+    if (RS485_EN_PIN >= 0) {
         err = uart_set_mode(RS485_UART_NUM, UART_MODE_RS485_HALF_DUPLEX);
         if (err != ESP_OK) {
-            debugPrintf("[RS485] ❌ RS-485 half-duplex mode failed: %d\n", err);
+            debugPrintf("[RS485] ❌ RS-485 mode failed: %d\n", err);
             return false;
         }
-    #else
-        // Auto-direction board - hardware handles TX/RX switching automatically
-        // Use normal UART mode, the RS-485 transceiver detects direction from data flow
-        err = uart_set_mode(RS485_UART_NUM, UART_MODE_UART);
-        if (err != ESP_OK) {
-            debugPrintf("[RS485] ❌ UART mode failed: %d\n", err);
-            return false;
+    }
+    
+    #if RS485_FILTER_ADDRESSES
+        #if RS485_CHANGE_DETECT
+        if (!rs485_prevInitialized) {
+            rs485_initPrevValues();
         }
-    #endif
-    
-    // Initialize slave tracking
-    for (int i = 0; i < RS485_MAX_SLAVES; i++) {
-        rs485_slaves[i] = {false, 0, 0, 0};
-        rs485_consecutiveTimeouts[i] = 0;
-        rs485_lastResponseTime[i] = 0;
-        rs485_offlineReported[i] = false;
-    }
-    
-    // Initialize auto-discovery arrays
-    for (int i = 0; i <= RS485_MAX_SLAVES; i++) {
-        rs485_slavePresent[i] = false;
-    }
-    rs485_slavePresent[0] = true;  // Address 0 is broadcast, always "present" to avoid polling it
-    rs485_pollAddrCounter = 1;
-    rs485_scanAddrCounter = 1;
-    rs485_isScanning = false;
-    
-    rs485_exportHead = rs485_exportTail = rs485_exportCount = 0;
-    
-    #if RS485_SMART_MODE
-    rs485_changeQueueHead = rs485_changeQueueTail = rs485_changeCount = 0;
+        #endif
+        rs485_changeQueueHead = rs485_changeQueueTail = rs485_changeCount = 0;
     #else
-    rs485_rawHead = rs485_rawTail = rs485_rawCount = 0;
-    rs485_fifoOverflows = 0;
+        rs485_rawHead = rs485_rawTail = 0;
     #endif
     
     rs485_initialized = true;
     rs485_enabled = true;
     rs485_state = RS485State::IDLE;
-    rs485_currentPollAddr = 1;  // Start at address 1
+    rs485_currentPollAddr = 1;
     rs485_broadcastPending = false;
     rs485_lastPollCompleteUs = micros();
     rs485_lastBroadcastMs = 0;
@@ -1015,16 +826,23 @@ bool RS485Master_init() {
     
     debugPrintf("[RS485] ✅ Init OK: %d baud, TX=%d, RX=%d, EN=%d\n",
                 RS485_BAUD, RS485_TX_PIN, RS485_RX_PIN, RS485_EN_PIN);
+    
     #if RS485_EN_PIN >= 0
     debugPrintln("[RS485] Direction: Manual (ESP32 controls EN pin)");
     #else
     debugPrintln("[RS485] Direction: Auto (hardware handles TX/RX switching)");
     #endif
+    
     debugPrintf("[RS485] Auto-discovery enabled, scanning addresses 1-%d\n", RS485_MAX_SLAVES);
-    #if RS485_SMART_MODE
-    debugPrintln("[RS485] Mode: SMART (change detection + filtering)");
+    
+    #if RS485_FILTER_ADDRESSES
+        #if RS485_CHANGE_DETECT
+        debugPrintln("[RS485] Mode: SMART (filtered + change detection)");
+        #else
+        debugPrintln("[RS485] Mode: SMART (filtered, no delta)");
+        #endif
     #else
-    debugPrintln("[RS485] Mode: DUMB (raw relay, Arduino-compatible)");
+        debugPrintln("[RS485] Mode: RELAY (raw bytes, Arduino-compatible) 🔄");
     #endif
     
     return true;
@@ -1033,39 +851,39 @@ bool RS485Master_init() {
 void RS485Master_loop() {
     if (!rs485_initialized || !rs485_enabled) return;
 
-    // Don't poll unless DCS-BIOS is active - follows CockpitOS pattern
-	if (!simReady()) return; // Problematic for auto-direction boards
+    if (!simReady()) return;
     
     // Status every 10 seconds
     static uint32_t lastStatusPrint = 0;
     if (millis() - lastStatusPrint > 10000) {
         lastStatusPrint = millis();
+        
         uint32_t missed = rs485_stats.pollCount - rs485_stats.responseCount;
         float responseRate = rs485_stats.pollCount > 0 ?
             100.0f * rs485_stats.responseCount / rs485_stats.pollCount : 0;
         
-        // Count discovered slaves
         uint8_t discoveredCount = 0;
         for (int i = 1; i <= RS485_MAX_SLAVES; i++) {
             if (rs485_slavePresent[i]) discoveredCount++;
         }
         
-        #if RS485_SMART_MODE
-        debugPrintf("[RS485] 📊 SMART: Polls=%lu | Resp=%lu (%.1f%%) | Missed=%lu | Bcasts=%lu | Changes=%lu | Bytes=%lu | Slaves=%d\n",
-            rs485_stats.pollCount, rs485_stats.responseCount, responseRate, missed,
-            rs485_stats.broadcastCount, rs485_stats.changesDetected, rs485_stats.exportBytesSent, discoveredCount);
-        #else
-        debugPrintf("[RS485] 📊 DUMB: Polls=%lu | Resp=%lu (%.1f%%) | Bcasts=%lu | Bytes=%lu | FIFO=%u | Overflow=%lu | Slaves=%d\n",
+        #if RS485_FILTER_ADDRESSES
+        debugPrintf("[RS485] 📊 SMART: Polls=%lu | Resp=%lu (%.1f%%) | Bcasts=%lu | Changes=%lu | Bytes=%lu | Slaves=%d\n",
             rs485_stats.pollCount, rs485_stats.responseCount, responseRate,
-            rs485_stats.broadcastCount, rs485_stats.exportBytesSent, 
-            (unsigned)rs485_rawCount, rs485_fifoOverflows, discoveredCount);
+            rs485_stats.broadcastCount, rs485_stats.changesDetected, 
+            rs485_stats.exportBytesSent, discoveredCount);
+        #else
+        debugPrintf("[RS485] 📊 RELAY: Polls=%lu | Resp=%lu (%.1f%%) | Bcasts=%lu | Bytes=%lu | Ring=%d | Overflow=%lu | Slaves=%d\n",
+            rs485_stats.pollCount, rs485_stats.responseCount, responseRate,
+            rs485_stats.broadcastCount, rs485_stats.exportBytesSent,
+            rs485_rawCount(), rs485_stats.bufferOverflows, discoveredCount);
         #endif
     }
     
     switch (rs485_state) {
         case RS485State::IDLE: {
-            #if RS485_SMART_MODE
-            // SMART MODE: Separate broadcast (addr=0) from poll (addr=N)
+            #if RS485_FILTER_ADDRESSES
+            // SMART MODE: Broadcast when changes queued + interval elapsed
             bool canBroadcast = rs485_broadcastPending && rs485_changeCount > 0;
             
             #ifdef RS485_DISABLE_BROADCASTS
@@ -1079,22 +897,24 @@ void RS485Master_loop() {
             }
             #endif
             
+            #else
+            // RELAY MODE: Broadcast IMMEDIATELY if data available (like Arduino)
+            // No minimum interval - pump as fast as possible!
+            bool canBroadcast = !rs485_rawEmpty();
+            
+            #ifdef RS485_DISABLE_BROADCASTS
+            canBroadcast = false;
+            rs485_rawHead = rs485_rawTail = 0;  // Discard data
+            #endif
+            
+            #endif
+            
             if (canBroadcast) {
                 rs485_startBroadcast();
             } else {
                 rs485_broadcastPending = false;
                 rs485_startPoll(rs485_currentPollAddr);
             }
-            #else
-            // DUMB MODE: Match Arduino master behavior exactly!
-            // 1. If there's export data in FIFO → BROADCAST first (addr=0)
-            // 2. Only poll (with len=0) when FIFO is empty
-            if (rs485_rawCount > 0) {
-                rs485_startBroadcast();  // Send via addr=0, just like Arduino!
-            } else {
-                rs485_startPoll(rs485_currentPollAddr);  // Empty poll (len=0)
-            }
-            #endif
             break;
         }
         case RS485State::BROADCAST_MSGTYPE:
@@ -1129,14 +949,17 @@ void RS485Master_feedExportData(const uint8_t* data, size_t len) {
     return;
     #endif
     
-    #if RS485_SMART_MODE
-    // SMART MODE: Parse and detect changes
+    #if RS485_FILTER_ADDRESSES
+    // SMART MODE: Parse and queue changes
+    #if RS485_CHANGE_DETECT
     if (!rs485_prevInitialized) rs485_initPrevValues();
+    #endif
+    
     for (size_t i = 0; i < len; i++) {
         rs485_parseChar(data[i]);
     }
     #else
-    // DUMB MODE: Buffer raw bytes for relay
+    // RELAY MODE: Buffer raw bytes (no parsing!)
     for (size_t i = 0; i < len; i++) {
         rs485_bufferRawByte(data[i]);
     }
@@ -1144,18 +967,19 @@ void RS485Master_feedExportData(const uint8_t* data, size_t len) {
 }
 
 void RS485Master_forceFullSync() {
-    #if RS485_SMART_MODE
-    rs485_initPrevValues();
+    #if RS485_FILTER_ADDRESSES
+        #if RS485_CHANGE_DETECT
+        rs485_initPrevValues();
+        #endif
+        rs485_changeQueueHead = rs485_changeQueueTail = rs485_changeCount = 0;
     #else
-    rs485_rawHead = rs485_rawTail = rs485_rawCount = 0;
-    rs485_fifoOverflows = 0;
+        rs485_rawHead = rs485_rawTail = 0;
     #endif
     rs485_broadcastPending = true;
     debugPrint("[RS485] 🔄 Forced full sync\n");
 }
 
 void RS485Master_setPollingRange(uint8_t minAddr, uint8_t maxAddr) {
-    // Legacy function - now just logs a warning since auto-discovery handles this
     debugPrintf("[RS485] ⚠️ setPollingRange(%d-%d) ignored - using auto-discovery\n", minAddr, maxAddr);
 }
 
@@ -1179,13 +1003,17 @@ uint8_t RS485Master_getOnlineSlaveCount() {
 
 void RS485Master_printStatus() {
     debugPrintln("\n[RS485] ========== STATUS ==========");
-    #if RS485_SMART_MODE
-    debugPrintln("[RS485] Mode: SMART (change detection)");
+    
+    #if RS485_FILTER_ADDRESSES
+        #if RS485_CHANGE_DETECT
+        debugPrintln("[RS485] Mode: SMART (filtered + change detection)");
+        #else
+        debugPrintln("[RS485] Mode: SMART (filtered, no delta)");
+        #endif
     #else
-    debugPrintln("[RS485] Mode: DUMB (raw relay, Arduino-compatible)");
+        debugPrintln("[RS485] Mode: RELAY (raw bytes, Arduino-compatible)");
     #endif
     
-    // List discovered slaves
     debugPrint("[RS485] Discovered slaves: ");
     bool first = true;
     for (int i = 1; i <= RS485_MAX_SLAVES; i++) {
@@ -1207,6 +1035,15 @@ void RS485Master_printStatus() {
     debugPrintf("[RS485] Input cmds: %lu\n", rs485_stats.inputCmdCount);
     debugPrintf("[RS485] Broadcasts: %lu, Bytes sent: %lu\n", 
                 rs485_stats.broadcastCount, rs485_stats.exportBytesSent);
+    
+    #if RS485_FILTER_ADDRESSES
+    debugPrintf("[RS485] Changes detected: %lu, Queue: %d\n",
+                rs485_stats.changesDetected, rs485_changeCount);
+    #else
+    debugPrintf("[RS485] Ring buffer: %d/%d, Overflows: %lu\n",
+                rs485_rawCount(), RS485_RAW_RING_SIZE, rs485_stats.bufferOverflows);
+    #endif
+    
     debugPrintln("[RS485] ================================\n");
 }
 
