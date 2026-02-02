@@ -6,5 +6,5 @@
 #
 # To update the list of available panels, just re-run this script.
 
-Master Arm Panel
+# Master Arm Panel
 Master Caution Light
