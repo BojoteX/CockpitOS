@@ -7,7 +7,7 @@
  *
  * FULLY COMPATIBLE WITH:
  *   - Arduino DCS-BIOS RS485 Master (DcsBiosNgRS485Master)
- *   - CockpitOS RS485 Master (both SMART and RELAY modes)
+ *   - CockpitOS RS485 Master (both SMART and DUMB modes)
  *   - ESP32 RS485 Master reference implementation
  *
  * Integration: Include this from CUtils.cpp via:
@@ -21,39 +21,17 @@
  * - Feeds received export data to DcsBios::parser (same as UDP/USB)
  * - Queues input commands and sends them when polled
  *
- * ==========================================================================
- * PROTOCOL DETAILS (DCS-BIOS RS485 Standard)
- * ==========================================================================
+ * Protocol Details (DCS-BIOS RS485 Standard):
+ * - Baud: 250000
+ * - Broadcast with data: [Addr=0][MsgType=0][Length>0][ExportData...][Checksum]
+ * - Poll (no data):      [Addr=N][MsgType=0][Length=0] (NO CHECKSUM when Length=0!)
+ * - Response with data:  [Length>0][MsgType=0][InputData...][Checksum]
+ * - Response no data:    [0x00] (single byte, NO CHECKSUM!)
  *
- * Baud Rate: 250,000 bps, 8N1
- *
- * MASTER → SLAVE PACKETS:
- *   Broadcast (export data to all):
- *     [Addr=0][MsgType=0][Length>0][ExportData...][Checksum]
- *
- *   Poll (request response from specific slave):
- *     [Addr=N][MsgType=0][Length=0]   ← NO CHECKSUM when Length=0!
- *
- * SLAVE → MASTER RESPONSES:
- *   No data to send:
- *     [0x00]   ← Single byte, NO checksum!
- *
- *   Has data to send:
- *     [Length][MsgType=0][InputData...][Checksum]
- *
- * FIELD DEFINITIONS:
- *   - Addr: 0 = broadcast, 1-126 = specific slave
- *   - MsgType: Always 0 for DCS-BIOS
- *   - Length: Number of DATA bytes (does NOT include MsgType!)
- *   - Checksum: XOR of all preceding bytes, OR fixed 0x72 (Arduino compat)
- *
- * CRITICAL PROTOCOL NOTES:
- *   1. When Length=0, there is NO checksum byte! Packet ends at Length byte.
- *   2. This applies to both master→slave polls AND slave→master responses.
- *   3. Length field counts DATA bytes only, not including MsgType.
- *   4. This matches Arduino's DcsBiosNgRS485Slave behavior exactly.
- *
- * ==========================================================================
+ * CRITICAL PROTOCOL NOTE:
+ *   When Length=0, there is NO checksum byte! The packet ends immediately.
+ *   This applies to both master->slave polls AND slave->master responses.
+ *   This matches Arduino's DcsBiosNgRS485Slave behavior exactly.
  */
 
 #if RS485_SLAVE_ENABLED
@@ -139,7 +117,7 @@ static uint8_t rs485s_rxBuffer[512];
 static size_t rs485s_rxLen = 0;
 static uint8_t rs485s_rxChecksum = 0;
 
-// Skip state counter (number of DATA bytes remaining to skip)
+// Skip state counter
 static uint8_t rs485s_skipLength = 0;
 
 // ============================================================================
@@ -305,7 +283,7 @@ static void rs485s_prepareResponse() {
     rs485s_txSendLen = rs485s_txCount;
     rs485s_txSendIdx = 0;
 
-    // Limit to 253 bytes (max that fits in Length byte while leaving room)
+    // Limit to 253 bytes (length byte includes msgtype, so max data = 254 - 1)
     if (rs485s_txSendLen > 253) {
         rs485s_txSendLen = 253;
     }
@@ -479,16 +457,6 @@ static void rs485s_processRx() {
             // RX_WAIT_ADDRESS - First byte of packet
             // ==============================================================
             case RS485SlaveState::RX_WAIT_ADDRESS: {
-                // Sanity check: valid addresses are 0 (broadcast) or 1-126 (slaves)
-                // Address 127+ would be invalid, likely corruption from echo
-                if (byte > 126) {
-                    #if RS485_SLAVE_DEBUG_VERBOSE
-                    debugPrintf("[RS485S] ⚠️ Invalid address 0x%02X, ignoring\n", byte);
-                    #endif
-                    // Stay in RX_WAIT_ADDRESS, this byte was garbage
-                    break;
-                }
-                
                 rs485s_rxAddress = byte;
                 rs485s_rxChecksum = byte;
                 rs485s_rxStartTime = now;
@@ -501,17 +469,6 @@ static void rs485s_processRx() {
             // RX_WAIT_MSGTYPE - Second byte of packet
             // ==============================================================
             case RS485SlaveState::RX_WAIT_MSGTYPE: {
-                // In DCS-BIOS protocol, MsgType is ALWAYS 0
-                // Anything else indicates corruption (likely echo)
-                if (byte != 0) {
-                    #if RS485_SLAVE_DEBUG_VERBOSE
-                    debugPrintf("[RS485S] ⚠️ Invalid MsgType 0x%02X (expected 0), resync\n", byte);
-                    #endif
-                    rs485s_state = RS485SlaveState::RX_WAIT_ADDRESS;
-                    // Don't count this as a sync reset, just discard bad packet
-                    break;
-                }
-                
                 rs485s_rxMsgType = byte;
                 rs485s_rxChecksum ^= byte;
                 rs485s_state = RS485SlaveState::RX_WAIT_LENGTH;
@@ -526,18 +483,12 @@ static void rs485s_processRx() {
                 rs485s_rxChecksum ^= byte;
                 rs485s_rxLen = 0;
 
-                // Sanity check: DCS-BIOS broadcasts typically have <= 250 bytes
-                // If we see a very large length, it's likely corruption
-                // (e.g., we read 0x55 from a sync sequence as length = 85 is valid,
-                //  but 0xAA = 170 or 0xFF = 255 in unusual places could be garbage)
-                // We'll accept up to 253 (max valid length byte)
-                
                 if (rs485s_rxLength > 0) {
                     // Has data, continue to receive data bytes
                     rs485s_state = RS485SlaveState::RX_WAIT_DATA;
                 } else {
                     // ======================================================
-                    // CRITICAL: Length=0 means NO DATA and NO CHECKSUM!
+                    // CRITICAL FIX: Length=0 means NO DATA and NO CHECKSUM!
                     // Packet is complete right now. Do NOT wait for checksum.
                     // This matches Arduino's RX_HOST_MESSAGE_COMPLETE behavior.
                     // ======================================================
@@ -592,29 +543,22 @@ static void rs485s_processRx() {
             // ==============================================================
             // SKIP STATES - Skip another slave's response
             // ==============================================================
-            
-            // Response format: [Length][MsgType][Data × Length][Checksum]
-            // where Length = DATA byte count (does NOT include MsgType!)
-            
             case RS485SlaveState::RX_SKIP_RESPONSE_LENGTH: {
-                rs485s_skipLength = byte;  // This is DATA byte count
+                rs485s_skipLength = byte;
                 if (rs485s_skipLength == 0) {
-                    // Other slave had no data: just [0x00], no checksum
+                    // Other slave had no data (single 0x00 byte, no checksum)
                     // Ready for next packet immediately
                     rs485s_state = RS485SlaveState::RX_WAIT_ADDRESS;
                 } else {
-                    // Has data: need to skip MsgType + Data + Checksum
                     rs485s_state = RS485SlaveState::RX_SKIP_RESPONSE_MSGTYPE;
                 }
                 break;
             }
 
             case RS485SlaveState::RX_SKIP_RESPONSE_MSGTYPE: {
-                // Skip MsgType byte
-                // IMPORTANT: Do NOT decrement skipLength here!
-                // skipLength is the DATA count only, MsgType is separate.
+                // Just skip this byte
+                rs485s_skipLength--;  // Length includes msgtype
                 if (rs485s_skipLength == 0) {
-                    // Edge case: Length>0 but only MsgType, no data (unusual)
                     rs485s_state = RS485SlaveState::RX_SKIP_RESPONSE_CHECKSUM;
                 } else {
                     rs485s_state = RS485SlaveState::RX_SKIP_RESPONSE_DATA;
@@ -631,7 +575,7 @@ static void rs485s_processRx() {
             }
 
             case RS485SlaveState::RX_SKIP_RESPONSE_CHECKSUM: {
-                // Skip checksum byte, ready for next packet
+                // Skip checksum, ready for next packet
                 rs485s_state = RS485SlaveState::RX_WAIT_ADDRESS;
                 break;
             }
@@ -661,7 +605,7 @@ static void rs485s_processRx() {
  * - No data:   [0x00] (single byte, NO checksum!)
  * - With data: [Length][MsgType=0][Data...][Checksum]
  *
- * Where Length = number of DATA bytes (does NOT include MsgType!)
+ * Where Length = number of data bytes + 1 (for MsgType)
  *
  * For Arduino compatibility, we use 0x72 as checksum placeholder
  * when RS485_SLAVE_ARDUINO_COMPAT is enabled.
@@ -669,8 +613,11 @@ static void rs485s_processRx() {
 static void rs485s_processTx() {
     switch (rs485s_state) {
         case RS485SlaveState::TX_SEND_LENGTH: {
-            // Length byte = data byte count (matches Arduino behavior)
-            uint8_t len = (uint8_t)rs485s_txSendLen;
+            // Length byte: includes MsgType + data bytes
+            // If no data: send 0x00 and we're done (no checksum needed!)
+            // uint8_t len = (rs485s_txSendLen > 0) ? (uint8_t)(rs485s_txSendLen + 1) : 0;
+            
+            uint8_t len = (uint8_t)rs485s_txSendLen;  // Match Arduino: Length = data bytes only
 
             uart_write_bytes(RS485S_UART_NUM, (const char*)&len, 1);
             rs485s_txChecksum = len;
@@ -680,11 +627,8 @@ static void rs485s_processTx() {
             } else {
                 // No data - single 0x00 byte response, NO CHECKSUM!
                 uart_wait_tx_done(RS485S_UART_NUM, 10);
-                
-                // Echo suppression (even single byte can echo)
-                delayMicroseconds(500);
-                uart_flush_input(RS485S_UART_NUM);
-                
+
+                uart_flush_input(RS485S_UART_NUM);  // Clear any echo
                 rs485s_responseComplete();
                 rs485s_state = RS485SlaveState::RX_WAIT_ADDRESS;
                 #if RS485_SLAVE_DEBUG_VERBOSE
@@ -699,7 +643,12 @@ static void rs485s_processTx() {
             uart_write_bytes(RS485S_UART_NUM, (const char*)&msgType, 1);
             rs485s_txChecksum ^= msgType;
             rs485s_txSendIdx = 0;
-            rs485s_state = RS485SlaveState::TX_SEND_DATA;
+
+            if (rs485s_txSendLen > 0) {
+                rs485s_state = RS485SlaveState::TX_SEND_DATA;
+            } else {
+                rs485s_state = RS485SlaveState::TX_SEND_CHECKSUM;
+            }
             break;
         }
 
@@ -729,21 +678,7 @@ static void rs485s_processTx() {
             uart_write_bytes(RS485S_UART_NUM, (const char*)&checksum, 1);
             uart_wait_tx_done(RS485S_UART_NUM, 10);
 
-            // ═══════════════════════════════════════════════════════════════
-            // CRITICAL: Echo suppression fix
-            // 
-            // Despite UART_MODE_RS485_HALF_DUPLEX, there's a timing race where
-            // our transmitted bytes can echo back and be read as incoming data.
-            // This corrupts the state machine (we read our own response as a
-            // "broadcast" with address 0x00).
-            //
-            // Solution: Wait for potential echo to arrive, then flush it.
-            // At 250kbaud with 30 bytes, echo takes ~1.2ms to complete.
-            // ═══════════════════════════════════════════════════════════════
-            delayMicroseconds(1500);  // Wait for echo to arrive
-            uart_flush_input(RS485S_UART_NUM);  // Clear any echo
-            delayMicroseconds(200);  // Additional settling time
-            uart_flush_input(RS485S_UART_NUM);  // Double-flush for safety
+            uart_flush_input(RS485S_UART_NUM);
 
             rs485s_responseComplete();
 
@@ -770,7 +705,13 @@ bool RS485Slave_init() {
         return true;
     }
 
-    debugPrintln("[RS485S] Initializing RS-485 Slave...");
+    debugPrintf("[RS485S] Initializing RS-485 Slave (address %d)...\n", RS485_SLAVE_ADDRESS);
+
+    // Validate address range
+    if (RS485_SLAVE_ADDRESS < 1 || RS485_SLAVE_ADDRESS > 126) {
+        debugPrintf("[RS485S] ❌ Invalid address %d (must be 1-126)\n", RS485_SLAVE_ADDRESS);
+        return false;
+    }
 
     uart_config_t uart_config = {
         .baud_rate = RS485_BAUD,
@@ -779,12 +720,10 @@ bool RS485Slave_init() {
         .stop_bits = UART_STOP_BITS_1,
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
         .rx_flow_ctrl_thresh = 0,
-        .source_clk = UART_SCLK_DEFAULT
+        .source_clk = UART_SCLK_DEFAULT,
     };
 
-    esp_err_t err;
-
-    err = uart_driver_install(RS485S_UART_NUM, 512, 512, 0, NULL, 0);
+    esp_err_t err = uart_driver_install(RS485S_UART_NUM, 512, 256, 0, NULL, 0);
     if (err != ESP_OK) {
         debugPrintf("[RS485S] ❌ UART driver install failed: %d\n", err);
         return false;
@@ -792,13 +731,13 @@ bool RS485Slave_init() {
 
     err = uart_param_config(RS485S_UART_NUM, &uart_config);
     if (err != ESP_OK) {
-        debugPrintf("[RS485S] ❌ UART param config failed: %d\n", err);
+        debugPrintf("[RS485S] ❌ UART config failed: %d\n", err);
         return false;
     }
 
-    // Handle EN pin configuration
-    int en_pin = RS485_EN_PIN;
-    
+    // Set UART pins
+    // RS485_EN_PIN: -1 = auto-direction, >=0 = manual GPIO control
+    int en_pin = RS485_EN_PIN;  // Copy to avoid macro expansion issues
     err = uart_set_pin(RS485S_UART_NUM, RS485_TX_PIN, RS485_RX_PIN, 
                        (en_pin >= 0) ? en_pin : UART_PIN_NO_CHANGE, 
                        UART_PIN_NO_CHANGE);

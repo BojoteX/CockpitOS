@@ -13,17 +13,8 @@
  * COMPATIBILITY:
  *   This slave implementation is compatible with:
  *   - Arduino DCS-BIOS RS485 Master (DcsBiosNgRS485Master)
- *   - CockpitOS RS485 Master (SMART and RELAY modes)
+ *   - CockpitOS RS485 Master (SMART and DUMB modes)
  *   - ESP32 RS485 Master reference implementation
- *
- * PROTOCOL SUMMARY:
- *   Master → Slave (Broadcast):  [Addr=0][MsgType][Length][Data...][Checksum]
- *   Master → Slave (Poll):       [Addr=N][MsgType][Length=0]  ← NO CHECKSUM!
- *   Slave → Master (No data):    [0x00]  ← Single byte, NO CHECKSUM!
- *   Slave → Master (With data):  [Length][MsgType][Data...][Checksum]
- *
- *   Length = number of DATA bytes (does NOT include MsgType)
- *   Checksum = XOR of all bytes, or fixed 0x72 for Arduino compatibility
  */
 
 #ifndef RS485_SLAVE_CONFIG_H
@@ -86,7 +77,7 @@
 #ifndef RS485_EN_PIN
 // -1 = Auto-direction board (hardware handles TX/RX switching)
 // >=0 = Manual direction control via GPIO (ESP32 drives EN pin)
-#define RS485_EN_PIN            21      // Auto-direction by default
+#define RS485_EN_PIN            -1      // Auto-direction by default
 #endif
 
 // ============================================================================
