@@ -1,5 +1,5 @@
-// PID:0x471F 
+// PID:0x1BAC 
 
 #pragma once
 
-#define LABEL_SET SLAVE_SAMPLE
+#define LABEL_SET TEST_ONLY

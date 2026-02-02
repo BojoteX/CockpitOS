@@ -48,7 +48,7 @@
 //     Maximum compatibility, works without any configuration
 //
 #ifndef RS485_FILTER_ADDRESSES
-#define RS485_FILTER_ADDRESSES  0
+#define RS485_FILTER_ADDRESSES  1
 #endif
 
 // ============================================================================
@@ -93,7 +93,8 @@
 //   >= 0 : GPIO number for manual DE/RE control (half-duplex mode)
 //   -1   : Auto-direction hardware (no pin needed)
 #ifndef RS485_EN_PIN
-#define RS485_EN_PIN            -1
+// #define RS485_EN_PIN            -1
+#define RS485_EN_PIN            21
 #endif
 
 // ============================================================================
@@ -128,7 +129,9 @@
 // Maximum slave addresses to poll (valid range: 1-126)
 // Set to expected max to reduce discovery scan time
 #ifndef RS485_MAX_SLAVES
-#define RS485_MAX_SLAVES        32
+// #define RS485_MAX_SLAVES        126
+// #define RS485_MAX_SLAVES        32
+#define RS485_MAX_SLAVES        1
 #endif
 
 // ============================================================================
