@@ -1,19 +1,10 @@
 /**
  * =============================================================================
- * ESP32 RS485 SLAVE - HARDWARE RS485 MODE IMPLEMENTATION
+ * ESP32-S3 RS485 SLAVE - HARDWARE RS485 MODE IMPLEMENTATION
  * =============================================================================
  *
  * High-performance RS485 Slave for DCS-BIOS using the ESP32's NATIVE HARDWARE
  * RS485 mode for CYCLE-ACCURATE DE pin timing.
- *
- * SUPPORTED ESP32 VARIANTS:
- * - ESP32 (Classic)    - Dual-core
- * - ESP32-S2           - Single-core
- * - ESP32-S3           - Dual-core
- * - ESP32-C3           - Single-core RISC-V
- * - ESP32-C6           - Single-core RISC-V
- *
- * All variants support UART_MODE_RS485_HALF_DUPLEX for hardware DE control.
  *
  * =============================================================================
  * CRITICAL HARDWARE FEATURE: UART_MODE_RS485_HALF_DUPLEX
@@ -59,13 +50,13 @@
  * in the UART's baud rate generator, which is unavoidable in any implementation.
  *
  * =============================================================================
- * HARDWARE CONFIGURATION (adjust pins for your board)
+ * HARDWARE CONFIGURATION
  * =============================================================================
  *
- * Default pins are for Waveshare ESP32-S3-RS485-CAN:
+ * Device: ESP32-S3 (Waveshare ESP32-S3-RS485-CAN or compatible)
  * TX Pin: GPIO 17 → RS485 DI (Driver Input)
  * RX Pin: GPIO 18 ← RS485 RO (Receiver Output)
- * DE Pin: GPIO 21 → RS485 DE + /RE (Hardware-controlled via RTS), or -1 for auto-dir
+ * DE Pin: GPIO 21 → RS485 DE + /RE (Direction Enable) [Hardware-controlled via RTS]
  * Speed:  250,000 bps (8N1)
  *
  * IMPORTANT: The DE pin is configured as the UART's RTS output. The hardware
@@ -101,6 +92,7 @@
 // Timing Constants
 #define SYNC_TIMEOUT_US     500     // 500µs silence = sync detected
 #define RX_TIMEOUT_SYMBOLS  12      // ~480µs at 250kbaud (12 symbol times)
+#define RX_FRAME_TIMEOUT_US 5000    // 5ms timeout to reset mid-frame RX
 
 // ============================================================================
 // ESP32 HARDWARE INCLUDES
@@ -117,9 +109,9 @@
 // COMPILE-TIME CHECKS
 // ============================================================================
 
-#if !defined(ESP32)
-    #error "This implementation requires an ESP32 variant (ESP32, S2, S3, C3, C6, etc.)"
-#endif
+// #if !defined(CONFIG_IDF_TARGET_ESP32S3)
+    // #error "This implementation requires ESP32-S3. Please select the correct board."
+// #endif
 
 #if SLAVE_ADDRESS < 1 || SLAVE_ADDRESS > 127
     #error "SLAVE_ADDRESS must be between 1 and 127"
@@ -547,6 +539,7 @@ static volatile uint8_t rxMsgType = 0;
 static volatile uint8_t rxtxLen = 0;
 static volatile RxDataType rxDataType = RXDATA_IGNORE;
 static volatile int64_t lastRxTime = 0;
+
 static uart_port_t uartNum = (uart_port_t)RS485_UART_NUM;
 
 // ============================================================================
@@ -679,7 +672,7 @@ static void sendResponse() {
     uint8_t packet[MESSAGE_BUFFER_SIZE + 4];
     uint8_t len = messageBuffer.getLength();
 
-    packet[0] = len;      // Length = data bytes only (matches AVR Slave protocol)
+    packet[0] = len + 1;  // Length includes msgtype
     packet[1] = 0;        // Message type = 0 (DCS-BIOS data)
 
     for (uint8_t i = 0; i < len; i++) {
@@ -708,9 +701,6 @@ static void sendResponse() {
     // This ensures the hardware has finished transmitting
     ESP_ERROR_CHECK(uart_wait_tx_done(uartNum, pdMS_TO_TICKS(10)));
 
-    // Reset timing reference after TX
-    lastRxTime = esp_timer_get_time();
-
     // Clear message buffer
     messageBuffer.clear();
     messageBuffer.complete = false;
@@ -728,9 +718,6 @@ static void sendZeroLengthResponse() {
     // Hardware handles DE automatically
     uart_write_bytes(uartNum, (const char*)&response, 1);
     ESP_ERROR_CHECK(uart_wait_tx_done(uartNum, pdMS_TO_TICKS(10)));
-
-    // Reset timing reference after TX
-    lastRxTime = esp_timer_get_time();
 
     rs485State = STATE_RX_WAIT_ADDRESS;
 }
@@ -750,11 +737,13 @@ static void sendZeroLengthResponse() {
 static void processRS485() {
     int64_t now = esp_timer_get_time();
 
+    if (rs485State != STATE_SYNC && (now - lastRxTime) >= RX_FRAME_TIMEOUT_US) {
+        rs485State = STATE_SYNC;
+    }
+
     // =========================================================================
-    // Sync Detection - 500µs of bus silence (matches AVR behavior exactly)
+    // Sync Detection - 500µs of bus silence
     // =========================================================================
-    // Note: AVR Slave has NO frame timeout recovery. It trusts the protocol.
-    // We match that behavior for full compatibility.
     if (rs485State == STATE_SYNC) {
         if ((now - lastRxTime) >= SYNC_TIMEOUT_US) {
             rs485State = STATE_RX_WAIT_ADDRESS;
