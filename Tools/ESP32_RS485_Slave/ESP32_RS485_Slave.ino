@@ -92,6 +92,7 @@
 // Timing Constants
 #define SYNC_TIMEOUT_US     500     // 500µs silence = sync detected
 #define RX_TIMEOUT_SYMBOLS  12      // ~480µs at 250kbaud (12 symbol times)
+#define RX_FRAME_TIMEOUT_US 5000    // 5ms timeout to reset mid-frame RX
 
 // ============================================================================
 // ESP32 HARDWARE INCLUDES
@@ -735,6 +736,10 @@ static void sendZeroLengthResponse() {
  */
 static void processRS485() {
     int64_t now = esp_timer_get_time();
+
+    if (rs485State != STATE_SYNC && (now - lastRxTime) >= RX_FRAME_TIMEOUT_US) {
+        rs485State = STATE_SYNC;
+    }
 
     // =========================================================================
     // Sync Detection - 500µs of bus silence
