@@ -79,9 +79,6 @@
 #define POLL_TIMEOUT_US     1000     // 1ms - timeout waiting for slave response
 #define RX_TIMEOUT_US       5000     // 5ms - timeout for complete message
 #define SYNC_TIMEOUT_US     500      // 500µs silence = sync
-#define INTERFRAME_GAP_US   600      // 600µs silence between frames for slave sync
-#define MAX_BROADCAST_CHUNK 64       // Max bytes per broadcast burst
-#define MAX_POLL_INTERVAL_US 2000    // Ensure we poll at least every 2ms
 
 // Maximum number of slaves (addresses 1-127)
 #define MAX_SLAVES          128
@@ -94,7 +91,6 @@
 #include <driver/uart.h>
 #include <driver/gpio.h>
 #include <esp_timer.h>
-#include <esp_rom_sys.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/queue.h>
@@ -215,7 +211,6 @@ static bool slavePresent[MAX_SLAVES];
 static uint8_t pollAddressCounter = 1;
 static uint8_t scanAddressCounter = 1;
 static uint8_t currentPollAddress = 1;
-static volatile int64_t lastPollTime = 0;
 
 // UART handle
 static uart_port_t uartNum = (uart_port_t)RS485_UART_NUM;
@@ -361,11 +356,6 @@ static void txTask(void* param) {
             // Wait for TX complete - blocks THIS task only
             uart_wait_tx_done(uartNum, pdMS_TO_TICKS(50));
 
-            // Provide inter-frame silence for slave sync
-            if (INTERFRAME_GAP_US > 0) {
-                esp_rom_delay_us(INTERFRAME_GAP_US);
-            }
-
             // Signal completion - main loop can now proceed
             txBusy = false;
         }
@@ -384,8 +374,7 @@ static void txTask(void* param) {
  * NON-BLOCKING: Returns immediately after queuing. TX task handles the rest.
  */
 static void sendBroadcast() {
-    uint8_t available = exportData.getLength();
-    uint8_t len = (available > MAX_BROADCAST_CHUNK) ? MAX_BROADCAST_CHUNK : available;
+    uint8_t len = exportData.getLength();
     if (len == 0) return;
 
     // Build request
@@ -489,8 +478,8 @@ static void processMaster() {
                 sendToPC();
             }
 
-            // Priority 2: Broadcast export data if we have any (unless poll interval elapsed)
-            if (exportData.isNotEmpty() && (now - lastPollTime) < MAX_POLL_INTERVAL_US) {
+            // Priority 2: Broadcast export data if we have any
+            if (exportData.isNotEmpty()) {
                 sendBroadcast();
                 return;
             }
@@ -499,7 +488,6 @@ static void processMaster() {
             if (messageBuffer.isEmpty() && !messageBuffer.complete) {
                 advancePollAddress();
                 sendPoll(currentPollAddress);
-                lastPollTime = now;
             }
             break;
 
@@ -658,7 +646,6 @@ void setup() {
 
     // Initialize RS485 hardware
     initRS485Hardware();
-    lastPollTime = esp_timer_get_time();
 }
 
 void loop() {
