@@ -97,7 +97,7 @@
 // DE Control Mode - Try MANUAL if hardware RS485 mode has issues
 // 0 = Hardware RS485 mode (ESP32 controls DE automatically via RTS)
 // 1 = Manual GPIO mode (we control DE pin explicitly - more compatible)
-#define RS485_DE_MANUAL 0
+#define RS485_DE_MANUAL 1
 
 // UART Configuration
 #define RS485_UART_NUM  1        // UART1 (UART0 is typically used for USB/debug)
@@ -863,25 +863,32 @@ static void sendResponse() {
     // =========================================================================
     // TRANSMIT WITH DE CONTROL
     // =========================================================================
-    // CRITICAL: TX must happen IMMEDIATELY after poll received!
-    // Any delay (including debug prints) will cause Master timeout!
-    // =========================================================================
+    // Turnaround delay to let the bus settle after Master's poll
+    // This prevents the first byte from being corrupted during bus transition
+    // The Master needs time to: release DE, settle bus voltage, enable RX
+    // 500µs provides ample margin for all these transitions
+    delayMicroseconds(500);  // 500µs turnaround time
+
     deAssert();  // Enable transmitter (manual mode) or no-op (hardware mode)
     uart_write_bytes(uartNum, (const char*)packet, totalBytes);
 
     // Wait for TX to complete before releasing DE
     esp_err_t txResult = uart_wait_tx_done(uartNum, pdMS_TO_TICKS(10));
 
-    // Small delay to ensure stop bit fully completes before DE release
-    // At 250kbaud: 1 bit = 4µs, so 10µs gives 2+ bit times margin
+#if RS485_DE_MANUAL
+    // Manual mode: small delay to ensure stop bit completes, then release DE
     delayMicroseconds(10);
+    deRelease();
 
-    deRelease();  // Disable transmitter, enable receiver
-
-    // Flush any echo bytes
+    // Flush echo bytes (in manual mode, we receive our own TX)
     size_t echoBytes = 0;
     uart_get_buffered_data_len(uartNum, &echoBytes);
     uart_flush_input(uartNum);
+#else
+    // Hardware RS485 mode: RX should be disabled during TX, no echo to flush
+    // DO NOT flush - it might remove valid incoming data!
+    size_t echoBytes = 0;
+#endif
 
     // Reset timing reference after TX
     lastRxTime = esp_timer_get_time();
@@ -910,15 +917,20 @@ static void sendResponse() {
 static void sendZeroLengthResponse() {
     uint8_t response = 0;
 
+    // Turnaround delay to let the bus settle (must match sendResponse)
+    delayMicroseconds(500);
+
     // Transmit with DE control
     deAssert();  // Enable transmitter
     uart_write_bytes(uartNum, (const char*)&response, 1);
     uart_wait_tx_done(uartNum, pdMS_TO_TICKS(10));
+
+#if RS485_DE_MANUAL
     delayMicroseconds(10);  // Ensure stop bit completes
     deRelease();  // Disable transmitter, enable receiver
-
-    // Flush any echo bytes (don't spam debug)
-    uart_flush_input(uartNum);
+    uart_flush_input(uartNum);  // Flush echo bytes
+#endif
+    // Hardware RS485 mode: no flush needed, RX disabled during TX
 
     // Reset timing reference after TX
     lastRxTime = esp_timer_get_time();
@@ -969,6 +981,25 @@ static void processRS485() {
             rs485State = STATE_SYNC;
             lastRxTime = now;  // Reset sync timing
         }
+    }
+
+    // =========================================================================
+    // Message Buffer Timeout - Clear stuck messages after 1 second
+    // =========================================================================
+    // If a message has been queued but not sent (no poll received), clear it
+    // to prevent permanent "buffer busy" blocking.
+    static int64_t messageQueuedTime = 0;
+    if (messageBuffer.complete) {
+        if (messageQueuedTime == 0) {
+            messageQueuedTime = now;  // Start timeout timer
+        } else if ((now - messageQueuedTime) > 1000000) {  // 1 second timeout
+            DBGLN("[MSG TIMEOUT - clearing stuck buffer]");
+            messageBuffer.clear();
+            messageBuffer.complete = false;
+            messageQueuedTime = 0;
+        }
+    } else {
+        messageQueuedTime = 0;  // Reset timer when buffer is free
     }
 
     // =========================================================================
