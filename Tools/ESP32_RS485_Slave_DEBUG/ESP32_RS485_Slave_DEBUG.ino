@@ -86,9 +86,18 @@
 // Pin Configuration (Waveshare ESP32-S3-RS485-CAN defaults)
 #define RS485_TX_PIN    17
 #define RS485_RX_PIN    18
-#define RS485_DE_PIN    21    // Set to -1 for auto-direction transceivers (no DE pin needed)
-// #define RS485_DE_PIN    -1    // Set to -1 for auto-direction transceivers (no DE pin needed)
-                              // Set to GPIO number for hardware DE control (e.g., 21)
+#define RS485_DE_PIN    21    // GPIO for hardware DE control (Waveshare ESP32-S3 uses 21)
+                              // Set to -1 for auto-direction transceivers (no DE pin needed)
+
+// DE Pin Polarity - TRY CHANGING THIS IF YOU SEE CORRUPTED DATA!
+// 0 = Normal (DE HIGH during TX) - standard for most RS485 transceivers
+// 1 = Inverted (DE LOW during TX) - some boards have inverters on DE line
+#define RS485_DE_INVERT 0
+
+// DE Control Mode - Try MANUAL if hardware RS485 mode has issues
+// 0 = Hardware RS485 mode (ESP32 controls DE automatically via RTS)
+// 1 = Manual GPIO mode (we control DE pin explicitly - more compatible)
+#define RS485_DE_MANUAL 0
 
 // UART Configuration
 #define RS485_UART_NUM  1        // UART1 (UART0 is typically used for USB/debug)
@@ -102,6 +111,51 @@
 // Timing Constants
 #define SYNC_TIMEOUT_US     500     // 500µs silence = sync detected
 #define RX_TIMEOUT_SYMBOLS  12      // ~480µs at 250kbaud (12 symbol times)
+#define FRAME_TIMEOUT_US    50000   // 50ms max time to complete a frame (configurable)
+
+// Protocol Limits (matches AVR buffer sizes for compatibility)
+#define MAX_FRAME_DATA_SIZE 128     // Maximum data bytes in a single frame
+
+// ============================================================================
+// UDP DEBUG - Uses CockpitOS debug console on port 4210
+// ============================================================================
+// This sends debug data via UDP without affecting RS485 timing.
+// Set UDP_DEBUG_ENABLE to 1 and configure WiFi to use.
+
+#define UDP_DEBUG_ENABLE    1       // Set to 1 to enable UDP debug
+#define UDP_DEBUG_IP        "255.255.255.255"  // Broadcast to all
+#define UDP_DEBUG_PORT      4210    // CockpitOS debug port
+#define UDP_DEBUG_NAME      "RS485-SLAVE"     // Device identifier in debug messages
+#define WIFI_SSID           "TestNetwork"
+#define WIFI_PASSWORD       "TestingOnly"
+
+// Legacy serial debug (only used if UDP_DEBUG_ENABLE is 0)
+#define DEBUG_VERBOSE       0       // Set to 1 for detailed frame-by-frame logging
+
+// Debug macros - use UDP if enabled, otherwise Serial
+#if UDP_DEBUG_ENABLE
+    // Forward declaration - actual class defined after includes
+    #define DBG_INIT()      // Handled in setup()
+    #define DBG(x)
+    #define DBGLN(x)
+    #define DBGF(...)       udpDbgSend(__VA_ARGS__)
+#else
+    #define DBG_INIT()      Serial.begin(115200); delay(2000)
+    #define DBG(x)          Serial.print(x)
+    #define DBGLN(x)        Serial.println(x)
+    #define DBGF(...)       Serial.printf(__VA_ARGS__)
+#endif
+
+// Verbose logging for detailed protocol debugging (very spammy - disabled)
+#if DEBUG_VERBOSE && !UDP_DEBUG_ENABLE
+    #define DBGV(x)         Serial.print(x)
+    #define DBGVLN(x)       Serial.println(x)
+    #define DBGVF(...)      Serial.printf(__VA_ARGS__)
+#else
+    #define DBGV(x)
+    #define DBGVLN(x)
+    #define DBGVF(...)
+#endif
 
 // ============================================================================
 // ESP32 HARDWARE INCLUDES
@@ -113,6 +167,46 @@
 #include <hal/uart_ll.h>
 #include <soc/uart_struct.h>
 #include <esp_timer.h>
+
+#if UDP_DEBUG_ENABLE
+#include <WiFi.h>
+#include <WiFiUdp.h>
+
+// UDP Debug - lightweight, non-blocking
+static WiFiUDP udpDbg;
+static IPAddress udpDbgTarget;
+static bool udpDbgConnected = false;
+static char udpDbgBuf[256];
+
+void udpDbgInit() {
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    udpDbgTarget.fromString(UDP_DEBUG_IP);
+}
+
+void udpDbgCheck() {
+    if (!udpDbgConnected && WiFi.status() == WL_CONNECTED) {
+        udpDbgConnected = true;
+        udpDbgSend("=== %s ONLINE === addr=%d IP=%s", UDP_DEBUG_NAME, SLAVE_ADDRESS, WiFi.localIP().toString().c_str());
+    }
+}
+
+void udpDbgSend(const char* fmt, ...) {
+    if (!udpDbgConnected) return;
+    int pos = snprintf(udpDbgBuf, sizeof(udpDbgBuf), "[%s] ", UDP_DEBUG_NAME);
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(udpDbgBuf + pos, sizeof(udpDbgBuf) - pos, fmt, args);
+    va_end(args);
+    udpDbg.beginPacket(udpDbgTarget, UDP_DEBUG_PORT);
+    udpDbg.write((uint8_t*)udpDbgBuf, strlen(udpDbgBuf));
+    udpDbg.endPacket();
+}
+#else
+// Dummy functions when UDP debug is disabled
+#define udpDbgInit()
+#define udpDbgCheck()
+#endif
 
 // ============================================================================
 // COMPILE-TIME CHECKS
@@ -496,7 +590,10 @@ static ProtocolParser parser;
 static RingBuffer<MESSAGE_BUFFER_SIZE> messageBuffer;
 
 bool tryToSendDcsBiosMessage(const char* msg, const char* arg) {
-    if (messageBuffer.complete) return false;
+    if (messageBuffer.complete) {
+        DBGF("[MSG BLOCKED: buffer busy] %s %s\n", msg, arg);
+        return false;
+    }
 
     messageBuffer.clear();
 
@@ -516,6 +613,7 @@ bool tryToSendDcsBiosMessage(const char* msg, const char* arg) {
     messageBuffer.complete = true;
     PollingInput::setMessageSentOrQueued();
 
+    DBGF("[MSG QUEUED: %s %s] len=%d\n", msg, arg, messageBuffer.getLength());
     return true;
 }
 
@@ -548,7 +646,41 @@ static volatile uint8_t rxMsgType = 0;
 static volatile uint8_t rxtxLen = 0;
 static volatile RxDataType rxDataType = RXDATA_IGNORE;
 static volatile int64_t lastRxTime = 0;
+static volatile int64_t frameStartTime = 0;  // Timestamp when current frame started
 static uart_port_t uartNum = (uart_port_t)RS485_UART_NUM;
+
+// ============================================================================
+// MANUAL DE CONTROL HELPERS
+// ============================================================================
+#if RS485_DE_PIN >= 0 && RS485_DE_MANUAL
+static inline void deAssert() {
+    #if RS485_DE_INVERT
+        digitalWrite(RS485_DE_PIN, LOW);   // Inverted: LOW = TX enabled
+    #else
+        digitalWrite(RS485_DE_PIN, HIGH);  // Normal: HIGH = TX enabled
+    #endif
+}
+
+static inline void deRelease() {
+    #if RS485_DE_INVERT
+        digitalWrite(RS485_DE_PIN, HIGH);  // Inverted: HIGH = RX enabled
+    #else
+        digitalWrite(RS485_DE_PIN, LOW);   // Normal: LOW = RX enabled
+    #endif
+}
+#else
+#define deAssert()
+#define deRelease()
+#endif
+
+// Debug counters for periodic status report
+#if UDP_DEBUG_ENABLE
+static uint32_t dbgPollCount = 0;      // Polls received for us
+static uint32_t dbgBcastCount = 0;     // Broadcasts received
+static uint32_t dbgTxCount = 0;        // Data responses sent
+static uint32_t dbgErrCount = 0;       // Protocol errors
+static uint32_t dbgLastReport = 0;     // Last status report time
+#endif
 
 // ============================================================================
 // HARDWARE RS485 INITIALIZATION
@@ -590,7 +722,7 @@ static void initRS485Hardware() {
         .stop_bits = UART_STOP_BITS_1,
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
         .rx_flow_ctrl_thresh = 0,
-        .source_clk = UART_SCLK_DEFAULT
+        .source_clk = UART_SCLK_XTAL    // Use crystal for accurate baud rate
     };
 
     // Install UART driver (no event queue needed for basic operation)
@@ -598,9 +730,38 @@ static void initRS485Hardware() {
                                          UART_TX_BUFFER_SIZE, 0, NULL, 0));
     ESP_ERROR_CHECK(uart_param_config(uartNum, &uart_config));
 
-#if RS485_DE_PIN >= 0
+#if RS485_DE_PIN >= 0 && RS485_DE_MANUAL
     // =========================================================================
-    // MODE 1: Hardware DE Control (RS485_DE_PIN is a valid GPIO)
+    // MODE 1: MANUAL DE Control (GPIO-controlled, more compatible)
+    // =========================================================================
+    // TX  → RS485 DI
+    // RX  ← RS485 RO
+    // DE  → Controlled by GPIO (we assert/release manually around TX)
+    //
+    // This mode is MORE COMPATIBLE than hardware RS485 mode because:
+    // - We have explicit control over DE timing
+    // - Works with transceivers that have specific timing requirements
+    // - Avoids ESP32 UART_MODE_RS485_HALF_DUPLEX quirks
+    // =========================================================================
+    ESP_ERROR_CHECK(uart_set_pin(uartNum,
+                                  RS485_TX_PIN,      // TX
+                                  RS485_RX_PIN,      // RX
+                                  UART_PIN_NO_CHANGE,// No RTS (we use GPIO for DE)
+                                  UART_PIN_NO_CHANGE // CTS not used
+                                  ));
+
+    // Use regular UART mode - we control DE manually
+    ESP_ERROR_CHECK(uart_set_mode(uartNum, UART_MODE_UART));
+
+    // Configure DE pin as output and set to RX mode (DE released)
+    pinMode(RS485_DE_PIN, OUTPUT);
+    deRelease();
+
+    DBGF("[DE: MANUAL GPIO %d]\n", RS485_DE_PIN);
+
+#elif RS485_DE_PIN >= 0
+    // =========================================================================
+    // MODE 2: Hardware DE Control (RS485_DE_PIN is a valid GPIO)
     // =========================================================================
     // TX  → RS485 DI
     // RX  ← RS485 RO
@@ -619,6 +780,14 @@ static void initRS485Hardware() {
 
     // Enable hardware RS485 mode with automatic DE control
     ESP_ERROR_CHECK(uart_set_mode(uartNum, UART_MODE_RS485_HALF_DUPLEX));
+
+#if RS485_DE_INVERT
+    // Invert DE polarity if needed (some boards have inverters on DE line)
+    ESP_ERROR_CHECK(uart_set_line_inverse(uartNum, UART_SIGNAL_RTS_INV));
+    DBGF("[DE: HARDWARE INVERTED]\n");
+#else
+    DBGF("[DE: HARDWARE NORMAL]\n");
+#endif
 
 #else
     // =========================================================================
@@ -691,26 +860,28 @@ static void sendResponse() {
 
     size_t totalBytes = 3 + len;
 
-    // Delete if not debugging
-    Serial.printf("Sending response: len=%d\n", len);
-
     // =========================================================================
-    // HARDWARE RS485 MAGIC HAPPENS HERE
+    // TRANSMIT WITH DE CONTROL
     // =========================================================================
-    // When we call uart_write_bytes():
-    // 1. Data is copied to TX FIFO
-    // 2. Hardware IMMEDIATELY asserts DE (RTS pin goes HIGH)
-    // 3. UART transmits all bytes
-    // 4. After LAST STOP BIT, hardware deasserts DE (RTS goes LOW)
-    //
-    // All of this happens WITHOUT ANY SOFTWARE INTERVENTION!
-    // The timing is cycle-accurate to the UART baud clock.
+    // CRITICAL: TX must happen IMMEDIATELY after poll received!
+    // Any delay (including debug prints) will cause Master timeout!
     // =========================================================================
+    deAssert();  // Enable transmitter (manual mode) or no-op (hardware mode)
     uart_write_bytes(uartNum, (const char*)packet, totalBytes);
 
-    // Wait for TX to complete before returning to RX state
-    // This ensures the hardware has finished transmitting
-    ESP_ERROR_CHECK(uart_wait_tx_done(uartNum, pdMS_TO_TICKS(10)));
+    // Wait for TX to complete before releasing DE
+    esp_err_t txResult = uart_wait_tx_done(uartNum, pdMS_TO_TICKS(10));
+
+    // Small delay to ensure stop bit fully completes before DE release
+    // At 250kbaud: 1 bit = 4µs, so 10µs gives 2+ bit times margin
+    delayMicroseconds(10);
+
+    deRelease();  // Disable transmitter, enable receiver
+
+    // Flush any echo bytes
+    size_t echoBytes = 0;
+    uart_get_buffered_data_len(uartNum, &echoBytes);
+    uart_flush_input(uartNum);
 
     // Reset timing reference after TX
     lastRxTime = esp_timer_get_time();
@@ -721,6 +892,16 @@ static void sendResponse() {
 
     // Return to RX state
     rs485State = STATE_RX_WAIT_ADDRESS;
+
+    // DEBUG: Print AFTER TX is complete (doesn't affect timing!)
+    DBGF("[TX SENT %d bytes", totalBytes);
+    if (echoBytes > 0) {
+        DBGF(" echo=%d", echoBytes);
+    }
+    if (txResult != 0) {
+        DBGF(" err=%d", txResult);
+    }
+    DBGLN("]");
 }
 
 /**
@@ -729,9 +910,15 @@ static void sendResponse() {
 static void sendZeroLengthResponse() {
     uint8_t response = 0;
 
-    // Hardware handles DE automatically
+    // Transmit with DE control
+    deAssert();  // Enable transmitter
     uart_write_bytes(uartNum, (const char*)&response, 1);
-    ESP_ERROR_CHECK(uart_wait_tx_done(uartNum, pdMS_TO_TICKS(10)));
+    uart_wait_tx_done(uartNum, pdMS_TO_TICKS(10));
+    delayMicroseconds(10);  // Ensure stop bit completes
+    deRelease();  // Disable transmitter, enable receiver
+
+    // Flush any echo bytes (don't spam debug)
+    uart_flush_input(uartNum);
 
     // Reset timing reference after TX
     lastRxTime = esp_timer_get_time();
@@ -757,11 +944,30 @@ static void processRS485() {
     // =========================================================================
     // Sync Detection - 500µs of bus silence (matches AVR behavior exactly)
     // =========================================================================
-    // Note: AVR Slave has NO frame timeout recovery. It trusts the protocol.
-    // We match that behavior for full compatibility.
+    // NOTE: When NO bytes are pending, we check for silence here.
+    // When bytes ARE pending, the SYNC state handler below uses the
+    // silence-breaking byte as the first protocol byte (AVR fall-through behavior).
     if (rs485State == STATE_SYNC) {
         if ((now - lastRxTime) >= SYNC_TIMEOUT_US) {
             rs485State = STATE_RX_WAIT_ADDRESS;
+            DBGVLN("[SYNC->RDY]");  // Sync complete, ready to receive
+        }
+    }
+
+    // =========================================================================
+    // Frame Timeout Protection - Prevents stuck state if frame never completes
+    // =========================================================================
+    // If we're in the middle of receiving a frame and no data arrives for too
+    // long, something went wrong (master reset, bus error, etc.). Resync.
+    // This is a robustness enhancement beyond AVR behavior.
+    if (rs485State != STATE_SYNC && rs485State != STATE_RX_WAIT_ADDRESS) {
+        if ((now - lastRxTime) >= FRAME_TIMEOUT_US) {
+            DBGLN("[FRAME TIMEOUT->SYNC]");
+#if UDP_DEBUG_ENABLE
+            dbgErrCount++;
+#endif
+            rs485State = STATE_SYNC;
+            lastRxTime = now;  // Reset sync timing
         }
     }
 
@@ -771,21 +977,62 @@ static void processRS485() {
     size_t available = 0;
     uart_get_buffered_data_len(uartNum, &available);
 
+#if DEBUG_VERBOSE
+    // Show when data arrives (only once per batch, not per byte)
+    if (available > 0) {
+        static uint32_t lastRxReport = 0;
+        uint32_t nowMs = millis();
+        if (nowMs - lastRxReport > 100) {  // Rate limit to every 100ms
+            DBGVF("[RX %d bytes]\n", available);
+            lastRxReport = nowMs;
+        }
+    }
+#endif
+
     while (available > 0) {
         uint8_t c;
         if (uart_read_bytes(uartNum, &c, 1, 0) != 1) break;
         available--;
 
+        // =====================================================================
+        // SYNC STATE HANDLING - AVR Fall-Through Behavior
+        // =====================================================================
+        // The AVR uses a clever fall-through: when in SYNC and enough silence
+        // has passed, it does NOT break but falls through to RX_WAIT_ADDRESS,
+        // using the SAME byte as the address. We replicate this exactly.
+        //
+        // CRITICAL: Check time gap BEFORE updating lastRxTime!
+        // =====================================================================
+        if (rs485State == STATE_SYNC) {
+            if ((now - lastRxTime) >= SYNC_TIMEOUT_US) {
+                // Sync complete! This byte is the first protocol byte (address).
+                // Fall through to address processing (no break, like AVR).
+                DBGVLN("[SYNC->ADDR]");
+                rxSlaveAddress = c;
+                rs485State = STATE_RX_WAIT_MSGTYPE;
+                lastRxTime = now;
+                frameStartTime = now;  // Start frame timeout tracking
+                continue;
+            } else {
+                // Not enough silence yet - stay in sync, update timing
+                DBGVF("[SYNC:0x%02X]\n", c);
+                lastRxTime = now;
+                continue;
+            }
+        }
+
+        // For all non-SYNC states, update lastRxTime
         lastRxTime = now;
 
         switch (rs485State) {
             case STATE_SYNC:
-                // Byte received during sync - stay in sync, wait for silence
+                // Should never reach here - handled above
                 break;
 
             case STATE_RX_WAIT_ADDRESS:
                 rxSlaveAddress = c;
                 rs485State = STATE_RX_WAIT_MSGTYPE;
+                frameStartTime = now;  // Start frame timeout tracking
                 break;
 
             case STATE_RX_WAIT_MSGTYPE:
@@ -795,6 +1042,19 @@ static void processRS485() {
 
             case STATE_RX_WAIT_DATALENGTH:
                 rxtxLen = c;
+                // Log every frame header: [addr][msgtype][len]
+                DBGVF("[FRM a=%d m=%d l=%d]\n", rxSlaveAddress, rxMsgType, rxtxLen);
+
+                // Protocol sanity check: data length must be reasonable
+                // (matches AVR buffer overflow protection behavior)
+                if (rxtxLen > MAX_FRAME_DATA_SIZE) {
+                    // Garbage data - don't spam debug, just count it
+#if UDP_DEBUG_ENABLE
+                    dbgErrCount++;
+#endif
+                    rs485State = STATE_SYNC;
+                    break;
+                }
 
                 if (rxtxLen == 0) {
                     goto handle_message_complete;
@@ -811,11 +1071,9 @@ static void processRS485() {
 
             case STATE_RX_WAIT_DATA:
                 rxtxLen--;
-
                 if (rxDataType == RXDATA_DCSBIOS_EXPORT) {
                     parser.processChar(c);
                 }
-
                 if (rxtxLen == 0) {
                     rs485State = STATE_RX_WAIT_CHECKSUM;
                 }
@@ -826,6 +1084,7 @@ static void processRS485() {
 
             case STATE_RX_WAIT_ANSWER_DATALENGTH:
                 rxtxLen = c;
+                DBGVF("[ANS l=%d]\n", rxtxLen);
                 if (rxtxLen == 0) {
                     rs485State = STATE_RX_WAIT_ADDRESS;
                 } else {
@@ -857,23 +1116,52 @@ static void processRS485() {
     handle_message_complete:
         if (rxSlaveAddress == 0) {
             // Broadcast - no response
+            DBGVLN("[BCAST]");
+#if UDP_DEBUG_ENABLE
+            dbgBcastCount++;
+#endif
             rs485State = STATE_RX_WAIT_ADDRESS;
         } else if (rxSlaveAddress == SLAVE_ADDRESS) {
             // This message is for us!
             if (rxMsgType == 0 && rxtxLen == 0) {
+#if UDP_DEBUG_ENABLE
+                dbgPollCount++;
+#endif
                 if (!messageBuffer.complete) {
+                    // No data to send - respond immediately with zero-length
                     sendZeroLengthResponse();
                 } else {
+#if UDP_DEBUG_ENABLE
+                    dbgTxCount++;
+                    DBGF("[TX] sending %d bytes\n", messageBuffer.getLength());
+#endif
+                    // CRITICAL: Call sendResponse() IMMEDIATELY!
+                    // Debug output is printed AFTER TX inside the function.
                     sendResponse();
                 }
             } else {
+#if UDP_DEBUG_ENABLE
+                dbgErrCount++;
+#endif
+                DBGF("[ERR m=%d l=%d]\n", rxMsgType, rxtxLen);  // Unexpected message (keep visible)
                 rs485State = STATE_SYNC;
             }
         } else {
             // Message for another slave
+            DBGVF("[OTHER s=%d]\n", rxSlaveAddress);
             rs485State = STATE_RX_WAIT_ANSWER_DATALENGTH;
         }
     }
+
+#if UDP_DEBUG_ENABLE
+    // Periodic status report (every 5 seconds)
+    uint32_t nowMs = millis();
+    if (nowMs - dbgLastReport >= 5000) {
+        DBGF("[STATS] polls=%lu bcast=%lu tx=%lu err=%lu\n",
+             dbgPollCount, dbgBcastCount, dbgTxCount, dbgErrCount);
+        dbgLastReport = nowMs;
+    }
+#endif
 }
 
 // ============================================================================
@@ -937,7 +1225,7 @@ public:
 // Set any pin to -1 to disable that test control
 
 #define SWITCH_PIN      -1     // Test switch input (toggle switch), -1 to disable
-#define BUTTON_PIN      -1      // Test button input (momentary pushbutton), -1 to disable
+#define BUTTON_PIN      0      // Test button input (momentary pushbutton), -1 to disable
 #define MC_READY_PIN    -1     // Test LED output, -1 to disable
 
 // ============================================================================
@@ -974,17 +1262,16 @@ LED mcReadyLed(0x740C, 0x8000, MC_READY_PIN);
 // ============================================================================
 
 void setup() {
-    // Optional debug output (comment out in production)
-    Serial.begin(115200);
-    delay(3000);
-    
-    Serial.println("ESP32-S3 RS485 Slave - Hardware RS485 Mode");
+    // Initialize debug output
+    DBG_INIT();
+    udpDbgInit();  // Start WiFi for UDP debug (non-blocking)
 
     // Initialize RS485 with HARDWARE DE control
     initRS485Hardware();
 }
 
 void loop() {
+    udpDbgCheck();  // Check WiFi connection for UDP debug
     processRS485();
     PollingInput::pollInputs();
     ExportStreamListener::loopAll();
