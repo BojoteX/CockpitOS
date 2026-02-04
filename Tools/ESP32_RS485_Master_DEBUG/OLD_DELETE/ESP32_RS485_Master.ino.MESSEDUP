@@ -65,8 +65,7 @@
 // BUS 1 - Primary RS485 bus (enabled by default)
 #define BUS1_TX_PIN     17
 #define BUS1_RX_PIN     18
-// #define BUS1_DE_PIN     -1      // Set to -1 for auto-direction transceiver
-#define BUS1_DE_PIN     21      // Set to -1 for auto-direction transceiver
+#define BUS1_DE_PIN     -1      // Set to -1 for auto-direction transceiver
 #define BUS1_UART_NUM   1       // UART1
 
 // BUS 2 - Secondary RS485 bus (disabled by default)
@@ -100,8 +99,7 @@
 #define MAX_POLL_INTERVAL_US 2000    // Ensure we poll at least every 2ms
 
 // Broadcast chunking - prevents bus hogging during heavy export traffic
-// #define MAX_BROADCAST_CHUNK  64      // Max bytes per broadcast burst
-#define MAX_BROADCAST_CHUNK  128      // Max bytes per broadcast burst
+#define MAX_BROADCAST_CHUNK  64      // Max bytes per broadcast burst
 
 // Maximum number of slaves per bus (addresses 1-127)
 #define MAX_SLAVES          128
@@ -537,6 +535,11 @@ static void txTask(void* param) {
             // Send on the specified UART
             uart_write_bytes(request.uartNum, (const char*)request.data, request.length);
             uart_wait_tx_done(request.uartNum, pdMS_TO_TICKS(50));
+
+            // Critical: Flush RX buffer after TX
+            // Some ESP32 variants (especially S2) may echo TX data into RX buffer
+            // in RS485 half-duplex mode. Clear it before listening for response.
+            uart_flush_input(request.uartNum);
 
             // Find the bus that owns this UART and clear its txBusy flag
             RS485Master* bus = RS485Master::first;
