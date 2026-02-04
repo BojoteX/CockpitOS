@@ -69,7 +69,7 @@
 #define BUS1_UART_NUM   1       // UART1
 
 // DE Control Mode - Try MANUAL (1) if hardware RS485 mode has issues with your transceiver
-#define RS485_DE_MANUAL 0       // 0 = Hardware RS485 mode, 1 = Manual GPIO mode
+#define RS485_DE_MANUAL 1       // 0 = Hardware RS485 mode, 1 = Manual GPIO mode
 
 // BUS 2 - Secondary RS485 bus (disabled by default)
 #define BUS2_TX_PIN     -1      // Set to valid GPIO to enable
@@ -664,6 +664,11 @@ static void txTask(void* param) {
                 bus = bus->next;
             }
 
+            // Flush any stale data from RX buffer BEFORE sending
+            // This clears leftover data from previous cycles without
+            // risking removal of the Slave's response
+            uart_flush_input(request.uartNum);
+
 #if RS485_DE_MANUAL
             // Manual DE control - assert before TX
             if (bus && bus->getDePin() >= 0) {
@@ -678,9 +683,14 @@ static void txTask(void* param) {
 #if RS485_DE_MANUAL
             // Manual DE control - release after TX
             if (bus && bus->getDePin() >= 0) {
+                delayMicroseconds(10);  // Ensure stop bit completes
                 digitalWrite(bus->getDePin(), LOW);   // Enable receiver
             }
 #endif
+
+            // Turnaround delay to ensure receiver is ready
+            // Don't flush here - the Slave's response may be arriving!
+            delayMicroseconds(50);
 
             // Clear txBusy flag
             if (bus) {
