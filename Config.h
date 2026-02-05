@@ -14,7 +14,7 @@
 #endif
 
 // Versioning for internal use
-#define VERSION_CURRENT                            "R.1.1.4_dev_02-02-26" // Just to troubleshoot instalations
+#define VERSION_CURRENT                            "R.1.1.4_dev_02-05-26" // Just to troubleshoot instalations
 
 // Is this an RS-485 Master? leave to 0 for normal operation.
 #define RS485_MASTER_ENABLED                        0 // Set as RS-485 Master. Polls slaves. Forwards data, you still need to choose a transport above (WiFi, Serial, USB etc)
