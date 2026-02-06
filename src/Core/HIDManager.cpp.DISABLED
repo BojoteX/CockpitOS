@@ -45,7 +45,7 @@
 
 
 // ----- USB build: real stack for S2 and S3 only -----
-#if !USE_DCSBIOS_WIFI && !USE_DCSBIOS_BLUETOOTH && !RS485_SLAVE_ENABLED // No WiFi, Bluetooth, or RS485 Slave - so either USB or Serial only selected
+#if !USE_DCSBIOS_WIFI && !USE_DCSBIOS_BLUETOOTH // No WiFi or Bluetooth, so either USB or Serial only selected
     #if (ESP_FAMILY_S2 || ESP_FAMILY_S3 || ESP_FAMILY_P4) && ARDUINO_USB_MODE == 0  
         #if !defined(LOADED_CDC_STACK)
             #include "USB.h"
@@ -865,7 +865,7 @@ void HIDManager_commitDeferredReport(const char* deviceName) {
 #endif
     if (!hidPermitted) return;
 
-#if !USE_DCSBIOS_WIFI && !USE_DCSBIOS_BLUETOOTH && !RS485_SLAVE_ENABLED
+#if !USE_DCSBIOS_WIFI && !USE_DCSBIOS_BLUETOOTH
     if (!cdcEnsureRxReady(CDC_TIMEOUT_RX_TX) || !cdcEnsureTxReady(CDC_TIMEOUT_RX_TX)) {
         debugPrintln("❌ [HID] No stream active yet or Tx buffer full");
         return;

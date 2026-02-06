@@ -29,13 +29,6 @@
 #include "hal/uart_ll.h"
 #include "soc/uart_periph.h"
 
-// FreeRTOS includes (for task mode)
-#if RS485_USE_TASK
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#endif
-
 // RISC-V fence for C3/C6 cache coherency
 #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2
     #define RS485_RISCV_FENCE() __asm__ __volatile__("fence" ::: "memory")
@@ -291,72 +284,6 @@ static uint32_t statInputCmds = 0;
 static uint32_t statBytesOut = 0;
 
 // ============================================================================
-// FREERTOS TASK (when RS485_USE_TASK=1)
-// ============================================================================
-
-#if RS485_USE_TASK
-
-// Command from slave to be processed by main loop
-struct SlaveCommand {
-    char label[48];
-    char value[16];
-};
-
-static TaskHandle_t rs485TaskHandle = nullptr;
-static QueueHandle_t cmdQueue = nullptr;
-static volatile bool taskRunning = false;
-
-// Forward declaration for the internal poll loop
-static void rs485PollLoop();
-
-// FreeRTOS task function
-static void rs485Task(void* param) {
-    (void)param;
-
-    debugPrintln("[RS485M] Task started");
-
-    TickType_t lastWakeTime = xTaskGetTickCount();
-
-    while (taskRunning) {
-        // Run the poll loop
-        rs485PollLoop();
-
-        // Wait for next tick interval
-        vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(RS485_TASK_TICK_INTERVAL));
-    }
-
-    debugPrintln("[RS485M] Task stopped");
-    vTaskDelete(nullptr);
-}
-
-// Queue a command from slave to be processed by main loop
-static void queueSlaveCommand(const char* label, const char* value) {
-    if (!cmdQueue) return;
-
-    SlaveCommand cmd;
-    strncpy(cmd.label, label, sizeof(cmd.label) - 1);
-    cmd.label[sizeof(cmd.label) - 1] = '\0';
-    strncpy(cmd.value, value, sizeof(cmd.value) - 1);
-    cmd.value[sizeof(cmd.value) - 1] = '\0';
-
-    // Non-blocking send - drop if queue full
-    xQueueSend(cmdQueue, &cmd, 0);
-}
-
-// Process queued commands (called from main loop)
-static void processQueuedCommands() {
-    if (!cmdQueue) return;
-
-    SlaveCommand cmd;
-    while (xQueueReceive(cmdQueue, &cmd, 0) == pdTRUE) {
-        // Forward to CockpitOS
-        sendCommand(cmd.label, cmd.value, false);
-    }
-}
-
-#endif // RS485_USE_TASK
-
-// ============================================================================
 // RX INTERRUPT SERVICE ROUTINE
 // ============================================================================
 
@@ -572,12 +499,8 @@ static void processInputCommand(const uint8_t* data, size_t len) {
 
     statInputCmds++;
 
-    // Send to CockpitOS (via queue if task mode, direct if main loop mode)
-    #if RS485_USE_TASK
-    queueSlaveCommand(label, value);
-    #else
+    // Send to CockpitOS
     sendCommand(label, value, false);
-    #endif
 }
 
 static void processResponse() {
@@ -768,62 +691,10 @@ bool RS485Master_init() {
         debugPrintln("[RS485M] Mode: RELAY (raw bytes, Arduino-compatible)");
     #endif
 
-    // Create FreeRTOS task if enabled
-    #if RS485_USE_TASK
-    // Create command queue for slave commands
-    cmdQueue = xQueueCreate(RS485_CMD_QUEUE_SIZE, sizeof(SlaveCommand));
-    if (!cmdQueue) {
-        debugPrintln("[RS485M] ERROR: Failed to create command queue!");
-        return false;
-    }
-
-    // Create the RS485 task
-    taskRunning = true;
-
-    #if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3) || \
-        defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32H2)
-    // Single-core chips - use xTaskCreate (no core affinity)
-    BaseType_t result = xTaskCreate(
-        rs485Task,
-        "RS485M",
-        RS485_TASK_STACK_SIZE,
-        nullptr,
-        RS485_TASK_PRIORITY,
-        &rs485TaskHandle
-    );
-    #else
-    // Dual-core chips - pin to specified core
-    BaseType_t result = xTaskCreatePinnedToCore(
-        rs485Task,
-        "RS485M",
-        RS485_TASK_STACK_SIZE,
-        nullptr,
-        RS485_TASK_PRIORITY,
-        &rs485TaskHandle,
-        RS485_TASK_CORE
-    );
-    #endif
-
-    if (result != pdPASS) {
-        debugPrintln("[RS485M] ERROR: Failed to create task!");
-        taskRunning = false;
-        return false;
-    }
-
-    debugPrintf("[RS485M] Task created: priority=%d, stack=%d\n",
-                RS485_TASK_PRIORITY, RS485_TASK_STACK_SIZE);
-    #else
-    debugPrintln("[RS485M] Running in main loop mode");
-    #endif
-
     return true;
 }
 
-// ============================================================================
-// INTERNAL POLL LOOP (called from task or main loop)
-// ============================================================================
-
-static void rs485PollLoop() {
+void RS485Master_loop() {
     if (!initialized) return;
     if (!simReady()) return;
 
@@ -878,20 +749,6 @@ static void rs485PollLoop() {
                     statPolls, respRate, statBroadcasts, statInputCmds, onlineCount, rawCount());
         #endif
     }
-    #endif
-}
-
-// ============================================================================
-// PUBLIC LOOP FUNCTION
-// ============================================================================
-
-void RS485Master_loop() {
-    #if RS485_USE_TASK
-    // Task mode: just process queued commands from slaves
-    processQueuedCommands();
-    #else
-    // Main loop mode: run the poll loop directly
-    rs485PollLoop();
     #endif
 }
 
@@ -968,40 +825,7 @@ void RS485Master_printStatus() {
     debugPrintf("[RS485M] Timeouts: %lu\n", statTimeouts);
     debugPrintf("[RS485M] Broadcasts: %lu, Bytes out: %lu\n", statBroadcasts, statBytesOut);
     debugPrintf("[RS485M] Input commands: %lu\n", statInputCmds);
-    #if RS485_USE_TASK
-    debugPrintf("[RS485M] Execution: FreeRTOS task (priority %d)\n", RS485_TASK_PRIORITY);
-    #else
-    debugPrintln("[RS485M] Execution: Main loop");
-    #endif
     debugPrintln("[RS485M] ================================\n");
-}
-
-void RS485Master_stop() {
-    #if RS485_USE_TASK
-    if (taskRunning && rs485TaskHandle) {
-        taskRunning = false;
-        // Wait for task to finish
-        vTaskDelay(pdMS_TO_TICKS(100));
-
-        // Delete queue
-        if (cmdQueue) {
-            vQueueDelete(cmdQueue);
-            cmdQueue = nullptr;
-        }
-
-        rs485TaskHandle = nullptr;
-        debugPrintln("[RS485M] Task stopped");
-    }
-    #endif
-
-    // Disable UART interrupt
-    if (intrHandle) {
-        esp_intr_free(intrHandle);
-        intrHandle = nullptr;
-    }
-
-    initialized = false;
-    debugPrintln("[RS485M] Stopped");
 }
 
 #endif // RS485_MASTER_ENABLED

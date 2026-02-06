@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
-  DEVICE_WS2812,
-  DEVICE_PCA9555,
-  DEVICE_GAUGE,
-  DEVICE_GN1640T,
   DEVICE_GPIO,
   DEVICE_TM1637,
+  DEVICE_GAUGE,
+  DEVICE_PCA9555,
   DEVICE_NONE,
+  DEVICE_GN1640T,
+  DEVICE_WS2812,
 };
 
 struct LEDMapping {
@@ -32,7 +32,7 @@ static const LEDMapping panelLEDs[] = {
   { "MASTER_MODE_AA_LT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MASTER_MODE_AG_LT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MC_DISCH"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "MC_READY"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "MC_READY"         , DEVICE_GPIO    , {.gpioInfo = {LED_BUILTIN}}, true, false }, // GPIO LED_BUILTIN,
   { "MASTER_CAUTION_LT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 
