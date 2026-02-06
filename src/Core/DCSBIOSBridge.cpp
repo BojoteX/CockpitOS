@@ -397,7 +397,8 @@ private:
     PendingUpdate    pendingUpdates[MAX_PENDING_UPDATES];
     uint16_t         pendingUpdateCount;
     uint32_t         pendingUpdateOverflow;
-    unsigned long    _lastWriteMs;
+    // unsigned long    _lastWriteMs;
+    volatile unsigned long    _lastWriteMs;
     bool             _streamUp;
 };
 DcsBiosSniffer mySniffer;
