@@ -63,7 +63,7 @@
 //     Maximum compatibility, works without any configuration
 //
 #ifndef RS485_SMART_MODE
-#define RS485_SMART_MODE        0
+#define RS485_SMART_MODE        1
 #endif
 
 // ============================================================================
@@ -197,56 +197,6 @@
 #ifndef RS485_RX_BUFFER_SIZE
 #define RS485_RX_BUFFER_SIZE    256
 #endif
-
-// ============================================================================
-// FREERTOS TASK OPTIONS
-// ============================================================================
-//
-// RS485_USE_TASK enables running RS485 master in a dedicated FreeRTOS task
-// instead of being called from the main loop. This provides:
-//   • Deterministic timing regardless of main loop load
-//   • Consistent poll intervals (no 50-100ms jitter)
-//   • Better slave response rates
-//
-// 1 = FreeRTOS task (recommended for production)
-// 0 = Main loop (simpler, good for debugging)
-//
-#ifndef RS485_USE_TASK
-#define RS485_USE_TASK          1
-#endif
-
-#if RS485_USE_TASK
-
-// Task priority (higher = more important, max typically 24)
-// Should be higher than main loop to ensure consistent timing
-#ifndef RS485_TASK_PRIORITY
-#define RS485_TASK_PRIORITY     5
-#endif
-
-// Task stack size in bytes
-#ifndef RS485_TASK_STACK_SIZE
-#define RS485_TASK_STACK_SIZE   4096
-#endif
-
-// Task tick interval (how often to run poll cycle)
-// 1 = every tick (~1ms), 2 = every 2 ticks, etc.
-#ifndef RS485_TASK_TICK_INTERVAL
-#define RS485_TASK_TICK_INTERVAL 1
-#endif
-
-// Core affinity for dual-core ESP32s (S3, classic ESP32)
-// 0 = Core 0, 1 = Core 1, tskNO_AFFINITY = any core
-// On single-core (S2, C3, C6), this is ignored
-#ifndef RS485_TASK_CORE
-#define RS485_TASK_CORE         0
-#endif
-
-// Command queue size (slave commands passed to main loop)
-#ifndef RS485_CMD_QUEUE_SIZE
-#define RS485_CMD_QUEUE_SIZE    16
-#endif
-
-#endif // RS485_USE_TASK
 
 // ============================================================================
 // DEBUG OPTIONS

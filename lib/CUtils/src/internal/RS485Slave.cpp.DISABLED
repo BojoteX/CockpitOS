@@ -38,12 +38,6 @@
 #include "hal/uart_ll.h"
 #include "soc/uart_periph.h"
 
-// FreeRTOS includes (for task mode)
-#if RS485_USE_TASK
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#endif
-
 // RISC-V fence for C3/C6 cache coherency
 #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2
     #define RS485_RISCV_FENCE() __asm__ __volatile__("fence" ::: "memory")
@@ -168,38 +162,6 @@ static uint32_t statBroadcasts = 0;
 static uint32_t statExportBytes = 0;
 static uint32_t statCommandsSent = 0;
 static uint32_t statChecksumErrors = 0;
-
-// ============================================================================
-// FREERTOS TASK (when RS485_USE_TASK=1)
-// ============================================================================
-
-#if RS485_USE_TASK
-static TaskHandle_t rs485TaskHandle = nullptr;
-static volatile bool taskRunning = false;
-
-// Forward declaration for the internal loop
-static void rs485SlaveLoop();
-
-// FreeRTOS task function
-static void rs485SlaveTask(void* param) {
-    (void)param;
-
-    debugPrintln("[RS485S] Task started");
-
-    TickType_t lastWakeTime = xTaskGetTickCount();
-
-    while (taskRunning) {
-        // Run the slave loop
-        rs485SlaveLoop();
-
-        // Wait for next tick interval
-        vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(RS485_TASK_TICK_INTERVAL));
-    }
-
-    debugPrintln("[RS485S] Task stopped");
-    vTaskDelete(nullptr);
-}
-#endif // RS485_USE_TASK
 
 // ============================================================================
 // FORWARD DECLARATION - CockpitOS integration
@@ -569,56 +531,12 @@ bool RS485Slave_init() {
     #else
     debugPrintln("[RS485S]   Mode: Full protocol (XOR checksum)");
     #endif
-
-    // Create FreeRTOS task if enabled
-    #if RS485_USE_TASK
-    taskRunning = true;
-
-    #if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3) || \
-        defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32H2)
-    // Single-core chips - use xTaskCreate (no core affinity)
-    BaseType_t result = xTaskCreate(
-        rs485SlaveTask,
-        "RS485S",
-        RS485_TASK_STACK_SIZE,
-        nullptr,
-        RS485_TASK_PRIORITY,
-        &rs485TaskHandle
-    );
-    #else
-    // Dual-core chips - pin to specified core
-    BaseType_t result = xTaskCreatePinnedToCore(
-        rs485SlaveTask,
-        "RS485S",
-        RS485_TASK_STACK_SIZE,
-        nullptr,
-        RS485_TASK_PRIORITY,
-        &rs485TaskHandle,
-        RS485_TASK_CORE
-    );
-    #endif
-
-    if (result != pdPASS) {
-        debugPrintln("[RS485S] ERROR: Failed to create task!");
-        taskRunning = false;
-        return false;
-    }
-
-    debugPrintf("[RS485S]   Execution: FreeRTOS task (priority %d)\n", RS485_TASK_PRIORITY);
-    #else
-    debugPrintln("[RS485S]   Execution: Main loop");
-    #endif
-
     debugPrintln("[RS485S] ═══════════════════════════════════════════════");
 
     return true;
 }
 
-// ============================================================================
-// INTERNAL SLAVE LOOP (called from task or main loop)
-// ============================================================================
-
-static void rs485SlaveLoop() {
+void RS485Slave_loop() {
     if (!initialized) return;
 
     // Process received data
@@ -642,20 +560,6 @@ static void rs485SlaveLoop() {
             debugPrintf("[RS485S] Last poll: %lu ms ago\n", millis() - lastPollMs);
         }
     }
-    #endif
-}
-
-// ============================================================================
-// PUBLIC LOOP FUNCTION
-// ============================================================================
-
-void RS485Slave_loop() {
-    #if RS485_USE_TASK
-    // Task mode: nothing to do here - task handles everything
-    // This function exists for API compatibility
-    #else
-    // Main loop mode: run the slave loop directly
-    rs485SlaveLoop();
     #endif
 }
 
@@ -739,33 +643,7 @@ void RS485Slave_printStatus() {
     debugPrintf("[RS485S] TX buffer pending: %d bytes\n", txCount());
     debugPrintf("[RS485S] Checksum errors: %lu\n", statChecksumErrors);
     debugPrintf("[RS485S] Time since last poll: %lu ms\n", RS485Slave_getTimeSinceLastPoll());
-    #if RS485_USE_TASK
-    debugPrintf("[RS485S] Execution: FreeRTOS task (priority %d)\n", RS485_TASK_PRIORITY);
-    #else
-    debugPrintln("[RS485S] Execution: Main loop");
-    #endif
     debugPrintln("[RS485S] ═════════════════════════════════════════════\n");
-}
-
-void RS485Slave_stop() {
-    #if RS485_USE_TASK
-    if (taskRunning && rs485TaskHandle) {
-        taskRunning = false;
-        // Wait for task to finish
-        vTaskDelay(pdMS_TO_TICKS(100));
-        rs485TaskHandle = nullptr;
-        debugPrintln("[RS485S] Task stopped");
-    }
-    #endif
-
-    // Disable UART interrupt
-    if (intrHandle) {
-        esp_intr_free(intrHandle);
-        intrHandle = nullptr;
-    }
-
-    initialized = false;
-    debugPrintln("[RS485S] Stopped");
 }
 
 #endif // RS485_SLAVE_ENABLED

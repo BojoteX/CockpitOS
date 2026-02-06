@@ -17,13 +17,13 @@
 #define VERSION_CURRENT                            "R.1.1.4_dev_02-05-26" // Just to troubleshoot instalations
 
 // Is this an RS-485 Master? leave to 0 for normal operation.
-#define RS485_MASTER_ENABLED                        0 // Set as RS-485 Master. Polls slaves. Forwards data, you still need to choose a transport above (WiFi, Serial, USB etc)
+#define RS485_MASTER_ENABLED                        1 // Set as RS-485 Master. Polls slaves. Forwards data, you still need to choose a transport above (WiFi, Serial, USB etc)
 
 // Here is where you tell the firmware which 'transport' will be used to SEND and RECEIVE data to/from DCS. 
 // Bluetooth BLE, Pure Native USB, WIFI, Serial (CDC/Socat) or as an RS485 slave. ** Only ONE ** can be active 
 #define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included) requires NimBLE-Arduino by h2zero. Uses Bluetooth to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on ALL ESP32s except S2s and P4s).
-#define USE_DCSBIOS_WIFI                            0 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
-#define USE_DCSBIOS_USB                             1 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
+#define USE_DCSBIOS_WIFI                            1 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
+#define USE_DCSBIOS_USB                             0 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
 #define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 #define RS485_SLAVE_ENABLED                         0 // Set as RS-485 Slave transport. This is EXPERIMENTAL only for Open Hornet cockpits. 
 
@@ -46,7 +46,7 @@
 #define DEBUG_PERFORMANCE                           0  // Shows profiling for specific tasks and memory usage for debug and troubleshooting.
 #define VERBOSE_MODE                                0  // Verbose will output to both WiFi & Serial (Uses a LOT of Memory, might fail compile on S2 devices).
 #define VERBOSE_MODE_SERIAL_ONLY                    0  // Verbose will only output to Serial. 
-#define VERBOSE_MODE_WIFI_ONLY                      0  // Verbose will only output to WiFi.
+#define VERBOSE_MODE_WIFI_ONLY                      1  // Verbose will only output to WiFi.
 #define VERBOSE_PERFORMANCE_ONLY                    0  // This will output perf snapshots ONLY, make sure you pick VERBOSE_MODE_SERIAL_ONLY or VERBOSE_MODE_WIFI_ONLY so that we know where to output those snapshot ONLY messages.
 #define DEBUG_PERFORMANCE_SHOW_TASKS                0  // Includes the current task list with the snapshot. Not really needed.
 #define DEBUG_LISTENERS_AT_STARTUP                  0  // Debug Listeners for ADVANCED troubleshooting! usually not needed.
@@ -120,7 +120,7 @@
 #endif
 
 // WiFi Debug Ring Buffer 
-#define WIFI_DEBUG_USE_RINGBUFFER                   1 // Should be use a ring buffer for WiFi Debug messages? helps when using WiFi DCS Mode. If WiFi is not used, this value is ignored anyway. Also, if using CDC + WiFi Debug, this is REQUIRED to avoid CDC stalls
+#define WIFI_DEBUG_USE_RINGBUFFER                   0 // Should be use a ring buffer for WiFi Debug messages? helps when using WiFi DCS Mode. If WiFi is not used, this value is ignored anyway. Also, if using CDC + WiFi Debug, this is REQUIRED to avoid CDC stalls
 #if WIFI_DEBUG_USE_RINGBUFFER
   #define WIFI_DBG_SEND_RINGBUF_SIZE               32 // How many slots in our buffer
   #define WIFI_DBG_MSG_MAXLEN                     128 // Max size for each slot
@@ -134,8 +134,8 @@
 #define DCS_USB_PACKET_MAXLEN   GAMEPAD_REPORT_SIZE  // Max USB packet size safe for DCS-BIOS (to match HID report size)
 
 // DCS UDP/USB Receive Ring Buffer (incoming packets) - *MANDATORY* when using USB mode, optional in WiFi UDP mode.
-#define MAX_UDP_FRAMES_PER_DRAIN               1  // Max number to hold in buffer before parsing (increase for bursty processing) 1 is deterministic, best.
-// #define MAX_UDP_FRAMES_PER_DRAIN                  4  // Max number to hold in buffer before parsing (testing this value).
+// #define MAX_UDP_FRAMES_PER_DRAIN               1  // Max number to hold in buffer before parsing (increase for bursty processing) 1 is deterministic, best.
+#define MAX_UDP_FRAMES_PER_DRAIN                  4  // Max number to hold in buffer before parsing (testing this value).
 
 #if USE_DCSBIOS_USB
   #define DCS_USE_RINGBUFFER                      1  // Should ALWAYS be 1 when USE_DCSBIOS_USB. DO NOT CHANGE 
@@ -145,7 +145,7 @@
   #if USE_DCSBIOS_WIFI || USE_DCSBIOS_BLUETOOTH
     #define DCS_USE_RINGBUFFER                    1  // Enforces WiFi/BLE use of a ring buffer for the incoming DCS Stream data (otherwise it will crash)
     #define DCS_UDP_RINGBUF_SIZE                 32  // Number of UDP packets buffered (tune as needed)
-    #define DCS_UDP_PACKET_MAXLEN               128  // Max UDP packet size (safe for Incoming UDP from DCS-BIOS)
+    #define DCS_UDP_PACKET_MAXLEN                64  // Max UDP packet size (safe for Incoming UDP from DCS-BIOS)
   #else 
     #define DCS_USE_RINGBUFFER                    0  // No need for it as Wi-Fi/BLE for DCS-BIOS is not active.
     #define DCS_UDP_RINGBUF_SIZE                  0  // Number of BLE packets buffered (tune as needed)
