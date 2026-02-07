@@ -1,5 +1,5 @@
-// PID:0x471F 
+// PID:0xC174 
 
 #pragma once
 
-#define LABEL_SET SLAVE_SAMPLE
+#define LABEL_SET CABIN_PRESSURE_GAUGE
