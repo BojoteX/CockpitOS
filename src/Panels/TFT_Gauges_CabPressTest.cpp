@@ -1,7 +1,11 @@
-// TFT_Gauges_CabPressTest.cpp — CockpitOS Cabin Pressure Gauge (LovyanGFX, ST77916/61 @ 360×360)
+// TFT_Gauges_CabPressTest.cpp — CockpitOS Cabin Pressure Gauge (LovyanGFX, ST77916 @ 360×360)
 // Dirty-rect compose + region DMA flush (PSRAM sprites, DMA-safe)
 // Supports both standard SPI (external panels) and QSPI (Waveshare ESP32-S3-LCD-1.85)
-// Requires LovyanGFX >= 1.2.19 for QSPI support via Bus_SPI
+//
+// QSPI NOTE: LovyanGFX's Bus_SPI supports QSPI data lines, but its Panel_LCD
+// base class sends raw 8-bit commands without the 32-bit opcode framing that the
+// ST77916 requires.  We use Panel_ST77916 (inherits Panel_AMOLED) which provides
+// the correct 0x02/0x32 opcode framing.  See Panel_ST77916.hpp for details.
 
 #include "../Globals.h"
 
@@ -21,7 +25,7 @@
 #include <cmath>
 #include <algorithm>
 
-#if defined(HAS_CABIN_PRESSURE_GAUGE) || defined(HAS_CABIN_PRESSURE_GAUGE) 
+#if defined(HAS_CABIN_PRESSURE_GAUGE) || defined(HAS_CABIN_PRESSURE_GAUGE)
     REGISTER_PANEL(TFT_Gauges_CabPressTest, nullptr, nullptr, CabinPressureGauge_init, CabinPressureGauge_loop, nullptr, 100);
 #endif
 
@@ -57,6 +61,15 @@
 // --- Bus mode selector ---
 #ifndef CABIN_PRESSURE_USE_QSPI
   #define CABIN_PRESSURE_USE_QSPI 1              // 1 = QSPI (Waveshare default), 0 = SPI
+#endif
+
+// QSPI: We use Panel_ST77916 (inherits Panel_AMOLED) for correct opcode framing.
+// SPI:  We use Panel_ST77961 (inherits Panel_LCD) — the existing LovyanGFX class
+//       sends raw commands with DC pin, which is correct for standard 4-wire SPI.
+//       (The name "ST77961" is a typo in LovyanGFX — the real chip is ST77916,
+//       but Panel_LCD base is exactly what SPI mode needs.)
+#if CABIN_PRESSURE_USE_QSPI
+#include "includes/Panel_ST77916.hpp"
 #endif
 
 // --- Shared pins (both modes) ---
@@ -142,9 +155,19 @@ static constexpr uint32_t               freq_write    = 80000000;           // 8
 #endif
 
 // --- Panel binding ---
+//
+// QSPI vs SPI: The ST77916 QSPI protocol wraps every command in a 32-bit
+// opcode frame (0x02 for commands, 0x32 for pixel data).  Panel_ST77916
+// inherits from Panel_AMOLED which implements this framing.  For standard
+// SPI, we use Panel_LCD (no opcode framing, uses DC pin instead).
+//
 class LGFX_CabPress final : public lgfx::LGFX_Device {
     lgfx::Bus_SPI       _bus;
-    lgfx::Panel_ST77961 _panel;
+#if CABIN_PRESSURE_USE_QSPI
+    lgfx::Panel_ST77916 _panel;   // QSPI: opcode-framed transport via Panel_AMOLED base
+#else
+    lgfx::Panel_ST77961 _panel;   // SPI: raw commands + DC pin via Panel_LCD base (name is a typo — chip is ST77916)
+#endif
     lgfx::Light_PWM     _light;
 public:
     LGFX_CabPress() {
@@ -161,17 +184,18 @@ public:
             cfg.pin_sclk    = CABIN_PRESSURE_SCLK_PIN;
 
 #if CABIN_PRESSURE_USE_QSPI
-            // QSPI: 4 data lines, no DC pin
-            // LovyanGFX 1.2.19+ auto-switches to quad mode when pin_io0–io3 are set
-            cfg.pin_dc   = -1;                    // No DC line in QSPI
-            cfg.pin_mosi = -1;                    // Not used in QSPI mode
-            cfg.pin_miso = -1;                    // Not used in QSPI mode
+            // QSPI: 4 data lines, no DC pin.
+            // Bus_SPI auto-enables quad mode when all four io pins are set.
+            // Panel_ST77916 handles the opcode framing via Panel_AMOLED base.
+            cfg.pin_dc   = -1;
+            cfg.pin_mosi = -1;
+            cfg.pin_miso = -1;
             cfg.pin_io0  = CABIN_PRESSURE_IO0_PIN;
             cfg.pin_io1  = CABIN_PRESSURE_IO1_PIN;
             cfg.pin_io2  = CABIN_PRESSURE_IO2_PIN;
             cfg.pin_io3  = CABIN_PRESSURE_IO3_PIN;
 #else
-            // Standard SPI: single data line + DC
+            // Standard SPI: single data line + DC pin
             cfg.pin_dc   = CABIN_PRESSURE_DC_PIN;
             cfg.pin_mosi = CABIN_PRESSURE_MOSI_PIN;
             cfg.pin_miso = CABIN_PRESSURE_MISO_PIN;
