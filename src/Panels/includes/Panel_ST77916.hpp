@@ -33,9 +33,12 @@
 
   Our solution: inherit from Panel_AMOLED, which already implements the
   correct opcode framing.  We override setWindow / drawPixelPreclipped /
-  writeFillRectPreclipped / writeImage to remove the even-pixel alignment
-  constraint that is specific to AMOLED panels (the ST77916 LCD has no
-  such restriction).
+  writeFillRectPreclipped to remove the even-pixel alignment constraint
+  that is specific to AMOLED panels (the ST77916 LCD has no such
+  restriction).  writeImage() is intentionally NOT overridden — the
+  base Panel_AMOLED implementation works correctly; its only AMOLED
+  quirk (even-pixel alignment) is harmless in practice because our
+  gauge pipeline uses setAddrWindow + pushPixelsDMA, not writeImage.
 
   ─── USAGE ──────────────────────────────────────────────────────────────────
 
@@ -68,8 +71,8 @@
     3. Override getInitCommands() with your vendor init sequence
     4. Override setWindow() to remove the even-pixel constraint if your
        display doesn't need it
-    5. Override drawPixelPreclipped / writeFillRectPreclipped / writeImage
-       to remove the same constraint
+    5. Override drawPixelPreclipped / writeFillRectPreclipped to remove
+       the same constraint (writeImage override is usually unnecessary)
 
   The opcode framing, QSPI bus management, and pixel transfer are all
   handled by the Panel_AMOLED base class.
@@ -130,6 +133,14 @@ namespace lgfx
         _write_depth = color_depth_t::rgb565_2Byte;
         _read_depth  = color_depth_t::rgb565_2Byte;
         _cfg.dummy_read_pixel = 8;
+        _cfg.rgb_order = true;   // ST77916 Waveshare default (BGR subpixels)
+
+        // Inversion: Panel_AMOLED::setInvert() ignores _cfg.invert (unlike
+        // Panel_LCD which XORs).  Instead, LGFXBase::init_impl() calls
+        // setInvert(getInvert()) which reads the _invert member directly.
+        // So we set _invert = true here.  The actual INVON command is sent
+        // by init_impl AFTER getInitCommands() runs — NOT in the init sequence.
+        _invert = true;
       }
 
       // ──────────────────────────────────────────────────────────────────────
@@ -142,6 +153,8 @@ namespace lgfx
       // ──────────────────────────────────────────────────────────────────────
       void setWindow(uint_fast16_t xs, uint_fast16_t ys, uint_fast16_t xe, uint_fast16_t ye) override
       {
+        // _width/_height are the post-rotation logical dimensions
+        // (always 360×360 for this round display, regardless of rotation).
         if (xs > xe || xe >= _width)  return;
         if (ys > ye || ye >= _height) return;
 
@@ -184,130 +197,38 @@ namespace lgfx
       }
 
       // ──────────────────────────────────────────────────────────────────────
-      //  writeImage — Remove AMOLED even-x/w constraint
+      //  writeImage — intentionally NOT overridden.
       //
-      //  Identical to Panel_AMOLED::writeImage but without the alignment
-      //  checks that silently discard odd-x or odd-width draw calls.
+      //  Panel_AMOLED::writeImage() has an even-pixel alignment check,
+      //  but our gauge pipeline never calls writeImage (it uses
+      //  setAddrWindow + pushPixelsDMA).  The base implementation is
+      //  correct for any future callers where alignment holds, and the
+      //  cost of carrying an 80-line near-duplicate is not worth it.
       // ──────────────────────────────────────────────────────────────────────
-      void writeImage(uint_fast16_t x, uint_fast16_t y, uint_fast16_t w, uint_fast16_t h, pixelcopy_t* param, bool use_dma) override
-      {
-        auto bytes = param->dst_bits >> 3;
-        auto src_x = param->src_x;
-
-        if (param->transp == pixelcopy_t::NON_TRANSP)
-        {
-          if (param->no_convert)
-          {
-            auto wb = w * bytes;
-            uint32_t i = (src_x + param->src_y * param->src_bitwidth) * bytes;
-            auto src = &((const uint8_t*)param->src_data)[i];
-            setWindow(x, y, x + w - 1, y + h - 1);
-            if (param->src_bitwidth == w || h == 1)
-            {
-              write_bytes(src, wb * h, use_dma);
-            }
-            else
-            {
-              auto add = param->src_bitwidth * bytes;
-              if (use_dma)
-              {
-                if (_cfg.dlen_16bit && ((wb * h) & 1))
-                {
-                  _has_align_data = !_has_align_data;
-                }
-                do
-                {
-                  _bus->addDMAQueue(src, wb);
-                  src += add;
-                } while (--h);
-                _bus->execDMAQueue();
-              }
-              else
-              {
-                do
-                {
-                  write_bytes(src, wb, false);
-                  src += add;
-                } while (--h);
-              }
-            }
-          }
-          else
-          {
-            if (!_bus->busy())
-            {
-              static constexpr uint32_t WRITEPIXELS_MAXLEN = 32767;
-
-              setWindow(x, y, x + w - 1, y + h - 1);
-              bool nogap = (h == 1) || (param->src_y32_add == 0 && ((param->src_bitwidth << pixelcopy_t::FP_SCALE) == (w * param->src_x32_add)));
-              if (nogap && (w * h <= WRITEPIXELS_MAXLEN))
-              {
-                writePixels(param, w * h, use_dma);
-              }
-              else
-              {
-                uint_fast16_t h_step = nogap ? WRITEPIXELS_MAXLEN / w : 1;
-                uint_fast16_t h_len = (h_step > 1) ? ((h - 1) % h_step) + 1 : 1;
-                writePixels(param, w * h_len, use_dma);
-                if (h -= h_len)
-                {
-                  param->src_y += h_len;
-                  do
-                  {
-                    param->src_x = src_x;
-                    writePixels(param, w * h_step, use_dma);
-                    param->src_y += h_step;
-                  } while (h -= h_step);
-                }
-              }
-            }
-            else
-            {
-              size_t wb = w * bytes;
-              auto buf = _bus->getDMABuffer(wb);
-              param->fp_copy(buf, 0, w, param);
-              setWindow(x, y, x + w - 1, y + h - 1);
-              write_bytes(buf, wb, true);
-              _has_align_data = (_cfg.dlen_16bit && (_write_bits & 15) && (w & h & 1));
-              while (--h)
-              {
-                param->src_x = src_x;
-                param->src_y++;
-                buf = _bus->getDMABuffer(wb);
-                param->fp_copy(buf, 0, w, param);
-                write_bytes(buf, wb, true);
-              }
-            }
-          }
-        }
-        else
-        {
-          h += y;
-          uint32_t wb = w * bytes;
-          do
-          {
-            uint32_t i = 0;
-            while (w != (i = param->fp_skip(i, w, param)))
-            {
-              auto buf = _bus->getDMABuffer(wb);
-              int32_t len = param->fp_copy(buf, 0, w - i, param);
-              setWindow(x + i, y, x + i + len - 1, y);
-              write_bytes(buf, len * bytes, true);
-              if (w == (i += len)) break;
-            }
-            param->src_x = src_x;
-            param->src_y++;
-          } while (++y != h);
-        }
-      }
 
       // ──────────────────────────────────────────────────────────────────────
       //  setColorDepth — ST77916 supports RGB565 and RGB666
+      //
+      //  Sends COLMOD (0x3A) to the display so the pixel format register
+      //  stays in sync with what LovyanGFX is pushing.
+      //    0x55 = RGB565 (16-bit)
+      //    0x66 = RGB666 (18-bit, packed in 24-bit transfers)
       // ──────────────────────────────────────────────────────────────────────
       color_depth_t setColorDepth(color_depth_t depth) override
       {
         _write_depth = ((int)depth & color_depth_t::bit_mask) > 16 ? rgb888_3Byte : rgb565_2Byte;
         _read_depth = _write_depth;
+
+        // Send COLMOD command to hardware if bus is available (post-init)
+        if (_bus)
+        {
+          uint8_t colmod = (_write_depth == rgb888_3Byte) ? 0x66 : 0x55;
+          startWrite();
+          write_cmd(0x3A);  // COLMOD — Interface Pixel Format
+          _bus->writeData(colmod, 8);
+          endWrite();
+        }
+
         return _write_depth;
       }
 
@@ -585,7 +506,11 @@ namespace lgfx
 
           // ── Display Window & Clear ──
           0x2A, 4, 0x00, 0x00, 0x01, 0x67,  // CASET 0–359
-          0x2B, 4, 0x01, 0x68, 0x01, 0x68,  // RASET (pre-clear)
+          // RASET set to row 360 only (0x0168–0x0168) — intentional.
+          // The RAMCLACT clear command below fills the entire framebuffer
+          // regardless of RASET; this narrow window avoids visual artifacts
+          // during the clear.  The full 0–359 window is restored after clear.
+          0x2B, 4, 0x01, 0x68, 0x01, 0x68,  // RASET (pre-clear, single row)
           0x4D, 1, 0x00,                     // RAMCLSETR (clear R)
           0x4E, 1, 0x00,                     // RAMCLSETG (clear G)
           0x4F, 1, 0x00,                     // RAMCLSETB (clear B)
@@ -595,8 +520,14 @@ namespace lgfx
           0x2A, 4, 0x00, 0x00, 0x01, 0x67,  // CASET 0–359
           0x2B, 4, 0x00, 0x00, 0x01, 0x67,  // RASET 0–359
 
+          // ── Interface Pixel Format ──
+          0x3A, 1, 0x55,                     // COLMOD: RGB565 (default; setColorDepth() updates if changed)
+
           // ── Final Display On ──
-          0x21, 0,                           // INVON
+          // NOTE: No INVON here — inversion is handled by LGFXBase::init_impl()
+          // which calls setInvert(getInvert()) after this sequence completes.
+          // We set _invert = true in the constructor so INVON is sent once, correctly.
+          // Putting INVON here would cause a double-invert (our INVON + init_impl's INVOFF).
           0x11, 0 + CMD_INIT_DELAY, 120,     // SLPOUT + 120ms
           0x29, 0,                           // DISPON
 
