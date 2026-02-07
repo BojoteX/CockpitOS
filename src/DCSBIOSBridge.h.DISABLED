@@ -125,9 +125,6 @@ void onDcsBiosUdpPacket(const uint8_t* data, size_t len);
 // Parse incoming data
 void DCSBIOSBridge_feedBytes(const uint8_t* data, size_t len);
 
-// V2.3 RS485 Slave: Process single export byte (for ring buffer byte-by-byte processing)
-void processDcsBiosExportByte(uint8_t c);
-
 // New Anon String Buffers
 
 // --- Anonymous multi-word string field handler (for aircraft name, etc) ---

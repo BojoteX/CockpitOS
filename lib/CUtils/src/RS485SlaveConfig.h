@@ -80,21 +80,6 @@
 //   Set RS485_DE_PIN to -1 (auto-direction mode)
 //
 
-#ifndef RS485_TX_PIN
-#define RS485_TX_PIN            17
-#endif
-
-#ifndef RS485_RX_PIN
-#define RS485_RX_PIN            18
-#endif
-
-// Direction control pin:
-//   >= 0 : GPIO number for manual DE control
-//   -1   : Auto-direction hardware (no pin needed)
-#ifndef RS485_DE_PIN
-#define RS485_DE_PIN            -1
-#endif
-
 // UART number (1 or 2 - UART0 is typically used for USB/debug)
 #ifndef RS485_UART_NUM
 #define RS485_UART_NUM          1
@@ -160,9 +145,6 @@
 // 1 = FreeRTOS task (recommended for production)
 // 0 = Main loop (simpler, good for debugging)
 //
-#ifndef RS485_USE_TASK
-#define RS485_USE_TASK          1
-#endif
 
 #if RS485_USE_TASK
 

@@ -427,4 +427,6 @@ void loop() {
     #if DEBUG_PERFORMANCE
     perfMonitorUpdate();
     #endif   
+
+    // yield();
 }

@@ -54,19 +54,6 @@
 #define RS485_CONFIG_H
 
 // ============================================================================
-// OPERATING MODE
-// ============================================================================
-// 1 = SMART MODE: Parse + filter by DcsOutputTable + change detect + rebuild frames
-//     Best bandwidth, requires CockpitOS label set configuration
-//
-// 0 = RELAY MODE: Raw byte pump like Arduino Mega master
-//     Maximum compatibility, works without any configuration
-//
-#ifndef RS485_SMART_MODE
-#define RS485_SMART_MODE        0
-#endif
-
-// ============================================================================
 // SMART MODE OPTIONS (only apply when SMART_MODE=1)
 // ============================================================================
 #if RS485_SMART_MODE
@@ -130,21 +117,6 @@
 //   Set RS485_DE_PIN to -1 (auto-direction mode)
 //
 
-#ifndef RS485_TX_PIN
-#define RS485_TX_PIN            17
-#endif
-
-#ifndef RS485_RX_PIN
-#define RS485_RX_PIN            18
-#endif
-
-// Direction control pin:
-//   >= 0 : GPIO number for manual DE control (directly driven, not via UART hardware)
-//   -1   : Auto-direction hardware (no pin needed)
-#ifndef RS485_DE_PIN
-#define RS485_DE_PIN            -1
-#endif
-
 // UART number (1 or 2 - UART0 is typically used for USB/debug)
 #ifndef RS485_UART_NUM
 #define RS485_UART_NUM          1
@@ -171,12 +143,6 @@
 // ============================================================================
 // SLAVE DISCOVERY & POLLING
 // ============================================================================
-
-// Maximum slave address to poll (valid range: 1-127)
-// Set to your actual highest slave address for faster polling
-#ifndef RS485_MAX_SLAVE_ADDRESS
-#define RS485_MAX_SLAVE_ADDRESS 32
-#endif
 
 // Discovery scan interval (how often to probe for new slaves)
 // Every N poll cycles, scan one unknown address
@@ -211,9 +177,6 @@
 // 1 = FreeRTOS task (recommended for production)
 // 0 = Main loop (simpler, good for debugging)
 //
-#ifndef RS485_USE_TASK
-#define RS485_USE_TASK          1
-#endif
 
 #if RS485_USE_TASK
 
