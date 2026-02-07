@@ -53,6 +53,16 @@
 #ifndef RS485_CONFIG_H
 #define RS485_CONFIG_H
 
+// Enables running RS485 in a dedicated FreeRTOS task
+#ifndef RS485_USE_TASK
+#define RS485_USE_TASK			1 
+#endif
+
+// Larger = more efficient, smaller = more responsive polling
+#ifndef RS485_MAX_BROADCAST_CHUNK                  64 
+#define RS485_MAX_BROADCAST_CHUNK                  64 
+#endif
+
 // ============================================================================
 // SMART MODE OPTIONS (only apply when SMART_MODE=1)
 // ============================================================================
@@ -130,14 +140,29 @@
 #define RS485_BAUD              250000  // Must match all devices on bus
 #endif
 
-// Poll timeout (microseconds) - how long to wait for slave response
+// Poll timeout (microseconds) - how long to wait for FIRST response byte
+// Matches standalone POLL_TIMEOUT_US = 1000 (1ms)
 #ifndef RS485_POLL_TIMEOUT_US
-#define RS485_POLL_TIMEOUT_US   2000
+#define RS485_POLL_TIMEOUT_US   1000
+#endif
+
+// RX timeout (microseconds) - how long to wait for complete message
+// Matches standalone RX_TIMEOUT_US = 5000 (5ms)
+#ifndef RS485_RX_TIMEOUT_US
+#define RS485_RX_TIMEOUT_US     5000
 #endif
 
 // Maximum microseconds between polls (controls broadcast chunk timing)
 #ifndef RS485_MAX_POLL_INTERVAL_US
 #define RS485_MAX_POLL_INTERVAL_US 2000
+#endif
+
+// MessageBuffer drain timeout (microseconds)
+// If a completed message hasn't been drained within this time, force-clear it.
+// Prevents stalled message processing from blocking bus polls.
+// Borrowed from AVR MasterPCConnection::checkTimeout() (5ms safety valve).
+#ifndef RS485_MSG_DRAIN_TIMEOUT_US
+#define RS485_MSG_DRAIN_TIMEOUT_US  5000
 #endif
 
 // ============================================================================

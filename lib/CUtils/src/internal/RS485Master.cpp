@@ -177,9 +177,9 @@ static bool prevInitialized = false;
 // Change queue
 struct Change { uint16_t address; uint16_t value; };
 static Change changeQueue[RS485_CHANGE_QUEUE_SIZE];
-static volatile uint8_t changeHead = 0;
-static volatile uint8_t changeTail = 0;
-static volatile uint8_t changeCount = 0;
+static volatile uint16_t changeHead = 0;
+static volatile uint16_t changeTail = 0;
+static volatile uint16_t changeCount = 0;
 
 // Forward declaration for DcsOutputTable lookup (from DCSBIOSBridgeData.h)
 struct AddressEntry;  // Forward declare the struct
@@ -309,7 +309,8 @@ static uint8_t discoveryCounter = 0;
 
 // Timing (volatile - accessed from ISR)
 static volatile int64_t rxStartTime = 0;
-static volatile uint32_t lastPollUs = 0;
+static volatile int64_t lastPollUs = 0;
+static volatile int64_t messageCompleteTime = 0;  // For messageBuffer drain timeout (Fix 3)
 
 // Response parsing (volatile - modified in ISR)
 static volatile uint8_t rxtxLen = 0;
@@ -429,6 +430,7 @@ static inline void IRAM_ATTR processRxByte(uint8_t c) {
         case MasterState::RX_WAIT_CHECKSUM:
             // Checksum intentionally ignored (AVR behavior, Arduino uses 0x72)
             messageBuffer.complete = true;
+            messageCompleteTime = esp_timer_get_time();
             state = MasterState::IDLE;
             rxStartTime = esp_timer_get_time();
             break;
@@ -568,33 +570,29 @@ static void sendBroadcast() {
 
     if (broadcastLen == 0) return;
 
-    // Build RS485 frame: [Addr=0][MsgType=0][Length][Data...][Checksum]
-    uint8_t frame[4];
-    frame[0] = ADDR_BROADCAST;
-    frame[1] = MSGTYPE_DCSBIOS;
-    frame[2] = (uint8_t)broadcastLen;
+    // Build complete RS485 frame in one buffer (matches standalone exactly)
+    // Frame: [Addr=0][MsgType=0][Length][Data...][Checksum]
+    uint8_t frame[256 + 4];
+    uint16_t idx = 0;
 
-    // Calculate checksum
-    uint8_t checksum = frame[0] ^ frame[1] ^ frame[2];
+    frame[idx++] = ADDR_BROADCAST;      // 0x00
+    frame[idx++] = MSGTYPE_DCSBIOS;     // 0x00
+    frame[idx++] = (uint8_t)broadcastLen;
+
+    // FIX: Checksum only includes DATA bytes, NOT header (matches standalone)
+    uint8_t checksum = 0;
     for (size_t i = 0; i < broadcastLen; i++) {
+        frame[idx++] = broadcastBuffer[i];
         checksum ^= broadcastBuffer[i];
     }
+    frame[idx++] = checksum;
 
-    // Transmit header
-    txWithEchoPrevention(frame, 3);
-
-    // Transmit data + checksum
-    disableRxInt();
-    deAssert();
-    txBytes(broadcastBuffer, broadcastLen);
-    txByte(checksum);
-    while (!txIdle()) {}
-    deDeassert();
-    flushRxFifo();
-    enableRxInt();
+    // FIX: Send entire frame in ONE transmission (matches standalone)
+    // Split transmission was causing sync issues
+    txWithEchoPrevention(frame, idx);
 
     statBroadcasts++;
-    statBytesOut += 4 + broadcastLen;
+    statBytesOut += idx;
 }
 
 // ============================================================================
@@ -684,15 +682,42 @@ static void processCompletedMessage() {
 }
 
 // Check for RX timeout during poll wait
+// FIX: Two-tier timeout logic matching standalone exactly
 static void checkRxTimeout() {
     if (state == MasterState::IDLE) return;
 
-    int64_t elapsed = esp_timer_get_time() - rxStartTime;
-    if (elapsed > RS485_POLL_TIMEOUT_US) {
-        sendTimeoutZero();
-        statTimeouts++;
-        messageBuffer.clear();
-        state = MasterState::IDLE;
+    int64_t now = esp_timer_get_time();
+    int64_t elapsed = now - rxStartTime;
+
+    // Timeout waiting for first response byte (1ms) - mark slave as not present
+    if (state == MasterState::RX_WAIT_DATALENGTH) {
+        if (elapsed > RS485_POLL_TIMEOUT_US) {
+            slavePresent[currentPollAddr] = false;  // FIX: Mark slave offline
+            sendTimeoutZero();
+            statTimeouts++;
+            state = MasterState::IDLE;
+        }
+        return;
+    }
+
+    // Timeout mid-message (5ms) - inject \n marker and set complete
+    // Matches AVR MasterPCConnection::checkTimeout() and standalone behavior:
+    // Injecting '\n' keeps the DCS-BIOS serial parser aligned and flushes the message path
+    if (state == MasterState::RX_WAIT_MSGTYPE ||
+        state == MasterState::RX_WAIT_DATA ||
+        state == MasterState::RX_WAIT_CHECKSUM) {
+        if (elapsed > RS485_RX_TIMEOUT_US) {
+            messageBuffer.clear();
+            messageBuffer.put('\n');
+            messageBuffer.complete = true;
+            messageCompleteTime = esp_timer_get_time();
+            state = MasterState::IDLE;
+            statTimeouts++;
+
+            // Flush any remaining bytes from RX and re-enable RX interrupts
+            flushRxFifo();
+            enableRxInt();
+        }
     }
 }
 
@@ -709,12 +734,14 @@ static uint8_t advancePollAddress() {
         discoveryCounter = 0;
 
         // Find next unknown address to probe
+        // Use local variable to avoid side-effect on currentPollAddr
+        // (matches standalone's separate scanAddressCounter pattern)
+        uint8_t probeAddr = currentPollAddr;
         for (uint8_t i = 1; i <= RS485_MAX_SLAVE_ADDRESS; i++) {
-            uint8_t probeAddr = (currentPollAddr % RS485_MAX_SLAVE_ADDRESS) + 1;
+            probeAddr = (probeAddr % RS485_MAX_SLAVE_ADDRESS) + 1;
             if (!slavePresent[probeAddr]) {
                 return probeAddr;
             }
-            currentPollAddr = probeAddr;
         }
     }
 
@@ -880,7 +907,6 @@ bool RS485Master_init() {
 
 static void rs485PollLoop() {
     if (!initialized) return;
-    if (!simReady()) return;
 
     // V2.2 IMPROVEMENT: Immediate forwarding - check for completed messages FIRST
     // This reduces latency by forwarding slave responses immediately after detection
@@ -888,13 +914,23 @@ static void rs485PollLoop() {
         processCompletedMessage();
     }
 
+    // Safety: if message wasn't drained after processing, force-clear on timeout
+    // Matches AVR's MasterPCConnection::checkTimeout() pattern (5ms safety valve)
+    if (messageBuffer.complete) {
+        int64_t now = esp_timer_get_time();
+        if ((now - messageCompleteTime) > RS485_MSG_DRAIN_TIMEOUT_US) {
+            messageBuffer.clear();
+            messageBuffer.complete = false;
+            statTimeouts++;
+        }
+    }
+
     // Check for RX timeout during non-IDLE states
     checkRxTimeout();
 
     // Only start new poll/broadcast when IDLE
     if (state == MasterState::IDLE) {
-        uint32_t now = micros();
-        uint32_t sinceLastPoll = now - lastPollUs;
+        int64_t now = esp_timer_get_time();
 
         // Check if we should broadcast
         #if RS485_SMART_MODE
@@ -903,15 +939,19 @@ static void rs485PollLoop() {
         bool hasBroadcastData = !rawEmpty();
         #endif
 
-        // Broadcast if we have data and enough time has passed
-        if (hasBroadcastData && sinceLastPoll >= RS485_MAX_POLL_INTERVAL_US) {
+        // FIX: Match standalone priority logic exactly
+        // Priority 1: Send broadcast if available, but ensure we poll at least every MAX_POLL_INTERVAL
+        if (hasBroadcastData && (now - lastPollUs) < RS485_MAX_POLL_INTERVAL_US) {
             sendBroadcast();
+            return;  // Don't poll this iteration
         }
 
-        // Always poll
-        uint8_t nextAddr = advancePollAddress();
-        sendPoll(nextAddr);
-        lastPollUs = micros();
+        // Priority 2: Poll a slave if message buffer is free (matches standalone)
+        if (messageBuffer.isEmpty() && !messageBuffer.complete) {
+            uint8_t nextAddr = advancePollAddress();
+            sendPoll(nextAddr);
+            lastPollUs = now;
+        }
     }
 
     // Periodic status

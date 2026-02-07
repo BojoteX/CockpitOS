@@ -94,7 +94,7 @@
 // BUS 1 - Primary RS485 bus (enabled by default)
 #define BUS1_TX_PIN     17
 #define BUS1_RX_PIN     18
-#define BUS1_DE_PIN     -1      // -1 = auto-direction mode (board may have built-in auto-dir)
+#define BUS1_DE_PIN     21      // -1 = auto-direction mode (board may have built-in auto-dir)
 #define BUS1_UART_NUM    1       // UART1
 
 // BUS 2 - Secondary RS485 bus (disabled by default)
@@ -108,6 +108,13 @@
 #define BUS3_RX_PIN     -1
 #define BUS3_DE_PIN     -1
 #define BUS3_UART_NUM   -1      // Set to valid UART number to enable
+
+// ============================================================================
+// DEBUG LED - Mirrors slave output for sync verification
+// ============================================================================
+// Set to valid GPIO to enable LED output on master (same as slave behavior)
+// When enabled, master will parse DCS-BIOS and toggle LED in sync with slaves
+#define MASTER_MC_READY_PIN     2      // Set to -1 to disable
 
 // ============================================================================
 // COMMON CONFIGURATION
@@ -139,14 +146,6 @@
 // ============================================================================
 // DEBUG OPTIONS
 // ============================================================================
-
-// ============================================================================
-// DEBUG LED - Mirrors slave output for sync verification
-// ============================================================================
-// Set to valid GPIO to enable LED output on master (same as slave behavior)
-// When enabled, master will parse DCS-BIOS and toggle LED in sync with slaves
-#define MASTER_MC_READY_PIN     15      // Set to -1 to disable
-
 #define SERIAL_DEBUG_ENABLE 0       // Set to 1 to enable Serial debug output
 #define UDP_DEBUG_ENABLE    0       // Set to 1 to enable WiFi-based debug output
 #define UDP_DEBUG_IP        "255.255.255.255"  // Broadcast to all
