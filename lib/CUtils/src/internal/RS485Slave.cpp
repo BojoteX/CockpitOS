@@ -161,6 +161,14 @@ static uint16_t packetDataIdx = 0;
 // Skip state
 static uint8_t skipRemaining = 0;
 
+// V2.3 FIX: Data type for filtering what goes into export buffer
+// Standalone only buffers data when rxSlaveAddress==0 && rxMsgType==0
+enum RxDataType : uint8_t {
+    RXDATA_IGNORE,
+    RXDATA_DCSBIOS_EXPORT
+};
+static RxDataType rxDataType = RXDATA_IGNORE;
+
 // Timing
 static uint32_t lastPollMs = 0;
 static uint32_t rxStartUs = 0;  // For RX timeout detection
@@ -317,14 +325,16 @@ static void handlePacketComplete() {
     }
     else if (packetAddr == RS485_SLAVE_ADDRESS) {
         // Poll for us - respond IMMEDIATELY (timing critical!)
-        statPolls++;
-        lastPollMs = millis();
-
-        // CRITICAL FIX: Send response IMMEDIATELY without processing export data first!
-        // The standalone slave does this - it responds first, then processes export data.
-        // Moving processExportData() before sendResponse() added fatal latency.
-        sendResponse();
-        // Export data will be processed in the main loop after response is sent
+        // V2.3 FIX: Match standalone - only respond if MsgType == 0!
+        if (packetMsgType == MSGTYPE_DCSBIOS) {
+            statPolls++;
+            lastPollMs = millis();
+            sendResponse();
+            // Export data will be processed in the main loop after response is sent
+        } else {
+            // Non-zero MsgType for us = resync (match standalone behavior)
+            state = SlaveState::RX_SYNC;
+        }
     }
     else {
         // Poll for another slave - skip their response
@@ -352,26 +362,19 @@ static void processRxByte(uint8_t c) {
 
     switch (state) {
         case SlaveState::RX_WAIT_ADDRESS:
-            // Sanity check: valid addresses are 0-126
-            if (c > 126) {
-                // Invalid address - likely corruption, stay in this state
-                break;
-            }
+            // V2.3 FIX: Match standalone exactly - NO address validation!
+            // The standalone slave.ino just stores the address without checking.
+            // Validation was breaking sync on valid packets.
             packetAddr = c;
             packetChecksum = c;
-            // V2.3: DON'T reset export buffer here! Ring buffer preserves unprocessed data.
-            // The standalone slave.ino never resets the buffer at packet start.
             rxStartUs = micros();  // Start timeout tracking
             state = SlaveState::RX_WAIT_MSGTYPE;
             break;
 
         case SlaveState::RX_WAIT_MSGTYPE:
-            // MsgType must be 0 for DCS-BIOS
-            if (c != MSGTYPE_DCSBIOS) {
-                // Invalid - resync
-                state = SlaveState::RX_SYNC;
-                break;
-            }
+            // V2.3 FIX: Match standalone exactly - NO MsgType validation!
+            // The standalone slave.ino just stores MsgType, doesn't validate.
+            // Rejecting non-zero MsgType was breaking valid protocol messages.
             packetMsgType = c;
             packetChecksum ^= c;
             state = SlaveState::RX_WAIT_LENGTH;
@@ -387,14 +390,21 @@ static void processRxByte(uint8_t c) {
                 // Packet is complete right now.
                 handlePacketComplete();
             } else {
+                // V2.3 FIX: Match standalone - only buffer export data!
+                // Standalone: if (rxSlaveAddress == 0 && rxMsgType == 0) EXPORT else IGNORE
+                if (packetAddr == ADDR_BROADCAST && packetMsgType == MSGTYPE_DCSBIOS) {
+                    rxDataType = RXDATA_DCSBIOS_EXPORT;
+                } else {
+                    rxDataType = RXDATA_IGNORE;
+                }
                 state = SlaveState::RX_WAIT_DATA;
             }
             break;
 
         case SlaveState::RX_WAIT_DATA:
-            // Buffer data for broadcast or poll-for-us
-            if (packetAddr == ADDR_BROADCAST || packetAddr == RS485_SLAVE_ADDRESS) {
-                // V2.3: Ring buffer with overflow handling (match standalone behavior)
+            // V2.3 FIX: Only buffer DCS-BIOS export data (broadcast + MsgType=0)
+            // Standalone checks rxDataType, not address
+            if (rxDataType == RXDATA_DCSBIOS_EXPORT) {
                 if (exportBufferAvailableForWrite() == 0) {
                     // Buffer overflow! Match AVR behavior: force re-sync, don't silently drop
                     #if RS485_DEBUG_VERBOSE
