@@ -14,7 +14,7 @@
 #endif
 
 // Versioning for internal use
-#define VERSION_CURRENT                            "R.1.1.4_dev_02-05-26" // Just to troubleshoot instalations
+#define VERSION_CURRENT                            "R.1.1.4_dev_02-07-26" // Just to troubleshoot instalations
 
 // Is this an RS-485 Master? leave to 0 for normal operation.
 #define RS485_MASTER_ENABLED                        0 // Set as RS-485 Master. Polls slaves. Forwards data, you still need to choose a transport above (WiFi, Serial, USB etc)
@@ -27,22 +27,17 @@
 #define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 #define RS485_SLAVE_ENABLED                         1 // Set as RS-485 Slave, you need to also run a master RS485 
 
-// REMOVE FOR PRODUCTION
-#define RS485_TEST_LED_GPIO                        15 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
-
 // RS485 *** [ Slave ] *** (Only if RS485_SLAVE_ENABLED is set to 1)
 #define RS485_SLAVE_ADDRESS                         1 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
 
 // RS485 *** [ Master ] *** (Option only work when RS485_MASTER_ENABLED is set to 1)
-#define RS485_SMART_MODE                            1 // Is enabled filters by DcsOutputTable (only addresses your slaves need). Add in LABEL SET
+#define RS485_SMART_MODE                            0 // If enabled, filters by DcsOutputTable (only addresses your slaves need). see selected_panels.txt in your panel LABEL SET
 #define RS485_MAX_SLAVE_ADDRESS                    32 // Maximum slave address to poll (valid range: 1-127).        
-#define RS485_MAX_BROADCAST_CHUNK                  64 // Larger = more efficient, smaller = more responsive polling
 
-// RS485 General
-#define RS485_USE_TASK                              1 // Enables running RS485 in a dedicated FreeRTOS task
+// RS485 Tras PINs
 #define RS485_TX_PIN                               17 // GPIO Used for TX (Here's the PIN on your ESP32 you connected to the RS485 Board TX or DI)
 #define RS485_RX_PIN                               18 // GPIO Used for RX (Here's the PIN on your ESP32 you connected to the RS485 Board RX or RO)
-#define RS485_DE_PIN                               -1 // Control direction.(-1 is Automatic) If your board has a DE pin, connect it to this GPIO, no DE pin? set -1
+#define RS485_DE_PIN                               21 // Control direction.(-1 is Automatic) If your board has a DE pin, connect it to this GPIO, no DE pin? set -1
 
 // Your personal Wi-Fi network credentials should be stored in .credentials/wifi.h. If file not found or does not exists yet, we use defaults ("TestNetwork" / "TestingOnly")
 #if __has_include(".credentials/wifi.h")
@@ -159,7 +154,7 @@
   #if USE_DCSBIOS_WIFI || USE_DCSBIOS_BLUETOOTH
     #define DCS_USE_RINGBUFFER                    1  // Enforces WiFi/BLE use of a ring buffer for the incoming DCS Stream data (otherwise it will crash)
     #define DCS_UDP_RINGBUF_SIZE                 32  // Number of UDP packets buffered (tune as needed)
-    #define DCS_UDP_PACKET_MAXLEN               128  // Max UDP packet size (safe for Incoming UDP from DCS-BIOS)
+    #define DCS_UDP_PACKET_MAXLEN                64  // Max UDP packet size (safe for Incoming UDP from DCS-BIOS)
   #else 
     #define DCS_USE_RINGBUFFER                    0  // No need for it as Wi-Fi/BLE for DCS-BIOS is not active.
     #define DCS_UDP_RINGBUF_SIZE                  0  // Number of BLE packets buffered (tune as needed)
