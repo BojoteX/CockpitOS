@@ -18,25 +18,28 @@ struct InputMapping {
 
 //  label                       source     port bit hidId  DCSCommand           value   Type        group
 static const InputMapping InputMappings[] = {
+    { "MASTER_ARM_SW_SAFE"     , "GPIO" , -1 ,  0 ,  -1 , "MASTER_ARM_SW"          ,     0 , "selector" ,  1 },
+    { "MASTER_ARM_SW_ARM"      , "GPIO" ,  1 ,  0 ,  -1 , "MASTER_ARM_SW"          ,     1 , "selector" ,  1 },
+    { "MASTER_MODE_AA"         , "NONE" ,  0 ,  0 ,  -1 , "MASTER_MODE_AA"         ,     1 , "momentary",  0 },
+    { "MASTER_MODE_AG"         , "NONE" ,  0 ,  0 ,  -1 , "MASTER_MODE_AG"         ,     1 , "momentary",  0 },
     { "MASTER_CAUTION_RESET_SW", "GPIO" ,  0 ,  0 ,  -1 , "MASTER_CAUTION_RESET_SW",     1 , "momentary",  0 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);
 
-static const char* const TrackedSelectorLabels[] = {};
-static const size_t TrackedSelectorLabelsCount = 0;
+// Auto-generated: selector DCS labels with group > 0 (panel sync)
+static const char* const TrackedSelectorLabels[] = {
+    "MASTER_ARM_SW",
+};
+static const size_t TrackedSelectorLabelsCount = sizeof(TrackedSelectorLabels)/sizeof(TrackedSelectorLabels[0]);
 
 
 // Static hash lookup table for InputMappings[]
 struct InputHashEntry { const char* label; const InputMapping* mapping; };
 static const InputHashEntry inputHashTable[53] = {
+  {"MASTER_ARM_SW_ARM", &InputMappings[1]},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"MASTER_CAUTION_RESET_SW", &InputMappings[0]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"MASTER_CAUTION_RESET_SW", &InputMappings[4]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -68,15 +71,19 @@ static const InputHashEntry inputHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {"MASTER_ARM_SW_SAFE", &InputMappings[0]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {"MASTER_MODE_AA", &InputMappings[2]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"MASTER_MODE_AG", &InputMappings[3]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},

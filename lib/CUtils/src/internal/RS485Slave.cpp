@@ -1,14 +1,46 @@
 /**
  * @file RS485Slave.cpp
- * @brief RS-485 Slave Driver for CockpitOS - Complete Rewrite v2.0
+ * @brief RS-485 Slave Driver for CockpitOS - Complete Rewrite v2.3
  *
  * ARCHITECTURE:
- *   - Bare-metal UART using uart_ll_* for direct hardware access
- *   - ISR-driven RX with FIFO threshold of 1 for minimum latency
- *   - Echo prevention via RX interrupt disable during TX
- *   - RISC-V memory barriers for ESP32-C3/C6 cache coherency
- *   - Zero blocking calls in the hot path
- *   - Deferred processing (ISR buffers, loop() parses)
+ *   - ESP-IDF UART driver with DMA-backed RX buffering
+ *   - Polling-based RX (uart_read_bytes) for robust data capture during TX
+ *   - Echo prevention via RX buffer flush after TX
+ *   - IMMEDIATE response: sendResponse() called directly from state machine
+ *   - Deferred export processing: byte-by-byte parser runs in main loop
+ *
+ * V2.3 CRITICAL FIX - RING BUFFER FOR EXPORT DATA:
+ *   Previous versions used a LINEAR buffer for export data that was reset
+ *   at the start of each new packet. If the main loop was slow, new packets
+ *   would OVERWRITE previous export data before it was processed = DATA LOSS!
+ *
+ *   The standalone slave.ino uses a RING BUFFER with separate read/write
+ *   positions. This allows continuous streaming - new data appends while
+ *   the parser catches up. NO DATA LOSS even with slow main loops.
+ *
+ *   Changes in v2.3:
+ *   1. Export buffer is now a ring buffer (read/write positions, not length)
+ *   2. Byte-by-byte processing like standalone (not batch parseDcsBiosUdpPacket)
+ *   3. Overflow handling: force re-sync (match AVR behavior, don't silently drop)
+ *   4. Buffer variables marked volatile for ISR safety
+ *
+ * V2.2 CRITICAL FIX:
+ *   Previous versions called processExportData() (which runs parseDcsBiosUdpPacket
+ *   with all DCS-BIOS callbacks) BEFORE sending the response. This added hundreds
+ *   of microseconds of latency, causing desync with the master's 2ms timeout.
+ *
+ *   Now matches standalone slave.ino behavior:
+ *   1. Poll detected → sendResponse() called IMMEDIATELY
+ *   2. Export data processing deferred to main loop (after response sent)
+ *
+ * RATIONALE:
+ *   Testing showed that for SLAVE operation, Driver mode is more stable than
+ *   ISR mode. The slave can receive broadcast data DURING its TX response,
+ *   and the DMA-backed RX buffer handles this overlap correctly. ISR mode
+ *   has timing issues where TX blocks the ISR and bytes are lost.
+ *
+ *   Master uses ISR mode because it controls the bus timing and RX/TX never
+ *   overlap - it needs low latency to catch slave responses quickly.
  *
  * PROTOCOL: 100% compatible with Arduino DCS-BIOS RS485 implementation
  *
@@ -31,12 +63,10 @@
 
 // ESP-IDF includes
 #include "esp_attr.h"
-#include "esp_intr_alloc.h"
-#include "driver/periph_ctrl.h"
 #include "driver/uart.h"
 #include "driver/gpio.h"
-#include "hal/uart_ll.h"
-#include "soc/uart_periph.h"
+#include "rom/ets_sys.h"        // For ets_delay_us()
+#include "esp_timer.h"
 
 // FreeRTOS includes (for task mode)
 #if RS485_USE_TASK
@@ -44,36 +74,17 @@
 #include "freertos/task.h"
 #endif
 
-// RISC-V fence for C3/C6 cache coherency
-#if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2
-    #define RS485_RISCV_FENCE() __asm__ __volatile__("fence" ::: "memory")
-#else
-    #define RS485_RISCV_FENCE() do {} while(0)
-#endif
-
 // ============================================================================
-// HARDWARE ABSTRACTION
+// TIMING CONFIGURATION
 // ============================================================================
 
-#if RS485_UART_NUM == 0
-    #define RS485_UART_DEV      UART_LL_GET_HW(0)
-    #define RS485_UART_PERIPH   PERIPH_UART0_MODULE
-    #define RS485_UART_SIGNAL   U0TXD_OUT_IDX
-    #define RS485_UART_RX_SIG   U0RXD_IN_IDX
-    #define RS485_UART_INTR_SRC ETS_UART0_INTR_SOURCE
-#elif RS485_UART_NUM == 1
-    #define RS485_UART_DEV      UART_LL_GET_HW(1)
-    #define RS485_UART_PERIPH   PERIPH_UART1_MODULE
-    #define RS485_UART_SIGNAL   U1TXD_OUT_IDX
-    #define RS485_UART_RX_SIG   U1RXD_IN_IDX
-    #define RS485_UART_INTR_SRC ETS_UART1_INTR_SOURCE
-#else
-    #define RS485_UART_DEV      UART_LL_GET_HW(2)
-    #define RS485_UART_PERIPH   PERIPH_UART2_MODULE
-    #define RS485_UART_SIGNAL   U2TXD_OUT_IDX
-    #define RS485_UART_RX_SIG   U2RXD_IN_IDX
-    #define RS485_UART_INTR_SRC ETS_UART2_INTR_SOURCE
-#endif
+// TX Warm-up delays in MICROSECONDS (portable across all ESP32 variants)
+// These give the transceiver time to switch to TX mode before data is sent
+#define TX_WARMUP_DELAY_MANUAL_US    50    // Manual DE: wait after DE asserted
+#define TX_WARMUP_DELAY_AUTO_US      50    // Auto-direction: wait for RX→TX switch
+
+// Sync detection timeout
+#define SYNC_TIMEOUT_US              500   // 500µs silence = sync detected
 
 // ============================================================================
 // PROTOCOL CONSTANTS
@@ -88,6 +99,8 @@ static constexpr uint8_t CHECKSUM_FIXED = 0x72;
 // ============================================================================
 
 enum class SlaveState : uint8_t {
+    // Sync state
+    RX_SYNC,
     // RX states
     RX_WAIT_ADDRESS,
     RX_WAIT_MSGTYPE,
@@ -102,24 +115,6 @@ enum class SlaveState : uint8_t {
     TX_RESPOND
 };
 
-// ============================================================================
-// RX RING BUFFER (ISR-safe)
-// ============================================================================
-
-static volatile uint8_t rxBuffer[RS485_RX_BUFFER_SIZE];
-static volatile uint16_t rxHead = 0;
-static volatile uint16_t rxTail = 0;
-
-static inline bool rxEmpty() { return rxHead == rxTail; }
-static inline uint16_t rxCount() { return (uint16_t)(rxHead - rxTail); }
-
-static inline uint8_t rxGet() {
-    uint8_t c = rxBuffer[rxTail % RS485_RX_BUFFER_SIZE];
-    rxTail++;
-    return c;
-}
-
-static inline void rxClear() { rxTail = rxHead; }
 
 // ============================================================================
 // TX RING BUFFER (for queued input commands)
@@ -134,19 +129,27 @@ static inline uint16_t txCount() { return txCount_val; }
 static inline bool txEmpty() { return txCount_val == 0; }
 
 // ============================================================================
-// EXPORT DATA BUFFER (for broadcast packets)
+// EXPORT DATA RING BUFFER (for broadcast packets)
 // ============================================================================
+// V2.3: Changed from linear buffer to ring buffer to prevent data loss
+// when new packets arrive before previous data is processed.
 
-static uint8_t exportBuffer[RS485_EXPORT_BUFFER_SIZE];
-static volatile uint16_t exportLen = 0;
+static volatile uint8_t exportBuffer[RS485_EXPORT_BUFFER_SIZE];
+static volatile uint16_t exportWritePos = 0;
+static volatile uint16_t exportReadPos = 0;
+
+// Returns free slots in export queue (one slot kept empty to distinguish full/empty)
+static inline uint16_t exportBufferAvailableForWrite() {
+    return (uint16_t)((exportReadPos - exportWritePos - 1 + RS485_EXPORT_BUFFER_SIZE) % RS485_EXPORT_BUFFER_SIZE);
+}
 
 // ============================================================================
 // STATE VARIABLES
 // ============================================================================
 
-static SlaveState state = SlaveState::RX_WAIT_ADDRESS;
-static intr_handle_t intrHandle = nullptr;
+static SlaveState state = SlaveState::RX_SYNC;
 static bool initialized = false;
+static int64_t lastRxTime = 0;
 
 // Packet parsing
 static uint8_t packetAddr = 0;
@@ -159,8 +162,8 @@ static uint16_t packetDataIdx = 0;
 static uint8_t skipRemaining = 0;
 
 // Timing
-static uint32_t rxStartUs = 0;
 static uint32_t lastPollMs = 0;
+static uint32_t rxStartUs = 0;  // For RX timeout detection
 
 // Statistics
 static uint32_t statPolls = 0;
@@ -205,138 +208,97 @@ static void rs485SlaveTask(void* param) {
 // FORWARD DECLARATION - CockpitOS integration
 // ============================================================================
 
-extern void parseDcsBiosUdpPacket(const uint8_t* data, size_t len);
+// V2.3: Use byte-by-byte parser function instead of batch processing
+extern void processDcsBiosExportByte(uint8_t c);
 
 // ============================================================================
-// RX INTERRUPT SERVICE ROUTINE
+// DE PIN CONTROL (Driver mode)
 // ============================================================================
 
-static void IRAM_ATTR rxISR(void* arg) {
-    (void)arg;
-
-    while (uart_ll_get_rxfifo_len(RS485_UART_DEV) > 0) {
-        uint8_t c;
-        uart_ll_read_rxfifo(RS485_UART_DEV, &c, 1);
-        RS485_RISCV_FENCE();
-
-        // Store in ring buffer
-        rxBuffer[rxHead % RS485_RX_BUFFER_SIZE] = c;
-        rxHead++;
-    }
-
-    // Clear interrupt
-    uart_ll_clr_intsts_mask(RS485_UART_DEV, UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT);
+#if RS485_DE_PIN >= 0
+static inline void setDE(bool high) {
+    gpio_set_level((gpio_num_t)RS485_DE_PIN, high ? 1 : 0);
 }
+#else
+#define setDE(x)
+#endif
 
 // ============================================================================
-// UART HELPERS
+// PROCESS EXPORT DATA (drain ring buffer to CockpitOS parser)
 // ============================================================================
-
-static inline void deAssert() {
-    #if RS485_DE_PIN >= 0
-    GPIO.out_w1ts = (1UL << RS485_DE_PIN);
-    #endif
-}
-
-static inline void deDeassert() {
-    #if RS485_DE_PIN >= 0
-    GPIO.out_w1tc = (1UL << RS485_DE_PIN);
-    #endif
-}
-
-static inline void disableRxInt() {
-    uart_ll_disable_intr_mask(RS485_UART_DEV, UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT);
-}
-
-static inline void enableRxInt() {
-    uart_ll_clr_intsts_mask(RS485_UART_DEV, UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT);
-    uart_ll_ena_intr_mask(RS485_UART_DEV, UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT);
-}
-
-static inline void flushRxFifo() {
-    uart_ll_rxfifo_rst(RS485_UART_DEV);
-    rxClear();
-}
-
-static inline bool txIdle() {
-    return uart_ll_is_tx_idle(RS485_UART_DEV);
-}
-
-static void txByte(uint8_t c) {
-    while (uart_ll_get_txfifo_len(RS485_UART_DEV) == 0) {}
-    uart_ll_write_txfifo(RS485_UART_DEV, &c, 1);
-}
-
-static void txBytes(const uint8_t* data, size_t len) {
-    for (size_t i = 0; i < len; i++) {
-        txByte(data[i]);
-    }
-}
-
-// ============================================================================
-// PROCESS EXPORT DATA (send to CockpitOS parser)
-// ============================================================================
+// V2.3: Changed to ring buffer draining with byte-by-byte processing
+// This matches the standalone slave.ino exactly.
 
 static void processExportData() {
-    if (exportLen == 0) return;
+    while (exportReadPos != exportWritePos) {
+        uint8_t c = exportBuffer[exportReadPos];
+        exportReadPos = (exportReadPos + 1) % RS485_EXPORT_BUFFER_SIZE;
+        statExportBytes++;
 
-    statExportBytes += exportLen;
-
-    // Feed to CockpitOS DCS-BIOS parser (same path as UDP/USB!)
-    parseDcsBiosUdpPacket(exportBuffer, exportLen);
-
-    exportLen = 0;
+        // Feed byte-by-byte to CockpitOS DCS-BIOS parser
+        processDcsBiosExportByte(c);
+    }
 }
 
 // ============================================================================
-// TX RESPONSE (send queued commands to master)
+// TX RESPONSE (send queued commands to master) - Driver Mode
 // ============================================================================
 
 static void sendResponse() {
-    // Disable RX interrupt during TX (echo prevention)
-    disableRxInt();
-    deAssert();
-
     uint16_t toSend = txCount();
     if (toSend > 253) toSend = 253;  // Max that fits in Length byte
 
+    // Build response packet
+    uint8_t txBuf[RS485_TX_BUFFER_SIZE + 4];  // Length + MsgType + Data + Checksum
+    uint8_t txLen = 0;
+
     if (toSend == 0) {
         // Empty response - just [0x00]
-        txByte(0x00);
+        txBuf[txLen++] = 0x00;
     } else {
         // Response with data: [Length][MsgType=0][Data...][Checksum]
         uint8_t checksum = (uint8_t)toSend;  // Start with length
 
-        txByte((uint8_t)toSend);  // Length
-        txByte(MSGTYPE_DCSBIOS);  // MsgType
+        txBuf[txLen++] = (uint8_t)toSend;  // Length
+        txBuf[txLen++] = MSGTYPE_DCSBIOS;  // MsgType
         checksum ^= MSGTYPE_DCSBIOS;
 
-        // Send data from TX buffer
+        // Copy data from TX buffer
         for (uint16_t i = 0; i < toSend; i++) {
             uint8_t c = txBuffer[txTail % RS485_TX_BUFFER_SIZE];
-            txByte(c);
+            txBuf[txLen++] = c;
             checksum ^= c;
             txTail++;
             txCount_val--;
         }
 
-        // Send checksum
+        // Add checksum
         #if RS485_ARDUINO_COMPAT
-        txByte(CHECKSUM_FIXED);
+        txBuf[txLen++] = CHECKSUM_FIXED;
         #else
-        txByte(checksum);
+        txBuf[txLen++] = checksum;
         #endif
 
         statCommandsSent++;
     }
 
-    // Wait for TX to complete
-    while (!txIdle()) {}
+    // Enable DE for transmission
+    #if RS485_DE_PIN >= 0
+    setDE(true);
+    ets_delay_us(TX_WARMUP_DELAY_MANUAL_US);
+    #else
+    ets_delay_us(TX_WARMUP_DELAY_AUTO_US);
+    #endif
 
-    // Echo prevention: deassert DE, flush any echo, re-enable RX
-    deDeassert();
-    flushRxFifo();
-    enableRxInt();
+    // Send via driver
+    uart_write_bytes((uart_port_t)RS485_UART_NUM, (const char*)txBuf, txLen);
+    uart_wait_tx_done((uart_port_t)RS485_UART_NUM, pdMS_TO_TICKS(10));
+
+    // Release DE
+    setDE(false);
+
+    // Flush any echo bytes from RX buffer
+    uart_flush_input((uart_port_t)RS485_UART_NUM);
 
     state = SlaveState::RX_WAIT_ADDRESS;
 }
@@ -347,22 +309,22 @@ static void sendResponse() {
 
 static void handlePacketComplete() {
     if (packetAddr == ADDR_BROADCAST) {
-        // Broadcast packet - process export data, no response
+        // Broadcast packet - mark for deferred processing, no response
         statBroadcasts++;
-        processExportData();
+        // NOTE: Export data stays in buffer, will be processed in loop AFTER
+        // response timing is complete. This matches standalone behavior.
         state = SlaveState::RX_WAIT_ADDRESS;
     }
     else if (packetAddr == RS485_SLAVE_ADDRESS) {
-        // Poll for us - process any data, then respond
+        // Poll for us - respond IMMEDIATELY (timing critical!)
         statPolls++;
         lastPollMs = millis();
 
-        if (exportLen > 0) {
-            processExportData();
-        }
-
-        // Send response (may be empty or with queued commands)
-        state = SlaveState::TX_RESPOND;
+        // CRITICAL FIX: Send response IMMEDIATELY without processing export data first!
+        // The standalone slave does this - it responds first, then processes export data.
+        // Moving processExportData() before sendResponse() added fatal latency.
+        sendResponse();
+        // Export data will be processed in the main loop after response is sent
     }
     else {
         // Poll for another slave - skip their response
@@ -371,123 +333,143 @@ static void handlePacketComplete() {
 }
 
 // ============================================================================
-// MAIN LOOP - PROCESS RX DATA
+// PROCESS RX BYTE - State machine for each received byte (Driver Mode)
 // ============================================================================
 
-static void processRx() {
-    while (!rxEmpty()) {
-        uint8_t c = rxGet();
+static void processRxByte(uint8_t c) {
+    int64_t now = esp_timer_get_time();
 
-        switch (state) {
-            case SlaveState::RX_WAIT_ADDRESS:
-                // Sanity check: valid addresses are 0-126
-                if (c > 126) {
-                    // Invalid address - likely corruption, stay in this state
-                    break;
-                }
-                packetAddr = c;
-                packetChecksum = c;
-                exportLen = 0;
-                rxStartUs = micros();
-                state = SlaveState::RX_WAIT_MSGTYPE;
-                break;
-
-            case SlaveState::RX_WAIT_MSGTYPE:
-                // MsgType must be 0 for DCS-BIOS
-                if (c != MSGTYPE_DCSBIOS) {
-                    // Invalid - resync
-                    state = SlaveState::RX_WAIT_ADDRESS;
-                    break;
-                }
-                packetMsgType = c;
-                packetChecksum ^= c;
-                state = SlaveState::RX_WAIT_LENGTH;
-                break;
-
-            case SlaveState::RX_WAIT_LENGTH:
-                packetLength = c;
-                packetChecksum ^= c;
-                packetDataIdx = 0;
-
-                if (packetLength == 0) {
-                    // CRITICAL: Length=0 means NO DATA and NO CHECKSUM!
-                    // Packet is complete right now.
-                    handlePacketComplete();
-                } else {
-                    state = SlaveState::RX_WAIT_DATA;
-                }
-                break;
-
-            case SlaveState::RX_WAIT_DATA:
-                // Buffer data for broadcast or poll-for-us
-                if (packetAddr == ADDR_BROADCAST || packetAddr == RS485_SLAVE_ADDRESS) {
-                    if (exportLen < RS485_EXPORT_BUFFER_SIZE) {
-                        exportBuffer[exportLen++] = c;
-                    }
-                }
-                packetChecksum ^= c;
-                packetDataIdx++;
-
-                if (packetDataIdx >= packetLength) {
-                    state = SlaveState::RX_WAIT_CHECKSUM;
-                }
-                break;
-
-            case SlaveState::RX_WAIT_CHECKSUM:
-                // Verify checksum
-                if (c != packetChecksum) {
-                    statChecksumErrors++;
-                    #if RS485_DEBUG_VERBOSE
-                    debugPrintf("[RS485S] Checksum error: got 0x%02X, expected 0x%02X\n", c, packetChecksum);
-                    #endif
-                    // Still process - some masters use 0x72 fixed
-                }
-                handlePacketComplete();
-                break;
-
-            // ============================================================
-            // SKIP STATES - Skip another slave's response
-            // ============================================================
-
-            case SlaveState::RX_SKIP_LENGTH:
-                if (c == 0x00) {
-                    // Other slave had no data - ready for next packet
-                    state = SlaveState::RX_WAIT_ADDRESS;
-                } else {
-                    // Skip: [MsgType] + [Data x Length] + [Checksum]
-                    skipRemaining = c + 2;  // MsgType + Data + Checksum
-                    state = SlaveState::RX_SKIP_DATA;
-                }
-                break;
-
-            case SlaveState::RX_SKIP_DATA:
-                skipRemaining--;
-                if (skipRemaining == 0) {
-                    state = SlaveState::RX_WAIT_ADDRESS;
-                }
-                break;
-
-            case SlaveState::RX_SKIP_CHECKSUM:
-                // (Not used - combined into RX_SKIP_DATA)
-                state = SlaveState::RX_WAIT_ADDRESS;
-                break;
-
-            case SlaveState::TX_RESPOND:
-                // Shouldn't receive data while transmitting
-                break;
-        }
-
-        // Check for RX timeout
-        if (state != SlaveState::RX_WAIT_ADDRESS && state != SlaveState::TX_RESPOND) {
-            uint32_t elapsed = micros() - rxStartUs;
-            if (elapsed > RS485_RX_TIMEOUT_US) {
-                #if RS485_DEBUG_VERBOSE
-                debugPrintln("[RS485S] RX timeout, resync");
-                #endif
-                state = SlaveState::RX_WAIT_ADDRESS;
-            }
+    // Sync detection - if gap > 500µs, reset to wait for address
+    if (state == SlaveState::RX_SYNC) {
+        if ((now - lastRxTime) >= SYNC_TIMEOUT_US) {
+            state = SlaveState::RX_WAIT_ADDRESS;
+            // Fall through to process this byte as address
+        } else {
+            lastRxTime = now;
+            return;  // Stay in sync, discard byte
         }
     }
+
+    switch (state) {
+        case SlaveState::RX_WAIT_ADDRESS:
+            // Sanity check: valid addresses are 0-126
+            if (c > 126) {
+                // Invalid address - likely corruption, stay in this state
+                break;
+            }
+            packetAddr = c;
+            packetChecksum = c;
+            // V2.3: DON'T reset export buffer here! Ring buffer preserves unprocessed data.
+            // The standalone slave.ino never resets the buffer at packet start.
+            rxStartUs = micros();  // Start timeout tracking
+            state = SlaveState::RX_WAIT_MSGTYPE;
+            break;
+
+        case SlaveState::RX_WAIT_MSGTYPE:
+            // MsgType must be 0 for DCS-BIOS
+            if (c != MSGTYPE_DCSBIOS) {
+                // Invalid - resync
+                state = SlaveState::RX_SYNC;
+                break;
+            }
+            packetMsgType = c;
+            packetChecksum ^= c;
+            state = SlaveState::RX_WAIT_LENGTH;
+            break;
+
+        case SlaveState::RX_WAIT_LENGTH:
+            packetLength = c;
+            packetChecksum ^= c;
+            packetDataIdx = 0;
+
+            if (packetLength == 0) {
+                // CRITICAL: Length=0 means NO DATA and NO CHECKSUM!
+                // Packet is complete right now.
+                handlePacketComplete();
+            } else {
+                state = SlaveState::RX_WAIT_DATA;
+            }
+            break;
+
+        case SlaveState::RX_WAIT_DATA:
+            // Buffer data for broadcast or poll-for-us
+            if (packetAddr == ADDR_BROADCAST || packetAddr == RS485_SLAVE_ADDRESS) {
+                // V2.3: Ring buffer with overflow handling (match standalone behavior)
+                if (exportBufferAvailableForWrite() == 0) {
+                    // Buffer overflow! Match AVR behavior: force re-sync, don't silently drop
+                    #if RS485_DEBUG_VERBOSE
+                    debugPrintln("[RS485S] Export buffer overflow, forcing resync");
+                    #endif
+                    state = SlaveState::RX_SYNC;
+                    exportWritePos = 0;
+                    exportReadPos = 0;
+                    lastRxTime = now;
+                    break;
+                }
+                exportBuffer[exportWritePos] = c;
+                exportWritePos = (exportWritePos + 1) % RS485_EXPORT_BUFFER_SIZE;
+            }
+            packetChecksum ^= c;
+            packetDataIdx++;
+
+            if (packetDataIdx >= packetLength) {
+                state = SlaveState::RX_WAIT_CHECKSUM;
+            }
+            break;
+
+        case SlaveState::RX_WAIT_CHECKSUM:
+            // Verify checksum
+            if (c != packetChecksum) {
+                statChecksumErrors++;
+                #if RS485_DEBUG_VERBOSE
+                debugPrintf("[RS485S] Checksum error: got 0x%02X, expected 0x%02X\n", c, packetChecksum);
+                #endif
+                // Still process - some masters use 0x72 fixed
+            }
+            handlePacketComplete();
+            break;
+
+        // ============================================================
+        // SKIP STATES - Skip another slave's response
+        // ============================================================
+
+        case SlaveState::RX_SKIP_LENGTH:
+            if (c == 0x00) {
+                // Other slave had no data - ready for next packet
+                state = SlaveState::RX_WAIT_ADDRESS;
+            } else {
+                // Skip: [MsgType] + [Data x Length] + [Checksum]
+                skipRemaining = c + 2;  // MsgType + Data + Checksum
+                state = SlaveState::RX_SKIP_DATA;
+            }
+            break;
+
+        case SlaveState::RX_SKIP_DATA:
+            skipRemaining--;
+            if (skipRemaining == 0) {
+                state = SlaveState::RX_WAIT_ADDRESS;
+            }
+            break;
+
+        case SlaveState::RX_SKIP_CHECKSUM:
+            // (Not used - combined into RX_SKIP_DATA)
+            state = SlaveState::RX_WAIT_ADDRESS;
+            break;
+
+        case SlaveState::TX_RESPOND:
+            // Shouldn't receive data while transmitting
+            break;
+
+        case SlaveState::RX_SYNC:
+            // Handled above
+            break;
+
+        default:
+            state = SlaveState::RX_SYNC;
+            break;
+    }
+
+    lastRxTime = now;
 }
 
 // ============================================================================
@@ -498,11 +480,12 @@ bool RS485Slave_init() {
     if (initialized) return true;
 
     // Initialize state
-    rxHead = rxTail = 0;
     txHead = txTail = 0;
     txCount_val = 0;
-    exportLen = 0;
-    state = SlaveState::RX_WAIT_ADDRESS;
+    exportWritePos = 0;
+    exportReadPos = 0;
+    state = SlaveState::RX_SYNC;
+    lastRxTime = esp_timer_get_time();
 
     // Configure DE pin first (before UART)
     #if RS485_DE_PIN >= 0
@@ -514,13 +497,14 @@ bool RS485Slave_init() {
         .intr_type = GPIO_INTR_DISABLE
     };
     gpio_config(&de_conf);
-    deDeassert();  // Start in RX mode
+    setDE(false);  // Start in RX mode
     #endif
 
-    // Enable UART peripheral
-    periph_module_enable(RS485_UART_PERIPH);
+    // =========================================================================
+    // ESP-IDF UART DRIVER SETUP - Portable across ALL ESP32 variants
+    // Uses DMA-backed RX buffer for robust data capture during TX
+    // =========================================================================
 
-    // Configure UART using the SAME approach as working DCS-BIOS library
     uart_config_t uart_config = {
         .baud_rate = RS485_BAUD,
         .data_bits = UART_DATA_8_BITS,
@@ -530,31 +514,37 @@ bool RS485Slave_init() {
         .rx_flow_ctrl_thresh = 0,
         .source_clk = UART_SCLK_DEFAULT
     };
-    uart_param_config((uart_port_t)RS485_UART_NUM, &uart_config);
 
-    // Configure UART pins
-    uart_set_pin((uart_port_t)RS485_UART_NUM, RS485_TX_PIN, RS485_RX_PIN,
-                 UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    // Install driver with RX buffer (256) and TX buffer (256)
+    esp_err_t err = uart_driver_install((uart_port_t)RS485_UART_NUM, 256, 256, 0, NULL, 0);
+    if (err != ESP_OK) {
+        debugPrintf("[RS485S] ERROR: uart_driver_install failed: %d\n", err);
+        return false;
+    }
+
+    err = uart_param_config((uart_port_t)RS485_UART_NUM, &uart_config);
+    if (err != ESP_OK) {
+        debugPrintf("[RS485S] ERROR: uart_param_config failed: %d\n", err);
+        return false;
+    }
+
+    err = uart_set_pin((uart_port_t)RS485_UART_NUM, RS485_TX_PIN, RS485_RX_PIN,
+                       UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    if (err != ESP_OK) {
+        debugPrintf("[RS485S] ERROR: uart_set_pin failed: %d\n", err);
+        return false;
+    }
 
     // Ensure RX pin has pullup for stable idle state
     gpio_set_pull_mode((gpio_num_t)RS485_RX_PIN, GPIO_PULLUP_ONLY);
 
-    // Trigger interrupt on every byte for lowest latency
-    uart_ll_set_rxfifo_full_thr(RS485_UART_DEV, 1);
-
-    // Clear and enable interrupts
-    uart_ll_clr_intsts_mask(RS485_UART_DEV, UART_LL_INTR_MASK);
-    uart_ll_ena_intr_mask(RS485_UART_DEV, UART_INTR_RXFIFO_FULL);
-
-    // Install RX interrupt
-    esp_intr_alloc(RS485_UART_INTR_SRC,
-                   ESP_INTR_FLAG_IRAM | ESP_INTR_FLAG_LEVEL1,
-                   rxISR, nullptr, &intrHandle);
+    // Flush any stale data
+    uart_flush_input((uart_port_t)RS485_UART_NUM);
 
     initialized = true;
 
     debugPrintln("[RS485S] ═══════════════════════════════════════════════");
-    debugPrintf("[RS485S] SLAVE INITIALIZED\n");
+    debugPrintf("[RS485S] SLAVE INITIALIZED (Driver Mode)\n");
     debugPrintf("[RS485S]   Address: %d\n", RS485_SLAVE_ADDRESS);
     debugPrintf("[RS485S]   Baud: %d\n", RS485_BAUD);
     debugPrintf("[RS485S]   TX Pin: GPIO%d\n", RS485_TX_PIN);
@@ -565,10 +555,12 @@ bool RS485Slave_init() {
     debugPrintln("[RS485S]   DE Pin: Auto-direction");
     #endif
     #if RS485_ARDUINO_COMPAT
-    debugPrintln("[RS485S]   Mode: Arduino-compatible (0x72 checksum)");
+    debugPrintln("[RS485S]   Protocol: Arduino-compatible (0x72 checksum)");
     #else
-    debugPrintln("[RS485S]   Mode: Full protocol (XOR checksum)");
+    debugPrintln("[RS485S]   Protocol: Full protocol (XOR checksum)");
     #endif
+    debugPrintln("[RS485S]   RX: ESP-IDF UART driver (DMA-backed)");
+    debugPrintln("[RS485S]   TX: uart_write_bytes + flush echo");
 
     // Create FreeRTOS task if enabled
     #if RS485_USE_TASK
@@ -615,18 +607,35 @@ bool RS485Slave_init() {
 }
 
 // ============================================================================
-// INTERNAL SLAVE LOOP (called from task or main loop)
+// INTERNAL SLAVE LOOP (called from task or main loop) - Driver Mode
 // ============================================================================
 
 static void rs485SlaveLoop() {
     if (!initialized) return;
 
-    // Process received data
-    processRx();
+    // Driver mode: read bytes from UART driver and process through state machine
+    uint8_t rxBuf[64];
+    int len = uart_read_bytes((uart_port_t)RS485_UART_NUM, rxBuf, sizeof(rxBuf), 0);
+    for (int i = 0; i < len; i++) {
+        processRxByte(rxBuf[i]);
+        // NOTE: sendResponse() is now called IMMEDIATELY from handlePacketComplete()
+        // to match standalone slave timing. No deferred TX_RESPOND check needed.
+    }
 
-    // Handle TX state
-    if (state == SlaveState::TX_RESPOND) {
-        sendResponse();
+    // Process any buffered export data (deferred from packet handling)
+    // This matches standalone behavior: respond first, then process export data
+    processExportData();
+
+    // Check for RX timeout (packet-level timeout, separate from sync gap detection)
+    if (state != SlaveState::RX_WAIT_ADDRESS &&
+        state != SlaveState::RX_SYNC) {
+        uint32_t elapsed = micros() - rxStartUs;
+        if (elapsed > RS485_RX_TIMEOUT_US) {
+            #if RS485_DEBUG_VERBOSE
+            debugPrintln("[RS485S] RX timeout, resync");
+            #endif
+            state = SlaveState::RX_SYNC;
+        }
     }
 
     // Periodic status
@@ -758,10 +767,9 @@ void RS485Slave_stop() {
     }
     #endif
 
-    // Disable UART interrupt
-    if (intrHandle) {
-        esp_intr_free(intrHandle);
-        intrHandle = nullptr;
+    // Uninstall UART driver
+    if (initialized) {
+        uart_driver_delete((uart_port_t)RS485_UART_NUM);
     }
 
     initialized = false;

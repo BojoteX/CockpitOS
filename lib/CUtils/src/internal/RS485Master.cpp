@@ -1,15 +1,32 @@
 /**
  * @file RS485Master.cpp
- * @brief RS-485 Master Driver for CockpitOS - Complete Rewrite v2.0
+ * @brief RS-485 Master Driver for CockpitOS - Complete Rewrite v2.2
  *
  * ARCHITECTURE:
  *   - Bare-metal UART using uart_ll_* for direct hardware access
  *   - ISR-driven RX with FIFO threshold of 1 for minimum latency
+ *   - State machine runs DIRECTLY in ISR (like AVR) - no buffering delay
  *   - Echo prevention via RX interrupt disable during TX
  *   - RISC-V memory barriers for ESP32-C3/C6 cache coherency
- *   - Zero blocking calls in the hot path
  *   - Smart mode with DcsOutputTable filtering and change detection
  *   - Relay mode for Arduino-compatible raw byte pumping
+ *
+ * V2.2 IMPROVEMENTS (from standalone master.ino v2):
+ *   - State machine runs in ISR: Bytes are processed immediately as they
+ *     arrive, not buffered then processed later. This matches AVR behavior
+ *     exactly and provides lowest possible latency.
+ *   - Immediate slave response forwarding: After processResponse() detects
+ *     a complete message, it's forwarded to CockpitOS immediately.
+ *
+ * RATIONALE:
+ *   Testing showed that for MASTER operation, ISR mode is essential.
+ *   The master controls bus timing and needs lowest possible latency
+ *   to catch slave responses. RX and TX never overlap for the master
+ *   (it always waits for response before next poll), so ISR mode
+ *   provides optimal timing-critical response detection.
+ *
+ *   Slave uses Driver mode because it can receive broadcast data DURING
+ *   its TX response, and the DMA-backed buffer handles this overlap.
  *
  * PROTOCOL: 100% compatible with Arduino DCS-BIOS RS485 implementation
  *
@@ -77,33 +94,56 @@ static constexpr uint8_t MSGTYPE_DCSBIOS = 0;
 static constexpr uint8_t CHECKSUM_PLACEHOLDER = 0x72;
 
 // ============================================================================
-// STATE MACHINE
+// STATE MACHINE (matches standalone master.ino v2)
 // ============================================================================
 
 enum class MasterState : uint8_t {
     IDLE,
-    WAIT_RESPONSE,
-    PROCESS_RESPONSE
+    RX_WAIT_DATALENGTH,
+    RX_WAIT_MSGTYPE,
+    RX_WAIT_DATA,
+    RX_WAIT_CHECKSUM
 };
 
 // ============================================================================
-// RX RING BUFFER (ISR-safe)
+// MESSAGE BUFFER - Lock-free ring buffer for slave responses
 // ============================================================================
 
-static volatile uint8_t rxBuffer[RS485_RX_BUFFER_SIZE];
-static volatile uint16_t rxHead = 0;
-static volatile uint16_t rxTail = 0;
+template<uint16_t SIZE>
+class MessageBuffer {
+private:
+    volatile uint8_t buffer[SIZE];
+    volatile uint16_t writePos;
+    volatile uint16_t readPos;
 
-static inline bool rxEmpty() { return rxHead == rxTail; }
-static inline uint16_t rxCount() { return (uint16_t)(rxHead - rxTail); }
+public:
+    volatile bool complete;
 
-static inline uint8_t rxGet() {
-    uint8_t c = rxBuffer[rxTail % RS485_RX_BUFFER_SIZE];
-    rxTail++;
-    return c;
-}
+    MessageBuffer() : writePos(0), readPos(0), complete(false) {}
 
-static inline void rxClear() { rxTail = rxHead; }
+    void IRAM_ATTR put(uint8_t c) {
+        buffer[writePos % SIZE] = c;
+        writePos++;
+    }
+
+    uint8_t get() {
+        uint8_t c = buffer[readPos % SIZE];
+        readPos++;
+        return c;
+    }
+
+    uint16_t getLength() const { return (uint16_t)(writePos - readPos); }
+    bool isEmpty() const { return writePos == readPos; }
+    bool isNotEmpty() const { return writePos != readPos; }
+
+    void clear() {
+        readPos = 0;
+        writePos = 0;
+        complete = false;
+    }
+};
+
+static MessageBuffer<RS485_INPUT_BUFFER_SIZE> messageBuffer;
 
 // ============================================================================
 // SMART MODE: CHANGE TRACKING (only when RS485_SMART_MODE=1)
@@ -258,7 +298,7 @@ static void bufferRawByte(uint8_t byte) {
 // STATE VARIABLES
 // ============================================================================
 
-static MasterState state = MasterState::IDLE;
+static volatile MasterState state = MasterState::IDLE;
 static intr_handle_t intrHandle = nullptr;
 static bool initialized = false;
 
@@ -267,16 +307,13 @@ static bool slavePresent[128];  // Which slaves have responded
 static uint8_t currentPollAddr = 1;
 static uint8_t discoveryCounter = 0;
 
-// Timing
-static uint32_t pollStartUs = 0;
-static uint32_t lastPollUs = 0;
+// Timing (volatile - accessed from ISR)
+static volatile int64_t rxStartTime = 0;
+static volatile uint32_t lastPollUs = 0;
 
-// Response parsing
-static uint8_t responseBuffer[RS485_INPUT_BUFFER_SIZE];
-static uint8_t responseLen = 0;
-static uint8_t responseExpected = 0;
-static uint8_t responseMsgType = 0;
-static uint8_t responseState = 0;  // 0=wait_len, 1=wait_msgtype, 2=wait_data, 3=wait_checksum
+// Response parsing (volatile - modified in ISR)
+static volatile uint8_t rxtxLen = 0;
+static volatile uint8_t rxMsgType = 0;
 
 // Broadcast buffer
 static uint8_t broadcastBuffer[256];
@@ -357,7 +394,53 @@ static void processQueuedCommands() {
 #endif // RS485_USE_TASK
 
 // ============================================================================
-// RX INTERRUPT SERVICE ROUTINE
+// RX BYTE PROCESSOR - Runs in ISR context (like AVR)
+// ============================================================================
+
+static inline void IRAM_ATTR processRxByte(uint8_t c) {
+    switch (state) {
+        case MasterState::RX_WAIT_DATALENGTH:
+            rxtxLen = c;
+            slavePresent[currentPollAddr] = true;
+            if (rxtxLen > 0) {
+                state = MasterState::RX_WAIT_MSGTYPE;
+            } else {
+                // Empty response - slave has no data
+                state = MasterState::IDLE;
+            }
+            rxStartTime = esp_timer_get_time();
+            break;
+
+        case MasterState::RX_WAIT_MSGTYPE:
+            rxMsgType = c;
+            (void)rxMsgType;  // Not used but kept for protocol completeness
+            state = MasterState::RX_WAIT_DATA;
+            rxStartTime = esp_timer_get_time();
+            break;
+
+        case MasterState::RX_WAIT_DATA:
+            messageBuffer.put(c);
+            if (--rxtxLen == 0) {
+                state = MasterState::RX_WAIT_CHECKSUM;
+            }
+            rxStartTime = esp_timer_get_time();
+            break;
+
+        case MasterState::RX_WAIT_CHECKSUM:
+            // Checksum intentionally ignored (AVR behavior, Arduino uses 0x72)
+            messageBuffer.complete = true;
+            state = MasterState::IDLE;
+            rxStartTime = esp_timer_get_time();
+            break;
+
+        default:
+            // Unexpected byte while IDLE - discard
+            break;
+    }
+}
+
+// ============================================================================
+// RX INTERRUPT SERVICE ROUTINE - Processes state machine per byte (like AVR)
 // ============================================================================
 
 static void IRAM_ATTR rxISR(void* arg) {
@@ -368,9 +451,8 @@ static void IRAM_ATTR rxISR(void* arg) {
         uart_ll_read_rxfifo(RS485_UART_DEV, &c, 1);
         RS485_RISCV_FENCE();
 
-        // Store in ring buffer
-        rxBuffer[rxHead % RS485_RX_BUFFER_SIZE] = c;
-        rxHead++;
+        // Process byte through state machine immediately (like AVR)
+        processRxByte(c);
     }
 
     // Clear interrupt
@@ -404,7 +486,6 @@ static inline void enableRxInt() {
 
 static inline void flushRxFifo() {
     uart_ll_rxfifo_rst(RS485_UART_DEV);
-    rxClear();
 }
 
 static inline bool txIdle() {
@@ -524,13 +605,12 @@ static void sendPoll(uint8_t addr) {
     // RS485 poll frame: [Addr][MsgType=0][Length=0] - NO CHECKSUM when Length=0!
     uint8_t frame[3] = { addr, MSGTYPE_DCSBIOS, 0 };
 
+    currentPollAddr = addr;
     txWithEchoPrevention(frame, 3);
 
-    pollStartUs = micros();
-    responseState = 0;
-    responseLen = 0;
-    responseExpected = 0;
-    state = MasterState::WAIT_RESPONSE;
+    // Start RX timeout - equivalent to AVR's txcISR setting rx_start_time
+    rxStartTime = esp_timer_get_time();
+    state = MasterState::RX_WAIT_DATALENGTH;
 
     statPolls++;
 }
@@ -580,63 +660,38 @@ static void processInputCommand(const uint8_t* data, size_t len) {
     #endif
 }
 
-static void processResponse() {
-    // Process any RX data
-    while (!rxEmpty()) {
-        uint8_t c = rxGet();
+// Process completed message from messageBuffer (called from main loop)
+static void processCompletedMessage() {
+    if (!messageBuffer.complete) return;
 
-        switch (responseState) {
-            case 0:  // Wait for Length byte
-                if (c == 0x00) {
-                    // Empty response - slave has no data
-                    statResponses++;
-                    slavePresent[currentPollAddr] = true;
-                    state = MasterState::IDLE;
-                    return;
-                }
-                responseExpected = c;
-                responseLen = 0;
-                responseState = 1;
-                break;
+    statResponses++;
 
-            case 1:  // Wait for MsgType
-                responseMsgType = c;
-                if (responseExpected > 0) {
-                    responseState = 2;
-                } else {
-                    responseState = 3;
-                }
-                break;
+    // Drain message data and process as command
+    if (messageBuffer.isNotEmpty()) {
+        uint8_t cmdData[RS485_INPUT_BUFFER_SIZE];
+        size_t cmdLen = 0;
 
-            case 2:  // Receive data
-                if (responseLen < RS485_INPUT_BUFFER_SIZE) {
-                    responseBuffer[responseLen] = c;
-                }
-                responseLen++;
-                if (responseLen >= responseExpected) {
-                    responseState = 3;
-                }
-                break;
+        while (messageBuffer.isNotEmpty() && cmdLen < RS485_INPUT_BUFFER_SIZE) {
+            cmdData[cmdLen++] = messageBuffer.get();
+        }
 
-            case 3:  // Checksum
-                // Accept any checksum (Arduino uses 0x72, others use XOR)
-                statResponses++;
-                slavePresent[currentPollAddr] = true;
-
-                if (responseLen > 0 && responseMsgType == 0) {
-                    processInputCommand(responseBuffer, responseLen);
-                }
-
-                state = MasterState::IDLE;
-                return;
+        if (cmdLen > 0) {
+            processInputCommand(cmdData, cmdLen);
         }
     }
 
-    // Check timeout
-    uint32_t elapsed = micros() - pollStartUs;
+    messageBuffer.clear();
+}
+
+// Check for RX timeout during poll wait
+static void checkRxTimeout() {
+    if (state == MasterState::IDLE) return;
+
+    int64_t elapsed = esp_timer_get_time() - rxStartTime;
     if (elapsed > RS485_POLL_TIMEOUT_US) {
         sendTimeoutZero();
         statTimeouts++;
+        messageBuffer.clear();
         state = MasterState::IDLE;
     }
 }
@@ -691,7 +746,7 @@ bool RS485Master_init() {
 
     // Initialize state
     memset((void*)slavePresent, 0, sizeof(slavePresent));
-    rxHead = rxTail = 0;
+    messageBuffer.clear();
     state = MasterState::IDLE;
     currentPollAddr = 1;
 
@@ -827,34 +882,36 @@ static void rs485PollLoop() {
     if (!initialized) return;
     if (!simReady()) return;
 
-    switch (state) {
-        case MasterState::IDLE: {
-            uint32_t now = micros();
-            uint32_t sinceLastPoll = now - lastPollUs;
+    // V2.2 IMPROVEMENT: Immediate forwarding - check for completed messages FIRST
+    // This reduces latency by forwarding slave responses immediately after detection
+    if (messageBuffer.complete) {
+        processCompletedMessage();
+    }
 
-            // Check if we should broadcast
-            #if RS485_SMART_MODE
-            bool hasBroadcastData = (changeCount > 0);
-            #else
-            bool hasBroadcastData = !rawEmpty();
-            #endif
+    // Check for RX timeout during non-IDLE states
+    checkRxTimeout();
 
-            // Broadcast if we have data and enough time has passed
-            if (hasBroadcastData && sinceLastPoll >= RS485_MAX_POLL_INTERVAL_US) {
-                sendBroadcast();
-            }
+    // Only start new poll/broadcast when IDLE
+    if (state == MasterState::IDLE) {
+        uint32_t now = micros();
+        uint32_t sinceLastPoll = now - lastPollUs;
 
-            // Always poll
-            uint8_t nextAddr = advancePollAddress();
-            sendPoll(nextAddr);
-            lastPollUs = micros();
-            break;
+        // Check if we should broadcast
+        #if RS485_SMART_MODE
+        bool hasBroadcastData = (changeCount > 0);
+        #else
+        bool hasBroadcastData = !rawEmpty();
+        #endif
+
+        // Broadcast if we have data and enough time has passed
+        if (hasBroadcastData && sinceLastPoll >= RS485_MAX_POLL_INTERVAL_US) {
+            sendBroadcast();
         }
 
-        case MasterState::WAIT_RESPONSE:
-        case MasterState::PROCESS_RESPONSE:
-            processResponse();
-            break;
+        // Always poll
+        uint8_t nextAddr = advancePollAddress();
+        sendPoll(nextAddr);
+        lastPollUs = micros();
     }
 
     // Periodic status
