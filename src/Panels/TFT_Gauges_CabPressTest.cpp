@@ -25,7 +25,7 @@
 #include <cmath>
 #include <algorithm>
 
-#if defined(HAS_CABIN_PRESSURE_GAUGE) || defined(HAS_CABIN_PRESSURE_GAUGE)
+#if defined(HAS_CABIN_PRESSURE_GAUGE)
     REGISTER_PANEL(TFT_Gauges_CabPressTest, nullptr, nullptr, CabinPressureGauge_init, CabinPressureGauge_loop, nullptr, 100);
 #endif
 
@@ -39,12 +39,8 @@
 #include <esp_heap_caps.h>
 #endif
 
-// Select core
-#if defined(ESP_FAMILY_S3)
+// Select core (currently pinned to core 0 for all variants)
 #define CABPRESS_CPU_CORE 0
-#else
-#define CABPRESS_CPU_CORE 0
-#endif
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Pin configuration for Cabin Pressure TFT gauge
@@ -149,7 +145,7 @@ static constexpr spi_host_device_t      spi_host      = SPI2_HOST;          // S
 static constexpr uint8_t                dma_channel   = SPI_DMA_CH_AUTO;    // SPI_DMA_CH_AUTO, 1, or 2
 
 #if CABIN_PRESSURE_USE_QSPI
-static constexpr uint32_t               freq_write    = 40000000;           // 40 MHz for QSPI (conservative; try 80 MHz once confirmed working)
+static constexpr uint32_t               freq_write    = 40000000;           // 40 MHz QSPI → 160 Mbit/s (4 data lines). Try 80 MHz → 320 Mbit/s once stable.
 #else
 static constexpr uint32_t               freq_write    = 80000000;           // 80 MHz for SPI
 #endif
@@ -177,7 +173,7 @@ public:
             cfg.spi_host    = spi_host;
             cfg.spi_mode    = 0;
             cfg.freq_write  = freq_write;
-            cfg.freq_read   = 16000000;
+            cfg.freq_read   = 0;         // No read-back; QSPI is write-only on this bus
             cfg.spi_3wire   = false;
             cfg.use_lock    = use_lock;
             cfg.dma_channel = dma_channel;
@@ -220,8 +216,15 @@ public:
             pcfg.offset_y       = 0;
             pcfg.offset_rotation = 0;
             pcfg.bus_shared     = shared_bus;
+#if CABIN_PRESSURE_USE_QSPI
+            // QSPI (Panel_ST77916 → Panel_AMOLED): invert and rgb_order are set
+            // in the Panel_ST77916 constructor.  Panel_AMOLED ignores _cfg.invert —
+            // inversion is controlled via _invert member + init_impl()'s setInvert().
+#else
+            // SPI (Panel_ST77961 → Panel_LCD): Panel_LCD XORs _cfg.invert in setInvert()
             pcfg.invert         = true;
             pcfg.rgb_order      = true;
+#endif
             _panel.config(pcfg);
         }
 
@@ -270,12 +273,6 @@ static inline void waitDMADone() {
 }
 
 // --- Dirty-rect utilities ---
-/*
-struct Rect {
-    int16_t x = 0, y = 0, w = 0, h = 0;
-};
-*/
-
 struct Rect { int16_t x, y, w, h; };
 static inline bool rectEmpty(const Rect& r) { return r.w <= 0 || r.h <= 0; }
 static inline Rect rectClamp(const Rect& r) {
@@ -409,7 +406,7 @@ static void CabinPressureGauge_draw(bool force = false, bool blocking = false)
 
     int16_t u = angleU; if (u < ANG_MIN) u = ANG_MIN; else if (u > ANG_MAX) u = ANG_MAX;
 
-    const bool stateChanged = gaugeDirty || (u != lastDrawnAngleU);
+    const bool stateChanged = gaugeDirty || needsFullFlush || (u != lastDrawnAngleU);
     if (!stateChanged) return;
 
     // Change 9/2/25
@@ -551,9 +548,10 @@ void CabinPressureGauge_init()
 
 #if CABIN_PRESSURE_USE_QSPI
     debugPrintf(
-        "✅ Cabin Pressure Gauge initialized (QSPI mode @ %u MHz) "
+        "✅ Cabin Pressure Gauge initialized (QSPI @ %u MHz, %u Mbit/s) "
         "CS=%d, SCLK=%d, IO0=%d, IO1=%d, IO2=%d, IO3=%d, RST=%d, BL=%d\n",
         (unsigned)(freq_write / 1000000u),
+        (unsigned)(freq_write / 1000000u * 4u),  // 4 data lines
         CABIN_PRESSURE_CS_PIN,
         CABIN_PRESSURE_SCLK_PIN,
         CABIN_PRESSURE_IO0_PIN,
@@ -607,6 +605,10 @@ void CabinPressureGauge_bitTest() {
 }
 
 void CabinPressureGauge_deinit() {
+    // TODO: Replace vTaskDelete with cooperative shutdown (set a flag, let the
+    //       task exit its loop, then wait with xTaskNotifyWait or a semaphore).
+    //       vTaskDelete can orphan SPI transactions mid-DMA.  This pattern is
+    //       shared across all CockpitOS gauges and should be fixed globally.
     waitDMADone();
     if (tftTaskHandle) { vTaskDelete(tftTaskHandle); tftTaskHandle = nullptr; }
 
