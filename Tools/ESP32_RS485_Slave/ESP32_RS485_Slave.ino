@@ -20,7 +20,7 @@
  * Both modes work on: ESP32, S2, S3, C3, C6, H2
  */
 
-#define SLAVE_ADDRESS 2
+#define SLAVE_ADDRESS 1
 
 // Pin Configuration
 #define RS485_TX_PIN    17    // Yellow Cable 
@@ -65,7 +65,7 @@
 // 0 = Buffered mode: Build response in buffer, write all at once to FIFO
 // 1 = Byte-by-byte mode: Write each byte individually, wait for TX idle
 //     (default - mimics AVR behavior, better pacing with FreeRTOS tasks)
-#define TX_MODE_BYTE_BY_BYTE    1
+#define TX_MODE_BYTE_BY_BYTE    0
 
 // ============================================================================
 // DEBUG OPTIONS

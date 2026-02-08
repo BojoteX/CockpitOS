@@ -1,8 +1,7 @@
 /**
  * @file RS485SlaveConfig.h
  * @brief RS-485 Slave Configuration for CockpitOS
- *
- * This file is ONLY included when RS485_SLAVE_ENABLED is defined in Config.h.
+ * @version 2.0 - Complete rewrite with bare-metal UART and ISR-driven RX
  *
  * To enable RS-485 slave mode, add to Config.h:
  *   #define RS485_SLAVE_ENABLED 1
@@ -10,20 +9,42 @@
  *
  * NOTE: RS485_MASTER_ENABLED and RS485_SLAVE_ENABLED are mutually exclusive!
  *
- * COMPATIBILITY:
- *   This slave implementation is compatible with:
+ * ==========================================================================
+ * PROTOCOL COMPATIBILITY
+ * ==========================================================================
+ *
+ * This slave implementation is 100% compatible with:
  *   - Arduino DCS-BIOS RS485 Master (DcsBiosNgRS485Master)
  *   - CockpitOS RS485 Master (SMART and RELAY modes)
- *   - ESP32 RS485 Master reference implementation
+ *   - ESP32 DCS-BIOS Library RS485 Master
  *
- * PROTOCOL SUMMARY:
- *   Master → Slave (Broadcast):  [Addr=0][MsgType][Length][Data...][Checksum]
- *   Master → Slave (Poll):       [Addr=N][MsgType][Length=0]  ← NO CHECKSUM!
- *   Slave → Master (No data):    [0x00]  ← Single byte, NO CHECKSUM!
- *   Slave → Master (With data):  [Length][MsgType][Data...][Checksum]
+ * ==========================================================================
+ * PROTOCOL SUMMARY
+ * ==========================================================================
  *
- *   Length = number of DATA bytes (does NOT include MsgType)
- *   Checksum = XOR of all bytes, or fixed 0x72 for Arduino compatibility
+ * Master -> Slave (Broadcast):  [Addr=0][MsgType][Length][Data...][Checksum]
+ * Master -> Slave (Poll):       [Addr=N][MsgType][Length=0] <- NO CHECKSUM!
+ * Slave -> Master (No data):    [0x00] <- Single byte, NO CHECKSUM!
+ * Slave -> Master (With data):  [Length][MsgType][Data...][Checksum]
+ *
+ * CRITICAL: When Length=0, there is NO checksum byte!
+ *
+ * Length = number of DATA bytes (does NOT include MsgType)
+ * Checksum = XOR of all bytes, or fixed 0x72 for Arduino compatibility
+ *
+ * ==========================================================================
+ * ARCHITECTURE: Bare-Metal UART with ISR-Driven RX
+ * ==========================================================================
+ *
+ * This implementation uses direct hardware register access:
+ *   - periph_module_enable() for UART clock
+ *   - uart_ll_* functions for direct register manipulation
+ *   - esp_intr_alloc() for RX interrupt with FIFO threshold of 1
+ *   - Echo prevention: disable RX int -> TX -> wait idle -> flush -> re-enable
+ *   - RISC-V memory barriers for ESP32-C3/C6
+ *   - Zero blocking calls in the hot path
+ *
+ * ==========================================================================
  */
 
 #ifndef RS485_SLAVE_CONFIG_H
@@ -39,7 +60,6 @@
 #error "RS485_SLAVE_ADDRESS must be defined in Config.h (valid range: 1-126)"
 #endif
 
-// Sanity check
 #if RS485_SLAVE_ADDRESS < 1 || RS485_SLAVE_ADDRESS > 126
 #error "RS485_SLAVE_ADDRESS must be between 1 and 126"
 #endif
@@ -47,46 +67,22 @@
 // ============================================================================
 // HARDWARE PINS
 // ============================================================================
-// 
-// OPTION 1: Manual direction control (MAX485 or similar)
+//
+// OPTION 1: Built-in RS485 transceiver (Waveshare ESP32-S3-RS485-CAN, etc.)
+//   TX = GPIO17, RX = GPIO18, DE = GPIO21
+//
+// OPTION 2: External MAX485 with manual direction control
 //   ESP32 TX -> MAX485 DI
-//   ESP32 RX <- MAX485 RO  
+//   ESP32 RX <- MAX485 RO
 //   ESP32 GPIO -> MAX485 DE+RE (tied together)
-//   Set RS485_EN_PIN to the GPIO controlling DE/RE
 //
-// OPTION 2: Built-in RS485 (Waveshare ESP32-S3-RS485-CAN, etc.)
-//   TX = GPIO17, RX = GPIO18, EN = GPIO21
-//   Set RS485_EN_PIN to the board's direction control pin
+// OPTION 3: Auto-direction RS485 module
+//   Set RS485_DE_PIN to -1 (auto-direction mode)
 //
-// OPTION 3: Auto-direction board (TTL-RS485 Auto Module, etc.)
-//   These boards automatically detect TX/RX direction from data flow.
-//   Only TX and RX pins needed - no direction control!
-//   Set RS485_EN_PIN to -1 (auto-direction mode)
-//
-// Example configurations:
-//
-// Waveshare ESP32-S3-RS485-CAN (built-in transceiver):
-//   #define RS485_TX_PIN  17
-//   #define RS485_RX_PIN  18
-//   #define RS485_EN_PIN  21
-//
-// LOLIN S3 Mini + TTL-RS485 Auto-Direction Module:
-//   #define RS485_TX_PIN  17
-//   #define RS485_RX_PIN  18
-//   #define RS485_EN_PIN  -1   // Auto-direction, no EN needed!
 
-#ifndef RS485_TX_PIN
-#define RS485_TX_PIN            17      // UART TX -> RS485 DI
-#endif
-
-#ifndef RS485_RX_PIN
-#define RS485_RX_PIN            18      // UART RX <- RS485 RO
-#endif
-
-#ifndef RS485_EN_PIN
-// -1 = Auto-direction board (hardware handles TX/RX switching)
-// >=0 = Manual direction control via GPIO (ESP32 drives EN pin)
-#define RS485_EN_PIN            21      // Auto-direction by default
+// UART number (1 or 2 - UART0 is typically used for USB/debug)
+#ifndef RS485_UART_NUM
+#define RS485_UART_NUM          1
 #endif
 
 // ============================================================================
@@ -103,44 +99,138 @@
 // Arduino DCS-BIOS slave uses fixed 0x72 as checksum placeholder.
 // Set to 1 for maximum compatibility with Arduino masters.
 // Set to 0 to use proper calculated XOR checksum.
-//
-// NOTE: CockpitOS master accepts both, so either setting works with it.
 
-#ifndef RS485_SLAVE_ARDUINO_COMPAT
-#define RS485_SLAVE_ARDUINO_COMPAT  1   // 1 = Arduino compatible (0x72 checksum)
-#endif                                  // 0 = Calculated XOR checksum
+// *** Set in Config.h — this is only a fallback default ***
+#ifndef RS485_ARDUINO_COMPAT
+#define RS485_ARDUINO_COMPAT    1
+#endif
+
+// ============================================================================
+// RX MODE SELECTION
+// ============================================================================
+// 1 = ISR-driven RX (lowest latency, like AVR)
+//     - UART RX interrupt fires immediately when byte arrives
+//     - State machine runs IN the ISR - no polling latency
+//     - Response sent immediately from ISR when poll detected
+//     - Uses periph_module_enable (no driver install) for bare-metal access
+//     - Adds RISC-V fence instruction for FIFO read stability on C3/C6/H2
+//     - ELIMINATES driver-mode timestamp blindness (batch reading issue)
+//
+// 0 = Driver-based RX (portable fallback)
+//     - Uses ESP-IDF UART driver for RX (uart_read_bytes polling)
+//     - State machine runs in task/main loop
+//     - Slightly higher latency, may have batch-read timing issues
+//     - Use this if ISR mode doesn't work on your specific chip
+//
+// Recommended: 1 (ISR mode) for production use
+
+// *** Set in Config.h — this is only a fallback default ***
+#ifndef RS485_USE_ISR_MODE
+#define RS485_USE_ISR_MODE			1
+#endif
+
+// *** Set in Config.h — this is only a fallback default ***
+#ifndef RS485_USE_TASK
+#define RS485_USE_TASK				1
+#endif
+
+// *** Transceiver timing — Set in Config.h, these are only fallback defaults ***
+#ifndef RS485_TX_WARMUP_DELAY_US
+#define RS485_TX_WARMUP_DELAY_US    50
+#endif
+#ifndef RS485_TX_WARMUP_AUTO_DELAY_US
+#define RS485_TX_WARMUP_AUTO_DELAY_US 50
+#endif
+#ifndef RS485_TX_COOLDOWN_DELAY_US
+#define RS485_TX_COOLDOWN_DELAY_US  50
+#endif
+#ifndef RS485_TX_COOLDOWN_AUTO_DELAY_US
+#define RS485_TX_COOLDOWN_AUTO_DELAY_US 50
+#endif
+
+// Sync detection timeout (microseconds) - bus silence that resets the state machine
+// If no byte arrives within this window, the slave assumes a new packet is starting.
+// Must be longer than the longest inter-byte gap within a packet (~40us at 250kbaud)
+// but shorter than the gap between packets (~200-500us typical)
+#ifndef RS485_SYNC_TIMEOUT_US
+#define RS485_SYNC_TIMEOUT_US       500
+#endif
 
 // ============================================================================
 // BUFFER SIZES
 // ============================================================================
 
+// TX buffer for outgoing input commands (queued until polled)
 #ifndef RS485_TX_BUFFER_SIZE
-#define RS485_TX_BUFFER_SIZE    128     // Buffer for outgoing input commands
+#define RS485_TX_BUFFER_SIZE    128
+#endif
+
+// Export data buffer (for broadcast packets)
+#ifndef RS485_EXPORT_BUFFER_SIZE
+#define RS485_EXPORT_BUFFER_SIZE 512
 #endif
 
 // ============================================================================
 // TIMING SETTINGS
 // ============================================================================
 
-// These are tuned for the DCS-BIOS RS485 protocol and generally
-// should not need to be changed.
-
-// Sync gap detection (microseconds) - gap > this indicates new packet
-#ifndef RS485_SLAVE_SYNC_GAP_US
-#define RS485_SLAVE_SYNC_GAP_US     500
-#endif
-
 // RX timeout (microseconds) - max time to wait for packet completion
-#ifndef RS485_SLAVE_RX_TIMEOUT_US
-#define RS485_SLAVE_RX_TIMEOUT_US   5000
+#ifndef RS485_RX_TIMEOUT_US
+#define RS485_RX_TIMEOUT_US     5000
 #endif
+
+// ============================================================================
+// FREERTOS TASK OPTIONS
+// ============================================================================
+//
+// RS485_USE_TASK enables running RS485 slave in a dedicated FreeRTOS task
+// instead of being called from the main loop. This provides:
+//   • Deterministic response timing (critical for 2ms master timeout!)
+//   • No missed polls due to main loop delays
+//   • Better reliability on single-core chips (S2, C3, C6)
+//
+// 1 = FreeRTOS task (recommended for production)
+// 0 = Main loop (simpler, good for debugging)
+//
+
+#if RS485_USE_TASK
+
+// Task priority (higher = more important, max typically 24)
+// Should be higher than main loop to ensure we respond within master's timeout
+#ifndef RS485_TASK_PRIORITY
+#define RS485_TASK_PRIORITY     5
+#endif
+
+// Task stack size in bytes
+#ifndef RS485_TASK_STACK_SIZE
+#define RS485_TASK_STACK_SIZE   4096
+#endif
+
+// Task tick interval (how often to check for packets)
+// 1 = every tick (~1ms), but slave is interrupt-driven so this is just for housekeeping
+#ifndef RS485_TASK_TICK_INTERVAL
+#define RS485_TASK_TICK_INTERVAL 1
+#endif
+
+// *** Set in Config.h — this is only a fallback default ***
+#ifndef RS485_TASK_CORE
+#define RS485_TASK_CORE         0
+#endif
+
+#endif // RS485_USE_TASK
 
 // ============================================================================
 // DEBUG OPTIONS
 // ============================================================================
 
-#ifndef RS485_SLAVE_DEBUG_VERBOSE
-#define RS485_SLAVE_DEBUG_VERBOSE   0   // 1 = Log every poll (very verbose!)
+// *** Set in Config.h — this is only a fallback default ***
+#ifndef RS485_DEBUG_VERBOSE
+#define RS485_DEBUG_VERBOSE     0
+#endif
+
+// *** Set in Config.h — this is only a fallback default ***
+#ifndef RS485_STATUS_INTERVAL_MS
+#define RS485_STATUS_INTERVAL_MS 5000
 #endif
 
 #endif // RS485_SLAVE_CONFIG_H

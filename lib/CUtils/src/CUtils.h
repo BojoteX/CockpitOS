@@ -220,9 +220,9 @@ uint8_t parseHexByte(const char* s);
 #if RS485_MASTER_ENABLED
 bool RS485Master_init();
 void RS485Master_loop();
+void RS485Master_stop();
 void RS485Master_feedExportData(const uint8_t* data, size_t len);
-void RS485Master_setPollingRange(uint8_t minAddr, uint8_t maxAddr);
-void RS485Master_setEnabled(bool enabled);
+void RS485Master_forceFullSync();
 bool RS485Master_isSlaveOnline(uint8_t address);
 uint8_t RS485Master_getOnlineSlaveCount();
 void RS485Master_printStatus();
@@ -234,15 +234,12 @@ void RS485Master_printStatus();
 #if RS485_SLAVE_ENABLED
 bool RS485Slave_init();
 void RS485Slave_loop();
+void RS485Slave_stop();
 bool RS485Slave_queueCommand(const char* label, const char* value);
-void RS485Slave_setEnabled(bool enabled);
-bool RS485Slave_isEnabled();
-bool RS485Slave_isInitialized();
 uint32_t RS485Slave_getPollCount();
 uint32_t RS485Slave_getBroadcastCount();
 uint32_t RS485Slave_getExportBytesReceived();
 uint32_t RS485Slave_getCommandsSent();
-uint32_t RS485Slave_getChecksumErrors();
 size_t RS485Slave_getTxBufferPending();
 uint32_t RS485Slave_getTimeSinceLastPoll();
 void RS485Slave_printStatus();
