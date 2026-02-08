@@ -400,9 +400,16 @@ void loop() {
     beginProfiling(PERF_MAIN_LOOP);
     #endif
 
+    // Slave should ALWAYS be first, even before inputs!
+    #if RS485_SLAVE_ENABLED
+    RS485Slave_loop();
+    #endif    
+
     // Loop logic/order
     panelLoop();           // read inputs, update mappings
-    CoverGate_loop();      // resolve cover/armed actions
+    
+    // CoverGate_loop();      // resolve cover/armed actions
+    
     DCSBIOSBridge_loop();  // flush DCS (sees freshly queued actions)
     HIDManager_loop();     // HID flush, keep-alive, pulses
 
@@ -410,13 +417,11 @@ void loop() {
     BLE_loop();
     #endif
 
+    // Master RS485 runs last!
     #if RS485_MASTER_ENABLED
     RS485Master_loop();
     #endif
 
-    #if RS485_SLAVE_ENABLED
-    RS485Slave_loop();
-    #endif
 
     // All profiling blocks REQUIRE we close them
     #if DEBUG_PERFORMANCE

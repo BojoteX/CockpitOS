@@ -40,7 +40,7 @@
 // IMPORTANT: Master should use ISR_MODE=1, Slave should use ISR_MODE=0
 // This combination has been tested and is ROCK STABLE.
 // ============================================================================
-#define USE_ISR_MODE    0
+#define USE_ISR_MODE    1
 
 // ============================================================================
 // CLOCK SOURCE SELECTION
@@ -69,7 +69,7 @@
 // 0 = Buffered mode: Build response in buffer, write all at once to FIFO
 // 1 = Byte-by-byte mode: Write each byte individually, wait for TX idle
 //     (optional AVR-style pacing; higher ISR occupancy than buffered mode)
-#define TX_MODE_BYTE_BY_BYTE    0
+#define TX_MODE_BYTE_BY_BYTE    1
 
 // ============================================================================
 // DEBUG OPTIONS

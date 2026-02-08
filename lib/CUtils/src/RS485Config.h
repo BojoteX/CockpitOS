@@ -20,7 +20,7 @@
  *   │ • Change detection reduces bandwidth by 100-1000x                  │
  *   │ • Reconstructs valid DCS-BIOS frames for broadcast                 │
  *   │ • Best for production with known panel configurations              │
- *   │ • Uses: 32KB RAM for change tracking + change queue                │
+ *   │ • Uses: change queue + 32KB RAM only if CHANGE_DETECT=1            │
  *   └─────────────────────────────────────────────────────────────────────┘
  *
  *   ┌─────────────────────────────────────────────────────────────────────┐
@@ -54,13 +54,9 @@
 #define RS485_CONFIG_H
 
 // Enables running RS485 in a dedicated FreeRTOS task
+// *** Set in Config.h — this is only a fallback default ***
 #ifndef RS485_USE_TASK
-#define RS485_USE_TASK			1 
-#endif
-
-// Larger = more efficient, smaller = more responsive polling
-#ifndef RS485_MAX_BROADCAST_CHUNK                  64 
-#define RS485_MAX_BROADCAST_CHUNK                  64 
+#define RS485_USE_TASK			1
 #endif
 
 // ============================================================================
@@ -72,7 +68,7 @@
 // 1 = Only broadcast changed values (recommended - huge bandwidth savings)
 // 0 = Broadcast all filtered values every frame (rarely useful)
 #ifndef RS485_CHANGE_DETECT
-#define RS485_CHANGE_DETECT     1
+#define RS485_CHANGE_DETECT     0 // DCSBIOS Already has change detection, so this is optional extra filtering
 #endif
 
 // Change queue size (address/value pairs)
@@ -81,8 +77,9 @@
 #define RS485_CHANGE_QUEUE_SIZE 128
 #endif
 
-// Maximum bytes per broadcast chunk
-// Larger = more efficient, smaller = more responsive polling
+// Maximum bytes per broadcast chunk (each change = 10 bytes on wire)
+// Larger = more efficient (fewer TX turnarounds), smaller = more responsive polling
+// 64 = ~6 changes per burst (good balance), 128 = ~12, 244 = max (buffer limit)
 #ifndef RS485_MAX_BROADCAST_CHUNK
 #define RS485_MAX_BROADCAST_CHUNK 64
 #endif
@@ -157,6 +154,20 @@
 #define RS485_MAX_POLL_INTERVAL_US 2000
 #endif
 
+// *** Transceiver timing — Set in Config.h, these are only fallback defaults ***
+#ifndef RS485_TX_WARMUP_DELAY_US
+#define RS485_TX_WARMUP_DELAY_US    50
+#endif
+#ifndef RS485_TX_WARMUP_AUTO_DELAY_US
+#define RS485_TX_WARMUP_AUTO_DELAY_US 50
+#endif
+#ifndef RS485_TX_COOLDOWN_DELAY_US
+#define RS485_TX_COOLDOWN_DELAY_US  50
+#endif
+#ifndef RS485_TX_COOLDOWN_AUTO_DELAY_US
+#define RS485_TX_COOLDOWN_AUTO_DELAY_US 50
+#endif
+
 // MessageBuffer drain timeout (microseconds)
 // If a completed message hasn't been drained within this time, force-clear it.
 // Prevents stalled message processing from blocking bus polls.
@@ -180,13 +191,10 @@
 // ============================================================================
 
 // Buffer for slave input commands (switch/encoder strings from slaves)
+// Must be >= RS485_TX_BUFFER_SIZE (slave side) to avoid truncating multi-command responses.
+// Slave TX buffer default is 128 bytes. A sync burst (START + commands + FINISH) can exceed 64 bytes.
 #ifndef RS485_INPUT_BUFFER_SIZE
-#define RS485_INPUT_BUFFER_SIZE 64
-#endif
-
-// RX ring buffer size (ISR writes, loop reads)
-#ifndef RS485_RX_BUFFER_SIZE
-#define RS485_RX_BUFFER_SIZE    256
+#define RS485_INPUT_BUFFER_SIZE 256
 #endif
 
 // ============================================================================
@@ -223,10 +231,9 @@
 #endif
 
 // Core affinity for dual-core ESP32s (S3, classic ESP32)
-// 0 = Core 0, 1 = Core 1, tskNO_AFFINITY = any core
-// On single-core (S2, C3, C6), this is ignored
+// *** Set in Config.h — this is only a fallback default ***
 #ifndef RS485_TASK_CORE
-#define RS485_TASK_CORE         0
+#define RS485_TASK_CORE         1
 #endif
 
 // Command queue size (slave commands passed to main loop)
@@ -241,18 +248,15 @@
 // ============================================================================
 
 // Log every poll/response (VERY verbose - for debugging only)
+// *** Set in Config.h — this is only a fallback default ***
 #ifndef RS485_DEBUG_VERBOSE
 #define RS485_DEBUG_VERBOSE     0
 #endif
 
-// Log only errors (suppresses normal status messages)
-#ifndef RS485_DEBUG_ERRORS_ONLY
-#define RS485_DEBUG_ERRORS_ONLY 0
-#endif
-
 // Status print interval (milliseconds, 0 = disabled)
+// *** Set in Config.h — this is only a fallback default ***
 #ifndef RS485_STATUS_INTERVAL_MS
-#define RS485_STATUS_INTERVAL_MS 10000
+#define RS485_STATUS_INTERVAL_MS 5000
 #endif
 
 #endif // RS485_CONFIG_H
