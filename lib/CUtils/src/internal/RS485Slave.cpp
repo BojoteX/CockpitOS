@@ -106,13 +106,14 @@ static intr_handle_t uartIntrHandle = nullptr;
 // TIMING CONFIGURATION
 // ============================================================================
 
-// TX Warm-up delays in MICROSECONDS (portable across all ESP32 variants)
-// These give the transceiver time to switch to TX mode before data is sent
-#define TX_WARMUP_DELAY_MANUAL_US    50    // Manual DE: wait after DE asserted
-#define TX_WARMUP_DELAY_AUTO_US      50    // Auto-direction: wait for RX->TX switch
+// TX timing uses config defines directly:
+//   RS485_TX_WARMUP_DELAY_US        (manual DE warmup)
+//   RS485_TX_WARMUP_AUTO_DELAY_US   (auto-direction warmup)
+//   RS485_TX_COOLDOWN_DELAY_US      (manual DE cooldown)
+//   RS485_TX_COOLDOWN_AUTO_DELAY_US (auto-direction cooldown)
 
-// Sync detection timeout
-#define SYNC_TIMEOUT_US              500   // 500us silence = sync detected
+// Sync detection timeout (from config - do not hardcode here)
+#define SYNC_TIMEOUT_US              RS485_SYNC_TIMEOUT_US
 
 // ============================================================================
 // PROTOCOL CONSTANTS
@@ -182,7 +183,6 @@ static volatile int64_t lastRxTime = 0;
 static volatile uint8_t packetAddr = 0;
 static volatile uint8_t packetMsgType = 0;
 static volatile uint8_t packetLength = 0;
-static volatile uint8_t packetChecksum = 0;
 static volatile uint16_t packetDataIdx = 0;
 
 // Skip state
@@ -203,7 +203,6 @@ static volatile uint32_t statPolls = 0;
 static volatile uint32_t statBroadcasts = 0;
 static volatile uint32_t statExportBytes = 0;
 static volatile uint32_t statCommandsSent = 0;
-static volatile uint32_t statChecksumErrors = 0;
 
 // ============================================================================
 // FREERTOS TASK (when RS485_USE_TASK=1)
@@ -299,22 +298,10 @@ static void processExportData() {
 // ISR-MODE: TX HELPERS
 // ============================================================================
 
-// Warm up UART and enable DE for transmission (ISR-safe)
-static inline void IRAM_ATTR prepareForTransmit() {
-#if RS485_DE_PIN >= 0
-    setDE_ISR(true);
-    ets_delay_us(TX_WARMUP_DELAY_MANUAL_US);
-#else
-    ets_delay_us(TX_WARMUP_DELAY_AUTO_US);
-#endif
-}
-
 // ============================================================================
 // ISR-MODE: SEND RESPONSE (called from ISR when polled)
 // ============================================================================
-// Builds and sends response packet directly from ISR context.
-// Disables RX interrupt during TX to prevent echo bytes triggering ISR.
-// Does NOT flush RX FIFO after TX - broadcast data may have arrived.
+// Pattern: disableRx → DE assert → warmup → TX → txIdle → cooldown → flush → DE release → enableRx
 
 static void IRAM_ATTR sendResponseISR() {
     uint16_t toSend = txCount_val;
@@ -323,25 +310,30 @@ static void IRAM_ATTR sendResponseISR() {
     // Disable RX interrupt during TX to prevent echo bytes triggering ISR
     uart_ll_disable_intr_mask(uartHw, UART_INTR_RXFIFO_FULL);
 
-    // Warm up UART and enable DE
-    prepareForTransmit();
+    // Warmup
+    #if RS485_DE_PIN >= 0
+    setDE_ISR(true);
+    #if RS485_TX_WARMUP_DELAY_US > 0
+    ets_delay_us(RS485_TX_WARMUP_DELAY_US);
+    #endif
+    #else
+    #if RS485_TX_WARMUP_AUTO_DELAY_US > 0
+    ets_delay_us(RS485_TX_WARMUP_AUTO_DELAY_US);
+    #endif
+    #endif
 
     // Build complete response in local buffer for continuous transmission
-    uint8_t txBuf[RS485_TX_BUFFER_SIZE + 4];  // Length + MsgType + Data + Checksum
+    uint8_t txBuf[RS485_TX_BUFFER_SIZE + 4];
     uint8_t txLen = 0;
 
     if (toSend == 0) {
-        // Empty response - just [0x00]
         txBuf[txLen++] = 0x00;
     } else {
-        // Response with data: [Length][MsgType=0][Data...][Checksum]
         uint8_t checksum = (uint8_t)toSend;
-
-        txBuf[txLen++] = (uint8_t)toSend;     // Length
-        txBuf[txLen++] = MSGTYPE_DCSBIOS;      // MsgType
+        txBuf[txLen++] = (uint8_t)toSend;
+        txBuf[txLen++] = MSGTYPE_DCSBIOS;
         checksum ^= MSGTYPE_DCSBIOS;
 
-        // Copy data from TX ring buffer
         for (uint16_t i = 0; i < toSend; i++) {
             uint8_t c = txBuffer[txTail % RS485_TX_BUFFER_SIZE];
             txBuf[txLen++] = c;
@@ -350,7 +342,6 @@ static void IRAM_ATTR sendResponseISR() {
             txCount_val--;
         }
 
-        // Add checksum
         #if RS485_ARDUINO_COMPAT
         txBuf[txLen++] = CHECKSUM_FIXED;
         #else
@@ -360,23 +351,23 @@ static void IRAM_ATTR sendResponseISR() {
         statCommandsSent++;
     }
 
-    // Send entire buffer at once via FIFO (128 bytes, plenty for our messages)
+    // TX
     uart_ll_write_txfifo(uartHw, txBuf, txLen);
-
-    // Wait for transmission to fully complete
     while (!uart_ll_is_tx_idle(uartHw));
 
-#if RS485_DE_PIN >= 0 && RS485_TX_COOLDOWN_DELAY_US > 0
-    // Allow transceiver TX->RX turnaround before releasing DE
+    // Cooldown + flush
+    #if RS485_DE_PIN >= 0
+    #if RS485_TX_COOLDOWN_DELAY_US > 0
     ets_delay_us(RS485_TX_COOLDOWN_DELAY_US);
-#endif
-
-    // Disable driver
+    #endif
+    uart_ll_rxfifo_rst(uartHw);
     setDE_ISR(false);
-
-    // NOTE: We intentionally do NOT flush RX FIFO here!
-    // Flushing would destroy broadcast data that arrived during TX.
-    // The state machine transition to RX_WAIT_ADDRESS handles any stale bytes.
+    #else
+    #if RS485_TX_COOLDOWN_AUTO_DELAY_US > 0
+    ets_delay_us(RS485_TX_COOLDOWN_AUTO_DELAY_US);
+    #endif
+    uart_ll_rxfifo_rst(uartHw);
+    #endif
 
     // Re-enable RX interrupt
     uart_ll_clr_intsts_mask(uartHw, UART_INTR_RXFIFO_FULL);
@@ -422,19 +413,16 @@ static void IRAM_ATTR uart_isr_handler(void* arg) {
         switch (state) {
             case SlaveState::RX_WAIT_ADDRESS:
                 packetAddr = c;
-                packetChecksum = c;
                 state = SlaveState::RX_WAIT_MSGTYPE;
                 break;
 
             case SlaveState::RX_WAIT_MSGTYPE:
                 packetMsgType = c;
-                packetChecksum ^= c;
                 state = SlaveState::RX_WAIT_LENGTH;
                 break;
 
             case SlaveState::RX_WAIT_LENGTH:
                 packetLength = c;
-                packetChecksum ^= c;
                 packetDataIdx = 0;
 
                 if (packetLength == 0) {
@@ -485,7 +473,6 @@ static void IRAM_ATTR uart_isr_handler(void* arg) {
                     exportBuffer[exportWritePos] = c;
                     exportWritePos = (exportWritePos + 1) % RS485_EXPORT_BUFFER_SIZE;
                 }
-                packetChecksum ^= c;
                 packetDataIdx++;
 
                 if (packetDataIdx >= packetLength) {
@@ -494,10 +481,7 @@ static void IRAM_ATTR uart_isr_handler(void* arg) {
                 break;
 
             case SlaveState::RX_WAIT_CHECKSUM:
-                // Verify checksum (log error but still process - some masters use 0x72)
-                if (c != packetChecksum) {
-                    statChecksumErrors++;
-                }
+                // Checksum intentionally ignored (AVR behavior, checksum is not validated in protocol)
 
                 // Handle completed packet
                 if (packetAddr == ADDR_BROADCAST) {
@@ -697,67 +681,110 @@ static uint32_t rxStartUs = 0;  // For RX timeout detection
 // DRIVER-MODE: TX RESPONSE (send queued commands to master)
 // ============================================================================
 
-static void sendResponse() {
-    uint16_t toSend = txCount();
-    if (toSend > 253) toSend = 253;  // Max that fits in Length byte
+// Fast path: no input data queued — send single 0x00 byte (99%+ of polls)
+// Pattern: DE assert → warmup → TX → txDone → cooldown → flush → DE release
+static void sendZeroLengthResponse() {
+    uint8_t zero = 0x00;
 
-    // Build response packet
-    uint8_t txBuf[RS485_TX_BUFFER_SIZE + 4];  // Length + MsgType + Data + Checksum
-    uint8_t txLen = 0;
-
-    if (toSend == 0) {
-        // Empty response - just [0x00]
-        txBuf[txLen++] = 0x00;
-    } else {
-        // Response with data: [Length][MsgType=0][Data...][Checksum]
-        uint8_t checksum = (uint8_t)toSend;  // Start with length
-
-        txBuf[txLen++] = (uint8_t)toSend;  // Length
-        txBuf[txLen++] = MSGTYPE_DCSBIOS;  // MsgType
-        checksum ^= MSGTYPE_DCSBIOS;
-
-        // Copy data from TX buffer
-        for (uint16_t i = 0; i < toSend; i++) {
-            uint8_t c = txBuffer[txTail % RS485_TX_BUFFER_SIZE];
-            txBuf[txLen++] = c;
-            checksum ^= c;
-            txTail++;
-            txCount_val--;
-        }
-
-        // Add checksum
-        #if RS485_ARDUINO_COMPAT
-        txBuf[txLen++] = CHECKSUM_FIXED;
-        #else
-        txBuf[txLen++] = checksum;
-        #endif
-
-        statCommandsSent++;
-    }
-
-    // Enable DE for transmission
+    // Warmup
     #if RS485_DE_PIN >= 0
     setDE(true);
-    ets_delay_us(TX_WARMUP_DELAY_MANUAL_US);
+    #if RS485_TX_WARMUP_DELAY_US > 0
+    ets_delay_us(RS485_TX_WARMUP_DELAY_US);
+    #endif
     #else
-    ets_delay_us(TX_WARMUP_DELAY_AUTO_US);
+    #if RS485_TX_WARMUP_AUTO_DELAY_US > 0
+    ets_delay_us(RS485_TX_WARMUP_AUTO_DELAY_US);
+    #endif
     #endif
 
-    // Send via driver
+    // TX
+    uart_write_bytes((uart_port_t)RS485_UART_NUM, (const char*)&zero, 1);
+    uart_wait_tx_done((uart_port_t)RS485_UART_NUM, pdMS_TO_TICKS(10));
+
+    // Cooldown + flush
+    #if RS485_DE_PIN >= 0
+    #if RS485_TX_COOLDOWN_DELAY_US > 0
+    ets_delay_us(RS485_TX_COOLDOWN_DELAY_US);
+    #endif
+    uart_flush_input((uart_port_t)RS485_UART_NUM);
+    setDE(false);
+    #else
+    #if RS485_TX_COOLDOWN_AUTO_DELAY_US > 0
+    ets_delay_us(RS485_TX_COOLDOWN_AUTO_DELAY_US);
+    #endif
+    uart_flush_input((uart_port_t)RS485_UART_NUM);
+    #endif
+
+    state = SlaveState::RX_WAIT_ADDRESS;
+}
+
+// Slow path: input data queued — build and send full response packet
+// Pattern: build packet → DE assert → warmup → TX → txDone → cooldown → flush → DE release
+static void sendResponse() {
+    uint16_t toSend = txCount();
+    if (toSend == 0) {
+        sendZeroLengthResponse();
+        return;
+    }
+    if (toSend > 253) toSend = 253;
+
+    // Build response packet: [Length][MsgType=0][Data...][Checksum]
+    uint8_t txBuf[RS485_TX_BUFFER_SIZE + 4];
+    uint8_t txLen = 0;
+    uint8_t checksum = (uint8_t)toSend;
+
+    txBuf[txLen++] = (uint8_t)toSend;
+    txBuf[txLen++] = MSGTYPE_DCSBIOS;
+    checksum ^= MSGTYPE_DCSBIOS;
+
+    for (uint16_t i = 0; i < toSend; i++) {
+        uint8_t c = txBuffer[txTail % RS485_TX_BUFFER_SIZE];
+        txBuf[txLen++] = c;
+        checksum ^= c;
+        txTail++;
+        txCount_val--;
+    }
+
+    #if RS485_ARDUINO_COMPAT
+    txBuf[txLen++] = CHECKSUM_FIXED;
+    #else
+    txBuf[txLen++] = checksum;
+    #endif
+
+    statCommandsSent++;
+
+    // Warmup
+    #if RS485_DE_PIN >= 0
+    setDE(true);
+    #if RS485_TX_WARMUP_DELAY_US > 0
+    ets_delay_us(RS485_TX_WARMUP_DELAY_US);
+    #endif
+    #else
+    #if RS485_TX_WARMUP_AUTO_DELAY_US > 0
+    ets_delay_us(RS485_TX_WARMUP_AUTO_DELAY_US);
+    #endif
+    #endif
+
+    // TX
     uart_write_bytes((uart_port_t)RS485_UART_NUM, (const char*)txBuf, txLen);
     uart_wait_tx_done((uart_port_t)RS485_UART_NUM, pdMS_TO_TICKS(10));
 
-    // Release DE
+    // Cooldown + flush
+    #if RS485_DE_PIN >= 0
+    #if RS485_TX_COOLDOWN_DELAY_US > 0
+    ets_delay_us(RS485_TX_COOLDOWN_DELAY_US);
+    #endif
+    uart_flush_input((uart_port_t)RS485_UART_NUM);
     setDE(false);
+    #else
+    #if RS485_TX_COOLDOWN_AUTO_DELAY_US > 0
+    ets_delay_us(RS485_TX_COOLDOWN_AUTO_DELAY_US);
+    #endif
+    uart_flush_input((uart_port_t)RS485_UART_NUM);
+    #endif
 
-    // DO NOT flush the UART RX buffer here!
-    // The master can react to our response and start broadcasting the next frame
-    // BEFORE we finish our post-TX cleanup. uart_flush_input() would destroy
-    // those broadcast bytes, causing the slave to miss export data.
-    //
-    // Instead, transition to RX_SYNC to safely re-acquire bus framing.
-    state = SlaveState::RX_SYNC;
-    lastRxTime = esp_timer_get_time();
+    state = SlaveState::RX_WAIT_ADDRESS;
 }
 
 // ============================================================================
@@ -804,20 +831,17 @@ static void processRxByte(uint8_t c) {
     switch (state) {
         case SlaveState::RX_WAIT_ADDRESS:
             packetAddr = c;
-            packetChecksum = c;
             rxStartUs = micros();
             state = SlaveState::RX_WAIT_MSGTYPE;
             break;
 
         case SlaveState::RX_WAIT_MSGTYPE:
             packetMsgType = c;
-            packetChecksum ^= c;
             state = SlaveState::RX_WAIT_LENGTH;
             break;
 
         case SlaveState::RX_WAIT_LENGTH:
             packetLength = c;
-            packetChecksum ^= c;
             packetDataIdx = 0;
 
             if (packetLength == 0) {
@@ -847,7 +871,6 @@ static void processRxByte(uint8_t c) {
                 exportBuffer[exportWritePos] = c;
                 exportWritePos = (exportWritePos + 1) % RS485_EXPORT_BUFFER_SIZE;
             }
-            packetChecksum ^= c;
             packetDataIdx++;
 
             if (packetDataIdx >= packetLength) {
@@ -856,12 +879,7 @@ static void processRxByte(uint8_t c) {
             break;
 
         case SlaveState::RX_WAIT_CHECKSUM:
-            if (c != packetChecksum) {
-                statChecksumErrors++;
-                #if RS485_DEBUG_VERBOSE
-                debugPrintf("[RS485S] Checksum error: got 0x%02X, expected 0x%02X\n", c, packetChecksum);
-                #endif
-            }
+            // Checksum intentionally ignored (AVR behavior, checksum is not validated in protocol)
             handlePacketComplete();
             break;
 
@@ -1220,7 +1238,6 @@ void RS485Slave_printStatus() {
     debugPrintf("[RS485S] Export bytes RX: %lu\n", statExportBytes);
     debugPrintf("[RS485S] Commands sent: %lu\n", statCommandsSent);
     debugPrintf("[RS485S] TX buffer pending: %d bytes\n", txCount());
-    debugPrintf("[RS485S] Checksum errors: %lu\n", statChecksumErrors);
     debugPrintf("[RS485S] Time since last poll: %lu ms\n", RS485Slave_getTimeSinceLastPoll());
     #if RS485_USE_TASK
     debugPrintf("[RS485S] Execution: FreeRTOS task (priority %d)\n", RS485_TASK_PRIORITY);

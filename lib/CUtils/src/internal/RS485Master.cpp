@@ -44,6 +44,7 @@
 #include "driver/uart.h"
 #include "driver/gpio.h"
 #include "hal/uart_ll.h"
+#include "hal/gpio_ll.h"
 #include "soc/uart_periph.h"
 
 // FreeRTOS includes (for task mode)
@@ -118,12 +119,17 @@ private:
 
 public:
     volatile bool complete;
+    volatile uint32_t dropCount;
 
-    MessageBuffer() : writePos(0), readPos(0), complete(false) {}
+    MessageBuffer() : writePos(0), readPos(0), complete(false), dropCount(0) {}
 
     void IRAM_ATTR put(uint8_t c) {
-        buffer[writePos % SIZE] = c;
-        writePos++;
+        if (getLength() < SIZE) {  // Overflow protection: drop byte if buffer full
+            buffer[writePos % SIZE] = c;
+            writePos++;
+        } else {
+            dropCount++;
+        }
     }
 
     uint8_t get() {
@@ -467,13 +473,13 @@ static void IRAM_ATTR rxISR(void* arg) {
 
 static inline void deAssert() {
     #if RS485_DE_PIN >= 0
-    GPIO.out_w1ts = (1UL << RS485_DE_PIN);
+    gpio_ll_set_level(&GPIO, (gpio_num_t)RS485_DE_PIN, 1);
     #endif
 }
 
 static inline void deDeassert() {
     #if RS485_DE_PIN >= 0
-    GPIO.out_w1tc = (1UL << RS485_DE_PIN);
+    gpio_ll_set_level(&GPIO, (gpio_num_t)RS485_DE_PIN, 0);
     #endif
 }
 
@@ -506,17 +512,37 @@ static void txBytes(const uint8_t* data, size_t len) {
 }
 
 // Transmit with echo prevention
+// Pattern: disableRx → DE assert → warmup → TX → txIdle → cooldown → flush → DE release → enableRx
 static void txWithEchoPrevention(const uint8_t* data, size_t len) {
     disableRxInt();
+
+    #if RS485_DE_PIN >= 0
     deAssert();
+    #if RS485_TX_WARMUP_DELAY_US > 0
+    ets_delay_us(RS485_TX_WARMUP_DELAY_US);
+    #endif
+    #else
+    #if RS485_TX_WARMUP_AUTO_DELAY_US > 0
+    ets_delay_us(RS485_TX_WARMUP_AUTO_DELAY_US);
+    #endif
+    #endif
 
     txBytes(data, len);
-
-    // Wait for TX to complete
     while (!txIdle()) {}
 
-    deDeassert();
+    #if RS485_DE_PIN >= 0
+    #if RS485_TX_COOLDOWN_DELAY_US > 0
+    ets_delay_us(RS485_TX_COOLDOWN_DELAY_US);
+    #endif
     flushRxFifo();
+    deDeassert();
+    #else
+    #if RS485_TX_COOLDOWN_AUTO_DELAY_US > 0
+    ets_delay_us(RS485_TX_COOLDOWN_AUTO_DELAY_US);
+    #endif
+    flushRxFifo();
+    #endif
+
     enableRxInt();
 }
 
@@ -529,7 +555,7 @@ static void txWithEchoPrevention(const uint8_t* data, size_t len) {
 static void prepareBroadcastData() {
     broadcastLen = 0;
 
-    while (changeCount > 0 && broadcastLen < (256 - 12)) {
+    while (changeCount > 0 && broadcastLen < RS485_MAX_BROADCAST_CHUNK) {
         Change& change = changeQueue[changeTail];
 
         // Build complete DCS-BIOS frame for this change
@@ -626,36 +652,50 @@ static void sendTimeoutZero() {
 static void processInputCommand(const uint8_t* data, size_t len) {
     if (len == 0) return;
 
-    // Parse "LABEL VALUE\n" format
-    char cmdBuf[64];
+    // Response may contain multiple newline-delimited commands:
+    //   "MASTER_ARM_SW 1\nFLAP_SW 2\n"
+    // Split on '\n' and process each command individually.
+    char cmdBuf[RS485_INPUT_BUFFER_SIZE];
     size_t cmdLen = (len >= sizeof(cmdBuf)) ? sizeof(cmdBuf) - 1 : len;
     memcpy(cmdBuf, data, cmdLen);
     cmdBuf[cmdLen] = '\0';
 
-    // Trim trailing newlines
-    while (cmdLen > 0 && (cmdBuf[cmdLen-1] == '\n' || cmdBuf[cmdLen-1] == '\r')) {
-        cmdBuf[--cmdLen] = '\0';
+    char* cursor = cmdBuf;
+    for (int cmdLimit = 0; cmdLimit < 16 && *cursor; cmdLimit++) {
+        // Skip leading whitespace/newlines
+        while (*cursor == '\n' || *cursor == '\r' || *cursor == ' ') cursor++;
+        if (*cursor == '\0') break;
+
+        // Find end of this command (next newline or end of string)
+        char* eol = cursor;
+        while (*eol && *eol != '\n' && *eol != '\r') eol++;
+        char saved = *eol;
+        *eol = '\0';
+
+        // Parse "LABEL VALUE" from this single command
+        char* space = strchr(cursor, ' ');
+        if (space) {
+            *space = '\0';
+            const char* label = cursor;
+            const char* value = space + 1;
+
+            #if RS485_DEBUG_VERBOSE
+            debugPrintf("[RS485M] CMD: %s = %s (slave %d)\n", label, value, currentPollAddr);
+            #endif
+
+            statInputCmds++;
+
+            #if RS485_USE_TASK
+            queueSlaveCommand(label, value);
+            #else
+            sendCommand(label, value, false);
+            #endif
+        }
+
+        // Advance past this command
+        if (saved == '\0') break;  // Was end of string
+        cursor = eol + 1;
     }
-
-    char* space = strchr(cmdBuf, ' ');
-    if (!space) return;  // Malformed
-
-    *space = '\0';
-    const char* label = cmdBuf;
-    const char* value = space + 1;
-
-    #if RS485_DEBUG_VERBOSE
-    debugPrintf("[RS485M] CMD: %s = %s (slave %d)\n", label, value, currentPollAddr);
-    #endif
-
-    statInputCmds++;
-
-    // Send to CockpitOS (via queue if task mode, direct if main loop mode)
-    #if RS485_USE_TASK
-    queueSlaveCommand(label, value);
-    #else
-    sendCommand(label, value, false);
-    #endif
 }
 
 // Process completed message from messageBuffer (called from main loop)
@@ -968,11 +1008,11 @@ static void rs485PollLoop() {
         float respRate = statPolls > 0 ? 100.0f * statResponses / statPolls : 0;
 
         #if RS485_SMART_MODE
-        debugPrintf("[RS485M] Polls=%lu Resp=%.1f%% Bcasts=%lu Cmds=%lu Slaves=%d Queue=%d\n",
-                    statPolls, respRate, statBroadcasts, statInputCmds, onlineCount, changeCount);
+        debugPrintf("[RS485M] Polls=%lu Resp=%.1f%% Bcasts=%lu Cmds=%lu Slaves=%d Queue=%d Drops=%lu\n",
+                    statPolls, respRate, statBroadcasts, statInputCmds, onlineCount, changeCount, messageBuffer.dropCount);
         #else
-        debugPrintf("[RS485M] Polls=%lu Resp=%.1f%% Bcasts=%lu Cmds=%lu Slaves=%d Raw=%d\n",
-                    statPolls, respRate, statBroadcasts, statInputCmds, onlineCount, rawCount());
+        debugPrintf("[RS485M] Polls=%lu Resp=%.1f%% Bcasts=%lu Cmds=%lu Slaves=%d Raw=%d Drops=%lu\n",
+                    statPolls, respRate, statBroadcasts, statInputCmds, onlineCount, rawCount(), messageBuffer.dropCount);
         #endif
     }
     #endif

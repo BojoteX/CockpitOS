@@ -50,11 +50,6 @@
 #ifndef RS485_SLAVE_CONFIG_H
 #define RS485_SLAVE_CONFIG_H
 
- // Enables running RS485 in a dedicated FreeRTOS task
-#ifndef RS485_USE_TASK
-#define RS485_USE_TASK			1 
-#endif
-
 // ============================================================================
 // SLAVE ADDRESS (REQUIRED - must be unique on the bus!)
 // ============================================================================
@@ -105,9 +100,10 @@
 // Set to 1 for maximum compatibility with Arduino masters.
 // Set to 0 to use proper calculated XOR checksum.
 
+// *** Set in Config.h — this is only a fallback default ***
 #ifndef RS485_ARDUINO_COMPAT
-#define RS485_ARDUINO_COMPAT    1       // 1 = Arduino compatible (0x72 checksum)
-#endif                                  // 0 = Calculated XOR checksum
+#define RS485_ARDUINO_COMPAT    1
+#endif
 
 // ============================================================================
 // RX MODE SELECTION
@@ -128,14 +124,36 @@
 //
 // Recommended: 1 (ISR mode) for production use
 
+// *** Set in Config.h — this is only a fallback default ***
 #ifndef RS485_USE_ISR_MODE
-#define RS485_USE_ISR_MODE      1
+#define RS485_USE_ISR_MODE			1
 #endif
 
-// TX cooldown delay (microseconds) - post-TX delay before DE deassert
-// Covers transceiver TX->RX turnaround time. 0 = disabled (recommended)
+// *** Set in Config.h — this is only a fallback default ***
+#ifndef RS485_USE_TASK
+#define RS485_USE_TASK				1
+#endif
+
+// *** Transceiver timing — Set in Config.h, these are only fallback defaults ***
+#ifndef RS485_TX_WARMUP_DELAY_US
+#define RS485_TX_WARMUP_DELAY_US    50
+#endif
+#ifndef RS485_TX_WARMUP_AUTO_DELAY_US
+#define RS485_TX_WARMUP_AUTO_DELAY_US 50
+#endif
 #ifndef RS485_TX_COOLDOWN_DELAY_US
-#define RS485_TX_COOLDOWN_DELAY_US  0
+#define RS485_TX_COOLDOWN_DELAY_US  50
+#endif
+#ifndef RS485_TX_COOLDOWN_AUTO_DELAY_US
+#define RS485_TX_COOLDOWN_AUTO_DELAY_US 50
+#endif
+
+// Sync detection timeout (microseconds) - bus silence that resets the state machine
+// If no byte arrives within this window, the slave assumes a new packet is starting.
+// Must be longer than the longest inter-byte gap within a packet (~40us at 250kbaud)
+// but shorter than the gap between packets (~200-500us typical)
+#ifndef RS485_SYNC_TIMEOUT_US
+#define RS485_SYNC_TIMEOUT_US       500
 #endif
 
 // ============================================================================
@@ -145,11 +163,6 @@
 // TX buffer for outgoing input commands (queued until polled)
 #ifndef RS485_TX_BUFFER_SIZE
 #define RS485_TX_BUFFER_SIZE    128
-#endif
-
-// RX ring buffer size (ISR writes, loop reads)
-#ifndef RS485_RX_BUFFER_SIZE
-#define RS485_RX_BUFFER_SIZE    512
 #endif
 
 // Export data buffer (for broadcast packets)
@@ -199,9 +212,7 @@
 #define RS485_TASK_TICK_INTERVAL 1
 #endif
 
-// Core affinity for dual-core ESP32s (S3, classic ESP32)
-// 0 = Core 0, 1 = Core 1, tskNO_AFFINITY = any core
-// On single-core (S2, C3, C6), this is ignored
+// *** Set in Config.h — this is only a fallback default ***
 #ifndef RS485_TASK_CORE
 #define RS485_TASK_CORE         0
 #endif
@@ -212,12 +223,12 @@
 // DEBUG OPTIONS
 // ============================================================================
 
-// Log every packet (VERY verbose - for debugging only)
+// *** Set in Config.h — this is only a fallback default ***
 #ifndef RS485_DEBUG_VERBOSE
 #define RS485_DEBUG_VERBOSE     0
 #endif
 
-// Status print interval (milliseconds, 0 = disabled)
+// *** Set in Config.h — this is only a fallback default ***
 #ifndef RS485_STATUS_INTERVAL_MS
 #define RS485_STATUS_INTERVAL_MS 5000
 #endif
