@@ -744,6 +744,17 @@ void parseDcsBiosUdpPacket(const uint8_t* data, size_t len) {
 
 }
 
+/**
+ * V2.3 RS485 Slave: Process a single export byte
+ *
+ * Called from RS485Slave.cpp when draining the ring buffer.
+ * This matches the standalone slave.ino behavior: byte-by-byte processing
+ * with immediate parsing, allowing continuous streaming without data loss.
+ */
+void processDcsBiosExportByte(uint8_t c) {
+    DcsBios::parser.processChar(c);
+}
+
 #if USE_DCSBIOS_WIFI || USE_DCSBIOS_USB || USE_DCSBIOS_BLUETOOTH
 void onDcsBiosUdpPacket() {
 

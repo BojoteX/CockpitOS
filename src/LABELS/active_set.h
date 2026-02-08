@@ -1,5 +1,5 @@
-// PID:0x6E2A 
+// PID:0x471F 
 
 #pragma once
 
-#define LABEL_SET IFEI
+#define LABEL_SET MASTER_SAMPLE
