@@ -8,15 +8,10 @@
 // "generate_data.py" script located there. After running the auto-generator, that set will become the default.
 // ==============================================================================================================
 
-#include "src/LABELS/active_set.h"
-#if !defined(LABEL_SET)
-  #error "You need to run the auto-generator script in the LABELS directory"
-#endif
-
 // Versioning for internal use
-#define VERSION_CURRENT        "R.1.1.4_dev_02-07-26" // Just to troubleshoot instalations
+#define VERSION_CURRENT        "R.1.1.4_dev_02-09-26" // Just to troubleshoot instalations
 
-// Your personal Wi-Fi network credentials should be stored in .credentials/wifi.h. If file not found or does not exists yet, we use defaults ("TestNetwork" / "TestingOnly")
+// Your personal Wi-Fi network credentials should be stored in .credentials/wifi.h. If file wifi.h not found or does not exists yet, we use defaults ("TestNetwork" / "TestingOnly")
 #if __has_include(".credentials/wifi.h")
   #include ".credentials/wifi.h"                      // We store out credentials for Wi-Fi here (if file does NOT exists or is not created we use defaults above)
 #else
@@ -24,23 +19,23 @@
   #define WIFI_PASS                     "TestingOnly" // Make sure your Wi-Fi router supports WPA2-PSK (AES/CCMP), otherwise, device will not connect *** THIS IS VERY IMPORTANT ***. ESP32s will Connect to 2.4 GHz and WPA2-PSK (AES/CCMP) capable routers ONLY so make sure yours supports these requirements.
 #endif
 
-// Is this an RS-485 Master? leave to 0 for normal operation.
-#define RS485_MASTER_ENABLED                        1 // Set as RS-485 Master. Polls slaves. Forwards data, you still need to choose a transport above (WiFi, Serial, USB etc)
-
-// Here is where you tell the firmware which 'transport' will be used to SEND and RECEIVE data to/from DCS. 
+// Here is where you tell the firmware which 'transport' will be used to Communicate with the simulator (only ONE can be selected). 
 // Bluetooth BLE, Pure Native USB, WIFI, Serial (CDC/Socat) or as an RS485 slave. ** Only ONE ** can be active 
 #define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included in Open Source version of CockpitOS) (Works on ALL ESP32s except S2s and some P4s).
-#define USE_DCSBIOS_WIFI                            1 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
+#define USE_DCSBIOS_WIFI                            0 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
 #define USE_DCSBIOS_USB                             0 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
-#define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
-#define RS485_SLAVE_ENABLED                         0 // Set as RS-485 Slave, you need to also run a master RS485 
+#define USE_DCSBIOS_SERIAL                          1 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
+#define RS485_SLAVE_ENABLED                         0 // Set as RS-485 Slave, you need to also run a master RS485 on a separate device
+
+// Is this an RS-485 Master? leave to 0 for normal operation.
+#define RS485_MASTER_ENABLED                        1 // Set as RS-485 Master. Polls slaves. Forwards data, you still need to choose a transport above (WiFi, Serial, USB etc)
 
 // RS485 *** [ Slave ] *** (Only if RS485_SLAVE_ENABLED is set to 1)
 #define RS485_SLAVE_ADDRESS                         1 // This is the Slave addres ID! Only use when RS485_SLAVE_ENABLED (above) is set to 1. Choose a device address between (1-126) each slave should have a unique address
 #define RS485_USE_ISR_MODE                          1 // 1 = ISR-driven RX (lowest latency, recommended). 0 = Driver-based RX (fallback). Master is always ISR regardless.
 
 // RS485 *** [ Master ] *** (Option only work when RS485_MASTER_ENABLED is set to 1)
-#define RS485_SMART_MODE                            1 // If enabled, filters by DcsOutputTable (only addresses your slaves need). see selected_panels.txt in your panel LABEL SET. Keep in mind SMART mode reduces BANDWIDTH on the RS485 bus at the expense of slightly increased LATENCY (due to filtering)
+#define RS485_SMART_MODE                            0 // If enabled, filters by DcsOutputTable (only addresses your slaves need). see selected_panels.txt in your panel LABEL SET. Keep in mind SMART mode reduces BANDWIDTH on the RS485 bus at the expense of slightly increased LATENCY (due to filtering)
 #define RS485_MAX_SLAVE_ADDRESS                   127 // Maximum slave address to poll (valid range: 1-127).        
 
 // RS485 (Optional) only for Slave/Master RS485 setups
@@ -55,12 +50,12 @@
 // Cooldown = delay after last bit before switching back to RX (protects last bit on wire).
 // Manual = when using a DE pin. Auto = when transceiver handles direction internally.
 // Set to 0 to disable individual delays. All default to 50µs.
-//
-#define RS485_TX_WARMUP_DELAY_US                  50  // Manual DE: delay after DE assert before TX
-#define RS485_TX_COOLDOWN_DELAY_US                50  // Manual DE: delay after TX complete before flush + DE release
-#define RS485_TX_WARMUP_AUTO_DELAY_US              0  // Auto-direction: delay before TX (internal RX→TX switch)
-#define RS485_TX_COOLDOWN_AUTO_DELAY_US           15  // Auto-direction: delay after TX complete before flush
-//
+
+#define RS485_TX_WARMUP_DELAY_US                  50 // Manual DE: delay after DE assert before TX
+#define RS485_TX_COOLDOWN_DELAY_US                50 // Manual DE: delay after TX complete before flush + DE release
+#define RS485_TX_WARMUP_AUTO_DELAY_US              0 // Auto-direction: delay before TX (internal RX→TX switch)
+#define RS485_TX_COOLDOWN_AUTO_DELAY_US           15 // Auto-direction: delay after TX complete before flush
+
 // RS485 Master Task Configuration:
 //   WiFi transport (USE_DCSBIOS_WIFI=1):  Set RS485_USE_TASK=0. WiFi runs on Core 0, loop() on Core 1.
 //                                         Running RS485 in loop() gives tightest parse-to-broadcast pipeline
@@ -73,10 +68,8 @@
 #define RS485_USE_TASK                              1  // 0 = runs in loop() (best for WiFi). 1 = dedicated FreeRTOS task (best for USB/Serial/BLE)
 #define RS485_TASK_CORE                             0  // Only relevant/used when RS485_USE_TASK is set to 1 (see above). 0 = Core 0 (ideal when no WiFi). 1 = Core 1 (shares with loop). Ignored on single-core chips
 
-#define RS485_TEST_LED_GPIO                         2 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
-// #define RS485_TEST_LED_GPIO                        15 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
-
 // REMOVE FOR PRODUCTION
+#define RS485_TEST_LED_GPIO                         2 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
 #define RS485_TEST_BUTTON_GPIO                      0 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
 #define RS485_TEST_SWITCH_GPIO                      1 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
 
@@ -85,10 +78,10 @@
 
 // For production, ALL THESE should be set to 0. Use for debugging only.
 #define DEBUG_ENABLED                               0  // Use it ONLY when identifying issues or troubleshooting. Not required when using VERBOSE modes below
-#define DEBUG_PERFORMANCE                           1  // Shows profiling for specific tasks and memory usage for debug and troubleshooting.
+#define DEBUG_PERFORMANCE                           0  // Shows profiling for specific tasks and memory usage for debug and troubleshooting.
 #define VERBOSE_MODE                                0  // Verbose will output to both WiFi & Serial (Uses a LOT of Memory, might fail compile on S2 devices).
 #define VERBOSE_MODE_SERIAL_ONLY                    0  // Verbose will only output to Serial. 
-#define VERBOSE_MODE_WIFI_ONLY                      1  // Verbose will only output to WiFi.
+#define VERBOSE_MODE_WIFI_ONLY                      0  // Verbose will only output to WiFi.
 #define VERBOSE_PERFORMANCE_ONLY                    0  // This will output perf snapshots ONLY, make sure you pick VERBOSE_MODE_SERIAL_ONLY or VERBOSE_MODE_WIFI_ONLY so that we know where to output those snapshot ONLY messages.
 #define DEBUG_PERFORMANCE_SHOW_TASKS                0  // Includes the current task list with the snapshot. Not really needed.
 #define DEBUG_LISTENERS_AT_STARTUP                  0  // Debug Listeners for ADVANCED troubleshooting! usually not needed.
@@ -357,4 +350,9 @@
   #else
     #define LED_BUILTIN -1 // Default LED pin
   #endif
+#endif
+
+#include "src/LABELS/active_set.h"
+#if !defined(LABEL_SET)
+  #error "You need to run the auto-generator script in the LABELS directory"
 #endif
