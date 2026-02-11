@@ -2,4 +2,4 @@
 
 #pragma once
 
-#define LABEL_SET MASTER_SAMPLE
+#define LABEL_SET SLAVE_SAMPLE

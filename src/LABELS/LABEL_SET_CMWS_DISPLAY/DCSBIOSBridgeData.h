@@ -239,23 +239,23 @@ static constexpr size_t numDisplayFields = sizeof(displayFields)/sizeof(displayF
 
 struct DisplayFieldHashEntry { const char* label; const DisplayFieldDef* def; };
 static const DisplayFieldHashEntry displayFieldsByLabel[17] = {
-  {"PLT_CMWS_BIT_LINE_2", &displayFields[1]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
   {nullptr, nullptr},
   {"PLT_CMWS_CHAFF_COUNT", &displayFields[2]},
-  {"PLT_CMWS_PAGE", &displayFields[6]},
   {nullptr, nullptr},
-  {"PLT_CMWS_FLARE_COUNT", &displayFields[4]},
+  {nullptr, nullptr},
   {"PLT_CMWS_FLARE_LETTER", &displayFields[5]},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
   {"PLT_CMWS_CHAFF_LETTER", &displayFields[3]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"PLT_CMWS_FLARE_COUNT", &displayFields[4]},
   {nullptr, nullptr},
   {"PLT_CMWS_BIT_LINE_1", &displayFields[0]},
+  {"PLT_CMWS_BIT_LINE_2", &displayFields[1]},
+  {"PLT_CMWS_PAGE", &displayFields[6]},
+  {nullptr, nullptr},
 };
 
 // Shared recursive hash implementation for display label lookup
@@ -266,7 +266,7 @@ inline const DisplayFieldDef* findDisplayFieldByLabel(const char* label) {
   for (uint16_t i = 0; i < 17; ++i) {
     uint16_t idx = (startH + i >= 17) ? (startH + i - 17) : (startH + i);
     const auto& entry = displayFieldsByLabel[idx];
-    if (!entry.label) continue;
+    if (!entry.label) return nullptr;
     if (strcmp(entry.label, label) == 0) return entry.def;
   }
   return nullptr;
@@ -296,22 +296,8 @@ static const size_t numMetadataStates = sizeof(metadataStates)/sizeof(metadataSt
 
 struct MetadataHashEntry { const char* label; MetadataState* state; };
 static MetadataHashEntry metadataHashTable[29] = {
-  {"PLT_CMWS_AFT_RIGHT_DIM_L", &metadataStates[3]},
-  {"PLT_CMWS_FWD_LEFT_DIM_L", &metadataStates[7]},
   {"PLT_CMWS_AFT_RIGHT_BRT_L", &metadataStates[2]},
-  {"PLT_CMWS_D_DIM_L", &metadataStates[5]},
-  {"PLT_CMWS_FWD_LEFT_BRT_L", &metadataStates[6]},
-  {"PLT_CMWS_D_BRT_L", &metadataStates[4]},
-  {"PLT_CMWS_FWD_RIGHT_BRT_L", &metadataStates[8]},
   {"PLT_CMWS_FWD_RIGHT_DIM_L", &metadataStates[9]},
-  {"PLT_CMWS_AFT_LEFT_DIM_L", &metadataStates[1]},
-  {nullptr, nullptr},
-  {"PLT_CMWS_AFT_LEFT_BRT_L", &metadataStates[0]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"PLT_CMWS_R_DIM_L", &metadataStates[11]},
-  {nullptr, nullptr},
   {"PLT_CMWS_R_BRT_L", &metadataStates[10]},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -320,11 +306,25 @@ static MetadataHashEntry metadataHashTable[29] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {"PLT_CMWS_AFT_RIGHT_DIM_L", &metadataStates[3]},
+  {"PLT_CMWS_D_DIM_L", &metadataStates[5]},
+  {"PLT_CMWS_FWD_LEFT_BRT_L", &metadataStates[6]},
+  {"PLT_CMWS_R_DIM_L", &metadataStates[11]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"PLT_CMWS_FWD_LEFT_DIM_L", &metadataStates[7]},
+  {"PLT_CMWS_FWD_RIGHT_BRT_L", &metadataStates[8]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"PLT_CMWS_AFT_LEFT_BRT_L", &metadataStates[0]},
+  {"PLT_CMWS_D_BRT_L", &metadataStates[4]},
+  {"PLT_CMWS_AFT_LEFT_DIM_L", &metadataStates[1]},
 };
 
 constexpr uint16_t metadataHash(const char* s) { return labelHash(s); }
@@ -334,7 +334,7 @@ inline MetadataState* findMetadataState(const char* label) {
     for (uint16_t i = 0; i < 29; ++i) {
         uint16_t idx = (startH + i >= 29) ? (startH + i - 29) : (startH + i);
         const auto& entry = metadataHashTable[idx];
-        if (!entry.label) continue;
+        if (!entry.label) return nullptr;
         if (strcmp(entry.label, label) == 0) return entry.state;
     }
     return nullptr;

@@ -36,23 +36,23 @@ DisplayBufferEntry CT_DisplayBuffers[] = {
 const size_t numCTDisplayBuffers = sizeof(CT_DisplayBuffers)/sizeof(CT_DisplayBuffers[0]);
 
 const DisplayBufferHashEntry CT_DisplayBufferHash[17] = {
-    {"PLT_CMWS_BIT_LINE_2", &CT_DisplayBuffers[1]},
-    {nullptr, nullptr},
-    {nullptr, nullptr},
-    {nullptr, nullptr},
     {nullptr, nullptr},
     {"PLT_CMWS_CHAFF_COUNT", &CT_DisplayBuffers[2]},
-    {"PLT_CMWS_PAGE", &CT_DisplayBuffers[6]},
     {nullptr, nullptr},
-    {"PLT_CMWS_FLARE_COUNT", &CT_DisplayBuffers[4]},
+    {nullptr, nullptr},
     {"PLT_CMWS_FLARE_LETTER", &CT_DisplayBuffers[5]},
     {nullptr, nullptr},
     {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
     {"PLT_CMWS_CHAFF_LETTER", &CT_DisplayBuffers[3]},
-    {nullptr, nullptr},
-    {nullptr, nullptr},
+    {"PLT_CMWS_FLARE_COUNT", &CT_DisplayBuffers[4]},
     {nullptr, nullptr},
     {"PLT_CMWS_BIT_LINE_1", &CT_DisplayBuffers[0]},
+    {"PLT_CMWS_BIT_LINE_2", &CT_DisplayBuffers[1]},
+    {"PLT_CMWS_PAGE", &CT_DisplayBuffers[6]},
+    {nullptr, nullptr},
 };
 
 const DisplayBufferEntry* findDisplayBufferByLabel(const char* label) {
@@ -60,7 +60,7 @@ const DisplayBufferEntry* findDisplayBufferByLabel(const char* label) {
     for (uint16_t i = 0; i < 17; ++i) {
         uint16_t idx = (startH + i >= 17) ? (startH + i - 17) : (startH + i);
         const auto& entry = CT_DisplayBufferHash[idx];
-        if (!entry.label) continue;
+        if (!entry.label) return nullptr;
         if (strcmp(entry.label, label) == 0) return entry.entry;
     }
     return nullptr;

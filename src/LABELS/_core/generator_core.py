@@ -234,6 +234,14 @@ def run():
             h = ((h << 5) + h) + ord(c)
         return h % mod
 
+    # Python equivalent of the C++ constexpr labelHash() in CUtils.h
+    # Must produce identical values for hash table placement to match runtime probing
+    def label_hash(s, mod):
+        h = 0
+        for c in reversed(s):
+            h = (ord(c) + 31 * h) & 0xFFFF  # uint16_t truncation at each step
+        return h % mod
+
     # -------- LOAD JSON -------- You need to load the Hornet Json file in order to generate the file.
     # with open(JSON_FILE, encoding='utf-8') as f:
         # data = json.load(f)
@@ -566,6 +574,10 @@ def run():
         f.write("};\n")
         f.write("static const size_t commandHistorySize = sizeof(commandHistory)/sizeof(CommandHistoryEntry);\n")
 
+        # --- findCmdEntry() is built at runtime in DCSBIOSBridge.cpp (same TU as commandHistory[]) ---
+        # We only emit commandHistorySize above; the hash table lives in DCSBIOSBridge.cpp to avoid
+        # static-in-header split-brain across translation units.
+
         # --- START PATCH for displayFields[] ---
 
         display_field_defs = []
@@ -612,7 +624,7 @@ def run():
         label_hash_table = ["{nullptr, nullptr}"] * desired_size
 
         for idx, label in enumerate(labels):
-            h = djb2_hash(label, desired_size)
+            h = label_hash(label, desired_size)
             for probe in range(desired_size):
                 if label_hash_table[h] == "{nullptr, nullptr}":
                     label_hash_table[h] = f'{{"{label}", &displayFields[{idx}]}}'
@@ -636,7 +648,7 @@ def run():
         f.write(f"  for (uint16_t i = 0; i < {desired_size}; ++i) {{\n")
         f.write(f"    uint16_t idx = (startH + i >= {desired_size}) ? (startH + i - {desired_size}) : (startH + i);\n")
         f.write("    const auto& entry = displayFieldsByLabel[idx];\n")
-        f.write("    if (!entry.label) continue;\n")
+        f.write("    if (!entry.label) return nullptr;\n")
         f.write("    if (strcmp(entry.label, label) == 0) return entry.def;\n")
         f.write("  }\n")
         f.write("  return nullptr;\n")
@@ -670,18 +682,12 @@ def run():
             f.write("static const size_t numMetadataStates = sizeof(metadataStates)/sizeof(metadataStates[0]);\n\n")
 
             # --- Hash table for instant lookup ---
-            def djb2_hash(s, mod):
-                h = 5381
-                for c in s:
-                    h = ((h << 5) + h) + ord(c)
-                return h % mod
-
             desired_size = next_prime(len(metadata_entries) * 2)
             hash_table = ["{nullptr, nullptr}"] * desired_size
 
             for idx, entry in enumerate(metadata_entries):
                 label = entry['label']
-                h = djb2_hash(label, desired_size)
+                h = label_hash(label, desired_size)
                 for probe in range(desired_size):
                     if hash_table[h] == "{nullptr, nullptr}":
                         hash_table[h] = f'{{"{label}", &metadataStates[{idx}]}}'
@@ -702,7 +708,7 @@ def run():
             f.write(f"    for (uint16_t i = 0; i < {desired_size}; ++i) {{\n")
             f.write(f"        uint16_t idx = (startH + i >= {desired_size}) ? (startH + i - {desired_size}) : (startH + i);\n")
             f.write( "        const auto& entry = metadataHashTable[idx];\n")
-            f.write( "        if (!entry.label) continue;\n")
+            f.write( "        if (!entry.label) return nullptr;\n")
             f.write( "        if (strcmp(entry.label, label) == 0) return entry.state;\n")
             f.write( "    }\n")
             f.write( "    return nullptr;\n")
@@ -822,7 +828,7 @@ def run():
         desired_size = next_prime(len(all_display_labels) * 2)
         hash_table = ["{nullptr, nullptr}"] * desired_size
         for idx, (label, _) in enumerate(all_display_labels):
-            h = djb2_hash(label, desired_size)
+            h = label_hash(label, desired_size)
             for probe in range(desired_size):
                 if hash_table[h] == "{nullptr, nullptr}":
                     hash_table[h] = f'{{"{label}", &CT_DisplayBuffers[{idx}]}}'
@@ -842,7 +848,7 @@ def run():
         fcpp.write(f"    for (uint16_t i = 0; i < {desired_size}; ++i) {{\n")
         fcpp.write(f"        uint16_t idx = (startH + i >= {desired_size}) ? (startH + i - {desired_size}) : (startH + i);\n")
         fcpp.write( "        const auto& entry = CT_DisplayBufferHash[idx];\n")
-        fcpp.write( "        if (!entry.label) continue;\n")
+        fcpp.write( "        if (!entry.label) return nullptr;\n")
         fcpp.write( "        if (strcmp(entry.label, label) == 0) return entry.entry;\n")
         fcpp.write( "    }\n")
         fcpp.write( "    return nullptr;\n")
@@ -1023,7 +1029,7 @@ def run():
         input_hash_table = ["{nullptr, nullptr}"] * INPUT_TABLE_SIZE
 
         for idx, label in enumerate(input_labels):
-            h = djb2_hash(label, INPUT_TABLE_SIZE)
+            h = label_hash(label, INPUT_TABLE_SIZE)
             for probe in range(INPUT_TABLE_SIZE):
                 if input_hash_table[h] == "{nullptr, nullptr}":
                     input_hash_table[h] = f'{{"{label}", &InputMappings[{idx}]}}'
@@ -1057,7 +1063,7 @@ def run():
         f2.write(f"  for (uint16_t i = 0; i < {INPUT_TABLE_SIZE}; ++i) {{\n")
         f2.write(f"    uint16_t idx = (startH + i >= {INPUT_TABLE_SIZE}) ? (startH + i - {INPUT_TABLE_SIZE}) : (startH + i);\n")
         f2.write("    const auto& entry = inputHashTable[idx];\n")
-        f2.write("    if (!entry.label) continue;\n")
+        f2.write("    if (!entry.label) return nullptr;\n")
         f2.write("    if (strcmp(entry.label, label) == 0) return entry.mapping;\n")
         f2.write("  }\n")
         f2.write("  return nullptr;\n")
@@ -1164,7 +1170,7 @@ def run():
     # ——— 5) Build & probe the hash table ———
     hash_table = ["{nullptr, nullptr}"] * TABLE_SIZE
     for idx, label in enumerate(labels):
-        h = djb2_hash(label, TABLE_SIZE)
+        h = label_hash(label, TABLE_SIZE)
         for probe in range(TABLE_SIZE):
             if hash_table[h] == "{nullptr, nullptr}":
                 hash_table[h] = f'{{"{label}", &panelLEDs[{idx}]}}'
@@ -1225,7 +1231,7 @@ def run():
         out.write(f"  for (uint16_t i = 0; i < {TABLE_SIZE}; ++i) {{\n")
         out.write(f"    uint16_t idx = (startH + i >= {TABLE_SIZE}) ? (startH + i - {TABLE_SIZE}) : (startH + i);\n")
         out.write("    const auto& entry = ledHashTable[idx];\n")
-        out.write("    if (!entry.label) continue;\n")
+        out.write("    if (!entry.label) return nullptr;\n")
         out.write("    if (strcmp(entry.label, label) == 0) return entry.led;\n")
         out.write("  }\n")
         out.write("  return nullptr;\n")

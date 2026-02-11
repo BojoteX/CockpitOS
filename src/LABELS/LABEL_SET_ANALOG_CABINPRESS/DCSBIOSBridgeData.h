@@ -158,7 +158,7 @@ inline const DisplayFieldDef* findDisplayFieldByLabel(const char* label) {
   for (uint16_t i = 0; i < 2; ++i) {
     uint16_t idx = (startH + i >= 2) ? (startH + i - 2) : (startH + i);
     const auto& entry = displayFieldsByLabel[idx];
-    if (!entry.label) continue;
+    if (!entry.label) return nullptr;
     if (strcmp(entry.label, label) == 0) return entry.def;
   }
   return nullptr;

@@ -42,10 +42,18 @@ static const InputHashEntry inputHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"CB_FCS_CHAN3", &InputMappings[0]},
-  {"CB_FCS_CHAN4", &InputMappings[1]},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"FCS_BIT_SW_PRESS", &InputMappings[4]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -63,13 +71,8 @@ static const InputHashEntry inputHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"CB_LG", &InputMappings[3]},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"CB_FCS_CHAN3", &InputMappings[0]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -82,11 +85,8 @@ static const InputHashEntry inputHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"FCS_BIT_SW_PRESS", &InputMappings[4]},
-  {nullptr, nullptr},
+  {"CB_FCS_CHAN4", &InputMappings[1]},
+  {"CB_LG", &InputMappings[3]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -104,7 +104,7 @@ inline const InputMapping* findInputByLabel(const char* label) {
   for (uint16_t i = 0; i < 53; ++i) {
     uint16_t idx = (startH + i >= 53) ? (startH + i - 53) : (startH + i);
     const auto& entry = inputHashTable[idx];
-    if (!entry.label) continue;
+    if (!entry.label) return nullptr;
     if (strcmp(entry.label, label) == 0) return entry.mapping;
   }
   return nullptr;

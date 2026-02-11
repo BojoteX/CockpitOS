@@ -34,7 +34,7 @@
  *   └─────────────────────────────────────────────────────────────────────┘
  *
  * ==========================================================================
- * ARCHITECTURE: Bare-Metal UART with ISR-Driven RX
+ * ARCHITECTURE: Bare-Metal UART with ISR-Driven RX + TX_DONE Non-Blocking TX
  * ==========================================================================
  *
  * This implementation uses direct hardware register access for maximum
@@ -43,8 +43,9 @@
  *   • periph_module_enable() for UART clock
  *   • uart_ll_* functions for direct register manipulation
  *   • esp_intr_alloc() for RX interrupt with FIFO threshold of 1
- *   • No ESP-IDF uart_driver overhead
- *   • No blocking calls in the hot path
+ *   • TX: load FIFO -> arm TX_DONE interrupt -> return (non-blocking)
+ *   • TX_DONE ISR: flush echo -> DE release -> enableRx -> set next state
+ *   • Bus released within ~1us of last bit (matches AVR TXC behavior)
  *   • RISC-V memory barriers for ESP32-C3/C6 cache coherency
  *
  * ==========================================================================
@@ -57,6 +58,16 @@
 // *** Set in Config.h — this is only a fallback default ***
 #ifndef RS485_USE_TASK
 #define RS485_USE_TASK			1
+#endif
+
+// RX/TX mode selection
+// 1 = ISR-driven (lowest latency, bare-metal UART, TX_DONE non-blocking)
+//     Best performance on a dedicated core without WiFi
+// 0 = Driver-based (ESP-IDF UART driver, blocking TX)
+//     Rock-solid coexistence with WiFi/USB on the same core
+// *** Set in Config.h — this is only a fallback default ***
+#ifndef RS485_USE_ISR_MODE
+#define RS485_USE_ISR_MODE      1
 #endif
 
 // ============================================================================
@@ -155,12 +166,18 @@
 #endif
 
 // *** Transceiver timing — Set in Config.h, these are only fallback defaults ***
+// Manual DE pin: warmup ensures transceiver settles into TX mode before data
 #ifndef RS485_TX_WARMUP_DELAY_US
 #define RS485_TX_WARMUP_DELAY_US    50
 #endif
+// Auto-direction: hardware switches in nanoseconds on TX activity, no delay needed
 #ifndef RS485_TX_WARMUP_AUTO_DELAY_US
-#define RS485_TX_WARMUP_AUTO_DELAY_US 50
+#define RS485_TX_WARMUP_AUTO_DELAY_US 0
 #endif
+// Cooldown delays — NO LONGER USED by either ISR or Driver mode.
+// ISR mode: TX_DONE interrupt releases the bus immediately.
+// Driver mode: bus released immediately after uart_wait_tx_done().
+// Retained for backward config compatibility only.
 #ifndef RS485_TX_COOLDOWN_DELAY_US
 #define RS485_TX_COOLDOWN_DELAY_US  50
 #endif
