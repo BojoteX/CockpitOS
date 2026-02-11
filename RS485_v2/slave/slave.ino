@@ -67,9 +67,11 @@
 // 0 = Driver-based (portable fallback)
 #define USE_ISR_MODE            1
 
-// TX Timing (microseconds) — must match master settings
+// TX Timing (microseconds)
 // Manual DE: warmup after DE assert, cooldown after TX before DE release
 // Auto-direction: warmup before TX, cooldown after TX before FIFO flush
+// Slave warmup is critical — hot RX→TX turnaround after receiving poll.
+// 20µs = 80x safety margin above MAX485 turnaround spec (~250ns).
 #define TX_WARMUP_DELAY_MANUAL_US   50
 #define TX_COOLDOWN_DELAY_MANUAL_US 50
 #define TX_WARMUP_DELAY_AUTO_US     0
@@ -77,6 +79,9 @@
 
 // Sync Detection
 #define SYNC_TIMEOUT_US         500     // 500µs silence = sync detected
+
+// RX Timeout (driver mode only — max time to wait for packet completion)
+#define RX_TIMEOUT_US           5000    // 5ms — matches CockpitOS RS485SlaveConfig.h
 
 // Buffer Sizes
 #define TX_BUFFER_SIZE          128     // Ring buffer for outgoing input commands
@@ -91,6 +96,15 @@
 #define UDP_DEBUG_ENABLE        0       // 1 = WiFi UDP debug output
 #define WIFI_SSID               "TestNetwork"
 #define WIFI_PASSWORD           "TestingOnly"
+
+// FreeRTOS Task (matches CockpitOS RS485_USE_TASK)
+// ISR mode:    Task drains export buffer to DCS-BIOS parser on guaranteed schedule
+// Driver mode: Task runs full slave loop (RX + TX + export)
+#define USE_RS485_TASK          1       // 1 = FreeRTOS task (recommended). 0 = main loop only
+#define RS485_TASK_PRIORITY     5       // Higher than default loop
+#define RS485_TASK_STACK_SIZE   4096
+#define RS485_TASK_TICK_INTERVAL 1      // 1ms tick
+#define RS485_TASK_CORE         0       // Core 0 (dual-core chips). Ignored on single-core.
 
 // Status Interval
 #define STATUS_INTERVAL_MS      5000    // 0 = disabled
@@ -614,6 +628,9 @@ static volatile uint16_t packetDataIdx = 0;
 static volatile uint8_t skipRemaining = 0;
 static volatile RxDataType rxDataType = RXDATA_IGNORE;
 
+// Driver mode: RX timeout tracking
+static uint32_t rxStartUs = 0;
+
 // Statistics
 static volatile uint32_t statPolls = 0;
 static volatile uint32_t statBroadcasts = 0;
@@ -653,6 +670,52 @@ static void processExportData() {
         parser.processChar(c);
     }
 }
+
+// ============================================================================
+// FREERTOS RS485 TASK (matches CockpitOS RS485_USE_TASK pattern)
+// ============================================================================
+// ISR mode:    Task only drains export buffer (RX/TX handled by ISR)
+// Driver mode: Task runs full slave loop (RX + TX + export)
+
+#if USE_RS485_TASK
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
+static TaskHandle_t rs485TaskHandle = nullptr;
+static volatile bool rs485TaskRunning = false;
+
+// Forward declaration — rs485SlaveLoop defined after ISR/driver mode sections
+static void rs485SlaveLoop();
+
+static void rs485SlaveTask(void* param) {
+    (void)param;
+    TickType_t lastWakeTime = xTaskGetTickCount();
+
+    while (rs485TaskRunning) {
+        rs485SlaveLoop();
+        vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(RS485_TASK_TICK_INTERVAL));
+    }
+
+    vTaskDelete(nullptr);
+}
+
+static void startRS485Task() {
+    rs485TaskRunning = true;
+
+#if CONFIG_FREERTOS_UNICORE
+    xTaskCreate(rs485SlaveTask, "RS485S", RS485_TASK_STACK_SIZE, nullptr,
+                RS485_TASK_PRIORITY, &rs485TaskHandle);
+#else
+    xTaskCreatePinnedToCore(rs485SlaveTask, "RS485S", RS485_TASK_STACK_SIZE, nullptr,
+                            RS485_TASK_PRIORITY, &rs485TaskHandle, RS485_TASK_CORE);
+#endif
+
+    dbgPrintf("  RS485 task started: priority=%d, stack=%d\n",
+              RS485_TASK_PRIORITY, RS485_TASK_STACK_SIZE);
+}
+
+#endif // USE_RS485_TASK
 
 // ############################################################################
 //
@@ -774,7 +837,7 @@ static void IRAM_ATTR uart_isr_handler(void* arg) {
         uint8_t c;
         uart_ll_read_rxfifo(uartHw, &c, 1);
 #ifdef __riscv
-        __asm__ __volatile__("fence");
+        __asm__ __volatile__("fence" ::: "memory");
 #endif
 
         int64_t now = esp_timer_get_time();
@@ -1091,6 +1154,7 @@ static void processRxByte(uint8_t c) {
     switch (rs485State) {
         case SlaveState::RX_WAIT_ADDRESS:
             packetAddr = c;
+            rxStartUs = micros();  // Start RX timeout tracking (CockpitOS driver mode line 834)
             rs485State = SlaveState::RX_WAIT_MSGTYPE;
             break;
 
@@ -1219,6 +1283,56 @@ static void initRS485Hardware() {
 #endif // USE_ISR_MODE
 
 // ============================================================================
+// RS485 SLAVE LOOP — called from FreeRTOS task or Arduino loop()
+// ============================================================================
+// Matches CockpitOS rs485SlaveLoop() exactly:
+//   ISR mode:    Only drains export buffer (RX/TX handled by ISR)
+//   Driver mode: Full loop — RX bytes, process, export drain, RX timeout
+
+static void rs485SlaveLoop() {
+#if !USE_ISR_MODE
+    // Driver mode: read bytes and process through state machine
+    {
+        uint8_t rxBuf[64];
+        int len = uart_read_bytes((uart_port_t)RS485_UART_NUM, rxBuf, sizeof(rxBuf), 0);
+        for (int i = 0; i < len; i++) {
+            processRxByte(rxBuf[i]);
+        }
+    }
+#endif
+
+    // Process any buffered export data (ISR queues bytes, we drain them here)
+    processExportData();
+
+#if !USE_ISR_MODE
+    // Driver mode: RX timeout — if stuck mid-packet, force resync
+    // Matches CockpitOS rs485SlaveLoop lines 1003-1013
+    if (rs485State != SlaveState::RX_WAIT_ADDRESS &&
+        rs485State != SlaveState::RX_SYNC) {
+        uint32_t elapsed = micros() - rxStartUs;
+        if (elapsed > RX_TIMEOUT_US) {
+            rs485State = SlaveState::RX_SYNC;
+        }
+    }
+#endif
+
+    // Periodic status
+    #if STATUS_INTERVAL_MS > 0
+    static uint32_t lastStatusMs = 0;
+    if (millis() - lastStatusMs >= STATUS_INTERVAL_MS) {
+        lastStatusMs = millis();
+        dbgPrintf("[SLAVE] Polls=%lu Bcasts=%lu Export=%lu Cmds=%lu TxPend=%d\n",
+                  statPolls, statBroadcasts, statExportBytes, statCommandsSent, txCount());
+        if (lastPollMs > 0) {
+            dbgPrintf("[SLAVE] Last poll: %lu ms ago\n", millis() - lastPollMs);
+        }
+        udpDbgSend("Polls=%lu Bcasts=%lu Export=%lu Cmds=%lu",
+                    statPolls, statBroadcasts, statExportBytes, statCommandsSent);
+    }
+    #endif
+}
+
+// ============================================================================
 // INPUT/OUTPUT CLASSES
 // ============================================================================
 
@@ -1330,49 +1444,30 @@ void setup() {
     dbgPrint("Initializing RS485 hardware...");
     initRS485Hardware();
     dbgPrint("RS485 hardware initialized!");
+
+#if USE_RS485_TASK
+    startRS485Task();
+#else
+    dbgPrint("  RS485 running in main loop mode");
+#endif
+
     dbgPrint("Entering main loop...");
 }
-
-static unsigned long lastHeartbeat = 0;
-static unsigned long loopCount = 0;
 
 void loop() {
     udpDbgCheck();
 
-#if !USE_ISR_MODE
-    // Driver mode: read bytes and process through state machine
-    {
-        uint8_t rxBuf[64];
-        int len = uart_read_bytes((uart_port_t)RS485_UART_NUM, rxBuf, sizeof(rxBuf), 0);
-        for (int i = 0; i < len; i++) {
-            processRxByte(rxBuf[i]);
-        }
-    }
+#if USE_RS485_TASK
+    // Task mode: FreeRTOS task handles export processing + driver mode RX
+    // Main loop only handles input polling + LED updates
+#else
+    // No-task mode: main loop does everything
+    rs485SlaveLoop();
 #endif
-
-    // Process export data queued by ISR/state machine
-    processExportData();
 
     // Poll inputs (switches, buttons)
     PollingInput::pollInputs();
 
     // Update outputs (LEDs)
     ExportStreamListener::loopAll();
-
-    // Status
-    loopCount++;
-    #if STATUS_INTERVAL_MS > 0
-    if (millis() - lastHeartbeat >= STATUS_INTERVAL_MS) {
-        lastHeartbeat = millis();
-        dbgPrintf("[SLAVE] Polls=%lu Bcasts=%lu Export=%lu Cmds=%lu TxPend=%d loops=%lu\n",
-                  statPolls, statBroadcasts, statExportBytes, statCommandsSent,
-                  txCount(), loopCount);
-        if (lastPollMs > 0) {
-            dbgPrintf("[SLAVE] Last poll: %lu ms ago\n", millis() - lastPollMs);
-        }
-        udpDbgSend("Polls=%lu Bcasts=%lu Export=%lu Cmds=%lu",
-                    statPolls, statBroadcasts, statExportBytes, statCommandsSent);
-        loopCount = 0;
-    }
-    #endif
 }

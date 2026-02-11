@@ -222,7 +222,7 @@
 
 // PC Serial — USBSerial for S3 with USB CDC On Boot disabled
 #include "USB.h"
-#define PC_SERIAL USBSerial
+#define PC_SERIAL HWCDCSerial
 
 // ============================================================================
 // SERIAL DEBUG MACROS
