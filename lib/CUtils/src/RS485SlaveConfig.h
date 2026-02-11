@@ -33,16 +33,17 @@
  * Checksum = XOR of all bytes, or fixed 0x72 for Arduino compatibility
  *
  * ==========================================================================
- * ARCHITECTURE: Bare-Metal UART with ISR-Driven RX
+ * ARCHITECTURE: Bare-Metal UART with ISR-Driven RX + TX_DONE Non-Blocking TX
  * ==========================================================================
  *
  * This implementation uses direct hardware register access:
  *   - periph_module_enable() for UART clock
  *   - uart_ll_* functions for direct register manipulation
  *   - esp_intr_alloc() for RX interrupt with FIFO threshold of 1
- *   - Echo prevention: disable RX int -> TX -> wait idle -> flush -> re-enable
+ *   - TX: load FIFO -> arm TX_DONE interrupt -> return (non-blocking)
+ *   - TX_DONE ISR: flush echo -> DE release -> re-enable RX
  *   - RISC-V memory barriers for ESP32-C3/C6
- *   - Zero blocking calls in the hot path
+ *   - O(1) constant-time ISR cost regardless of response size
  *
  * ==========================================================================
  */
@@ -135,12 +136,18 @@
 #endif
 
 // *** Transceiver timing — Set in Config.h, these are only fallback defaults ***
+// Manual DE pin: warmup ensures transceiver settles into TX mode before data
 #ifndef RS485_TX_WARMUP_DELAY_US
 #define RS485_TX_WARMUP_DELAY_US    50
 #endif
+// Auto-direction: hardware switches in nanoseconds on TX activity, no delay needed
 #ifndef RS485_TX_WARMUP_AUTO_DELAY_US
-#define RS485_TX_WARMUP_AUTO_DELAY_US 50
+#define RS485_TX_WARMUP_AUTO_DELAY_US 0
 #endif
+// Cooldown delays — NO LONGER USED by either ISR or Driver mode.
+// ISR mode: TX_DONE interrupt releases the bus immediately.
+// Driver mode: bus released immediately after uart_wait_tx_done().
+// Retained for backward config compatibility only.
 #ifndef RS485_TX_COOLDOWN_DELAY_US
 #define RS485_TX_COOLDOWN_DELAY_US  50
 #endif

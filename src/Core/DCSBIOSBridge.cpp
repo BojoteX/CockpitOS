@@ -923,13 +923,39 @@ size_t dcsbios_getCommandHistorySize() {
 }
 
 // ----------------------------------------------------------------------------
-// Lookup helper (O(N) for now, can swap to hash later)
+// O(1) hash lookup for commandHistory[] — built at runtime in this TU
+// so all callers (DCSBIOSBridge + HIDManager) share the same instance.
 // ----------------------------------------------------------------------------
-CommandHistoryEntry* findCmdEntry(const char* label) {
+static constexpr size_t CMD_HASH_TABLE_SIZE = 127; // prime, comfortably > 2× MAX_TRACKED_RECORDS typical use
+struct CmdHistoryHashEntry { const char* label; CommandHistoryEntry* entry; };
+static CmdHistoryHashEntry cmdHashTable[CMD_HASH_TABLE_SIZE];
+static bool cmdHashBuilt = false;
+
+static void buildCmdHashTable() {
+    for (size_t i = 0; i < CMD_HASH_TABLE_SIZE; ++i) {
+        cmdHashTable[i] = { nullptr, nullptr };
+    }
     for (size_t i = 0; i < commandHistorySize; ++i) {
-        if (strcmp(commandHistory[i].label, label) == 0) {
-            return &commandHistory[i];
+        uint16_t h = labelHash(commandHistory[i].label) % CMD_HASH_TABLE_SIZE;
+        for (size_t probe = 0; probe < CMD_HASH_TABLE_SIZE; ++probe) {
+            if (!cmdHashTable[h].label) {
+                cmdHashTable[h] = { commandHistory[i].label, &commandHistory[i] };
+                break;
+            }
+            h = (h + 1) % CMD_HASH_TABLE_SIZE;
         }
+    }
+    cmdHashBuilt = true;
+}
+
+CommandHistoryEntry* findCmdEntry(const char* label) {
+    if (!cmdHashBuilt) buildCmdHashTable();
+    uint16_t h = labelHash(label) % CMD_HASH_TABLE_SIZE;
+    for (size_t i = 0; i < CMD_HASH_TABLE_SIZE; ++i) {
+        const auto& entry = cmdHashTable[h];
+        if (!entry.label) return nullptr;
+        if (strcmp(entry.label, label) == 0) return entry.entry;
+        h = (h + 1) % CMD_HASH_TABLE_SIZE;
     }
     return nullptr;
 }
