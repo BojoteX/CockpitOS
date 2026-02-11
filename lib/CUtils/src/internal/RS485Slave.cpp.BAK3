@@ -724,18 +724,32 @@ static uint32_t rxStartUs = 0;  // For RX timeout detection
 // ============================================================================
 
 // Fast path: no input data queued — send single 0x00 byte (99%+ of polls)
-// Hardware RS485 mode handles DE assert/release + echo suppression automatically.
-// For auto-direction devices (no DE pin): manual echo flush after TX.
+// Pattern: DE assert → warmup → TX → txDone → flush → DE release (NO cooldown)
 static void sendZeroLengthResponse() {
     uint8_t zero = 0x00;
 
-    // Direct FIFO write + block until last bit leaves shift register
+    // Warmup
+    #if RS485_DE_PIN >= 0
+    setDE(true);
+    #if RS485_TX_WARMUP_DELAY_US > 0
+    ets_delay_us(RS485_TX_WARMUP_DELAY_US);
+    #endif
+    #else
+    #if RS485_TX_WARMUP_AUTO_DELAY_US > 0
+    ets_delay_us(RS485_TX_WARMUP_AUTO_DELAY_US);
+    #endif
+    #endif
+
+    // Blocking TX
     uart_write_bytes((uart_port_t)RS485_UART_NUM, (const char*)&zero, 1);
     uart_wait_tx_done((uart_port_t)RS485_UART_NUM, pdMS_TO_TICKS(10));
 
-    // For DE-pin devices: hardware RS485 mode already handled everything.
-    // For auto-direction devices: no DE pin, but still need echo flush.
-    #if RS485_DE_PIN < 0
+    // TX physically complete — flush echo + DE release IMMEDIATELY.
+    // No cooldown delay. Matches ISR-mode TX_DONE behavior.
+    #if RS485_DE_PIN >= 0
+    uart_flush_input((uart_port_t)RS485_UART_NUM);
+    setDE(false);  // DE release
+    #else
     uart_flush_input((uart_port_t)RS485_UART_NUM);
     #endif
 
@@ -743,8 +757,7 @@ static void sendZeroLengthResponse() {
 }
 
 // Slow path: input data queued — build and send full response packet
-// Hardware RS485 mode handles DE assert/release + echo suppression automatically.
-// For auto-direction devices (no DE pin): manual echo flush after TX.
+// Pattern: build packet → DE assert → warmup → TX → txDone → flush → DE release (NO cooldown)
 static void sendResponse() {
     uint16_t toSend = txCount();
     if (toSend == 0) {
@@ -778,13 +791,28 @@ static void sendResponse() {
 
     statCommandsSent++;
 
-    // Direct FIFO write + block until last bit leaves shift register
+    // Warmup
+    #if RS485_DE_PIN >= 0
+    setDE(true);
+    #if RS485_TX_WARMUP_DELAY_US > 0
+    ets_delay_us(RS485_TX_WARMUP_DELAY_US);
+    #endif
+    #else
+    #if RS485_TX_WARMUP_AUTO_DELAY_US > 0
+    ets_delay_us(RS485_TX_WARMUP_AUTO_DELAY_US);
+    #endif
+    #endif
+
+    // Blocking TX
     uart_write_bytes((uart_port_t)RS485_UART_NUM, (const char*)txBuf, txLen);
     uart_wait_tx_done((uart_port_t)RS485_UART_NUM, pdMS_TO_TICKS(10));
 
-    // For DE-pin devices: hardware RS485 mode already handled everything.
-    // For auto-direction devices: no DE pin, but still need echo flush.
-    #if RS485_DE_PIN < 0
+    // TX physically complete — flush echo + DE release IMMEDIATELY.
+    // No cooldown delay. Matches ISR-mode TX_DONE behavior.
+    #if RS485_DE_PIN >= 0
+    uart_flush_input((uart_port_t)RS485_UART_NUM);
+    setDE(false);  // DE release
+    #else
     uart_flush_input((uart_port_t)RS485_UART_NUM);
     #endif
 
@@ -931,6 +959,19 @@ static void processRxByte(uint8_t c) {
 // ============================================================================
 
 static bool initRS485Hardware_Driver() {
+    // Configure DE pin
+    #if RS485_DE_PIN >= 0
+    gpio_config_t de_conf = {
+        .pin_bit_mask = (1ULL << RS485_DE_PIN),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE
+    };
+    gpio_config(&de_conf);
+    setDE(false);  // Start in RX mode
+    #endif
+
     // ESP-IDF UART DRIVER SETUP
     uart_config_t uart_config = {
         .baud_rate = RS485_BAUD,
@@ -942,10 +983,8 @@ static bool initRS485Hardware_Driver() {
         .source_clk = UART_SCLK_DEFAULT
     };
 
-    // TX buffer = 0: uart_write_bytes goes directly to hardware FIFO
-    // (no ring buffer → no ISR chain → no scheduler delay on TX)
-    // RX buffer = 256: incoming bytes buffered by driver
-    esp_err_t err = uart_driver_install((uart_port_t)RS485_UART_NUM, 256, 0, 0, NULL, 0);
+    // Install driver with RX buffer (256) and TX buffer (256)
+    esp_err_t err = uart_driver_install((uart_port_t)RS485_UART_NUM, 256, 256, 0, NULL, 0);
     if (err != ESP_OK) {
         debugPrintf("[RS485S] ERROR: uart_driver_install failed: %d\n", err);
         return false;
@@ -957,34 +996,12 @@ static bool initRS485Hardware_Driver() {
         return false;
     }
 
-    // Pin config — map RTS to DE pin for hardware RS485 DE control
-    #if RS485_DE_PIN >= 0
-    err = uart_set_pin((uart_port_t)RS485_UART_NUM, RS485_TX_PIN, RS485_RX_PIN,
-                       RS485_DE_PIN, UART_PIN_NO_CHANGE);
-    #else
     err = uart_set_pin((uart_port_t)RS485_UART_NUM, RS485_TX_PIN, RS485_RX_PIN,
                        UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    #endif
     if (err != ESP_OK) {
         debugPrintf("[RS485S] ERROR: uart_set_pin failed: %d\n", err);
         return false;
     }
-
-    // Enable hardware RS485 half-duplex mode for DE-pin devices.
-    // The hardware automatically:
-    //   - Asserts DE (RTS) when TX starts
-    //   - Uses TX_DONE interrupt to de-assert DE when last bit leaves
-    //   - Suppresses echo (rs485tx_rx_en=0 prevents TX bytes entering RX FIFO)
-    //   - Flushes RX FIFO on TX_DONE before releasing bus
-    // This gives the same precision as our ISR-mode TX_DONE handler.
-    #if RS485_DE_PIN >= 0
-    err = uart_set_mode((uart_port_t)RS485_UART_NUM, UART_MODE_RS485_HALF_DUPLEX);
-    if (err != ESP_OK) {
-        debugPrintf("[RS485S] ERROR: uart_set_mode RS485 failed: %d\n", err);
-        return false;
-    }
-    debugPrintln("[RS485S] Hardware RS485 half-duplex mode enabled (auto DE control)");
-    #endif
 
     // Ensure RX pin has pullup for stable idle state
     gpio_set_pull_mode((gpio_num_t)RS485_RX_PIN, GPIO_PULLUP_ONLY);
@@ -1086,7 +1103,7 @@ bool RS485Slave_init() {
 #if RS485_USE_ISR_MODE
     debugPrintf("[RS485S] SLAVE INITIALIZED (ISR Mode)\n");
 #else
-    debugPrintf("[RS485S] SLAVE INITIALIZED (Driver Mode, HW RS485)\n");
+    debugPrintf("[RS485S] SLAVE INITIALIZED (Driver Mode)\n");
 #endif
     debugPrintf("[RS485S]   Address: %d\n", RS485_SLAVE_ADDRESS);
     debugPrintf("[RS485S]   Baud: %d\n", RS485_BAUD);
