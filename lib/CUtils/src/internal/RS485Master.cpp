@@ -62,9 +62,9 @@
 #include "esp_attr.h"
 #include "driver/uart.h"
 #include "driver/gpio.h"
-#include "hal/uart_ll.h"           // Both modes: ISR uses uart_ll_* directly,
-                                    // Driver mode uses uart_ll_is_tx_idle() for
-                                    // precise TX-complete spin-wait
+#include "hal/uart_ll.h"           // ISR mode: direct uart_ll_* hardware access
+                                    // Driver mode: not currently used (hardware
+                                    // RS485 mode handles everything via ESP-IDF)
 
 #if RS485_USE_ISR_MODE
 // ISR mode needs additional direct hardware access
@@ -97,9 +97,8 @@
 // HARDWARE ABSTRACTION
 // ============================================================================
 
-// UART hardware device pointer — needed by BOTH modes:
-//   ISR mode: all uart_ll_* calls
-//   Driver mode: uart_ll_is_tx_idle() for precise TX-complete spin-wait
+// UART hardware device pointer — used by ISR mode for all uart_ll_* calls.
+// Defined outside ISR guard so the macro is always available.
 #if RS485_UART_NUM == 0
     #define RS485_UART_DEV      UART_LL_GET_HW(0)
 #elif RS485_UART_NUM == 1
@@ -660,42 +659,34 @@ static void txWithEchoPrevention(const uint8_t* data, size_t len) {
 
 // ############################################################################
 //
-//    DRIVER MODE: BLOCKING TX WITH ECHO PREVENTION
+//    DRIVER MODE: BLOCKING TX WITH HARDWARE RS485 HALF-DUPLEX
 //
 // ############################################################################
 //
-// Pattern: DE assert → warmup → uart_write_bytes → uart_wait_tx_done →
-//          spin-wait tx_idle → flush echo → DE release (NO cooldown delay)
+// For DE-pin devices (RS485_DE_PIN >= 0):
+//   Init configured UART_MODE_RS485_HALF_DUPLEX with RTS mapped to DE pin.
+//   The ESP-IDF UART driver handles EVERYTHING automatically:
+//     - Asserts DE (RTS→HIGH) when uart_write_bytes starts TX
+//     - Suppresses echo at hardware level (rs485tx_rx_en=0)
+//     - TX_DONE ISR inside the driver flushes RX FIFO + de-asserts DE
+//   We just write and wait. Same precision as our ISR-mode TX_DONE handler.
 //
-// uart_write_bytes loads the driver's internal buffer; uart_wait_tx_done
-// blocks until the driver reports TX complete (semaphore-based). We then
-// spin-wait on uart_ll_is_tx_idle to catch the exact hardware moment the
-// last bit leaves the shift register — closing the scheduler gap between
-// uart_wait_tx_done returning and our flush + DE release executing.
+// For auto-direction devices (RS485_DE_PIN < 0):
+//   No hardware RS485 mode — UART runs in normal mode.
+//   We still need manual echo flush after TX completes.
+//
+// TX buffer = 0 in uart_driver_install, so uart_write_bytes goes directly
+// to the hardware FIFO — no ring buffer, no ISR chain, no scheduler delay.
 
 static void txWithEchoPrevention(const uint8_t* data, size_t len) {
-    // Warmup — only needed for manual DE pin devices (transceiver settling)
-    #if RS485_DE_PIN >= 0
-    gpio_set_level((gpio_num_t)RS485_DE_PIN, 1);  // DE assert
-    #if RS485_TX_WARMUP_DELAY_US > 0
-    ets_delay_us(RS485_TX_WARMUP_DELAY_US);
-    #endif
-    #endif
-
-    // Blocking TX via ESP-IDF UART driver
+    // Direct FIFO write + block until last bit leaves shift register
     uart_write_bytes((uart_port_t)RS485_UART_NUM, (const char*)data, len);
     uart_wait_tx_done((uart_port_t)RS485_UART_NUM, pdMS_TO_TICKS(10));
 
-    // Belt-and-suspenders: uart_wait_tx_done may return slightly before
-    // the shift register is truly idle. Spin-wait to catch the exact moment.
-    while (!uart_ll_is_tx_idle(RS485_UART_DEV)) {}
-
-    // TX physically complete — flush echo + DE release IMMEDIATELY.
-    // No cooldown delay. Bus released at the earliest possible moment.
-    #if RS485_DE_PIN >= 0
-    uart_flush_input((uart_port_t)RS485_UART_NUM);
-    gpio_set_level((gpio_num_t)RS485_DE_PIN, 0);  // DE release
-    #else
+    // For DE-pin devices: hardware RS485 mode already handled everything
+    // (DE release + RX FIFO flush) inside the driver's TX_DONE ISR.
+    // For auto-direction devices: no DE pin, but still need echo flush.
+    #if RS485_DE_PIN < 0
     uart_flush_input((uart_port_t)RS485_UART_NUM);
     #endif
 }
@@ -1049,19 +1040,6 @@ static bool initRS485Hardware_ISR() {
 #else // !RS485_USE_ISR_MODE
 
 static bool initRS485Hardware_Driver() {
-    // Configure DE pin
-    #if RS485_DE_PIN >= 0
-    gpio_config_t de_conf = {
-        .pin_bit_mask = (1ULL << RS485_DE_PIN),
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE
-    };
-    gpio_config(&de_conf);
-    gpio_set_level((gpio_num_t)RS485_DE_PIN, 0);  // Start in RX mode
-    #endif
-
     // ESP-IDF UART driver setup
     uart_config_t uart_config = {
         .baud_rate = RS485_BAUD,
@@ -1073,8 +1051,10 @@ static bool initRS485Hardware_Driver() {
         .source_clk = UART_SCLK_DEFAULT
     };
 
-    // Install driver with RX buffer (256) and TX buffer (256)
-    esp_err_t err = uart_driver_install((uart_port_t)RS485_UART_NUM, 256, 256, 0, NULL, 0);
+    // TX buffer = 0: uart_write_bytes goes directly to hardware FIFO
+    // (no ring buffer → no ISR chain → no scheduler delay on TX)
+    // RX buffer = 256: incoming bytes buffered by driver
+    esp_err_t err = uart_driver_install((uart_port_t)RS485_UART_NUM, 256, 0, 0, NULL, 0);
     if (err != ESP_OK) {
         debugPrintf("[RS485M] ERROR: uart_driver_install failed: %d\n", err);
         return false;
@@ -1086,12 +1066,34 @@ static bool initRS485Hardware_Driver() {
         return false;
     }
 
+    // Pin config — map RTS to DE pin for hardware RS485 DE control
+    #if RS485_DE_PIN >= 0
+    err = uart_set_pin((uart_port_t)RS485_UART_NUM, RS485_TX_PIN, RS485_RX_PIN,
+                       RS485_DE_PIN, UART_PIN_NO_CHANGE);
+    #else
     err = uart_set_pin((uart_port_t)RS485_UART_NUM, RS485_TX_PIN, RS485_RX_PIN,
                        UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    #endif
     if (err != ESP_OK) {
         debugPrintf("[RS485M] ERROR: uart_set_pin failed: %d\n", err);
         return false;
     }
+
+    // Enable hardware RS485 half-duplex mode for DE-pin devices.
+    // The hardware automatically:
+    //   - Asserts DE (RTS) when TX starts
+    //   - Uses TX_DONE interrupt to de-assert DE when last bit leaves
+    //   - Suppresses echo (rs485tx_rx_en=0 prevents TX bytes entering RX FIFO)
+    //   - Flushes RX FIFO on TX_DONE before releasing bus
+    // This gives the same precision as our ISR-mode TX_DONE handler.
+    #if RS485_DE_PIN >= 0
+    err = uart_set_mode((uart_port_t)RS485_UART_NUM, UART_MODE_RS485_HALF_DUPLEX);
+    if (err != ESP_OK) {
+        debugPrintf("[RS485M] ERROR: uart_set_mode RS485 failed: %d\n", err);
+        return false;
+    }
+    debugPrintln("[RS485M] Hardware RS485 half-duplex mode enabled (auto DE control)");
+    #endif
 
     // Ensure RX pin has pullup for stable idle state
     gpio_set_pull_mode((gpio_num_t)RS485_RX_PIN, GPIO_PULLUP_ONLY);
@@ -1148,9 +1150,9 @@ bool RS485Master_init() {
                 RS485_BAUD, RS485_TX_PIN, RS485_RX_PIN, RS485_DE_PIN);
     debugPrintln("[RS485M] TX: Non-blocking (FIFO burst + TX_DONE interrupt)");
     #else
-    debugPrintf("[RS485M] Init OK (Driver mode): %d baud, TX=%d, RX=%d, DE=%d\n",
+    debugPrintf("[RS485M] Init OK (Driver mode, HW RS485): %d baud, TX=%d, RX=%d, DE=%d\n",
                 RS485_BAUD, RS485_TX_PIN, RS485_RX_PIN, RS485_DE_PIN);
-    debugPrintln("[RS485M] TX: Blocking (uart_write_bytes + uart_wait_tx_done)");
+    debugPrintln("[RS485M] TX: Blocking (uart_write_bytes + uart_wait_tx_done, HW auto-DE)");
     #endif
 
     #if RS485_SMART_MODE

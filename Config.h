@@ -25,8 +25,8 @@
 // Here is where you tell the firmware which 'transport' will be used to Communicate with the simulator (only ONE can be selected). 
 // Bluetooth BLE, Pure Native USB, WIFI, Serial (CDC/Socat) or as an RS485 slave. ** Only ONE ** can be active 
 #define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included in Open Source version of CockpitOS) (Works on ALL ESP32s except S2s and some P4s).
-#define USE_DCSBIOS_WIFI                            0 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
-#define USE_DCSBIOS_USB                             1 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
+#define USE_DCSBIOS_WIFI                            1 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
+#define USE_DCSBIOS_USB                             0 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
 #define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 #define RS485_SLAVE_ENABLED                         0 // Set as RS-485 Slave, you need to also run a master RS485 on a separate device
 
@@ -38,30 +38,23 @@
 #define RS485_MAX_SLAVE_ADDRESS                   127 // Maximum slave address to poll (valid range: 1-127).        
 
 // RS485 (Optional) only for Slave/Master RS485 setups
-#define RS485_USE_ISR_MODE                          1 // 1 = ISR-driven (lowest latency, dedicated core). 0 = Driver-based (use when sharing core with WiFi). Applies to both master and slave.
+#define RS485_DEBUG_VERBOSE                         0 // 1 = Log every poll/response (VERY verbose). 0 = Normal operation
+#define RS485_USE_ISR_MODE                          1 // 1 = ISR-driven (lowest latency, dedicated core). 0 = Not Implemented properly, wont work
 #define RS485_TX_PIN                               17 // GPIO Used for TX (Here's the PIN on your ESP32 you connected to the RS485 Board TX or DI)
 #define RS485_RX_PIN                               18 // GPIO Used for RX (Here's the PIN on your ESP32 you connected to the RS485 Board RX or RO)
-#define RS485_DE_PIN                               21 // \If your board has a DE pin, connect it to this GPIO, no DE pin? set -1
-#define RS485_DEBUG_VERBOSE                         0 // 1 = Log every poll/response (VERY verbose). 0 = Normal operation
+#define RS485_DE_PIN                               -1 // \If your board has a DE pin, connect it to this GPIO, no DE pin? set -1
 #define RS485_STATUS_INTERVAL_MS                60000 // How many milliseconds between each stats banner (60000 = 60 secs = 1 min)
 
 // REMOVE FOR PRODUCTION
 #define RS485_TEST_BUTTON_GPIO                      0 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
 #define RS485_TEST_SWITCH_GPIO                      1 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
-#define RS485_TEST_LED_GPIO                         2 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
+#define RS485_TEST_LED_GPIO                        15 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
 
 // RS485 Transceiver Timing (microseconds) — applies to both master and slave.
 // Warmup = delay after enabling TX before sending first byte (transceiver settling).
 // Cooldown = delay after last bit before switching back to RX (protects last bit on wire).
 // Manual = when using a DE pin. Auto = when transceiver handles direction internally.
 // Set to 0 to disable individual delays. All default to 50µs.
-
-/*
-#define RS485_TX_WARMUP_DELAY_US                  10 // Manual DE: delay after DE assert before TX
-#define RS485_TX_COOLDOWN_DELAY_US                 0 // Manual DE: delay after TX complete before flush + DE release
-#define RS485_TX_WARMUP_AUTO_DELAY_US              0 // Auto-direction: delay before TX (internal RX→TX switch)
-#define RS485_TX_COOLDOWN_AUTO_DELAY_US            0 // Auto-direction: delay after TX complete before flush
-*/
 
 #define RS485_TX_WARMUP_DELAY_US                  10 // Manual DE: delay after DE assert before TX
 #define RS485_TX_WARMUP_AUTO_DELAY_US              0 // Auto-direction: delay before TX (internal RX→TX switch)
@@ -76,7 +69,7 @@
 //                                         with no contention — maximum determinism.
 //
 #define RS485_USE_TASK                              1  // 0 = runs in loop() (best for WiFi). 1 = dedicated FreeRTOS task (best for USB/Serial/BLE)
-#define RS485_TASK_CORE                             0  // Only relevant/used when RS485_USE_TASK is set to 1 (see above). 0 = Core 0 (ideal when no WiFi). 1 = Core 1 (shares with loop). Ignored on single-core chips
+#define RS485_TASK_CORE                             1  // Only relevant/used when RS485_USE_TASK is set to 1 (see above). 0 = Core 0 (ideal when no WiFi). 1 = Core 1 (shares with loop). Ignored on single-core chips
 
 // *** READ THIS *** (Advanced users only)
 // TinyUSB + Wi-Fi enabled at the same time consume a LOT of memory, so if you decide to enable debugging (below) on S2 devices keep that in mind as compiles will most likely fail if both the WiFi stack (for debug or normal operation) is enabled along USB-OTG (TinyUSB). To avoid, simply use an S3 device or stick to the stack capabilities (e.g) Debug via Serial if using USB or Debug via WiFi if using WiFi as transport.  
