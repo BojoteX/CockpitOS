@@ -87,8 +87,8 @@
 #define RS485_BAUD_RATE         250000
 
 // TX Timing (microseconds) — must match slave settings
-#define TX_WARMUP_DELAY_MANUAL_US   50
-#define TX_COOLDOWN_DELAY_MANUAL_US 50
+#define TX_WARMUP_DELAY_MANUAL_US   55
+#define TX_COOLDOWN_DELAY_MANUAL_US 55
 #define TX_WARMUP_DELAY_AUTO_US     0
 #define TX_COOLDOWN_DELAY_AUTO_US   15
 

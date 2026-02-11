@@ -69,9 +69,9 @@
 #define RS485_TASK_CORE                             0  // Only relevant/used when RS485_USE_TASK is set to 1 (see above). 0 = Core 0 (ideal when no WiFi). 1 = Core 1 (shares with loop). Ignored on single-core chips
 
 // REMOVE FOR PRODUCTION
-#define RS485_TEST_LED_GPIO                         2 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
 #define RS485_TEST_BUTTON_GPIO                      0 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
 #define RS485_TEST_SWITCH_GPIO                      1 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
+#define RS485_TEST_LED_GPIO                         2 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
 
 // *** READ THIS *** (Advanced users only)
 // TinyUSB + Wi-Fi enabled at the same time consume a LOT of memory, so if you decide to enable debugging (below) on S2 devices keep that in mind as compiles will most likely fail if both the WiFi stack (for debug or normal operation) is enabled along USB-OTG (TinyUSB). To avoid, simply use an S3 device or stick to the stack capabilities (e.g) Debug via Serial if using USB or Debug via WiFi if using WiFi as transport.  
