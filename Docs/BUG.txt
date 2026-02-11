@@ -1,3 +1,5 @@
+****** THIS IS FOR AN OLD VERSION OF LovyanGFX ************
+
 There is a BUG in the LovyanGFX library version 1.2.7 when compiling under S3 devices. The file is located here:
 
 Documents\Arduino\libraries\LovyanGFX\src\lgfx\v1\platforms\esp32s3\Bus_RGB.cpp

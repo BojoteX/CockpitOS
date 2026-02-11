@@ -85,6 +85,14 @@ def run():
             h = ((h << 5) + h) + ord(c)
         return h % mod
 
+    # Python equivalent of the C++ constexpr labelHash() in CUtils.h
+    # Must produce identical values for hash table placement to match runtime probing
+    def label_hash(s, mod):
+        h = 0
+        for c in reversed(s):
+            h = (ord(c) + 31 * h) & 0xFFFF  # uint16_t truncation at each step
+        return h % mod
+
     # --------------------------------
     # LOAD JSON, PANEL FILTERING
     # --------------------------------
@@ -323,7 +331,7 @@ def run():
         desired_size = next_prime(len(labels) * 2)
         hash_table = ["{nullptr, nullptr}"] * desired_size
         for idx, label in enumerate(labels):
-            h = djb2_hash(label, desired_size)
+            h = label_hash(label, desired_size)
             for probe in range(desired_size):
                 if hash_table[h] == "{nullptr, nullptr}":
                     hash_table[h] = f'{{"{label}", &fieldDefs[{idx}]}}'
@@ -340,18 +348,13 @@ def run():
         for entry in hash_table:
             fcpp.write(f"    {entry},\n")
         fcpp.write("};\n\n")
-        fcpp.write("// --- djb2-based hash function and lookup ---\n")
-        fcpp.write("inline uint16_t djb2_hash(const char* s, size_t mod) {\n")
-        fcpp.write("    uint32_t h = 5381;\n")
-        fcpp.write("    while (*s) h = ((h << 5) + h) + (uint8_t)(*s++);\n")
-        fcpp.write("    return h % mod;\n")
-        fcpp.write("}\n\n")
+        fcpp.write("// --- labelHash-based lookup (uses shared labelHash from CUtils.h) ---\n")
         fcpp.write("const DisplayFieldDefLabel* findFieldDefByLabel(const char* label) {\n")
-        fcpp.write("    uint16_t startH = djb2_hash(label, FIELD_HASH_SIZE);\n")
+        fcpp.write(f"    uint16_t startH = labelHash(label) % FIELD_HASH_SIZE;\n")
         fcpp.write("    for (uint16_t i = 0; i < FIELD_HASH_SIZE; ++i) {\n")
         fcpp.write("        uint16_t idx = (startH + i >= FIELD_HASH_SIZE) ? (startH + i - FIELD_HASH_SIZE) : (startH + i);\n")
         fcpp.write("        const auto& entry = fieldDefHashTable[idx];\n")
-        fcpp.write("        if (!entry.label) continue;\n")
+        fcpp.write("        if (!entry.label) return nullptr;\n")
         fcpp.write("        if (strcmp(entry.label, label) == 0) return entry.def;\n")
         fcpp.write("    }\n")
         fcpp.write("    return nullptr;\n")

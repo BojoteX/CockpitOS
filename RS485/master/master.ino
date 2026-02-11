@@ -220,8 +220,9 @@
 #include <WiFiUdp.h>
 #endif
 
-// PC Serial - works on ALL ESP32 variants
-#define PC_SERIAL Serial
+// PC Serial — USBSerial for S3 with USB CDC On Boot disabled
+#include "USB.h"
+#define PC_SERIAL HWCDCSerial
 
 // ============================================================================
 // SERIAL DEBUG MACROS
@@ -1259,6 +1260,7 @@ static void sendToPC() {
 
 void setup() {
     // Initialize USB CDC for PC communication
+    USB.begin();
     PC_SERIAL.begin(250000);
     dbgBegin(115200);
     delay(3000);

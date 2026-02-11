@@ -15,19 +15,13 @@ static const FieldDefHashEntry fieldDefHashTable[FIELD_HASH_SIZE] = {
     {nullptr, nullptr},
 };
 
-// --- djb2-based hash function and lookup ---
-inline uint16_t djb2_hash(const char* s, size_t mod) {
-    uint32_t h = 5381;
-    while (*s) h = ((h << 5) + h) + (uint8_t)(*s++);
-    return h % mod;
-}
-
+// --- labelHash-based lookup (uses shared labelHash from CUtils.h) ---
 const DisplayFieldDefLabel* findFieldDefByLabel(const char* label) {
-    uint16_t startH = djb2_hash(label, FIELD_HASH_SIZE);
+    uint16_t startH = labelHash(label) % FIELD_HASH_SIZE;
     for (uint16_t i = 0; i < FIELD_HASH_SIZE; ++i) {
         uint16_t idx = (startH + i >= FIELD_HASH_SIZE) ? (startH + i - FIELD_HASH_SIZE) : (startH + i);
         const auto& entry = fieldDefHashTable[idx];
-        if (!entry.label) continue;
+        if (!entry.label) return nullptr;
         if (strcmp(entry.label, label) == 0) return entry.def;
     }
     return nullptr;

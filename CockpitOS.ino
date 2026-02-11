@@ -433,5 +433,5 @@ void loop() {
     perfMonitorUpdate();
     #endif   
 
-    // yield();
+    delay(1);
 }

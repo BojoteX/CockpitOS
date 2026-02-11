@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
-  DEVICE_GPIO,
-  DEVICE_PCA9555,
+  DEVICE_GAUGE,
   DEVICE_GN1640T,
-  DEVICE_WS2812,
+  DEVICE_PCA9555,
+  DEVICE_GPIO,
   DEVICE_NONE,
   DEVICE_TM1637,
-  DEVICE_GAUGE,
+  DEVICE_WS2812,
 };
 
 struct LEDMapping {
@@ -48,33 +48,13 @@ static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]
 struct LEDHashEntry { const char* label; const LEDMapping* led; };
 static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
-  {"SUIT_TEMP", &panelLEDs[4]},
-  {nullptr, nullptr},
-  {"FLOOD_DIMMER", &panelLEDs[7]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"WARN_CAUTION_DIMMER", &panelLEDs[9]},
   {nullptr, nullptr},
   {"VOLT_E", &panelLEDs[1]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"CONSOLES_DIMMER", &panelLEDs[6]},
   {"INST_PNL_DIMMER", &panelLEDs[8]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"VOLT_U", &panelLEDs[2]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -85,11 +65,27 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {"CANOPY_POS", &panelLEDs[10]},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"VOLT_U", &panelLEDs[2]},
   {"CHART_DIMMER", &panelLEDs[5]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"FLOOD_DIMMER", &panelLEDs[7]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"CONSOLES_DIMMER", &panelLEDs[6]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"WARN_CAUTION_DIMMER", &panelLEDs[9]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -97,7 +93,11 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {"DEFOG_HANDLE", &panelLEDs[0]},
-  {"CANOPY_POS", &panelLEDs[10]},
+  {"SUIT_TEMP", &panelLEDs[4]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
 };
@@ -111,7 +111,7 @@ inline const LEDMapping* findLED(const char* label) {
   for (uint16_t i = 0; i < 53; ++i) {
     uint16_t idx = (startH + i >= 53) ? (startH + i - 53) : (startH + i);
     const auto& entry = ledHashTable[idx];
-    if (!entry.label) continue;
+    if (!entry.label) return nullptr;
     if (strcmp(entry.label, label) == 0) return entry.led;
   }
   return nullptr;
