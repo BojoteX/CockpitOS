@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
+  DEVICE_NONE,
   DEVICE_PCA9555,
+  DEVICE_WS2812,
+  DEVICE_GN1640T,
+  DEVICE_GAUGE,
   DEVICE_GPIO,
   DEVICE_TM1637,
-  DEVICE_GN1640T,
-  DEVICE_WS2812,
-  DEVICE_NONE,
-  DEVICE_GAUGE,
 };
 
 struct LEDMapping {
@@ -64,32 +64,32 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
   {"PRESSURE_ALT", &panelLEDs[0]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
 };
 
 // Reuse shared recursive hash implementation
@@ -101,7 +101,7 @@ inline const LEDMapping* findLED(const char* label) {
   for (uint16_t i = 0; i < 53; ++i) {
     uint16_t idx = (startH + i >= 53) ? (startH + i - 53) : (startH + i);
     const auto& entry = ledHashTable[idx];
-    if (!entry.label) continue;
+    if (!entry.label) return nullptr;
     if (strcmp(entry.label, label) == 0) return entry.led;
   }
   return nullptr;

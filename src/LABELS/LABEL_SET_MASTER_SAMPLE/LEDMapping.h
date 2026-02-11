@@ -4,12 +4,12 @@
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
   DEVICE_GAUGE,
+  DEVICE_TM1637,
   DEVICE_PCA9555,
   DEVICE_NONE,
   DEVICE_WS2812,
-  DEVICE_GN1640T,
   DEVICE_GPIO,
-  DEVICE_TM1637,
+  DEVICE_GN1640T,
 };
 
 struct LEDMapping {
@@ -52,14 +52,28 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
   {"MASTER_MODE_AA_LT", &panelLEDs[0]},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
   {"MC_DISCH", &panelLEDs[2]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
   {"MC_READY", &panelLEDs[3]},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -72,21 +86,7 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {"MASTER_MODE_AG_LT", &panelLEDs[1]},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
   {"MASTER_CAUTION_LT", &panelLEDs[4]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -105,7 +105,7 @@ inline const LEDMapping* findLED(const char* label) {
   for (uint16_t i = 0; i < 53; ++i) {
     uint16_t idx = (startH + i >= 53) ? (startH + i - 53) : (startH + i);
     const auto& entry = ledHashTable[idx];
-    if (!entry.label) continue;
+    if (!entry.label) return nullptr;
     if (strcmp(entry.label, label) == 0) return entry.led;
   }
   return nullptr;

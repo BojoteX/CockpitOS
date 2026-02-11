@@ -363,7 +363,7 @@ inline const DisplayFieldDef* findDisplayFieldByLabel(const char* label) {
   for (uint16_t i = 0; i < 2; ++i) {
     uint16_t idx = (startH + i >= 2) ? (startH + i - 2) : (startH + i);
     const auto& entry = displayFieldsByLabel[idx];
-    if (!entry.label) continue;
+    if (!entry.label) return nullptr;
     if (strcmp(entry.label, label) == 0) return entry.def;
   }
   return nullptr;
@@ -397,43 +397,43 @@ static const size_t numMetadataStates = sizeof(metadataStates)/sizeof(metadataSt
 
 struct MetadataHashEntry { const char* label; MetadataState* state; };
 static MetadataHashEntry metadataHashTable[37] = {
-  {"EXT_REFUEL_PROBE_LIGHT", &metadataStates[7]},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"EXT_WING_FOLDING", &metadataStates[12]},
-  {"EXT_STAIR", &metadataStates[9]},
   {nullptr, nullptr},
-  {"EXT_FORMATION_LIGHTS", &metadataStates[0]},
-  {nullptr, nullptr},
-  {"EXT_WOW_RIGHT", &metadataStates[15]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"EXT_TAIL_LIGHT", &metadataStates[11]},
-  {"EXT_REFUEL_PROBE", &metadataStates[6]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"EXT_WOW_NOSE", &metadataStates[14]},
   {"EXT_POSITION_LIGHT_LEFT", &metadataStates[4]},
-  {"EXT_HOOK", &metadataStates[1]},
-  {"EXT_STROBE_LIGHTS", &metadataStates[10]},
+  {"EXT_NOZZLE_POS_L", &metadataStates[2]},
+  {"EXT_POSITION_LIGHT_RIGHT", &metadataStates[5]},
+  {"EXT_WOW_LEFT", &metadataStates[13]},
+  {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {"EXT_SPEED_BRAKE", &metadataStates[8]},
-  {"EXT_WOW_LEFT", &metadataStates[13]},
-  {nullptr, nullptr},
-  {"EXT_NOZZLE_POS_L", &metadataStates[2]},
-  {"EXT_WOW_NOSE", &metadataStates[14]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"EXT_HOOK", &metadataStates[1]},
+  {"EXT_WOW_RIGHT", &metadataStates[15]},
   {nullptr, nullptr},
   {"EXT_NOZZLE_POS_R", &metadataStates[3]},
   {nullptr, nullptr},
+  {"EXT_REFUEL_PROBE", &metadataStates[6]},
+  {"EXT_FORMATION_LIGHTS", &metadataStates[0]},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {"EXT_WING_FOLDING", &metadataStates[12]},
+  {nullptr, nullptr},
+  {"EXT_STROBE_LIGHTS", &metadataStates[10]},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"EXT_POSITION_LIGHT_RIGHT", &metadataStates[5]},
+  {"EXT_REFUEL_PROBE_LIGHT", &metadataStates[7]},
+  {nullptr, nullptr},
+  {"EXT_STAIR", &metadataStates[9]},
+  {"EXT_TAIL_LIGHT", &metadataStates[11]},
+  {nullptr, nullptr},
 };
 
 constexpr uint16_t metadataHash(const char* s) { return labelHash(s); }
@@ -443,7 +443,7 @@ inline MetadataState* findMetadataState(const char* label) {
     for (uint16_t i = 0; i < 37; ++i) {
         uint16_t idx = (startH + i >= 37) ? (startH + i - 37) : (startH + i);
         const auto& entry = metadataHashTable[idx];
-        if (!entry.label) continue;
+        if (!entry.label) return nullptr;
         if (strcmp(entry.label, label) == 0) return entry.state;
     }
     return nullptr;

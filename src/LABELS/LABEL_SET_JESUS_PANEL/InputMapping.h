@@ -95,7 +95,7 @@ inline const InputMapping* findInputByLabel(const char* label) {
   for (uint16_t i = 0; i < 53; ++i) {
     uint16_t idx = (startH + i >= 53) ? (startH + i - 53) : (startH + i);
     const auto& entry = inputHashTable[idx];
-    if (!entry.label) continue;
+    if (!entry.label) return nullptr;
     if (strcmp(entry.label, label) == 0) return entry.mapping;
   }
   return nullptr;

@@ -260,7 +260,7 @@ bool tryToSendDcsBiosMessageUDP(const char* msg, const char* arg) {
 
 	// delay(1); // tiny delay to avoid flooding
 	// delayMicroseconds(100); / / tiny delay to avoid flooding
-	yield(); // yield to allow background UDP processing
+	// yield(); // yield to allow background UDP processing
     
     return true;
 }
