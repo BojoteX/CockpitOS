@@ -20,15 +20,15 @@
 #endif
 
 // Is this an RS-485 Master? leave to 0 for normal operation.
-#define RS485_MASTER_ENABLED                        1 // Set as RS-485 Master. Polls slaves. Forwards data, you still need to choose a transport above (WiFi, Serial, USB etc)
+#define RS485_MASTER_ENABLED                        0 // Set as RS-485 Master. Polls slaves. Forwards data, you still need to choose a transport above (WiFi, Serial, USB etc)
 
 // Here is where you tell the firmware which 'transport' will be used to Communicate with the simulator (only ONE can be selected). 
 // Bluetooth BLE, Pure Native USB, WIFI, Serial (CDC/Socat) or as an RS485 slave. ** Only ONE ** can be active 
 #define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included in Open Source version of CockpitOS) (Works on ALL ESP32s except S2s and some P4s).
 #define USE_DCSBIOS_WIFI                            0 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
-#define USE_DCSBIOS_USB                             1 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
+#define USE_DCSBIOS_USB                             0 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
 #define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
-#define RS485_SLAVE_ENABLED                         0 // Set as RS-485 Slave, you need to also run a master RS485 on a separate device
+#define RS485_SLAVE_ENABLED                         1 // Set as RS-485 Slave, you need to also run a master RS485 on a separate device
 
 // RS485 *** [ Slave ] *** (Only if RS485_SLAVE_ENABLED is set to 1)
 #define RS485_SLAVE_ADDRESS                         1 // This is the Slave addres ID! Only use when RS485_SLAVE_ENABLED (above) is set to 1. Choose a device address between (1-126) each slave should have a unique address
@@ -38,7 +38,6 @@
 #define RS485_MAX_SLAVE_ADDRESS                   127 // Maximum slave address to poll (valid range: 1-127).        
 
 // RS485 (Optional) only for Slave/Master RS485 setups
-#define RS485_DEBUG_VERBOSE                         0 // 1 = Log every poll/response (VERY verbose). 0 = Normal operation
 #define RS485_STATUS_INTERVAL_MS                60000 // How many milliseconds between each stats banner (60000 = 60 secs = 1 min)
 
 // RS485 Transceiver Timing (microseconds) — applies to both master and slave.
@@ -74,6 +73,7 @@
 #define VERBOSE_PERFORMANCE_ONLY                    0  // This will output perf snapshots ONLY, make sure you pick VERBOSE_MODE_SERIAL_ONLY or VERBOSE_MODE_WIFI_ONLY so that we know where to output those snapshot ONLY messages.
 #define DEBUG_PERFORMANCE_SHOW_TASKS                0  // Includes the current task list with the snapshot. Not really needed.
 #define DEBUG_LISTENERS_AT_STARTUP                  0  // Debug Listeners for ADVANCED troubleshooting! usually not needed.
+#define RS485_DEBUG_VERBOSE                         0  // 1 = Log every poll/response (VERY verbose). 0 = Normal operation
 #define PERFORMANCE_SNAPSHOT_INTERVAL_SECONDS       60 // Interval between snapshots (in seconds)
 
 // Key scanning

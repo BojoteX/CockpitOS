@@ -94,15 +94,11 @@ def show_config(prefs):
     if role == "master":
         smart = config_get("RS485_SMART_MODE") or "0"
         max_addr = config_get("RS485_MAX_SLAVE_ADDRESS") or "127"
-        use_task = config_get("RS485_USE_TASK") or "?"
-        task_core = config_get("RS485_TASK_CORE") or "?"
         info(f"  RS485 Smart Mode:  {smart}")
         info(f"  Max Slave Address: {max_addr}")
-        info(f"  Use Task: {use_task}  Core: {task_core}")
     elif role == "slave":
         addr = config_get("RS485_SLAVE_ADDRESS") or "?"
         info(f"  Slave Address: {addr}")
-        info(f"  Mode: ISR (bare-metal UART)")
 
     print()
 
