@@ -1,6 +1,6 @@
 /**
  * @file RS485Master.cpp
- * @brief RS-485 Master Driver for CockpitOS - v2.4 ISR-Only
+ * @brief RS-485 Master Driver for CockpitOS - v2.3 TX_DONE Non-Blocking
  *
  * ARCHITECTURE:
  *   - Bare-metal UART using uart_ll_* for direct hardware access
@@ -28,10 +28,14 @@
  *     a complete message, it's forwarded to CockpitOS immediately.
  *
  * RATIONALE:
- *   ISR mode is the only viable approach for RS485 on ESP32. The master
- *   controls bus timing and needs lowest possible latency to catch slave
- *   responses. Both master and slave use bare-metal UART with ISR-driven
- *   RX and TX_DONE non-blocking TX for optimal timing.
+ *   Testing showed that for MASTER operation, ISR mode is essential.
+ *   The master controls bus timing and needs lowest possible latency
+ *   to catch slave responses. RX and TX never overlap for the master
+ *   (it always waits for response before next poll), so ISR mode
+ *   provides optimal timing-critical response detection.
+ *
+ *   Slave uses Driver mode because it can receive broadcast data DURING
+ *   its TX response, and the DMA-backed buffer handles this overlap.
  *
  * PROTOCOL: 100% compatible with Arduino DCS-BIOS RS485 implementation
  *
@@ -418,10 +422,6 @@ static void processQueuedCommands() {
 // RX BYTE PROCESSOR - Runs in ISR context (like AVR)
 // ============================================================================
 
-// rxStartTime is set ONCE in the TX_DONE handler when a poll completes —
-// matching the AVR's TXC ISR behavior (rx_start_time = micros()). The 5ms
-// mid-message timeout measures from poll-TX-complete, not from last byte.
-// This eliminates per-byte esp_timer_get_time() calls in the ISR hot path.
 static inline void IRAM_ATTR processRxByte(uint8_t c) {
     switch (state) {
         case MasterState::RX_WAIT_DATALENGTH:
@@ -433,12 +433,14 @@ static inline void IRAM_ATTR processRxByte(uint8_t c) {
                 // Empty response - slave has no data
                 state = MasterState::IDLE;
             }
+            rxStartTime = esp_timer_get_time();
             break;
 
         case MasterState::RX_WAIT_MSGTYPE:
             rxMsgType = c;
             (void)rxMsgType;  // Not used but kept for protocol completeness
             state = MasterState::RX_WAIT_DATA;
+            rxStartTime = esp_timer_get_time();
             break;
 
         case MasterState::RX_WAIT_DATA:
@@ -446,6 +448,7 @@ static inline void IRAM_ATTR processRxByte(uint8_t c) {
             if (--rxtxLen == 0) {
                 state = MasterState::RX_WAIT_CHECKSUM;
             }
+            rxStartTime = esp_timer_get_time();
             break;
 
         case MasterState::RX_WAIT_CHECKSUM:
@@ -453,6 +456,7 @@ static inline void IRAM_ATTR processRxByte(uint8_t c) {
             messageBuffer.complete = true;
             messageCompleteTime = esp_timer_get_time();
             state = MasterState::IDLE;
+            rxStartTime = esp_timer_get_time();
             break;
 
         default:
@@ -922,14 +926,10 @@ bool RS485Master_init() {
 
     // Trigger interrupt on every byte for lowest latency
     uart_ll_set_rxfifo_full_thr(RS485_UART_DEV, 1);
-    // Safety net: RXFIFO_TOUT catches bytes that arrive between FIFO drain
-    // and ISR return (RISC-V FIFO pointer race). 10 bit-periods = ~400us at
-    // 250kbps — well below protocol timeouts.
-    uart_ll_set_rx_tout(RS485_UART_DEV, 10);
 
     // Clear and enable interrupts
     uart_ll_clr_intsts_mask(RS485_UART_DEV, UART_LL_INTR_MASK);
-    uart_ll_ena_intr_mask(RS485_UART_DEV, UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT);
+    uart_ll_ena_intr_mask(RS485_UART_DEV, UART_INTR_RXFIFO_FULL);
 
     // Install RX interrupt
     esp_intr_alloc(RS485_UART_INTR_SRC,

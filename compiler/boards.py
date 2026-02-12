@@ -34,7 +34,8 @@ ARDUINO_CLI = Path(r"C:\Program Files\Arduino IDE\resources\app\lib\backend\reso
 # CockpitOS hard defaults for board options (always applied)
 # -----------------------------------------------------------------------------
 COCKPITOS_DEFAULTS = {
-    "CDCOnBoot":       "default",   # Disabled - REQUIRED
+    # CDCOnBoot is NOT here — its "disabled" value varies per board (S3="default", S2="dis_cdc").
+    # It is resolved dynamically via _cdc_disabled_value() in configure_options() and validation.
     "PartitionScheme": "no_ota",    # No OTA (2MB APP/2MB SPIFFS)
     "CPUFreq":         "240",       # 240MHz
     "FlashMode":       "qio",       # QIO 80MHz
@@ -53,6 +54,24 @@ COCKPITOS_DEFAULTS = {
 # -----------------------------------------------------------------------------
 FATAL   = "FATAL"
 WARNING = "WARNING"
+
+# -----------------------------------------------------------------------------
+# Board-aware helpers
+# -----------------------------------------------------------------------------
+def _cdc_disabled_value(board_options):
+    """Find the CDCOnBoot value that means 'Disabled' for this board.
+
+    On S3: "default" = Disabled.  On S2: "dis_cdc" = Disabled.
+    Returns the value string, or None if the board has no CDCOnBoot option.
+    """
+    cdc_opt = board_options.get("CDCOnBoot")
+    if not cdc_opt:
+        return None
+    for label, val in cdc_opt.get("values", []):
+        if "disable" in label.lower():
+            return val
+    return None
+
 
 # -----------------------------------------------------------------------------
 # arduino-cli wrappers
@@ -151,13 +170,18 @@ def validate_config_vs_board(prefs):
     transport = read_current_transport()
     dual_usb = board_has_dual_usb(prefs)
 
-    # FATAL: CDC on Boot must be disabled
+    # FATAL: CDC on Boot must be disabled (value varies per board)
     cdc = opts.get("CDCOnBoot")
-    if cdc and cdc != "default":
-        issues.append((FATAL,
-            "CDC On Boot is ENABLED. CockpitOS requires CDC On Boot = Disabled.\n"
-            "  Config.h will fail to compile (#error directive). "
-            "Change it in Board Options."))
+    if cdc:
+        fqbn = prefs.get("fqbn")
+        if fqbn:
+            board_options = get_board_options(fqbn)
+            cdc_off = _cdc_disabled_value(board_options)
+            if cdc_off and cdc != cdc_off:
+                issues.append((FATAL,
+                    "CDC On Boot is ENABLED. CockpitOS requires CDC On Boot = Disabled.\n"
+                    "  Config.h will fail to compile (#error directive). "
+                    "Change it in Board Options."))
 
     # FATAL: USB transport + HW CDC on dual-USB board
     if dual_usb and transport == "usb":
@@ -219,6 +243,8 @@ def select_board(prefs):
         info(f"Current: {CYAN}{saved_name}{RESET}  {DIM}({saved_fqbn}){RESET}")
 
     fqbn = pick_filterable(f"Select board ({len(boards)} available):", options, default=saved_fqbn)
+    if fqbn is None:
+        return None
 
     friendly = next((n for n, f in boards if f == fqbn), fqbn)
     prefs["board_name"] = friendly
@@ -243,6 +269,11 @@ def configure_options(fqbn, prefs):
         if key in board_options:
             selected[key] = val
 
+    # CDC On Boot: always disabled (value varies per board)
+    cdc_off = _cdc_disabled_value(board_options)
+    if cdc_off is not None:
+        selected["CDCOnBoot"] = cdc_off
+
     # Smart USB mode: set based on current transport (only on dual-USB boards)
     if "USBMode" in board_options and len(board_options["USBMode"].get("values", [])) >= 2:
         transport = read_current_transport()
@@ -257,6 +288,8 @@ def configure_options(fqbn, prefs):
         ("Quick - use CockpitOS defaults (recommended)", "quick"),
         ("Full - configure ALL board options", "full"),
     ], default="quick")
+    if mode is None:
+        return None
 
     if mode == "quick":
         for key, opt in board_options.items():
@@ -273,6 +306,8 @@ def configure_options(fqbn, prefs):
         current_val = selected.get(key, saved_options.get(key, opt["default"]))
         header(f"Board Options ({i+1}/{len(keys_to_show)})")
         chosen = pick(f"{opt['name']}:", opt["values"], default=current_val)
+        if chosen is None:
+            return None
         selected[key] = chosen
 
     # Fill remaining with defaults

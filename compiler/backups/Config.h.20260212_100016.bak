@@ -38,6 +38,7 @@
 #define RS485_MAX_SLAVE_ADDRESS                   127 // Maximum slave address to poll (valid range: 1-127).        
 
 // RS485 (Optional) only for Slave/Master RS485 setups
+#define RS485_USE_ISR_MODE                          1 // 1 = ISR-driven (lowest latency, dedicated core). 0 = Not Implemented properly, wont work
 #define RS485_DEBUG_VERBOSE                         0 // 1 = Log every poll/response (VERY verbose). 0 = Normal operation
 #define RS485_STATUS_INTERVAL_MS                60000 // How many milliseconds between each stats banner (60000 = 60 secs = 1 min)
 

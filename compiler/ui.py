@@ -161,7 +161,7 @@ def pick(prompt, options, default=None):
     total = len(options)
     print()
     cprint(BOLD, f"  {prompt}")
-    cprint(DIM, "  (arrow keys to move, Enter to select)")
+    cprint(DIM, "  (arrows to move, Enter to select, Esc to go back)")
 
     # Draw all rows
     _w(HIDE_CUR)
@@ -199,6 +199,10 @@ def pick(prompt, options, default=None):
                         _w(f"\033[{remaining}B")
                     _w("\r")
 
+            elif ch == "\x1b":      # ESC — go back
+                _w(SHOW_CUR)
+                return None
+
             elif ch == "\r":        # Enter
                 _w(SHOW_CUR)
                 return options[idx][1]
@@ -225,18 +229,23 @@ def menu_pick(items):
 
     for item in items:
         if item[0] == "---":
-            rows.append(None)   # separator
-        else:
-            label, value, style = item
-            if style == "action":
-                normal = f"     {GREEN}{BOLD}{label}{RESET}"
-                hilite = f"  \033[42m\033[97m{BOLD} \u25b8 {label} {RESET}"
-            elif style == "dim":
-                normal = f"     {DIM}{label}{RESET}"
-                hilite = f"  {REV} \u25b8 {label} {RESET}"
+            if len(item) >= 2:
+                rows.append(("labeled_sep", item[1]))   # labeled separator
             else:
-                normal = f"     {label}"
-                hilite = f"  {REV} \u25b8 {label} {RESET}"
+                rows.append(None)   # plain separator
+        else:
+            label, value, style = item[0], item[1], item[2]
+            caption = item[3] if len(item) >= 4 else ""
+            cap_suf = f" {DIM}{caption}{RESET}" if caption else ""
+            if style == "action":
+                normal = f"     {GREEN}{BOLD}{label}{RESET}{cap_suf}"
+                hilite = f"  \033[42m\033[97m{BOLD} \u25b8 {label} {RESET}{cap_suf}"
+            elif style == "dim":
+                normal = f"     {DIM}{label}{RESET}{cap_suf}"
+                hilite = f"  {REV} \u25b8 {label} {RESET}{cap_suf}"
+            else:
+                normal = f"     {label}{cap_suf}"
+                hilite = f"  {REV} \u25b8 {label} {RESET}{cap_suf}"
             selectable.append(len(rows))
             rows.append((normal, hilite, value))
 
@@ -247,9 +256,18 @@ def menu_pick(items):
     total_rows = len(rows)
 
     def _render_row(ri, is_sel):
-        if rows[ri] is None:
-            return f"     {DIM}\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500{RESET}"
-        normal, hilite, _ = rows[ri]
+        entry = rows[ri]
+        if entry is None:
+            return f"     {DIM}\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500{RESET}"
+        if isinstance(entry, tuple) and entry[0] == "labeled_sep":
+            label = entry[1]
+            total_w = 36
+            pad = total_w - len(label) - 2
+            left = pad // 2
+            right = pad - left
+            dash = "\u2500"
+            return f"     {DIM}{dash * left} {label} {dash * right}{RESET}"
+        normal, hilite, _ = entry
         return hilite if is_sel else normal
 
     # Initial draw
@@ -287,6 +305,10 @@ def menu_pick(items):
                     if remaining > 0:
                         _w(f"\033[{remaining}B")
                     _w("\r")
+
+            elif ch == "\x1b":      # ESC — go back
+                _w(SHOW_CUR)
+                return None
 
             elif ch == "\r":        # Enter
                 _w(SHOW_CUR)
@@ -338,7 +360,7 @@ def pick_filterable(prompt, options, default=None):
         _w(HIDE_CUR)
         fdisp = f"  filter: {filter_text}" if filter_text else ""
         _w(f"{ERASE_LN}  {BOLD}{prompt}{RESET}{fdisp}\n")
-        _w(f"{ERASE_LN}  {DIM}(type to filter, arrows to move, Enter to select){RESET}\n")
+        _w(f"{ERASE_LN}  {DIM}(type to filter, arrows to move, Enter to select, Esc to go back){RESET}\n")
         vp = _viewport()
         for slot in range(total_slots):
             _w(ERASE_LN)
@@ -385,11 +407,14 @@ def pick_filterable(prompt, options, default=None):
                 if filtered:
                     return filtered[idx][1]
 
-            elif ch == "\x1b":      # Escape — clear filter
+            elif ch == "\x1b":      # Escape — clear filter, or go back
                 if filter_text:
                     filter_text = ""
                     _apply()
                     _repaint()
+                else:
+                    _w(SHOW_CUR)
+                    return None
 
             elif ch == "\x08":      # Backspace
                 if filter_text:
@@ -405,9 +430,285 @@ def pick_filterable(prompt, options, default=None):
         _w(SHOW_CUR)
         raise
 
+def pick_live(prompt, initial_options, scan_fn, interval=2.0, empty_message="No items found"):
+    """Arrow-key picker that refreshes options via a background scan thread.
+
+    scan_fn:  callable() -> [(label, value)]   — called every `interval` seconds.
+    Returns the selected value on Enter, or None on ESC.
+    """
+    SPINNER_FRAMES = ["|", "/", "-", "\\"]
+    MAX_ROWS = 10
+
+    options = list(initial_options)
+    idx = 0
+    lock = threading.Lock()
+    stop_event = threading.Event()
+    updated_event = threading.Event()
+    spin_idx = [0]
+
+    def _scanner():
+        while not stop_event.is_set():
+            stop_event.wait(interval)
+            if stop_event.is_set():
+                break
+            try:
+                new_opts = scan_fn()
+            except Exception:
+                continue
+            with lock:
+                nonlocal options, idx
+                if new_opts != options:
+                    old_val = options[idx][1] if idx < len(options) else None
+                    options = new_opts
+                    # Preserve selection by value
+                    idx = 0
+                    for i, (_, v) in enumerate(options):
+                        if v == old_val:
+                            idx = i
+                            break
+                    updated_event.set()
+
+    def _draw():
+        """Render the picker. Caller MUST hold `lock`."""
+        _w(HIDE_CUR)
+        frame = SPINNER_FRAMES[spin_idx[0] % len(SPINNER_FRAMES)]
+        _w(f"\r{ERASE_LN}  {BOLD}{prompt}{RESET}\n")
+        _w(f"{ERASE_LN}  {DIM}(arrows to move, Enter to select, Esc to go back){RESET}\n")
+        if not options:
+            _w(f"{ERASE_LN}     {DIM}{empty_message}{RESET}\n")
+            for _ in range(MAX_ROWS - 1):
+                _w(f"{ERASE_LN}\n")
+        else:
+            for slot in range(MAX_ROWS):
+                _w(ERASE_LN)
+                if slot < len(options):
+                    label = options[slot][0]
+                    if slot == idx:
+                        _w(f"  {REV} > {label} {RESET}\n")
+                    else:
+                        _w(f"     {label}\n")
+                else:
+                    _w("\n")
+        count = len(options)
+        _w(f"{ERASE_LN}  {DIM}{count} found  {CYAN}{frame}{RESET}{DIM}  scanning...{RESET}\n")
+
+    def _redraw():
+        """Move cursor up and redraw. Caller MUST hold `lock`."""
+        _w(f"\033[{MAX_ROWS + 3}A")
+        _draw()
+
+    # Initial draw
+    print()
+    with lock:
+        _draw()
+
+    # Start background scanner
+    thread = threading.Thread(target=_scanner, daemon=True)
+    thread.start()
+
+    # Periodic spinner refresh (every 0.3s even if no new data)
+    last_spin = time.time()
+
+    try:
+        while True:
+            now = time.time()
+
+            # Refresh spinner animation or background scan updates
+            needs_redraw = False
+            if now - last_spin >= 0.3:
+                spin_idx[0] += 1
+                last_spin = now
+                needs_redraw = True
+            if updated_event.is_set():
+                updated_event.clear()
+                needs_redraw = True
+            if needs_redraw:
+                with lock:
+                    _redraw()
+
+            # Non-blocking key check
+            if msvcrt.kbhit():
+                ch = msvcrt.getwch()
+                if ch in ("\xe0", "\x00"):
+                    ch2 = msvcrt.getwch()
+                    with lock:
+                        if not options:
+                            continue
+                        old = idx
+                        if ch2 == "H":      # Up
+                            idx = (idx - 1) % len(options)
+                        elif ch2 == "P":    # Down
+                            idx = (idx + 1) % len(options)
+                        else:
+                            continue
+                        if old != idx:
+                            _redraw()
+
+                elif ch == "\x1b":  # ESC — go back
+                    stop_event.set()
+                    thread.join(timeout=3)
+                    _w(SHOW_CUR)
+                    return None
+
+                elif ch == "\r":    # Enter
+                    stop_event.set()
+                    thread.join(timeout=3)
+                    _w(SHOW_CUR)
+                    with lock:
+                        if options:
+                            return options[idx][1]
+                        return None
+            else:
+                time.sleep(0.05)    # prevent busy-wait
+
+    except KeyboardInterrupt:
+        stop_event.set()
+        thread.join(timeout=3)
+        _w(SHOW_CUR)
+        raise
+
+
 def confirm(prompt, default_yes=True):
+    """Y/n prompt. Returns True, False, or None (ESC)."""
     hint = "Y/n" if default_yes else "y/N"
-    raw = input(f"\n  {prompt} [{hint}]: ").strip().lower()
-    if not raw:
-        return default_yes
-    return raw in ("y", "yes")
+    _w(f"\n  {prompt} [{hint}]: ")
+    try:
+        while True:
+            ch = msvcrt.getwch()
+            if ch == "\x1b":        # ESC — go back
+                print()
+                return None
+            elif ch == "\r":        # Enter — use default
+                print()
+                return default_yes
+            elif ch.lower() == "y":
+                print("y")
+                return True
+            elif ch.lower() == "n":
+                print("n")
+                return False
+    except KeyboardInterrupt:
+        raise
+
+
+_RESET_SENTINEL = "__RESET__"
+
+def text_input(prompt, default=None, mask=False):
+    """ESC-aware single-line text input using msvcrt.
+
+    Returns:
+      str          — the entered (or default) value
+      None         — ESC pressed (cancel)
+      _RESET_SENTINEL — Ctrl+D pressed (reset to defaults)
+
+    If Enter is pressed with no input, returns *default* (which may be None).
+    When *mask* is True, typed characters are echoed as '*'.
+    """
+    suffix = ""
+    if default:
+        suffix = f" [{('*' * min(len(default), 8)) if mask else default}]"
+    _w(f"  {prompt}{suffix}: ")
+    buf = []
+    try:
+        while True:
+            ch = msvcrt.getwch()
+            if ch == "\x1b":            # ESC — cancel
+                print()
+                return None
+            elif ch == "\x04":          # Ctrl+D — reset to defaults
+                print()
+                return _RESET_SENTINEL
+            elif ch == "\r":            # Enter — accept
+                print()
+                text = "".join(buf).strip()
+                return text if text else default
+            elif ch in ("\x08", "\x7f"):  # Backspace
+                if buf:
+                    buf.pop()
+                    _w("\b \b")
+            elif ch in ("\xe0", "\x00"):  # special key prefix — discard
+                msvcrt.getwch()
+            elif ch >= " ":             # printable
+                buf.append(ch)
+                _w("*" if mask else ch)
+    except KeyboardInterrupt:
+        print()
+        raise
+
+
+def toggle_pick(prompt, items):
+    """Toggle picker. Arrow keys navigate, Enter toggles, ESC returns final state.
+
+    items: [(label, key, current_bool), ...]
+    Returns: {key: bool} with the final toggle states.
+    """
+    if not items:
+        return {}
+
+    state = {key: val for _, key, val in items}
+    idx = 0
+    total = len(items)
+
+    def _render(i, is_sel):
+        label, key, _ = items[i]
+        mark = f"{GREEN}X{RESET}" if state[key] else " "
+        text = f"[{mark}] {label}"
+        if is_sel:
+            return f"  {REV} {text} {RESET}"
+        else:
+            return f"     {text}"
+
+    print()
+    cprint(BOLD, f"  {prompt}")
+    cprint(DIM, "  (arrows to move, Enter to toggle, Esc to save & go back)")
+
+    _w(HIDE_CUR)
+    for i in range(total):
+        _w(_render(i, i == idx) + "\n")
+
+    try:
+        while True:
+            ch = msvcrt.getwch()
+            if ch in ("\xe0", "\x00"):
+                ch2 = msvcrt.getwch()
+                old = idx
+                if ch2 == "H":          # Up
+                    idx = (idx - 1) % total
+                elif ch2 == "P":        # Down
+                    idx = (idx + 1) % total
+                else:
+                    continue
+                if old != idx:
+                    # Redraw old row
+                    _w(f"\033[{total - old}A")
+                    _w(f"\r{ERASE_LN}{_render(old, False)}")
+                    # Redraw new row
+                    if idx > old:
+                        _w(f"\033[{idx - old}B")
+                    else:
+                        _w(f"\033[{old - idx}A")
+                    _w(f"\r{ERASE_LN}{_render(idx, True)}")
+                    # Return cursor to bottom
+                    remaining = total - idx
+                    if remaining > 0:
+                        _w(f"\033[{remaining}B")
+                    _w("\r")
+
+            elif ch == "\r":        # Enter — toggle
+                key = items[idx][1]
+                state[key] = not state[key]
+                # Redraw current row to update the checkbox
+                _w(f"\033[{total - idx}A")
+                _w(f"\r{ERASE_LN}{_render(idx, True)}")
+                remaining = total - idx
+                if remaining > 0:
+                    _w(f"\033[{remaining}B")
+                _w("\r")
+
+            elif ch == "\x1b":      # ESC — save and go back
+                _w(SHOW_CUR)
+                return state
+
+    except KeyboardInterrupt:
+        _w(SHOW_CUR)
+        raise

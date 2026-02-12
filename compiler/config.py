@@ -21,15 +21,18 @@ from ui import (
 # -----------------------------------------------------------------------------
 # Paths (shared with other modules via import)
 # -----------------------------------------------------------------------------
-SKETCH_DIR  = Path(__file__).resolve().parent.parent          # CockpitOS root
-CONFIG_H    = SKETCH_DIR / "Config.h"
-BACKUP_DIR  = SKETCH_DIR / "compiler" / "backups"
+SKETCH_DIR      = Path(__file__).resolve().parent.parent          # CockpitOS root
+CONFIG_H        = SKETCH_DIR / "Config.h"
+BACKUP_DIR      = SKETCH_DIR / "compiler" / "backups"
+CREDENTIALS_DIR = SKETCH_DIR / ".credentials"
+WIFI_H          = CREDENTIALS_DIR / "wifi.h"
 
 # -----------------------------------------------------------------------------
 # File Safety — whitelist, backup, and atomic write
 # -----------------------------------------------------------------------------
 ALLOWED_FILES = {
     "Config.h":  SKETCH_DIR / "Config.h",
+    "wifi.h":    WIFI_H,
 }
 
 MAX_BACKUPS = 10
@@ -172,14 +175,12 @@ TRACKED_DEFINES = {
     # RS485 Task config
     "RS485_USE_TASK":                   "1",
     "RS485_TASK_CORE":                  "1",
-    "RS485_USE_ISR_MODE":               "1",
-    # RS485 Pins
-    "RS485_TX_PIN":                     "17",
-    "RS485_RX_PIN":                     "18",
-    "RS485_DE_PIN":                     "-1",
     # Debug
     "DEBUG_ENABLED":                    "0",
     "VERBOSE_MODE":                     "0",
+    "VERBOSE_MODE_WIFI_ONLY":           "0",
+    "VERBOSE_MODE_SERIAL_ONLY":         "0",
+    "DEBUG_PERFORMANCE":                "0",
 }
 
 TRANSPORT_DEFINES = [
@@ -411,6 +412,8 @@ def configure_transport_and_role(prefs, board_has_dual_usb_fn, preferred_usb_mod
         ("Yes", "yes"),
         ("No",  "no"),
     ], default=is_master_default)
+    if is_master is None:
+        return None
 
     # --- Step 2: Choose Transport ---
     if is_master == "yes":
@@ -424,6 +427,8 @@ def configure_transport_and_role(prefs, board_has_dual_usb_fn, preferred_usb_mod
         prev = current_transport or "usb"
 
     transport = pick("Select transport:", transport_opts, default=prev)
+    if transport is None:
+        return None
 
     # Determine mode from the two answers
     if is_master == "yes":

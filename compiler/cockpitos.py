@@ -18,23 +18,25 @@ Modules:
 import os
 import sys
 import json
+import msvcrt
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Module imports
 # ---------------------------------------------------------------------------
 from ui import (
-    CYAN, BOLD, DIM, RESET,
+    CYAN, BOLD, DIM, GREEN, RESET, HIDE_CUR, SHOW_CUR,
     cls, cprint, header, info, success, warn, error,
-    menu_pick, confirm,
+    menu_pick, pick, toggle_pick, confirm, text_input, _RESET_SENTINEL,
 )
 from config import (
     CONFIG_H, TRACKED_DEFINES,
-    load_config_snapshot, config_get,
+    load_config_snapshot, config_get, config_set,
     read_current_transport, read_current_role,
     transport_label, role_label,
     configure_transport_and_role,
-    SKETCH_DIR,
+    SKETCH_DIR, CREDENTIALS_DIR, WIFI_H,
+    safe_write_file,
 )
 from boards import (
     ARDUINO_CLI, COCKPITOS_DEFAULTS,
@@ -99,16 +101,8 @@ def show_config(prefs):
         info(f"  Use Task: {use_task}  Core: {task_core}")
     elif role == "slave":
         addr = config_get("RS485_SLAVE_ADDRESS") or "?"
-        isr = config_get("RS485_USE_ISR_MODE") or "?"
         info(f"  Slave Address: {addr}")
-        info(f"  ISR Mode: {isr}")
-
-    # RS485 pins
-    if role in ("master", "slave"):
-        tx = config_get("RS485_TX_PIN") or "?"
-        rx = config_get("RS485_RX_PIN") or "?"
-        de = config_get("RS485_DE_PIN") or "?"
-        info(f"  Pins: TX={tx}  RX={rx}  DE={de}")
+        info(f"  Mode: ISR (bare-metal UART)")
 
     print()
 
@@ -160,8 +154,12 @@ def do_compile(prefs, verbose=False):
     if not prefs.get("fqbn"):
         warn("No board configured yet.")
         fqbn = select_board(prefs)
+        if fqbn is None:
+            return False
         prefs["fqbn"] = fqbn
         opts = configure_options(fqbn, prefs)
+        if opts is None:
+            return False
         prefs["options"] = opts
         save_prefs(prefs)
     else:
@@ -191,6 +189,196 @@ def do_compile(prefs, verbose=False):
             return False
 
     return compile_sketch(fqbn, opts, verbose=verbose, board_name=prefs.get("board_name"))
+
+
+def do_quick_compile(prefs, verbose=False):
+    """Quick compile — reuse current label set, skip generate_data.py."""
+    active = read_active_label_set()
+    if not active:
+        warn("No active label set. Use full COMPILE first.")
+        return False
+
+    if not prefs.get("fqbn"):
+        warn("No board configured yet.")
+        fqbn = select_board(prefs)
+        if fqbn is None:
+            return False
+        prefs["fqbn"] = fqbn
+        opts = configure_options(fqbn, prefs)
+        if opts is None:
+            return False
+        prefs["options"] = opts
+        save_prefs(prefs)
+    else:
+        fqbn = prefs["fqbn"]
+        opts = prefs.get("options", {})
+
+    # Pre-compile cross-validation
+    issues = validate_config_vs_board(prefs)
+    has_fatal = False
+    for level, msg in issues:
+        if level == FATAL:
+            error(f"[FATAL] {msg}")
+            has_fatal = True
+        else:
+            warn(f"[WARNING] {msg}")
+    if has_fatal:
+        error("Cannot compile \u2014 fix the fatal issue(s) above first.")
+        return False
+    if any(lv == WARNING for lv, _ in issues):
+        if not confirm("Warnings detected. Continue compiling anyway?", default_yes=True):
+            return False
+
+    info(f"Quick compile \u2014 reusing label set: {CYAN}{active}{RESET}")
+    info(f"{DIM}Skipping label set selection and generate_data.py{RESET}")
+    print()
+
+    return compile_sketch(fqbn, opts, verbose=verbose, board_name=prefs.get("board_name"))
+
+
+# -----------------------------------------------------------------------------
+# Misc Options sub-menu
+# -----------------------------------------------------------------------------
+def misc_options(prefs):
+    """Sub-menu for Wi-Fi credentials and debug toggles."""
+    while True:
+        header("Misc Options")
+        choice = pick("Select:", [
+            ("Wi-Fi Credentials",       "wifi"),
+            ("Debug / Verbose Toggles", "debug"),
+            ("Back",                    "back"),
+        ])
+        if choice is None or choice == "back":
+            return
+        elif choice == "wifi":
+            configure_wifi_credentials()
+            input(f"\n  {DIM}Press Enter to continue...{RESET}")
+        elif choice == "debug":
+            configure_debug_toggles()
+            input(f"\n  {DIM}Press Enter to continue...{RESET}")
+
+
+def configure_wifi_credentials():
+    """Create or update .credentials/wifi.h with SSID and password."""
+    header("Wi-Fi Credentials")
+
+    # -- Wi-Fi requirements --------------------------------------------------
+    default_ssid = "TestNetwork"
+    default_pass = "TestingOnly"
+
+    info(f"{DIM}ESP32 Wi-Fi requirements:{RESET}")
+    info(f"{DIM}  \u2022 2.4 GHz band only (5 GHz is NOT supported){RESET}")
+    info(f"{DIM}  \u2022 WPA2-PSK (AES/CCMP) security{RESET}")
+    info(f"{DIM}  \u2022 Works on S2, S3, C3 (not H2/P4 \u2014 no radio){RESET}")
+    print()
+
+    # -- Read current values if wifi.h exists --------------------------------
+    current_ssid = None
+    current_pass = None
+    has_file = WIFI_H.exists()
+
+    if has_file:
+        import re
+        text = WIFI_H.read_text(encoding="utf-8")
+        m_ssid = re.search(r'#define\s+WIFI_SSID\s+"([^"]*)"', text)
+        m_pass = re.search(r'#define\s+WIFI_PASS\s+"([^"]*)"', text)
+        if m_ssid:
+            current_ssid = m_ssid.group(1)
+        if m_pass:
+            current_pass = m_pass.group(1)
+
+        info(f"Current SSID: {CYAN}{current_ssid or '(empty)'}{RESET}")
+        info(f"Current PASS: {CYAN}{'*' * min(len(current_pass), 8) if current_pass else '(empty)'}{RESET}")
+    else:
+        info(f"{DIM}No wifi.h found \u2014 using defaults: "
+             f"\"{default_ssid}\" / \"{default_pass}\"{RESET}")
+
+    print()
+    info(f"{DIM}Enter to keep current  \u00b7  Esc to cancel  \u00b7  Ctrl+D to reset defaults{RESET}")
+    print()
+
+    # -- SSID prompt ---------------------------------------------------------
+    ssid = text_input("SSID", default=current_ssid)
+    if ssid is None:                       # ESC pressed
+        return
+    if ssid is _RESET_SENTINEL:            # Ctrl+D — reset to defaults
+        if has_file:
+            WIFI_H.unlink()
+            success(f"Deleted wifi.h \u2014 reset to defaults "
+                    f"(\"{default_ssid}\" / \"{default_pass}\")")
+        else:
+            info("Already using defaults.")
+        return
+    if not ssid:
+        ssid = default_ssid
+
+    # -- Password prompt -----------------------------------------------------
+    password = text_input("Password", default=current_pass, mask=True)
+    if password is None:                   # ESC pressed
+        return
+    if password is _RESET_SENTINEL:        # Ctrl+D — reset to defaults
+        if has_file:
+            WIFI_H.unlink()
+            success(f"Deleted wifi.h \u2014 reset to defaults "
+                    f"(\"{default_ssid}\" / \"{default_pass}\")")
+        else:
+            info("Already using defaults.")
+        return
+    if not password:
+        password = default_pass
+
+    print()
+    CREDENTIALS_DIR.mkdir(parents=True, exist_ok=True)
+
+    content = (
+        "// Auto-generated by CockpitOS Management Tool\n"
+        "// Do NOT commit this file to version control.\n"
+        f'#define WIFI_SSID "{ssid}"\n'
+        f'#define WIFI_PASS "{password}"\n'
+    )
+
+    if safe_write_file(WIFI_H, content):
+        success(f"Saved: .credentials/wifi.h")
+        info(f"  SSID: {CYAN}{ssid}{RESET}")
+    else:
+        error("Failed to write wifi.h!")
+
+
+def configure_debug_toggles():
+    """Toggle debug/verbose defines in Config.h."""
+    header("Debug / Verbose Toggles")
+
+    toggles = [
+        ("Verbose output over WiFi",    "VERBOSE_MODE_WIFI_ONLY"),
+        ("Verbose output over Serial",  "VERBOSE_MODE_SERIAL_ONLY"),
+        ("Extended debug info",          "DEBUG_ENABLED"),
+        ("Performance profiling",        "DEBUG_PERFORMANCE"),
+    ]
+
+    items = []
+    for label, key in toggles:
+        val = config_get(key) or "0"
+        items.append((label, key, val != "0"))
+
+    result = toggle_pick("Toggle options:", items)
+    if result is None:
+        return
+
+    changes = []
+    for label, key in toggles:
+        new_val = "1" if result[key] else "0"
+        old_val = config_get(key) or "0"
+        if new_val != old_val:
+            config_set(key, new_val)
+            changes.append(f"{key}: {old_val} -> {new_val}")
+
+    print()
+    if changes:
+        success("Config.h updated:")
+        for c in changes:
+            info(f"  {c}")
+    else:
+        info("No changes.")
 
 
 # =============================================================================
@@ -235,49 +423,127 @@ def main():
         cprint(CYAN + BOLD, "       \\____\\___/ \\___|_|\\_\\ .__/|_|\\__|\\___/|____/")
         cprint(CYAN + BOLD, "                            |_|")
         print()
+        role_str = role_label(role)
+        transport_str = transport_label(transport) if transport else "?"
+        print()
+        print(f"     \U0001f5a5\ufe0f {CYAN}{friendly_board}{RESET}")
         if role == "slave":
-            print(f"     Label Set: {CYAN}{active_ls}{RESET}  |  "
-                  f"Mode: {CYAN}RS485 Slave{RESET}")
+            print(f"     \U0001f517 {CYAN}RS485 Slave{RESET}")
         else:
-            print(f"     Label Set: {CYAN}{active_ls}{RESET}  |  "
-                  f"{CYAN}{role_label(role)}{RESET}  |  "
-                  f"Transport: {CYAN}{transport_label(transport)}{RESET}")
-        print(f"     Board: {CYAN}{friendly_board}{RESET}")
+            print(f"     \U0001f517 {CYAN}{role_str}{RESET}  {DIM}\u00b7{RESET}  {CYAN}{transport_str}{RESET}")
+
+        # -- Debug status line ---------------------------------------------------
+        via_wifi   = config_get("VERBOSE_MODE_WIFI_ONLY") == "1"
+        via_serial = config_get("VERBOSE_MODE_SERIAL_ONLY") == "1"
+        extended   = config_get("DEBUG_ENABLED") == "1"
+        perf       = config_get("DEBUG_PERFORMANCE") == "1"
+        debug_on   = via_wifi or via_serial
+
+        if debug_on:
+            label = "Debug (Extended)" if extended else "Debug"
+            if via_wifi and via_serial:
+                via = "WiFi + Serial"
+            elif via_wifi:
+                via = "WiFi"
+            else:
+                via = "Serial"
+            perf_str = f"  {DIM}(w/ Performance Profiler){RESET}" if perf else ""
+            print(f"     \U0001f41b {GREEN}{label} ENABLED{RESET} via {CYAN}{via}{RESET}{perf_str}")
+        else:
+            print(f"     \U0001f41b {DIM}Debug is DISABLED (see Misc Options to enable){RESET}")
+
         print()
 
         choice = menu_pick([
+            ("Board / Options",      "board",     "normal"),
+            ("Role / Transport",     "transport", "normal"),
+            ("---",),
             ("COMPILE",              "compile",   "action"),
+            *([("QUICK COMPILE", "qcompile", "action", "(" + active_ls + ")")] if active_ls != "(none)" else []),
             ("UPLOAD",               "upload",    "action"),
             ("---",),
-            ("Transport / Role",     "transport", "normal"),
-            ("Board / Board Options","board",     "normal"),
-            ("---",),
-            ("Show config",          "config",    "dim"),
+            ("Misc Options",         "misc",      "normal"),
             ("Clear cache/build",    "clean",     "dim"),
             ("Exit",                 "exit",      "dim"),
         ])
+
+        if choice is None:         # ESC on main menu — just redraw
+            continue
 
         if choice == "exit":
             cprint(DIM, "  Bye!")
             break
 
         elif choice == "transport":
-            configure_transport_and_role(prefs, board_has_dual_usb, preferred_usb_mode)
+            result = configure_transport_and_role(prefs, board_has_dual_usb, preferred_usb_mode)
+            if result is None:
+                continue            # ESC pressed, back to menu
             save_prefs(prefs)
             input(f"\n  {DIM}Press Enter to continue...{RESET}")
 
         elif choice == "board":
             fqbn = select_board(prefs)
+            if fqbn is None:
+                continue            # ESC pressed
             prefs["fqbn"] = fqbn
             opts = configure_options(fqbn, prefs)
+            if opts is None:
+                continue            # ESC pressed
             prefs["options"] = opts
             save_prefs(prefs)
             success("Board configuration saved.")
             input(f"\n  {DIM}Press Enter to continue...{RESET}")
 
         elif choice == "compile":
-            do_compile(prefs)
-            input(f"\n  {DIM}Press Enter to continue...{RESET}")
+            compile_ok = do_compile(prefs)
+            if compile_ok:
+                # Offer direct path to upload
+                print(f"\n  {DIM}Press Enter to upload, Esc for menu...{RESET}")
+                sys.stdout.write(HIDE_CUR)
+                sys.stdout.flush()
+                while True:
+                    ch = msvcrt.getwch()
+                    if ch == "\r":       # Enter → upload
+                        sys.stdout.write(SHOW_CUR)
+                        sys.stdout.flush()
+                        if prefs.get("fqbn") and BUILD_DIR.exists():
+                            upload_sketch(prefs["fqbn"], prefs.get("options", {}),
+                                          board_name=prefs.get("board_name"))
+                        else:
+                            warn("Board not configured or no build found.")
+                        input(f"\n  {DIM}Press Enter to continue...{RESET}")
+                        break
+                    elif ch == "\x1b":   # ESC → back to menu
+                        sys.stdout.write(SHOW_CUR)
+                        sys.stdout.flush()
+                        break
+            else:
+                input(f"\n  {DIM}Press Enter to continue...{RESET}")
+
+        elif choice == "qcompile":
+            compile_ok = do_quick_compile(prefs)
+            if compile_ok:
+                print(f"\n  {DIM}Press Enter to upload, Esc for menu...{RESET}")
+                sys.stdout.write(HIDE_CUR)
+                sys.stdout.flush()
+                while True:
+                    ch = msvcrt.getwch()
+                    if ch == "\r":
+                        sys.stdout.write(SHOW_CUR)
+                        sys.stdout.flush()
+                        if prefs.get("fqbn") and BUILD_DIR.exists():
+                            upload_sketch(prefs["fqbn"], prefs.get("options", {}),
+                                          board_name=prefs.get("board_name"))
+                        else:
+                            warn("Board not configured or no build found.")
+                        input(f"\n  {DIM}Press Enter to continue...{RESET}")
+                        break
+                    elif ch == "\x1b":
+                        sys.stdout.write(SHOW_CUR)
+                        sys.stdout.flush()
+                        break
+            else:
+                input(f"\n  {DIM}Press Enter to continue...{RESET}")
 
         elif choice == "upload":
             if not prefs.get("fqbn"):
@@ -291,9 +557,8 @@ def main():
             upload_sketch(prefs["fqbn"], prefs.get("options", {}), board_name=prefs.get("board_name"))
             input(f"\n  {DIM}Press Enter to continue...{RESET}")
 
-        elif choice == "config":
-            show_config(prefs)
-            input(f"\n  {DIM}Press Enter to continue...{RESET}")
+        elif choice == "misc":
+            misc_options(prefs)
 
         elif choice == "clean":
             clean_build()
