@@ -1,0 +1,554 @@
+================================================================================
+  CockpitOS Management Tool — Improvement Plan
+================================================================================
+
+STATUS: In Progress
+LAST UPDATED: 2025-02-11
+
+================================================================================
+ TASK 1. TRACKED VARIABLE REGISTRY
+================================================================================
+
+GOAL:
+  Formalize the relationship between the tool and Config.h.
+  Config.h is ALWAYS the source of truth. Variable names are stable and will
+  not change. The tool needs a single, centralized list of every #define it
+  cares about — no more scattered hardcoded references across functions.
+
+WHAT EXISTS TODAY:
+  - read_config_define(name)  — regex read from Config.h per call
+  - write_config_define(name) — regex substitution into Config.h per call
+  - ALL_TRANSPORT_DEFINES     — hardcoded list of 5 transport defines
+  - TRANSPORT_KEY dict        — maps friendly names to define names
+  - Scattered references to RS485_MASTER_ENABLED, RS485_SLAVE_ADDRESS,
+    RS485_USE_TASK, RS485_TASK_CORE, DEBUG_ENABLED, VERBOSE_MODE, etc.
+    across multiple functions with no central registry.
+  - compiler_prefs.json stores board/FQBN/transport/role — but does NOT
+    track actual #define values from Config.h.
+
+WHAT WE WANT:
+  - A single TRACKED_DEFINES registry (dict or list) at the top of the script
+    that enumerates every Config.h variable the tool knows about.
+  - On startup: read ALL tracked defines from Config.h into memory (snapshot).
+  - When the tool changes a setting: write to Config.h AND update the
+    in-memory snapshot (Config.h remains the source of truth).
+  - When a user hand-edits Config.h in Arduino IDE: next run picks up the
+    real values because we always read from Config.h on startup.
+  - Replace all scattered read_config_define() calls with lookups against
+    the snapshot (except when an explicit refresh is needed).
+
+TASKS:
+  [x] Define TRACKED_DEFINES — centralized dict with all 17 known #define
+      names and their default values. Located at module top (lines 57-82).
+  [x] Write load_config_snapshot() — reads all tracked defines from Config.h
+      into _config_snapshot dict on startup. Warns on missing defines.
+  [x] Write config_get(name) — reads from snapshot, falls back to Config.h.
+  [x] Write config_set(name, value) — writes to Config.h via safe_write_file()
+      AND updates the in-memory snapshot.
+  [x] Refactor read_current_transport() to use config_get().
+  [x] Refactor read_current_role() to use config_get().
+  [x] Refactor configure_transport_and_role() to use config_get() + config_set().
+  [x] Refactor show_config() to use config_get().
+  [x] Remove ALL_TRANSPORT_DEFINES — replaced with TRANSPORT_DEFINES derived
+      from registry. TRANSPORT_KEY consolidated in registry section.
+  [x] Add validation: main() calls load_config_snapshot() on startup, warns
+      if Config.h is missing any tracked define.
+  [x] Final audit: zero raw read_config_define()/write_config_define() calls
+      remain in business logic. All go through config_get()/config_set().
+
+================================================================================
+ TASK 2. MODULAR ARCHITECTURE — RENAME & SPLIT
+================================================================================
+
+GOAL:
+  compile.py is no longer just a compiler wrapper — it's a full configuration,
+  management, and build tool. Rename it, split it into clean modules with
+  presentation fully separated from backend logic.
+
+RENAME:
+  compile.py  ->  cockpitos.py   (CockpitOS Management Tool)
+
+NEW STRUCTURE:
+  compiler/
+  ├── cockpitos.py              Entry point — main menu, orchestration
+  ├── ui.py                     Terminal UI toolkit (zero CockpitOS knowledge)
+  ├── config.py                 Config.h engine — tracked registry, read/write
+  ├── boards.py                 Arduino CLI wrappers — board discovery, options
+  ├── build.py                  Compile + upload + clean
+  ├── labels.py                 Label set discovery, selection, generate_data
+  ├── compiler_prefs.json       Persisted user preferences (exists today)
+  └── TODO                      This file
+
+MODULE BREAKDOWN:
+
+  ui.py  (~300 lines)
+  -------
+  Pure terminal presentation. No CockpitOS knowledge whatsoever.
+  Could be dropped into any Python TUI project.
+    - ANSI constants (CYAN, GREEN, YELLOW, RED, BOLD, DIM, RESET, etc.)
+    - _enable_ansi(), _w(), cls()
+    - cprint(), header(), info(), success(), warn(), error()
+    - big_success(), big_fail()
+    - Spinner class
+    - pick(), menu_pick(), pick_filterable(), confirm()
+
+  config.py  (~250 lines)
+  ----------
+  Config.h engine. Owns the tracked variable registry and all
+  read/write operations. Responsible for transport/role logic.
+    - TRACKED_DEFINES registry (Task 1)
+    - load_config_snapshot(), save_config_value()
+    - read_config_define(), write_config_define() (low-level)
+    - read_current_transport(), read_current_role()
+    - transport_label(), role_label()
+    - configure_transport_and_role()
+    - File safety: backup/restore of Config.h (Task 3)
+
+  boards.py  (~200 lines)
+  ----------
+  Arduino CLI interaction. Board discovery and option configuration.
+    - run_cli() — subprocess wrapper for arduino-cli
+    - get_all_boards(), get_board_options()
+    - select_board(), configure_options()
+    - COCKPITOS_DEFAULTS, IMPORTANT_OPTIONS
+
+  build.py  (~250 lines)
+  ---------
+  The action layer — compilation, upload, and cleanup.
+    - compile_sketch()
+    - upload_sketch(), scan_ports()
+    - clean_build()
+    - build_firmware_name()
+
+  labels.py  (~120 lines)
+  ----------
+  Label set management.
+    - discover_label_sets()
+    - read_active_label_set()
+    - select_label_set()
+    - run_generate_data()
+
+  cockpitos.py  (~200 lines)
+  -------------
+  Entry point. Thin orchestration layer.
+    - Shared constants/paths (SKETCH_DIR, CONFIG_H, BUILD_DIR, etc.)
+    - load_prefs(), save_prefs()
+    - do_compile() orchestration
+    - main() menu loop
+    - ASCII banner
+
+DESIGN RULES:
+  - ui.py imports NOTHING from the other modules.
+  - config.py imports only ui.py (for display during configure_transport).
+  - boards.py imports only ui.py.
+  - labels.py imports only ui.py.
+  - build.py imports ui.py + config.py (for reading transport/role/label).
+  - cockpitos.py imports everything, owns the main loop.
+  - No circular dependencies. Dependency flows one direction:
+      cockpitos -> build, boards, labels, config -> ui
+
+TASKS:
+  [x] Create ui.py (413 lines) — ANSI, pickers, Spinner, confirm. Zero CockpitOS knowledge.
+  [x] Create config.py (533 lines) — tracked registry, file safety, snapshot,
+      transport/role, restore, configure_transport_and_role.
+  [x] Create boards.py (283 lines) — arduino-cli wrappers, board selection,
+      options, dual-USB detection, cross-validation.
+  [x] Create build.py (324 lines) — compile, upload, scan_ports, clean, firmware naming.
+  [x] Create labels.py (109 lines) — discover, read_active, select, run_generate_data.
+  [x] Create cockpitos.py (313 lines) — entry point, main menu, prefs,
+      show_config, do_compile orchestration.
+  [x] All imports verified. Zero circular dependencies.
+      Dependency graph: cockpitos -> build, boards, labels, config -> ui
+  [x] All 47 functions + 1 class + 50+ constants mapped to correct modules.
+      python -c "import cockpitos" succeeds with all symbols resolved.
+  NOTE: compile.py retained as reference. Delete after live testing confirms
+      cockpitos.py works end-to-end.
+
+================================================================================
+ TASK 3. FILE SAFETY — BACKUP & PROTECTED WRITE
+================================================================================
+
+GOAL:
+  The tool modifies user files. It must be bulletproof about it.
+  Every file modification must be recoverable. The user should never
+  lose work because the tool crashed mid-write or made an unwanted change.
+
+PRINCIPLES:
+  1. EXPLICIT FILE WHITELIST — the tool declares exactly which files it is
+     allowed to modify. Currently: Config.h only. If a future feature needs
+     to touch another file, it must be added to the whitelist explicitly.
+  2. BACKUP BEFORE MODIFY — before ANY write to a whitelisted file, the tool
+     creates a timestamped backup copy.
+  3. ATOMIC WRITES — write to a temp file, then rename. Never write directly
+     to the target (prevents corruption on crash/power loss).
+  4. RESTORE COMMAND — the user can restore Config.h to its last backup
+     from the main menu (or the most recent N backups).
+
+WHITELIST (current):
+  - Config.h               Transport, role, RS485 settings
+
+WHITELIST (possible future):
+  - active_set.h           Label set pointer (currently written by generate_data.py)
+
+BACKUP STRATEGY:
+  Location:   compiler/backups/
+  Naming:     Config.h.YYYYMMDD_HHMMSS.bak
+  Retention:  Keep last 10 backups, auto-prune older ones.
+  Trigger:    First write to Config.h per session creates a backup.
+              Subsequent writes in the same session do NOT overwrite the
+              session backup (preserves the state before the tool touched it).
+
+WRITE FLOW:
+  1. Check file is in ALLOWED_FILES whitelist.
+  2. If first write this session: copy current file to backups/.
+  3. Write new content to Config.h.tmp (temp file).
+  4. Rename Config.h.tmp -> Config.h (atomic on most filesystems).
+  5. Update in-memory snapshot.
+  6. If rename fails: warn user, leave .tmp for manual recovery.
+
+RESTORE FLOW:
+  1. List available backups (newest first).
+  2. User picks one (or "latest").
+  3. Show diff summary: what changed between backup and current.
+  4. Confirm with user.
+  5. Copy backup over Config.h.
+  6. Reload snapshot.
+
+TASKS:
+  [x] Define ALLOWED_FILES whitelist.
+  [x] Create compiler/backups/ directory management (auto-create, prune).
+  [x] Write backup_file(path) — timestamped copy, once-per-session guard.
+  [x] Write safe_write_file(path, content) — temp + rename atomic write.
+  [x] Integrate into write_config_define() — backup before first write.
+  [x] Add "Restore Config.h" option to main menu.
+  [x] Show backup list with timestamps and what changed.
+  [x] Safety audit: all Config.h writes go through safe_write_file().
+      Zero direct CONFIG_H.write_text() calls remain. Verified.
+  [x] Split try blocks in safe_write_file() for distinct failure modes.
+  NOTE: Manual QA (crash sim, restore flow) exercised on first real use.
+
+================================================================================
+ TASK 4. SMART BOARD CONFIGURATION & CROSS-VALIDATION
+================================================================================
+
+GOAL:
+  The tool manages TWO distinct configuration domains that interact:
+    A) Config.h settings  — transport, role, RS485, debug flags
+    B) Board options      — Arduino CLI board options (CDC, partition, USB mode, etc.)
+
+  These two domains are NOT independent. Transport choice in Config.h
+  constrains which board options are valid, and vice versa. The tool must
+  understand these relationships, enforce CockpitOS hard defaults, and
+  warn users when their choices conflict.
+
+  Today the tool applies defaults and has some USB-OTG logic, but it's
+  incomplete and doesn't catch dangerous mismatches.
+
+CONFIGURATION DOMAINS:
+
+  DOMAIN A: Config.h (firmware defines)
+  ──────────────────────────────────────
+  Managed by the tracked variable registry (Task 1).
+  Source of truth: Config.h file.
+  Examples: USE_DCSBIOS_WIFI, RS485_MASTER_ENABLED, DEBUG_ENABLED, etc.
+
+  DOMAIN B: Board options (arduino-cli FQBN options)
+  ──────────────────────────────────────────────────
+  Managed by compiler_prefs.json and passed as FQBN flags at compile time.
+  Source of truth: compiler_prefs.json (since these are not in Config.h).
+  Examples: CDCOnBoot, PartitionScheme, USBMode, CPUFreq, FlashMode, etc.
+
+COCKPITOS HARD DEFAULTS (non-negotiable):
+  CDCOnBoot        = "default"  (Disabled) — ALWAYS. Config.h #error enforces this.
+  PartitionScheme  = "no_ota"   (No OTA, 2MB APP / 2MB SPIFFS) — large firmware.
+  CPUFreq          = "240"      (240 MHz)
+  FlashMode        = "qio"      (QIO 80 MHz)
+  UploadSpeed      = "921600"   (fastest upload)
+
+  These should be applied silently. The user does not pick these.
+  Full mode can let advanced users override, with a clear warning.
+
+THE USB MODE PROBLEM:
+  ─────────────────────
+  Most ESP32 boards only have ONE USB mode and the option doesn't appear.
+  But specific boards have BOTH USB-OTG (TinyUSB) and Hardware CDC:
+
+    ESP32-S3:  Has BOTH USB-OTG and HW CDC
+    ESP32-P4:  Has BOTH USB-OTG and HW CDC
+
+  The correct USB Mode depends ENTIRELY on the transport:
+    Transport = USB      →  USB-OTG (TinyUSB) is REQUIRED
+                            Config.h enforces: ARDUINO_USB_MODE == 0
+    Transport = anything else (WiFi, Serial, BLE, RS485 Slave)
+                         →  HW CDC is preferred (lighter, allows Serial debug)
+                            USB-OTG is NOT needed and wastes resources
+
+  On boards that DON'T have both (S2, Classic, C3, C6, H2, etc.):
+    The option either doesn't exist or has only one choice.
+    No validation needed — the board only supports what it supports.
+
+CROSS-VALIDATION RULES:
+
+  These checks run at TWO points:
+    1. During transport selection — warn immediately about board option conflicts
+    2. Before compilation — final safety check, block compile if fatal
+
+  FATAL (block compile):
+    ✗ Transport = USB  +  USBMode = HW CDC (on S3/P4)
+      "USB transport requires USB-OTG (TinyUSB). Change USB Mode in Board Options."
+    ✗ CDCOnBoot = Enabled
+      "CockpitOS requires CDC On Boot = Disabled. Config.h will fail to compile."
+
+  WARNINGS (inform user, allow override):
+    ! Transport = WiFi  +  USBMode = USB-OTG (on S3/P4)
+      "USB-OTG is set but you're using WiFi transport. HW CDC is lighter and
+       allows Serial debugging. Consider switching USB Mode to HW CDC."
+    ! Transport = Serial  +  USBMode = USB-OTG (on S3/P4)
+      Same logic — USB-OTG not needed for Serial transport.
+    ! Transport = RS485 Slave  +  USBMode = USB-OTG (on S3/P4)
+      Same logic.
+
+BOARD CAPABILITY DETECTION:
+  To know whether a board has dual USB modes, the tool checks:
+    1. Query arduino-cli board details for the selected FQBN.
+    2. If the board has a "USBMode" option with multiple values → dual-mode board.
+    3. Store this as a board capability flag: board_has_dual_usb = True/False.
+  This avoids hardcoding "S3" or "P4" — it just asks the board what it supports.
+
+CONFIGURATION FLOW (improved):
+
+  1. User selects BOARD
+     → Apply CockpitOS hard defaults automatically.
+     → Detect board capabilities (dual USB, WiFi-capable, etc.).
+     → If dual-USB board: note it, defer USB Mode choice.
+
+  2. User selects TRANSPORT + ROLE (Config.h)
+     → If board has dual USB:
+        - Transport = USB → set USBMode = USB-OTG automatically, inform user.
+        - Transport ≠ USB → set USBMode = HW CDC as default, let user choose.
+     → If board has single USB: skip, nothing to decide.
+
+  3. User enters Board Options (Guided/Full mode)
+     → Show USB Mode only on dual-USB boards.
+     → Pre-select based on transport choice from step 2.
+     → If user overrides to a conflicting value → show warning inline.
+
+  4. Before compile → final cross-validation
+     → Run all FATAL + WARNING checks.
+     → Block on fatal, prompt on warnings.
+
+TASKS:
+  [x] COCKPITOS_DEFAULTS already defined as non-negotiable constant.
+      Documented inline. Applied silently during configure_options().
+  [x] Detect dual-USB boards dynamically via board_has_dual_usb(prefs).
+      Checks if "USBMode" option has 2+ values — no hardcoded chip names.
+  [x] Auto-set USBMode based on transport via preferred_usb_mode().
+      USB transport → USB-OTG; anything else → HW CDC.
+      Applied in configure_transport_and_role() and configure_options().
+  [x] validate_config_vs_board(prefs) — returns [(level, msg)] tuples.
+  [x] FATAL: CDC On Boot enabled; USB transport + HW CDC on dual-USB board.
+      Blocks compile with clear error message.
+  [x] WARNING: non-USB transport + USB-OTG on dual-USB board.
+      Informs user, allows override/continue.
+  [x] Immediate feedback in configure_transport_and_role() after changes.
+  [x] Pre-compile safety gate in do_compile() — fatals block, warnings prompt.
+  [x] show_config() displays "Dual USB board" flag and any active issues.
+  [x] Removed stale prefs["usb_mode"] indirection — USBMode now managed
+      directly in prefs["options"]["USBMode"] where it belongs.
+  NOTE: USBMode option naturally hidden on non-dual boards since
+      arduino-cli doesn't report it — no extra filtering needed.
+
+================================================================================
+ TASK 5. LABEL SET CREATION WIZARD  [FUTURE — NOT THIS VERSION]
+================================================================================
+
+GOAL:
+  The single biggest friction point in CockpitOS is creating a new label set.
+  Today the workflow is: Copy → Reset → edit 4+ files manually → Generate.
+  Each step requires knowledge of DCS-BIOS JSON structure, GPIO pin numbers,
+  HC165/PCA9555/TM1637 addressing, and C struct syntax.
+
+  A guided wizard inside the management tool would turn this into an
+  interactive flow where the user makes choices and the tool writes the files.
+
+  THIS IS A MAJOR FEATURE. It touches files beyond Config.h (InputMapping.h,
+  LEDMapping.h, CustomPins.h, selected_panels.txt) and requires deep
+  understanding of the generator pipeline. It will be scoped and built
+  AFTER Tasks 1–4 are stable.
+
+WHY THIS MATTERS:
+  - CREATING_LABEL_SETS.md is 1,527 lines of instructions. That's the
+    complexity the user faces today.
+  - The most common errors (typos in panel names, wrong GPIO, missing
+    labels, bad segment ordering) are all preventable with validation.
+  - The tool already launches generate_data.py — extending it to also
+    prepare the input files is a natural evolution.
+
+CURRENT MANUAL WORKFLOW (what we'd automate):
+
+  1. Copy existing LABEL_SET_* folder → new name
+     - User runs: xcopy /E /I LABEL_SET_IFEI LABEL_SET_MYPANEL
+     - Pain: must know an existing set to copy from
+
+  2. Run reset_data.py (clean generated files)
+     - Clears: DCSBIOSBridgeData.h, InputMapping.h, LEDMapping.h, displays
+     - Preserves: generators, CustomPins.h template, METADATA/
+
+  3. Place aircraft JSON in the label set directory
+     - User copies from DCS-BIOS export
+     - Only ONE aircraft JSON per set
+
+  4. Edit selected_panels.txt
+     - Must match exact panel names from panels.txt (generated on first run)
+     - Typo = panel silently excluded
+
+  5. Run generate_data.py (FIRST time)
+     - Creates template InputMapping.h, LEDMapping.h, CustomPins.h
+     - User must then EDIT these files
+
+  6. Edit InputMapping.h
+     - Assign physical hardware to DCS-BIOS labels
+     - 6 source types: GPIO, HC165, PCA9555, TM1637, MATRIX, NONE
+     - Selector groups for mutually-exclusive positions
+     - Requires knowing port/bit/chain positions
+
+  7. Edit LEDMapping.h
+     - Assign DCS-BIOS outputs to physical LEDs/displays
+     - 7 device types: GPIO, WS2812, TM1637, PCA9555, GN1640T, GAUGE, NONE
+     - Requires knowing device addresses, channel numbers
+
+  8. Edit CustomPins.h
+     - Define GPIO assignments for shift register clocks, I2C addresses,
+       TM1637 CLK/DIO pins, WS2812 data pins, etc.
+     - Feature flags: ENABLE_TFT_GAUGES, ENABLE_PCA9555, etc.
+
+  9. Run generate_data.py (SECOND time)
+     - Now generates real DCSBIOSBridgeData.h with address tables
+     - Produces display mappings, character buffers, panel config
+
+ENVISIONED WIZARD FLOW:
+
+  Step 1: "Create New Label Set"
+    → Name it (validates naming convention)
+    → Select aircraft JSON (file picker or auto-detect from DCS-BIOS)
+    → Copy template structure automatically
+    → Run reset_data.py silently
+
+  Step 2: "Select Panels"
+    → Run generate_data.py once to produce panels.txt
+    → Present pick_filterable() with all available panels
+    → User checks desired panels (multi-select)
+    → Write selected_panels.txt
+
+  Step 3: "Hardware Profile"
+    → Ask what hardware the user has:
+      - How many HC165 chains? (and chain lengths)
+      - How many PCA9555 chips? (and I2C addresses)
+      - Any TM1637 displays/keypads?
+      - Any WS2812 LED strips? (how many LEDs)
+      - Any analog axes? (how many)
+      - Any rotary encoders?
+      - Any TFT displays?
+    → Auto-generate CustomPins.h from answers
+
+  Step 4: "Pin Assignment" (board-aware)
+    → Know which ESP32 board was selected (from board config)
+    → Show available GPIO pins for that board
+    → Guide user through assignments:
+      - HC165: CLK, DATA, LATCH pins
+      - PCA9555: SDA, SCL pins
+      - TM1637: CLK, DIO per display
+      - WS2812: DATA pin
+      - Analog: which ADC pins
+    → Detect conflicts (same pin used twice)
+    → Warn about restricted pins (GPIO 6-11 flash, GPIO 0 boot)
+
+  Step 5: "Input Mapping Assistant"
+    → For each DCS-BIOS input label from selected panels:
+      - Show the label name and what it does (from JSON metadata)
+      - Ask: source type (GPIO / HC165 / PCA / TM1637 / MATRIX / skip)
+      - Ask: pin/port/bit assignment
+      - For selectors: group assignment, position count
+    → Write InputMapping.h
+
+  Step 6: "Output Mapping Assistant"
+    → For each DCS-BIOS output label from selected panels:
+      - Show the label name and what it does
+      - Ask: device type (GPIO / WS2812 / TM1637 / PCA / GN1640 / skip)
+      - Ask: device-specific addressing
+      - For LEDs: dimmable? active low?
+    → Write LEDMapping.h
+
+  Step 7: "Generate & Validate"
+    → Run generate_data.py with all files prepared
+    → Cross-validate:
+      - Every label in InputMapping.h exists in aircraft JSON
+      - Every label in LEDMapping.h exists in aircraft JSON
+      - No GPIO conflicts
+      - No duplicate addresses
+      - CustomPins.h feature flags match what's actually used
+    → Report: "Label set MYPANEL ready. X inputs, Y outputs, Z displays."
+
+FILES THIS FEATURE WOULD MODIFY (extends whitelist from Task 3):
+  - selected_panels.txt     (panel selection)
+  - InputMapping.h          (input hardware assignments)
+  - LEDMapping.h            (output hardware assignments)
+  - CustomPins.h            (GPIO and hardware config)
+  - active_set.h            (via generate_data.py)
+  - DCSBIOSBridgeData.h     (via generate_data.py)
+
+DEPENDENCIES:
+  - Task 3 (file safety) — backup/restore for ALL files the wizard touches
+  - Task 1 (registry) — know current board/transport for pin validation
+  - Task 4 (board intelligence) — board-specific GPIO availability
+  - Task 2 (modular split) — wizard becomes its own module (wizard.py)
+
+PRE-REQUISITES BEFORE STARTING:
+  [ ] Tasks 1-4 complete and stable.
+  [ ] Deep understanding of generate_data.py internals (parser, output format).
+  [ ] Deep understanding of DCS-BIOS JSON schema (inputs, outputs, metadata).
+  [ ] Pin layout data for common ESP32 boards (S2 Mini, S3 Mini, DevKit, etc.).
+  [ ] Decision: does the wizard REPLACE manual editing or supplement it?
+      (Recommendation: supplement — always allow manual editing as escape hatch.)
+
+TASKS (high-level, will be broken down when we start):
+  [ ] Parse aircraft JSON to extract available panels, inputs, outputs.
+  [ ] Build interactive panel picker (multi-select from panels.txt).
+  [ ] Build hardware profile questionnaire.
+  [ ] Build board-aware pin assignment flow with conflict detection.
+  [ ] Build input mapping assistant (label → hardware source).
+  [ ] Build output mapping assistant (label → hardware device).
+  [ ] Write CustomPins.h generator.
+  [ ] Write InputMapping.h generator.
+  [ ] Write LEDMapping.h generator.
+  [ ] Integrate with generate_data.py pipeline.
+  [ ] Cross-validation: labels exist, no conflicts, feature flags match.
+  [ ] Extend Task 3 file safety whitelist for all wizard-touched files.
+  [ ] Add "Create Label Set" option to main menu.
+
+================================================================================
+ EXECUTION ORDER
+================================================================================
+
+  Task 3 first  — File safety (backup/restore/atomic writes).
+                   This is foundational. Everything else writes to Config.h,
+                   so the safety net must exist before we refactor anything.
+
+  Task 1 second — Tracked variable registry.
+                   Build the centralized Config.h engine on top of the
+                   safe write layer.
+
+  Task 4 third  — Smart board configuration & cross-validation.
+                   With the registry in place, we can implement the
+                   intelligence layer that understands how Config.h and
+                   board options interact.
+
+  Task 2 fourth — Modular split.
+                   Once the engine is solid, split into modules. Easier to
+                   split clean code than to split-and-fix simultaneously.
+
+  Task 5 future — Label set creation wizard.
+                   Major feature. Requires all other tasks complete.
+                   Separate scoping session before implementation.
+
+================================================================================

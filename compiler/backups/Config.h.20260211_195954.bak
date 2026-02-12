@@ -20,7 +20,7 @@
 #endif
 
 // Is this an RS-485 Master? leave to 0 for normal operation.
-#define RS485_MASTER_ENABLED                        1 // Set as RS-485 Master. Polls slaves. Forwards data, you still need to choose a transport above (WiFi, Serial, USB etc)
+#define RS485_MASTER_ENABLED                        0 // Set as RS-485 Master. Polls slaves. Forwards data, you still need to choose a transport above (WiFi, Serial, USB etc)
 
 // Here is where you tell the firmware which 'transport' will be used to Communicate with the simulator (only ONE can be selected). 
 // Bluetooth BLE, Pure Native USB, WIFI, Serial (CDC/Socat) or as an RS485 slave. ** Only ONE ** can be active 
@@ -68,7 +68,7 @@
 //                                         Core 0 is free (no WiFi), so RS485 gets a dedicated core
 //                                         with no contention — maximum determinism.
 //
-#define RS485_USE_TASK                              0  // 0 = runs in loop() (best for WiFi). 1 = dedicated FreeRTOS task (best for USB/Serial/BLE)
+#define RS485_USE_TASK                              1  // 0 = runs in loop() (best for WiFi). 1 = dedicated FreeRTOS task (best for USB/Serial/BLE)
 #define RS485_TASK_CORE                             1  // Only relevant/used when RS485_USE_TASK is set to 1 (see above). 0 = Core 0 (ideal when no WiFi). 1 = Core 1 (shares with loop). Ignored on single-core chips
 
 // *** READ THIS *** (Advanced users only)
