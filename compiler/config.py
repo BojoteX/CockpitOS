@@ -15,7 +15,7 @@ from pathlib import Path
 from ui import (
     CYAN, DIM, RESET, YELLOW,
     header, info, success, warn, error,
-    pick, confirm,
+    pick, confirm, Spinner,
 )
 
 # -----------------------------------------------------------------------------
@@ -172,9 +172,6 @@ TRACKED_DEFINES = {
     # RS485 Master
     "RS485_SMART_MODE":                 "0",
     "RS485_MAX_SLAVE_ADDRESS":          "127",
-    # RS485 Task config
-    "RS485_USE_TASK":                   "1",
-    "RS485_TASK_CORE":                  "1",
     # Debug
     "DEBUG_ENABLED":                    "0",
     "VERBOSE_MODE":                     "0",
@@ -441,10 +438,6 @@ def configure_transport_and_role(prefs, board_has_dual_usb_fn, preferred_usb_mod
     # Info tips
     if transport == "usb":
         info(f"{DIM}USB transport: USB Mode will be set to USB-OTG (TinyUSB){RESET}")
-    if mode == "master" and transport == "wifi":
-        info(f"{DIM}Master + WiFi: RS485 runs in loop() (WiFi occupies Core 0){RESET}")
-    elif mode == "master":
-        info(f"{DIM}Master + {transport_label(transport)}: RS485 task on Core 0{RESET}")
 
     # --- Step 3: Slave address (only for slave) ---
     slave_address = None
@@ -465,9 +458,13 @@ def configure_transport_and_role(prefs, board_has_dual_usb_fn, preferred_usb_mod
         else:
             slave_address = int(current_addr)
 
-    # --- Apply all five transport defines so exactly ONE is 1 ---
-    changes = []
+    # --- Apply all changes with visual feedback ---
+    spinner = Spinner("Updating Config.h")
+    spinner.start()
 
+    write_count = 0
+
+    # Set exactly ONE transport define to 1, rest to 0
     if mode == "slave":
         active_key = "RS485_SLAVE_ENABLED"
     else:
@@ -475,56 +472,51 @@ def configure_transport_and_role(prefs, board_has_dual_usb_fn, preferred_usb_mod
 
     for define in TRANSPORT_DEFINES:
         target = 1 if define == active_key else 0
-        old = config_get(define)
-        if old != str(target):
+        if config_get(define) != str(target):
             config_set(define, str(target))
-            changes.append(f"{define}: {old} -> {target}")
+            write_count += 1
 
-    # --- RS485 Master/Slave flags ---
+    # RS485 Master/Slave flags
     master_val = 1 if mode == "master" else 0
-
-    old_m = config_get("RS485_MASTER_ENABLED")
-    if old_m != str(master_val):
+    if config_get("RS485_MASTER_ENABLED") != str(master_val):
         config_set("RS485_MASTER_ENABLED", str(master_val))
-        changes.append(f"RS485_MASTER_ENABLED: {old_m} -> {master_val}")
+        write_count += 1
 
-    # --- Slave address ---
+    # Slave address
     if slave_address is not None:
-        old = config_get("RS485_SLAVE_ADDRESS")
-        if old != str(slave_address):
+        if config_get("RS485_SLAVE_ADDRESS") != str(slave_address):
             config_set("RS485_SLAVE_ADDRESS", str(slave_address))
-            changes.append(f"RS485_SLAVE_ADDRESS: {old} -> {slave_address}")
+            write_count += 1
 
-    # --- RS485 task config for master (auto-tune based on transport) ---
-    if mode == "master":
-        if transport == "wifi":
-            config_set("RS485_USE_TASK", "0")
-            changes.append("RS485_USE_TASK -> 0 (loop, best for WiFi)")
-        else:
-            config_set("RS485_USE_TASK", "1")
-            config_set("RS485_TASK_CORE", "0")
-            changes.append("RS485_USE_TASK -> 1, RS485_TASK_CORE -> 0")
-
-    # --- Smart USB mode for dual-USB boards ---
+    # Smart USB mode for dual-USB boards
+    usb_changed = False
     if board_has_dual_usb_fn(prefs):
         ideal = preferred_usb_mode_fn(transport)
         current_usb = prefs.get("options", {}).get("USBMode")
         if current_usb != ideal:
             prefs.setdefault("options", {})["USBMode"] = ideal
-            usb_label = "USB-OTG (TinyUSB)" if ideal == "default" else "HW CDC"
-            changes.append(f"USBMode -> {usb_label} (auto, matches {transport_label(transport)})")
+            usb_changed = True
+
+    spinner.stop()
 
     # Save in prefs
     prefs["transport"] = transport if transport else "slave"
     prefs["role"] = mode
 
+    # Clean user-friendly summary
     print()
-    if changes:
-        success("Config.h updated:")
-        for c in changes:
-            info(f"  {c}")
+    if write_count or usb_changed:
+        summary = f"{role_label(mode)}"
+        if mode != "slave":
+            summary += f" / {transport_label(transport)}"
+        if slave_address is not None:
+            summary += f" / Address {slave_address}"
+        if usb_changed:
+            usb_label = "USB-OTG (TinyUSB)" if prefs["options"]["USBMode"] == "default" else "HW CDC"
+            summary += f" / {usb_label}"
+        success(f"Config.h updated: {summary}")
     else:
-        info("No changes needed - Config.h already matches.")
+        info("No changes needed — Config.h already matches.")
 
     # Immediate cross-validation feedback
     from boards import validate_config_vs_board, FATAL
