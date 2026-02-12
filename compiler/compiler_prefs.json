@@ -13,10 +13,10 @@
     "EraseFlash": "none",
     "MSCOnBoot": "default",
     "DFUOnBoot": "default",
-    "USBMode": "default"
+    "USBMode": "hwcdc"
   },
-  "transport": "usb",
-  "role": "standalone",
-  "usb_mode": "default",
+  "transport": "wifi",
+  "role": "master",
+  "usb_mode": null,
   "board_name": "LOLIN S3 Mini"
 }
