@@ -16,7 +16,7 @@ from pathlib import Path
 from ui import (
     CYAN, DIM, RED, YELLOW, RESET,
     header, info, warn, error, cprint,
-    pick, big_success, big_fail,
+    pick, pick_live, big_success, big_fail,
     Spinner,
 )
 from config import (
@@ -230,6 +230,13 @@ def scan_ports():
                     parts.append(f"VID:{vid}")
                 display = " - ".join(parts)
                 ports.append((display, addr))
+        # Sort by COM port number (COM1, COM2, COM22) so the list is stable
+        def _port_sort_key(item):
+            addr = item[1]
+            import re as _re
+            m = _re.search(r'(\d+)', addr)
+            return (int(m.group(1)) if m else 0, addr)
+        ports.sort(key=_port_sort_key)
         return ports
     except (json.JSONDecodeError, KeyError):
         return []
@@ -239,29 +246,17 @@ def upload_sketch(fqbn, options, port=None, board_name=None):
     header("Upload to Device")
 
     if not port:
-        while True:
-            info("Scanning for devices...")
-            ports = scan_ports()
-
-            if ports:
-                port = pick("Select port:", ports)
-                break
-            else:
-                warn("No devices found.")
-                action = pick("What to do?", [
-                    ("Scan again (connect your board first)", "retry"),
-                    ("Enter port manually", "manual"),
-                    ("Cancel upload", "cancel"),
-                ], default="retry")
-
-                if action == "retry":
-                    header("Upload to Device")
-                    continue
-                elif action == "manual":
-                    port = input("\n  Enter port (e.g. COM3): ").strip()
-                    break
-                else:
-                    return False
+        info("Scanning for devices...")
+        initial_ports = scan_ports()
+        port = pick_live(
+            "Select port:",
+            initial_ports,
+            scan_fn=scan_ports,
+            interval=2.0,
+            empty_message="No devices found — plug in your board...",
+        )
+        if port is None:
+            return False
 
     if not port:
         error("No port specified.")
@@ -294,15 +289,25 @@ def upload_sketch(fqbn, options, port=None, board_name=None):
         encoding="utf-8",
         errors="replace",
     )
+    hash_verified = False
     for line in proc.stdout:
         stripped = line.rstrip()
         if stripped:
             print(f"  {stripped}")
+        if "Hash of data verified" in line:
+            hash_verified = True
     proc.wait()
     elapsed = time.time() - start
 
     if proc.returncode == 0:
         big_success("UPLOAD SUCCESSFUL", [f"Port: {port}", f"Time: {elapsed:.1f}s"])
+        return True
+    elif hash_verified:
+        # Flash succeeded but esptool errored during post-reset reconnect.
+        # Common on S2 boards (native USB re-enumerates after reset).
+        warn("esptool reported an error after flashing, but data was verified.")
+        big_success("UPLOAD SUCCESSFUL", [f"Port: {port}", f"Time: {elapsed:.1f}s",
+                                          "Post-reset serial error ignored (S2 native USB)"])
         return True
     else:
         big_fail("UPLOAD FAILED", [f"Exit code {proc.returncode}", f"Port: {port}"])

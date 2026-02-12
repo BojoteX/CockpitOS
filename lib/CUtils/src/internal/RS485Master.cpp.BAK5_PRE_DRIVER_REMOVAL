@@ -1,6 +1,6 @@
 /**
  * @file RS485Master.cpp
- * @brief RS-485 Master Driver for CockpitOS - v2.4 ISR-Only
+ * @brief RS-485 Master Driver for CockpitOS - v2.3 TX_DONE Non-Blocking
  *
  * ARCHITECTURE:
  *   - Bare-metal UART using uart_ll_* for direct hardware access
@@ -28,10 +28,14 @@
  *     a complete message, it's forwarded to CockpitOS immediately.
  *
  * RATIONALE:
- *   ISR mode is the only viable approach for RS485 on ESP32. The master
- *   controls bus timing and needs lowest possible latency to catch slave
- *   responses. Both master and slave use bare-metal UART with ISR-driven
- *   RX and TX_DONE non-blocking TX for optimal timing.
+ *   Testing showed that for MASTER operation, ISR mode is essential.
+ *   The master controls bus timing and needs lowest possible latency
+ *   to catch slave responses. RX and TX never overlap for the master
+ *   (it always waits for response before next poll), so ISR mode
+ *   provides optimal timing-critical response detection.
+ *
+ *   Slave uses Driver mode because it can receive broadcast data DURING
+ *   its TX response, and the DMA-backed buffer handles this overlap.
  *
  * PROTOCOL: 100% compatible with Arduino DCS-BIOS RS485 implementation
  *
