@@ -567,8 +567,8 @@ static void IRAM_ATTR rxISR(void* arg) {
     uart_ll_clr_intsts_mask(RS485_UART_DEV, uart_intr_status);
 }
 
-// Transmit with echo prevention — NON-BLOCKING (v2.4)
-// V2.4 Pattern: disableRx → DE assert → warmup → state → clear → load FIFO → enable TX_DONE → return
+// Transmit with echo prevention — NON-BLOCKING (v2.3)
+// V2.3 Pattern: disableRx → DE assert → warmup → load FIFO → arm TX_DONE → return
 //
 // When TX_DONE fires (in rxISR): flush echo → DE release → enableRx → set next state
 //
@@ -587,24 +587,6 @@ static void txWithEchoPrevention(const uint8_t* data, size_t len) {
     #endif
     #endif
 
-    // CRITICAL ORDERING: state → clear → FIFO → enable
-    //
-    // Why this order matters (ESP32-S2 single-core race):
-    //   1. Set state FIRST — ISR must see TX_WAITING_DONE before it can fire
-    //   2. Clear stale TX_DONE from previous cycle BEFORE loading new data
-    //   3. Load FIFO — hardware starts transmitting (40us per byte at 250kbps)
-    //   4. Enable TX_DONE interrupt LAST — even if preempted between FIFO load
-    //      and enable, the TX_DONE status bit accumulates in int_raw. When we
-    //      enable int_ena, int_st = int_raw AND int_ena fires the ISR immediately.
-    //
-    // The old order (FIFO → state → clear → enable) had a fatal race:
-    //   If tick preemption occurred after FIFO load but before clear, the UART
-    //   could finish TX during the preemption, setting int_raw TX_DONE. Then
-    //   clear would ERASE that pending event, and enable would find nothing.
-    //   State stuck at TX_WAITING_DONE forever.
-    state = MasterState::TX_WAITING_DONE;
-    uart_ll_clr_intsts_mask(RS485_UART_DEV, UART_INTR_TX_DONE);
-
     // Load TX FIFO — all bytes in one burst for polls/timeouts (<=3 bytes),
     // or use txBytes for larger broadcasts that may exceed FIFO depth
     if (len <= 128) {
@@ -613,7 +595,15 @@ static void txWithEchoPrevention(const uint8_t* data, size_t len) {
         txBytes(data, len);
     }
 
-    // Enable TX_DONE AFTER FIFO is loaded — cannot miss the event
+    // Set state BEFORE arming interrupt — prevents race where TX_DONE ISR
+    // fires (via tick preemption) before state is set, causing permanent wedge.
+    // Bug confirmed on ESP32-S2 single core: GCC reorders non-volatile ops
+    // across volatile boundaries, and round-robin preemption at priority 24
+    // can land between interrupt arm and state write.
+    state = MasterState::TX_WAITING_DONE;
+
+    // Arm TX_DONE interrupt — fires when last bit leaves shift register
+    uart_ll_clr_intsts_mask(RS485_UART_DEV, UART_INTR_TX_DONE);
     uart_ll_ena_intr_mask(RS485_UART_DEV, UART_INTR_TX_DONE);
 
     // Return immediately — CPU is FREE while hardware shifts out the bytes
@@ -1186,8 +1176,7 @@ void RS485Master_printStatus() {
 
     float respRate = statPollsPresent > 0 ? 100.0f * statResponses / statPollsPresent : 0;
     debugPrintf("[RS485M] Polls: %lu (to present: %lu), Responses: %lu (%.1f%%)\n", statPolls, statPollsPresent, statResponses, respRate);
-    debugPrintf("[RS485M] Mid-msg timeouts: %lu, Drain stalls: %lu\n",
-                statMidMsgTimeouts, statDrainStalls);
+    debugPrintf("[RS485M] Mid-msg timeouts: %lu, Drain stalls: %lu\n", statMidMsgTimeouts, statDrainStalls);
     debugPrintf("[RS485M] Broadcasts: %lu, Bytes out: %lu\n", statBroadcasts, statBytesOut);
     debugPrintf("[RS485M] Input commands: %lu\n", statInputCmds);
     #if RS485_USE_TASK

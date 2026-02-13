@@ -221,10 +221,15 @@
 
 #if RS485_USE_TASK
 
-// Task priority (higher = more important, max typically 24)
-// Should be higher than main loop to ensure consistent timing
+// Task priority — MUST match WiFi (23) for round-robin time slicing.
+// At priority 5, RS485 task gets starved by WiFi (23), USB/tiT (18),
+// esp_timer (22), sys_evt (20) when sharing a core. messageBuffer.complete
+// stays true → no new polls → bus dies.
+// At priority 23, FreeRTOS round-robin gives RS485 a 1ms time slice.
+// RS485 uses <1% of its slice (~5-10µs work, then vTaskDelayUntil sleeps),
+// so WiFi/USB get 99%+ CPU. Confirmed flawless with all on same core.
 #ifndef RS485_TASK_PRIORITY
-#define RS485_TASK_PRIORITY     5
+#define RS485_TASK_PRIORITY     24
 #endif
 
 // Task stack size in bytes
