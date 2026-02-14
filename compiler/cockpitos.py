@@ -39,10 +39,11 @@ from config import (
     safe_write_file,
 )
 from boards import (
-    ARDUINO_CLI, COCKPITOS_DEFAULTS,
+    COCKPITOS_DEFAULTS,
     board_has_dual_usb, preferred_usb_mode,
     validate_config_vs_board, FATAL, WARNING,
     select_board, configure_options,
+    resolve_arduino_cli,
 )
 from build import (
     BUILD_DIR,
@@ -381,14 +382,43 @@ def configure_debug_toggles():
 #  Main menu
 # =============================================================================
 def main():
-    os.system("")  # Enable ANSI on Windows
-
-    if not ARDUINO_CLI.exists():
-        error(f"arduino-cli not found at: {ARDUINO_CLI}")
-        error("Update the ARDUINO_CLI path in boards.py.")
+    import platform
+    if platform.system() != "Windows":
+        print("\n  CockpitOS Management Tool requires Windows.")
+        print("  Linux and macOS are not supported.\n")
         sys.exit(1)
 
+    os.system("")  # Enable ANSI on Windows
+
     prefs = load_prefs()
+
+    # Resolve arduino-cli path (registry → common dirs → PATH → user prompt)
+    cli = resolve_arduino_cli(prefs)
+    if not cli:
+        import boards
+        print()
+        warn("Arduino IDE not found automatically.")
+        info("Searched: Windows registry, common install paths, system PATH.")
+        print()
+        info("Please enter the path to your Arduino IDE folder")
+        info(f"{DIM}e.g. C:\\Program Files\\Arduino IDE{RESET}")
+        raw = input("\n  Arduino IDE path: ").strip().strip('"')
+        if raw:
+            candidate = Path(raw) / boards._CLI_RELATIVE
+            if candidate.exists():
+                boards.ARDUINO_CLI = candidate
+                prefs["arduino_cli_path"] = str(candidate)
+                save_prefs(prefs)
+                success(f"Arduino CLI found and saved.")
+            else:
+                error(f"arduino-cli.exe not found at expected location.")
+                error("Make sure you entered the Arduino IDE root folder.")
+                sys.exit(1)
+        else:
+            error("Cannot proceed without arduino-cli.")
+            sys.exit(1)
+    else:
+        save_prefs(prefs)  # Cache the resolved path if newly found
 
     # Load Config.h snapshot — source of truth for all tracked defines
     if CONFIG_H.exists():

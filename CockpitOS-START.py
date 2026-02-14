@@ -8,6 +8,13 @@ Double-click this file or run:  python CockpitOS-START.py
 """
 
 import sys
+import platform
+
+if platform.system() != "Windows":
+    print("\n  CockpitOS Management Tool requires Windows.")
+    print("  Linux and macOS are not supported.\n")
+    sys.exit(1)
+
 from pathlib import Path
 
 # Add the compiler directory to the module search path so all

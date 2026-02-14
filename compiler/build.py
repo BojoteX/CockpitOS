@@ -24,12 +24,21 @@ from config import (
     transport_label, role_label, config_get,
 )
 from labels import read_active_label_set
-from boards import ARDUINO_CLI, run_cli
+import boards
+from boards import run_cli
 
 # -----------------------------------------------------------------------------
 # Paths
 # -----------------------------------------------------------------------------
-_ARDUINO_DATA = Path(os.environ.get("LOCALAPPDATA", "")) / "Arduino15" / "CockpitOS"
+def _resolve_arduino_data():
+    """Resolve the Arduino data directory. Fails fast if LOCALAPPDATA is missing."""
+    local = os.environ.get("LOCALAPPDATA")
+    if not local:
+        # Fallback: use the user's home directory
+        local = str(Path.home() / "AppData" / "Local")
+    return Path(local) / "Arduino15" / "CockpitOS"
+
+_ARDUINO_DATA = _resolve_arduino_data()
 BUILD_DIR     = _ARDUINO_DATA / "build"
 CACHE_DIR     = _ARDUINO_DATA / "cache"
 OUTPUT_DIR    = SKETCH_DIR / "compiler" / "output"
@@ -93,7 +102,7 @@ def compile_sketch(fqbn, options, verbose=False, export_bin=False, board_name=No
     print()
 
     cmd = [
-        str(ARDUINO_CLI), "compile",
+        str(boards.ARDUINO_CLI), "compile",
         "--fqbn", full_fqbn,
         "--build-path", str(BUILD_DIR),
         "--build-cache-path", str(CACHE_DIR),
@@ -274,7 +283,7 @@ def upload_sketch(fqbn, options, port=None, board_name=None):
     print()
 
     cmd = [
-        str(ARDUINO_CLI), "upload",
+        str(boards.ARDUINO_CLI), "upload",
         "--fqbn", full_fqbn,
         "--port", port,
         "--input-dir", str(BUILD_DIR),

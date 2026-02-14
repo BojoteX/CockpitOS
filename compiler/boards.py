@@ -9,6 +9,10 @@ import subprocess
 import sys
 import re
 import json
+import os
+import shutil
+import winreg
+from pathlib import Path
 
 from ui import (
     CYAN, DIM, YELLOW, RESET,
@@ -25,10 +29,151 @@ from config import (
 # -----------------------------------------------------------------------------
 from config import SKETCH_DIR
 
-from pathlib import Path
-import os
+# Relative path from Arduino IDE install root to the CLI executable
+_CLI_RELATIVE = Path("resources") / "app" / "lib" / "backend" / "resources" / "arduino-cli.exe"
 
-ARDUINO_CLI = Path(r"C:\Program Files\Arduino IDE\resources\app\lib\backend\resources\arduino-cli.exe")
+# Resolved at startup by resolve_arduino_cli()
+ARDUINO_CLI = None
+
+
+# -----------------------------------------------------------------------------
+# Arduino CLI auto-detection
+# -----------------------------------------------------------------------------
+def _find_from_registry():
+    """Search Windows registry for Arduino IDE install location.
+
+    Checks HKLM + HKCU Uninstall keys (including WOW6432Node).
+    Derives the install root from DisplayIcon or UninstallString.
+    """
+    hives = [
+        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
+        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
+        (winreg.HKEY_CURRENT_USER,  r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
+    ]
+
+    for hive, path in hives:
+        try:
+            key = winreg.OpenKey(hive, path)
+        except OSError:
+            continue
+
+        i = 0
+        while True:
+            try:
+                subkey_name = winreg.EnumKey(key, i)
+                i += 1
+            except OSError:
+                break
+
+            try:
+                subkey = winreg.OpenKey(key, subkey_name)
+                try:
+                    name, _ = winreg.QueryValueEx(subkey, "DisplayName")
+                except OSError:
+                    subkey.Close()
+                    continue
+
+                if "arduino ide" not in name.lower():
+                    subkey.Close()
+                    continue
+
+                # Try to extract the install root directory
+                install_root = None
+
+                # Method 1: DisplayIcon — e.g. "C:\Program Files\Arduino IDE\icon.ico"
+                try:
+                    icon, _ = winreg.QueryValueEx(subkey, "DisplayIcon")
+                    install_root = Path(icon).parent
+                except OSError:
+                    pass
+
+                # Method 2: UninstallString — e.g. "C:\...\Uninstall Arduino IDE.exe"
+                if not install_root:
+                    try:
+                        uninst, _ = winreg.QueryValueEx(subkey, "UninstallString")
+                        # Strip quotes
+                        uninst = uninst.strip('"')
+                        install_root = Path(uninst).parent
+                    except OSError:
+                        pass
+
+                subkey.Close()
+
+                if install_root:
+                    cli = install_root / _CLI_RELATIVE
+                    if cli.exists():
+                        return cli
+
+            except OSError:
+                pass
+
+        key.Close()
+
+    return None
+
+
+def _find_from_common_paths():
+    """Scan common Arduino IDE install locations."""
+    candidates = []
+
+    # Standard Program Files locations
+    for env_var in ("ProgramFiles", "ProgramFiles(x86)", "ProgramW6432"):
+        pf = os.environ.get(env_var)
+        if pf:
+            candidates.append(Path(pf) / "Arduino IDE")
+
+    # Per-user install (AppData\Local\Programs)
+    local = os.environ.get("LOCALAPPDATA")
+    if local:
+        candidates.append(Path(local) / "Programs" / "Arduino IDE")
+
+    for root in candidates:
+        cli = root / _CLI_RELATIVE
+        if cli.exists():
+            return cli
+
+    return None
+
+
+def _find_from_system_path():
+    """Check if arduino-cli is on the system PATH."""
+    found = shutil.which("arduino-cli")
+    if found:
+        return Path(found)
+    return None
+
+
+def resolve_arduino_cli(prefs):
+    """Find arduino-cli.exe using a detection chain. Caches result in prefs.
+
+    Priority: cached path → registry → common dirs → PATH.
+    Returns a Path to the executable, or None if not found.
+    """
+    global ARDUINO_CLI
+
+    # 1. Cached path from prefs
+    cached = prefs.get("arduino_cli_path")
+    if cached and Path(cached).exists():
+        ARDUINO_CLI = Path(cached)
+        return ARDUINO_CLI
+
+    # 2. Windows registry
+    found = _find_from_registry()
+
+    # 3. Common install directories
+    if not found:
+        found = _find_from_common_paths()
+
+    # 4. System PATH
+    if not found:
+        found = _find_from_system_path()
+
+    if found:
+        ARDUINO_CLI = found
+        prefs["arduino_cli_path"] = str(found)
+        return ARDUINO_CLI
+
+    return None
 
 # -----------------------------------------------------------------------------
 # CockpitOS hard defaults for board options (always applied)
@@ -77,6 +222,9 @@ def _cdc_disabled_value(board_options):
 # arduino-cli wrappers
 # -----------------------------------------------------------------------------
 def run_cli(*args, capture=True, timeout=600):
+    if not ARDUINO_CLI:
+        error("arduino-cli path not resolved. Run resolve_arduino_cli() first.")
+        return None
     cmd = [str(ARDUINO_CLI)] + list(args)
     try:
         r = subprocess.run(cmd, capture_output=capture, text=True, encoding="utf-8",
@@ -84,8 +232,7 @@ def run_cli(*args, capture=True, timeout=600):
         return r
     except FileNotFoundError:
         error(f"arduino-cli not found at: {ARDUINO_CLI}")
-        error("Update ARDUINO_CLI path in boards.py.")
-        sys.exit(1)
+        return None
     except subprocess.TimeoutExpired:
         error(f"Command timed out after {timeout}s")
         return None

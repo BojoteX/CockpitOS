@@ -1195,7 +1195,7 @@ def run():
         out.write("  const char* label;\n")
         out.write("  LEDDeviceType deviceType;\n")
         out.write("  union {\n")
-        out.write("    struct { uint8_t gpio; } gpioInfo;\n")
+        out.write("    struct { int8_t gpio; } gpioInfo;\n")
         # out.write("    struct { uint8_t gauge; } gaugeInfo;\n")
         out.write("    struct { uint8_t gpio; uint16_t minPulse; uint16_t maxPulse; uint16_t period; } gaugeInfo;\n")
         out.write("    struct { uint8_t address; uint8_t port; uint8_t bit; } pcaInfo;\n")
