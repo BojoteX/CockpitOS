@@ -1,5 +1,6 @@
 .claude
 nul
+__pycache__
 .credentials
 CLAUDE.md
 Dev

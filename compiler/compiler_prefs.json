@@ -1,5 +1,5 @@
 {
-  "fqbn": "esp32:esp32:lolin_s3_pro",
+  "fqbn": "esp32:esp32:esp32s3",
   "options": {
     "PartitionScheme": "no_ota",
     "CPUFreq": "240",
@@ -13,10 +13,15 @@
     "MSCOnBoot": "default",
     "DFUOnBoot": "default",
     "CDCOnBoot": "default",
-    "USBMode": "hwcdc"
+    "USBMode": "hwcdc",
+    "FlashSize": "4M",
+    "PSRAM": "disabled",
+    "JTAGAdapter": "default",
+    "ZigbeeMode": "default"
   },
-  "transport": "slave",
-  "role": "slave",
+  "transport": "wifi",
+  "role": "master",
   "usb_mode": null,
-  "board_name": "LOLIN S3 Pro"
+  "board_name": "ESP32S3 Dev Module",
+  "arduino_cli_path": "C:\\Program Files\\Arduino IDE\\resources\\app\\lib\\backend\\resources\\arduino-cli.exe"
 }
