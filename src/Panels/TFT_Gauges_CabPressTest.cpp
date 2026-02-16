@@ -145,7 +145,7 @@ static constexpr spi_host_device_t      spi_host      = SPI2_HOST;          // S
 static constexpr uint8_t                dma_channel   = SPI_DMA_CH_AUTO;    // SPI_DMA_CH_AUTO, 1, or 2
 
 #if CABIN_PRESSURE_USE_QSPI
-static constexpr uint32_t               freq_write    = 40000000;           // 40 MHz QSPI → 160 Mbit/s (4 data lines). Try 80 MHz → 320 Mbit/s once stable.
+static constexpr uint32_t               freq_write    = 32000000;           // 32 MHz QSPI → 128 Mbit/s (4 data lines). Conservative for batch tolerance.
 #else
 static constexpr uint32_t               freq_write    = 80000000;           // 80 MHz for SPI
 #endif
@@ -508,7 +508,15 @@ void CabinPressureGauge_init()
     std::memcpy(bgCache[0], cabinPressBackground, FRAME_BYTES);
     std::memcpy(bgCache[1], cabinPressBackgroundNVG, FRAME_BYTES);
 
-    tft.init();
+    // Init with retry — handles boards where POR is marginal (slow 3.3V ramp,
+    // noisy USB supply).  SWRESET in the init sequence resets the controller,
+    // but if the QSPI bus itself didn't come up cleanly, a second attempt after
+    // a power-settle delay usually succeeds.
+    for (int attempt = 0; attempt < 3; ++attempt) {
+        if (tft.init()) break;
+        debugPrintf("⚠️ CabPress: tft.init() failed (attempt %d/3), retrying...\n", attempt + 1);
+        delay(200);
+    }
     tft.setColorDepth(COLOR_DEPTH_CABIN_PRESS);
     tft.setRotation(0);
     tft.setSwapBytes(true);
