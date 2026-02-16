@@ -6,11 +6,18 @@ CockpitOS DCS-BIOS Stream Replay Tool
 Replays captured DCS-BIOS data streams for offline testing.
 Sends multicast on ALL network interfaces for universal compatibility.
 
+By default, replays at a fixed 30 FPS — matching DCS-BIOS's internal tick
+rate — to produce a stable, realistic stream for HID Manager testing.
+The recorded per-frame timing is inherently noisy (OS-level timestamp
+jitter, Windows timer granularity) and does not represent the true DCS
+export rate, so we don't use it unless explicitly requested via --raw-timing.
+
 Usage:
-    python PLAY_DCS_stream.py                    # Interactive menu
+    python PLAY_DCS_stream.py                    # 30 FPS (default)
     python PLAY_DCS_stream.py --stream LAST      # Play last captured
-    python PLAY_DCS_stream.py --speed 2.0        # 2x speed
     python PLAY_DCS_stream.py --fps 60           # Fixed 60 FPS
+    python PLAY_DCS_stream.py --raw-timing       # Use recorded timing
+    python PLAY_DCS_stream.py --raw-timing --speed 2.0  # Recorded timing 2x
 
 Author: CockpitOS Project
 """
@@ -208,11 +215,13 @@ def select_stream(streams):
 def main():
     # === ARGUMENT PARSING ===
     parser = argparse.ArgumentParser(description="DCS-BIOS UDP Replay Tool")
-    parser.add_argument("--speed", type=float, default=1.0, 
-                        help="Replay speed multiplier (e.g. 2.0 = 2x faster)")
-    parser.add_argument("--fps", type=float, 
-                        help="Override all delays and force fixed FPS (e.g. 60)")
-    parser.add_argument("--stream", type=str, 
+    parser.add_argument("--fps", type=float, default=30.0,
+                        help="Fixed replay rate in FPS (default: 30, matching DCS-BIOS tick rate)")
+    parser.add_argument("--raw-timing", action="store_true",
+                        help="Use recorded per-frame timing instead of fixed FPS")
+    parser.add_argument("--speed", type=float, default=1.0,
+                        help="Speed multiplier for --raw-timing mode (e.g. 2.0 = 2x faster)")
+    parser.add_argument("--stream", type=str,
                         help="Stream identifier to load directly (bypasses menu)")
     args = parser.parse_args()
 
@@ -280,19 +289,26 @@ def main():
     iface_list = ", ".join(f"{ip} ({name})" for ip, name, _ in multicast_sockets)
     print(f"[INFO] Multicast to {MULTICAST_IP}:{UDP_PORT} via: {iface_list}")
 
-    if args.fps:
-        print(f"🔁 Fixed replay at {args.fps:.1f} FPS ({1000/args.fps:.2f}ms/frame)")
-    else:
+    if args.raw_timing:
         print(f"🔁 Using recorded frame timing scaled by x{args.speed}")
+    else:
+        print(f"🔁 Fixed replay at {args.fps:.1f} FPS ({1000/args.fps:.2f}ms/frame)")
 
     print("⏳ Press Ctrl+C to stop.\n")
 
     # === REPLAY LOOP ===
+    # Pre-compute absolute timestamp for each frame relative to cycle start.
+    # In fixed-FPS mode (default), frames are uniformly spaced at 1/fps.
+    # In raw-timing mode, the recorded inter-frame delays are used (scaled
+    # by --speed), reproducing the exact captured DCS-BIOS timing jitter.
     frame_timestamps = []
     accum_time = 0.0
     for frame in frames:
         frame_timestamps.append(accum_time)
-        accum_time += frame.get("timing", 0) / args.speed if not args.fps else (1.0 / args.fps)
+        if args.raw_timing:
+            accum_time += frame.get("timing", 0) / args.speed
+        else:
+            accum_time += 1.0 / args.fps
 
     stream_start_time = time.perf_counter()
     cycle = 0
