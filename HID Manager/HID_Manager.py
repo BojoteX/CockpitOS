@@ -952,6 +952,8 @@ class NetworkManager:
         with frame-skip is simpler and equally effective.
         """
 
+        _DROP_LOG_INTERVAL = 60  # Seconds between drop summary log lines
+
         def __init__(self, entry: DeviceEntry, uiq: queue.Queue):
             super().__init__(daemon=True)
             self.entry = entry
@@ -959,6 +961,9 @@ class NetworkManager:
             self.q = deque()              # Pending report tuples (unbounded)
             self.cv = threading.Condition()  # Wake signal from enqueue()
             self._running = True
+            self._drops_window = 0        # Drops in current 60 s window
+            self._drops_session = 0       # Drops since device connected
+            self._drops_last_log = time.monotonic()  # Timestamp of last summary
 
         def enqueue(self, reports_tuple: tuple) -> None:
             """Called by _udp_rx_processor to queue a frame's worth of reports.
@@ -1038,11 +1043,17 @@ class NetworkManager:
                     self.q.clear()
 
                 if dropped > 0:
-                    try:
-                        self.uiq.put(('log', self.entry.name,
-                                      f"TX dropped {dropped} stale frame(s)"))
-                    except Exception:
-                        pass
+                    self._drops_window += dropped
+                    self._drops_session += dropped
+                    now = time.monotonic()
+                    if now - self._drops_last_log >= self._DROP_LOG_INTERVAL:
+                        try:
+                            self.uiq.put(('log', self.entry.name,
+                                          f"TX stale frames: {self._drops_window} last {self._DROP_LOG_INTERVAL}s, {self._drops_session} total"))
+                        except Exception:
+                            pass
+                        self._drops_window = 0
+                        self._drops_last_log = now
 
                 # ── Write batch to device ──────────────────────────────
                 # Each `reports` is a tuple of 65-byte buffers (report ID
