@@ -907,19 +907,56 @@ class NetworkManager:
                 # which is caught on the next wake.  10 s means at most
                 # 0.1 wake/s per device instead of 5 — a 50× reduction
                 # in idle wake-ups per panel.
+                dropped = 0
                 with self.cv:
                     while self._running and not self.q:
                         self.cv.wait(timeout=10.0)
                     if not self._running or self.entry.disconnected:
                         break
-                    # Atomically grab all pending work and clear the queue
-                    batch = list(self.q)
+                    # FRAME-SKIP OPTIMISATION [v5.2]: Keep ONLY the most
+                    # recent frame, discard all older ones.
+                    #
+                    # When the USB bus is saturated (common on Pi with 9+
+                    # panels sharing USB 2.0), hid.write() blocks longer
+                    # than the inter-frame interval and a backlog builds.
+                    # Previously the worker would dutifully send ALL queued
+                    # frames in FIFO order — meaning a backlog of 585
+                    # frames caused the panel to replay ~19 seconds of
+                    # stale cockpit history before reaching current state.
+                    # Every one of those stale writes also consumed USB
+                    # bandwidth, starving OTHER panels and making the
+                    # backlog worse system-wide.
+                    #
+                    # DCS-BIOS export frames contain the latest cockpit
+                    # state for the addresses they cover.  A newer frame
+                    # always supersedes an older one.  So frames 1–584 in
+                    # a 585-frame backlog are already obsolete — the panel
+                    # would do 9,360 USB writes just to arrive at the same
+                    # state that the last frame delivers in ~16 writes.
+                    #
+                    # By keeping only self.q[-1], we:
+                    #   1. Jump the panel to current state instantly
+                    #   2. Free up USB bandwidth for other panels
+                    #   3. Create a positive feedback loop: fewer writes →
+                    #      less bus contention → all panels converge faster
+                    #
+                    # Safety: the `while not self.q` guard above guarantees
+                    # the deque is non-empty here.  When batch=1 (no backlog),
+                    # behavior is identical to before — no frames are dropped.
+                    #
+                    # DCS-BIOS protocol safety: skipped frames may leave some
+                    # addresses briefly stale, but DCS-BIOS sends periodic
+                    # full-state syncs (~every few seconds) that converge
+                    # everything.  Brief staleness on a few addresses is
+                    # vastly preferable to ALL addresses being 19 s behind.
+                    dropped = len(self.q) - 1
+                    batch = [self.q[-1]]
                     self.q.clear()
 
-                # Soft backlog warning (informational, not actionable)
-                if len(batch) > 100:
+                if dropped > 0:
                     try:
-                        self.uiq.put(('log', self.entry.name, f"TX backlog={len(batch)}"))
+                        self.uiq.put(('log', self.entry.name,
+                                      f"TX dropped {dropped} stale frame(s)"))
                     except Exception:
                         pass
 
