@@ -1,5 +1,5 @@
-// PID:0x3B38 
+// PID:0x140C 
 
 #pragma once
 
-#define LABEL_SET RS485_LOLIN_AUTO
+#define LABEL_SET RS485_WAVESHARE_MANUAL
