@@ -298,8 +298,8 @@ static inline Rect rectPad(const Rect& r, int16_t px) {
 static Rect rotatedAABB(int cx, int cy, int w, int h, int px, int py, float deg) {
     const float rad = deg * (float)M_PI / 180.0f;
     float s = sinf(rad), c = cosf(rad);
-    const float xs[4] = { -px, (float)w - px, (float)w - px, -px };
-    const float ys[4] = { -py, -py, (float)h - py, (float)h - py };
+    const float xs[4] = { (float)-px, (float)w - px, (float)w - px, (float)-px };
+    const float ys[4] = { (float)-py, (float)-py, (float)h - py, (float)h - py };
     float minx = 1e9f, maxx = -1e9f, miny = 1e9f, maxy = -1e9f;
     for (int i = 0; i < 4; ++i) {
         float xr = xs[i] * c - ys[i] * s;
@@ -621,6 +621,6 @@ void CabinPressureGauge_deinit() {
     }
 }
 
-#else
+#elif defined(HAS_CABIN_PRESSURE_GAUGE) && defined(ENABLE_TFT_GAUGES) && (ENABLE_TFT_GAUGES == 1)
 #warning "Cabin Pressure Gauge requires ESP32-S2 or ESP32-S3"
 #endif

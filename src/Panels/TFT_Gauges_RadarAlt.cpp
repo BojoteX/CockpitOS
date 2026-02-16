@@ -25,7 +25,7 @@
     REGISTER_PANEL(TFTRadarAlt, nullptr, nullptr, RadarAlt_init, RadarAlt_loop, nullptr, 100);
 #endif
 
-#define MAX_MEMORY_TFT 16
+#define MAX_MEMORY_TFT 8
 #define RADARALT_DRAW_MIN_INTERVAL_MS 13
 #define RUN_RADARALT_AS_TASK 1
 #define BACKLIGHT_LABEL "INST_PNL_DIMMER"
@@ -280,8 +280,8 @@ static Rect rotatedAABB(int cx, int cy, int w, int h, int pivotX, int pivotY, fl
     const float rad = deg * (float)M_PI / 180.0f;
     float s = sinf(rad), c = cosf(rad);
     // corners relative to pivot
-    const float xs[4] = { -pivotX, (float)w - pivotX, (float)w - pivotX, -pivotX };
-    const float ys[4] = { -pivotY, -pivotY, (float)h - pivotY, (float)h - pivotY };
+    const float xs[4] = { (float)-pivotX, (float)w - pivotX, (float)w - pivotX, (float)-pivotX };
+    const float ys[4] = { (float)-pivotY, (float)-pivotY, (float)h - pivotY, (float)h - pivotY };
     float minx = 1e9f, maxx = -1e9f, miny = 1e9f, maxy = -1e9f;
     for (int i = 0; i < 4; ++i) {
         float xr = xs[i] * c - ys[i] * s;
@@ -418,8 +418,8 @@ static void RadarAlt_draw(bool force = false, bool blocking = false)
     }
 
     // Lamps: always include small rects if ON or state changed (cheap and safe)
-    auto lampRect = [](int x, int y) { return rectClamp(Rect{ x, y, 34, 34 }); };
-    auto offRect = [](int x, int y) { return rectClamp(Rect{ x, y, 51, 19 }); };
+    auto lampRect = [](int x, int y) { return rectClamp(Rect{ (int16_t)x, (int16_t)y, 34, 34 }); };
+    auto offRect = [](int x, int y) { return rectClamp(Rect{ (int16_t)x, (int16_t)y, 51, 19 }); };
     if (needsFullFlush || greenOn || greenOn != lastGreenOn)   dirty = rectUnion(dirty, lampRect(GREEN_X, GREEN_Y));
     if (needsFullFlush || lowAltOn || lowAltOn != lastLowAltOn)dirty = rectUnion(dirty, lampRect(LOWALT_X, LOWALT_Y));
     if (needsFullFlush || offFlag || offFlag != lastOffOn)   dirty = rectUnion(dirty, offRect(OFF_X, OFF_Y));
@@ -638,6 +638,6 @@ void RadarAlt_deinit()
         if (bgCache[i]) { heap_caps_free(bgCache[i]); bgCache[i] = nullptr; }
     }
 }
-#else
+#elif defined(HAS_CUSTOM_RIGHT) && defined(ENABLE_TFT_GAUGES) && (ENABLE_TFT_GAUGES == 1)
 #warning "Radar Altimeter requires ESP32-S2 or ESP32-S3"
 #endif

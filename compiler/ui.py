@@ -651,11 +651,13 @@ def toggle_pick(prompt, items):
 
     def _render(i, is_sel):
         label, key, _ = items[i]
-        mark = f"{GREEN}X{RESET}" if state[key] else " "
-        text = f"[{mark}] {label}"
         if is_sel:
-            return f"  {REV} {text} {RESET}"
+            mark = f"{GREEN}X{RESET}{REV}" if state[key] else " "
+            text = f"[{mark}] {label}"
+            return f"  {REV}   {text} {RESET}"
         else:
+            mark = f"{GREEN}X{RESET}" if state[key] else " "
+            text = f"[{mark}] {label}"
             return f"     {text}"
 
     print()

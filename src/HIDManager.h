@@ -56,6 +56,13 @@ void HIDManager_setToggleNamedButton(const char* name, bool deferSend = false);
 void HIDManager_toggleIfPressed(bool isPressed, const char* label, bool deferSend = false);
 void HIDManager_handleGuardedToggleIfPressed(bool isPressed, const char* buttonLabel, const char* coverLabel, bool deferSend = false);
 
+// ───── HID Passthrough (RS485 slave → master HID report) ─────
+// These functions dispatch HID reports immediately, bypassing dwell arbitration.
+// Used by the RS485 master HID gate because the slave already performed dwell.
+const InputMapping* findHidMappingByDcs(const char* dcsLabel, uint16_t value);
+void HIDManager_setButtonDirect(const char* name, bool pressed);
+void HIDManager_setAxisDirect(HIDAxis axis, uint16_t value);
+
 // ───── Utility / Maintenance ─────
 void HIDManager_commitDeferredReport(const char* deviceName);
 bool shouldPollMs(unsigned long &lastPoll);

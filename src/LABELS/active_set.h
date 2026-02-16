@@ -1,5 +1,5 @@
-// PID:0xB86A 
+// PID:0x3B38 
 
 #pragma once
 
-#define LABEL_SET HANS_JODE
+#define LABEL_SET RS485_LOLIN_AUTO

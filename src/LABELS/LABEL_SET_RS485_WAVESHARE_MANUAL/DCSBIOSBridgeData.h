@@ -30,6 +30,11 @@ struct CommandHistoryEntry {
 
 struct DcsOutputEntry { uint16_t addr, mask; uint8_t shift; uint16_t max_value; const char* label; ControlType controlType; };
 static const DcsOutputEntry DcsOutputTable[] = {
+    {0x7456,0xFFFF,0,65535,"HMD_OFF_BRT",CT_ANALOG},
+    {0x742A,0xC000,14,2,"IR_COOL_SW",CT_SELECTOR},
+    {0x742A,0x0800,11,1,"SPIN_LT",CT_LED},
+    {0x742A,0x1000,12,1,"SPIN_RECOVERY_COVER",CT_SELECTOR},
+    {0x742A,0x2000,13,1,"SPIN_RECOVERY_SW",CT_SELECTOR},
     {0x740C,0x2000,13,1,"MASTER_ARM_SW",CT_SELECTOR},
     {0x740C,0x0800,11,1,"MASTER_MODE_AA",CT_SELECTOR},
     {0x740C,0x0200,9,1,"MASTER_MODE_AA_LT",CT_LED},
@@ -39,6 +44,13 @@ static const DcsOutputEntry DcsOutputTable[] = {
     {0x740C,0x8000,15,1,"MC_READY",CT_LED},
     {0x7408,0x0200,9,1,"MASTER_CAUTION_LT",CT_LED},
     {0x7408,0x0400,10,1,"MASTER_CAUTION_RESET_SW",CT_SELECTOR},
+    {0x749C,0x8000,15,1,"LOW_ALT_WARN_LT",CT_LED},
+    {0x751A,0xFFFF,0,65535,"RADALT_ALT_PTR",CT_GAUGE},
+    {0x74A0,0x0100,8,1,"RADALT_GREEN_LAMP",CT_LED},
+    {0x7516,0xFFFF,0,65535,"RADALT_HEIGHT",CT_ANALOG},
+    {0x7518,0xFFFF,0,65535,"RADALT_MIN_HEIGHT_PTR",CT_GAUGE},
+    {0x751C,0xFFFF,0,65535,"RADALT_OFF_FLAG",CT_GAUGE},
+    {0x749C,0x4000,14,1,"RADALT_TEST_SW",CT_SELECTOR},
 };
 static const size_t DcsOutputTableSize = sizeof(DcsOutputTable)/sizeof(DcsOutputTable[0]);
 
@@ -50,8 +62,16 @@ struct AddressEntry {
 };
 
 static const AddressEntry dcsAddressTable[] = {
-  { 0x740C, { &DcsOutputTable[0], &DcsOutputTable[1], &DcsOutputTable[2], &DcsOutputTable[3], &DcsOutputTable[4], &DcsOutputTable[5], &DcsOutputTable[6] }, 7 },
-  { 0x7408, { &DcsOutputTable[7], &DcsOutputTable[8] }, 2 },
+  { 0x7456, { &DcsOutputTable[0] }, 1 },
+  { 0x742A, { &DcsOutputTable[1], &DcsOutputTable[2], &DcsOutputTable[3], &DcsOutputTable[4] }, 4 },
+  { 0x740C, { &DcsOutputTable[5], &DcsOutputTable[6], &DcsOutputTable[7], &DcsOutputTable[8], &DcsOutputTable[9], &DcsOutputTable[10], &DcsOutputTable[11] }, 7 },
+  { 0x7408, { &DcsOutputTable[12], &DcsOutputTable[13] }, 2 },
+  { 0x749C, { &DcsOutputTable[14], &DcsOutputTable[20] }, 2 },
+  { 0x751A, { &DcsOutputTable[15] }, 1 },
+  { 0x74A0, { &DcsOutputTable[16] }, 1 },
+  { 0x7516, { &DcsOutputTable[17] }, 1 },
+  { 0x7518, { &DcsOutputTable[18] }, 1 },
+  { 0x751C, { &DcsOutputTable[19] }, 1 },
 };
 
 // Address hash entry
@@ -66,6 +86,37 @@ static const DcsAddressHashEntry dcsAddressHashTable[53] = {
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
+  { 0x742A, &dcsAddressTable[1] },
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  { 0x749C, &dcsAddressTable[4] },
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  { 0x74A0, &dcsAddressTable[6] },
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  { 0x7408, &dcsAddressTable[3] },
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  { 0x740C, &dcsAddressTable[2] },
+  { 0x7516, &dcsAddressTable[7] },
+  {0xFFFF, nullptr},
+  { 0x7518, &dcsAddressTable[8] },
+  {0xFFFF, nullptr},
+  { 0x751A, &dcsAddressTable[5] },
+  {0xFFFF, nullptr},
+  { 0x751C, &dcsAddressTable[9] },
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
@@ -79,38 +130,7 @@ static const DcsAddressHashEntry dcsAddressHashTable[53] = {
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  { 0x7408, &dcsAddressTable[1] },
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  { 0x740C, &dcsAddressTable[0] },
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
+  { 0x7456, &dcsAddressTable[0] },
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
@@ -134,20 +154,38 @@ inline const AddressEntry* findDcsOutputEntries(uint16_t addr) {
 
 struct SelectorEntry { const char* label; const char* dcsCommand; uint16_t value; const char* controlType; uint16_t group; const char* posLabel; };
 static const SelectorEntry SelectorMap[] = {
-    { "MASTER_ARM_SW_SAFE","MASTER_ARM_SW",0,"selector",1,"SAFE" },
-    { "MASTER_ARM_SW_ARM","MASTER_ARM_SW",1,"selector",1,"ARM" },
+    { "HMD_OFF_BRT","HMD_OFF_BRT",65535,"analog",0,"LEVEL" },
+    { "HMD_OFF_BRT_DEC","HMD_OFF_BRT",0,"variable_step",0,"DEC" },
+    { "HMD_OFF_BRT_INC","HMD_OFF_BRT",1,"variable_step",0,"INC" },
+    { "IR_COOL_SW_OFF","IR_COOL_SW",0,"selector",1,"OFF" },
+    { "IR_COOL_SW_NORM","IR_COOL_SW",1,"selector",1,"NORM" },
+    { "IR_COOL_SW_ORIDE","IR_COOL_SW",2,"selector",1,"ORIDE" },
+    { "SPIN_RECOVERY_COVER","SPIN_RECOVERY_COVER",1,"momentary",0,"OPEN" },
+    { "SPIN_RECOVERY_SW_NORM","SPIN_RECOVERY_SW",0,"selector",2,"NORM" },
+    { "SPIN_RECOVERY_SW_RCVY","SPIN_RECOVERY_SW",1,"selector",2,"RCVY" },
+    { "MASTER_ARM_SW_SAFE","MASTER_ARM_SW",0,"selector",3,"SAFE" },
+    { "MASTER_ARM_SW_ARM","MASTER_ARM_SW",1,"selector",3,"ARM" },
     { "MASTER_MODE_AA","MASTER_MODE_AA",1,"momentary",0,"PRESS" },
     { "MASTER_MODE_AG","MASTER_MODE_AG",1,"momentary",0,"PRESS" },
     { "MASTER_CAUTION_RESET_SW","MASTER_CAUTION_RESET_SW",1,"momentary",0,"PRESS" },
+    { "RADALT_HEIGHT_POS0","RADALT_HEIGHT",0,"variable_step",0,"POS0" },
+    { "RADALT_HEIGHT_POS1","RADALT_HEIGHT",1,"variable_step",0,"POS1" },
+    { "RADALT_TEST_SW","RADALT_TEST_SW",1,"momentary",0,"PRESS" },
 };
 static const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);
 
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
-    { "MASTER_ARM_SW", 0, 0, true, 1, 0,   0, false, {0}, {0}, 0 },
+    { "HMD_OFF_BRT", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
+    { "IR_COOL_SW", 0, 0, true, 1, 0,   0, false, {0}, {0}, 0 },
+    { "MASTER_ARM_SW", 0, 0, true, 3, 0,   0, false, {0}, {0}, 0 },
     { "MASTER_CAUTION_RESET_SW", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
     { "MASTER_MODE_AA", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
     { "MASTER_MODE_AG", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
+    { "RADALT_HEIGHT", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
+    { "RADALT_TEST_SW", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
+    { "SPIN_RECOVERY_COVER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
+    { "SPIN_RECOVERY_SW", 0, 0, true, 2, 0,   0, false, {0}, {0}, 0 },
 };
 static const size_t commandHistorySize = sizeof(commandHistory)/sizeof(CommandHistoryEntry);
 
@@ -184,6 +222,6 @@ inline const DisplayFieldDef* findDisplayFieldByLabel(const char* label) {
 
 // No tracked metadata fields found
 struct MetadataState { const char* label; uint16_t value; };
-static MetadataState metadataStates[] = {};
-static const size_t numMetadataStates = 0;
+static MetadataState metadataStates[] __attribute__((unused)) = {};
+static const size_t numMetadataStates __attribute__((unused)) = 0;
 inline MetadataState* findMetadataState(const char*) { return nullptr; }

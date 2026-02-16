@@ -4,6 +4,7 @@ CockpitOS — Label set management.
 Discovery, selection, and generate_data.py execution.
 """
 
+import os
 import subprocess
 import sys
 import re
@@ -68,7 +69,7 @@ def select_label_set(prefs):
 
 
 def run_generate_data(label_set_name):
-    """Launch generate_data.py in its own console window and wait for it to finish."""
+    """Run generate_data.py inline in batch mode (no interactive pauses)."""
     header(f"Running generate_data.py for {label_set_name}")
 
     label_dir = LABELS_DIR / f"LABEL_SET_{label_set_name}"
@@ -81,29 +82,30 @@ def run_generate_data(label_set_name):
     info(f"Directory: {label_dir}")
     info(f"Script:    {gen_script}")
     print()
-    info("Opening generator in a new window...")
-    info("Complete it there, then come back here to continue.")
-    print()
 
+    # Delete any previous completion marker so a stale one can't fool us.
+    stamp = label_dir / ".last_run"
+    if stamp.exists():
+        stamp.unlink()
+
+    env = {**os.environ, "COCKPITOS_BATCH": "1"}
     proc = subprocess.Popen(
         [sys.executable, str(gen_script)],
         cwd=str(label_dir),
-        creationflags=subprocess.CREATE_NEW_CONSOLE,
+        env=env,
     )
     proc.wait()
 
-    new_active = read_active_label_set()
-    data_h = label_dir / "DCSBIOSBridgeData.h"
-
-    if new_active == label_set_name and data_h.exists():
-        success(f"generate_data.py completed for {label_set_name}")
-        info(f"active_set.h -> {CYAN}{label_set_name}{RESET}")
-        return True
-    elif new_active == label_set_name:
-        warn(f"active_set.h updated but DCSBIOSBridgeData.h not found")
-        return True
-    else:
-        error(f"generate_data.py did not produce expected output")
-        if new_active:
-            error(f"active_set.h shows: {new_active} (expected {label_set_name})")
+    # The script writes .last_run only at the very end on success.
+    if not stamp.exists():
+        error("generate_data.py did not complete successfully")
         return False
+
+    new_active = read_active_label_set()
+    if new_active != label_set_name:
+        error(f"active_set.h shows: {new_active} (expected {label_set_name})")
+        return False
+
+    success(f"generate_data.py completed for {label_set_name}")
+    info(f"active_set.h -> {CYAN}{label_set_name}{RESET}")
+    return True

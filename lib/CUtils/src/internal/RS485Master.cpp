@@ -45,7 +45,12 @@
 // ESP-IDF includes
 #include "esp_attr.h"
 #include "esp_intr_alloc.h"
+// Peripheral module control - handle both old and new ESP-IDF locations
+#if __has_include("esp_private/periph_ctrl.h")
+#include "esp_private/periph_ctrl.h"
+#else
 #include "driver/periph_ctrl.h"
+#endif
 #include "driver/uart.h"
 #include "driver/gpio.h"
 #include "hal/uart_ll.h"
@@ -139,15 +144,15 @@ public:
     void IRAM_ATTR put(uint8_t c) {
         if (getLength() < SIZE) {  // Overflow protection: drop byte if buffer full
             buffer[writePos % SIZE] = c;
-            writePos++;
+            writePos = writePos + 1;
         } else {
-            dropCount++;
+            dropCount = dropCount + 1;
         }
     }
 
     uint8_t get() {
         uint8_t c = buffer[readPos % SIZE];
-        readPos++;
+        readPos = readPos + 1;
         return c;
     }
 
@@ -305,10 +310,10 @@ static inline bool rawEmpty() { return rawHead == rawTail; }
 static void bufferRawByte(uint8_t byte) {
     if (rawCount() >= RS485_RAW_BUFFER_SIZE - 1) {
         // Overflow - discard oldest
-        rawTail++;
+        rawTail = rawTail + 1;
     }
     rawBuffer[rawHead % RS485_RAW_BUFFER_SIZE] = byte;
-    rawHead++;
+    rawHead = rawHead + 1;
 }
 
 #endif // RS485_SMART_MODE
@@ -446,7 +451,8 @@ static inline void IRAM_ATTR processRxByte(uint8_t c) {
 
         case MasterState::RX_WAIT_DATA:
             messageBuffer.put(c);
-            if (--rxtxLen == 0) {
+            rxtxLen = rxtxLen - 1;
+            if (rxtxLen == 0) {
                 state = MasterState::RX_WAIT_CHECKSUM;
             }
             break;
@@ -659,7 +665,7 @@ static void prepareBroadcastData() {
 
     for (size_t i = 0; i < toSend; i++) {
         broadcastBuffer[broadcastLen++] = rawBuffer[rawTail % RS485_RAW_BUFFER_SIZE];
-        rawTail++;
+        rawTail = rawTail + 1;
     }
 }
 #endif
@@ -893,14 +899,14 @@ bool RS485Master_init() {
     currentPollAddr = 1;
 
     #if RS485_SMART_MODE
-        changeHead = changeTail = changeCount = 0;
+        changeHead = 0; changeTail = 0; changeCount = 0;
         parseState = PARSE_WAIT_SYNC;
         syncByteCount = 0;
         #if RS485_CHANGE_DETECT
         initPrevValues();
         #endif
     #else
-        rawHead = rawTail = 0;
+        rawHead = 0; rawTail = 0;
     #endif
 
     // Configure DE pin first (before UART)
@@ -927,7 +933,8 @@ bool RS485Master_init() {
         .stop_bits = UART_STOP_BITS_1,
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
         .rx_flow_ctrl_thresh = 0,
-        .source_clk = UART_SCLK_DEFAULT
+        .source_clk = UART_SCLK_DEFAULT,
+        .flags = {0, 0}
     };
     uart_param_config((uart_port_t)RS485_UART_NUM, &uart_config);
 
@@ -1137,9 +1144,9 @@ void RS485Master_forceFullSync() {
         #if RS485_CHANGE_DETECT
         initPrevValues();
         #endif
-        changeHead = changeTail = changeCount = 0;
+        changeHead = 0; changeTail = 0; changeCount = 0;
     #else
-        rawHead = rawTail = 0;
+        rawHead = 0; rawTail = 0;
     #endif
     debugPrintln("[RS485M] Forced full sync");
 }

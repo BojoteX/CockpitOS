@@ -47,8 +47,12 @@ struct _AutoPanelRegister {
   static _AutoPanelRegister _apr_##KIND(_hooks_##KIND)
 */
 
+// Compile-time check: PanelKind::KIND must exist in the enum.
+// If it doesn't, template instantiation fails with the static_assert message.
+template<PanelKind K> constexpr bool _panelKindValid() { return true; }
+
 #define ASSERT_PANEL_KIND_EXISTS(KIND)                                           \
-  static_assert(static_cast<int>(PanelKind::KIND) >= 0,                          \
+  static_assert(_panelKindValid<PanelKind::KIND>(),                              \
     "\n\n[PanelRegistry] Invalid panel name '" #KIND                            \
     "'.\n--> You probably forgot to add '" #KIND                                \
     "' to enum class PanelKind in Mappings.h (and to its activation in Mappings.cpp).\n")
