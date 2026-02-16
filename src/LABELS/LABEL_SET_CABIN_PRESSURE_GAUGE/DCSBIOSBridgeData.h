@@ -31,18 +31,21 @@ struct CommandHistoryEntry {
 struct DcsOutputEntry { uint16_t addr, mask; uint8_t shift; uint16_t max_value; const char* label; ControlType controlType; };
 static const DcsOutputEntry DcsOutputTable[] = {
     {0x7514,0xFFFF,0,65535,"PRESSURE_ALT",CT_GAUGE},
+    {0x7408,0x0200,9,1,"MASTER_CAUTION_LT",CT_LED},
+    {0x7408,0x0400,10,1,"MASTER_CAUTION_RESET_SW",CT_SELECTOR},
 };
 static const size_t DcsOutputTableSize = sizeof(DcsOutputTable)/sizeof(DcsOutputTable[0]);
 
 // Static flat address-to-output entry lookup
 struct AddressEntry {
   uint16_t addr;
-  const DcsOutputEntry* entries[1]; // max entries per address
+  const DcsOutputEntry* entries[2]; // max entries per address
   uint8_t count;
 };
 
 static const AddressEntry dcsAddressTable[] = {
   { 0x7514, { &DcsOutputTable[0] }, 1 },
+  { 0x7408, { &DcsOutputTable[1], &DcsOutputTable[2] }, 2 },
 };
 
 // Address hash entry
@@ -76,7 +79,7 @@ static const DcsAddressHashEntry dcsAddressHashTable[53] = {
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
+  { 0x7408, &dcsAddressTable[1] },
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   { 0x7514, &dcsAddressTable[0] },
@@ -125,11 +128,13 @@ inline const AddressEntry* findDcsOutputEntries(uint16_t addr) {
 
 struct SelectorEntry { const char* label; const char* dcsCommand; uint16_t value; const char* controlType; uint16_t group; const char* posLabel; };
 static const SelectorEntry SelectorMap[] = {
+    { "MASTER_CAUTION_RESET_SW","MASTER_CAUTION_RESET_SW",1,"momentary",0,"PRESS" },
 };
 static const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);
 
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
+    { "MASTER_CAUTION_RESET_SW", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
 };
 static const size_t commandHistorySize = sizeof(commandHistory)/sizeof(CommandHistoryEntry);
 
@@ -166,6 +171,6 @@ inline const DisplayFieldDef* findDisplayFieldByLabel(const char* label) {
 
 // No tracked metadata fields found
 struct MetadataState { const char* label; uint16_t value; };
-static MetadataState metadataStates[] = {};
-static const size_t numMetadataStates = 0;
+static MetadataState metadataStates[] __attribute__((unused)) = {};
+static const size_t numMetadataStates __attribute__((unused)) = 0;
 inline MetadataState* findMetadataState(const char*) { return nullptr; }

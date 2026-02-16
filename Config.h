@@ -20,10 +20,10 @@
 #endif
 
 //
-#define MODE_DEFAULT_IS_HID                         0 // Is HID mode default? (This should almost always be 0). Only enable if you want your device to send Input buttons/axes at the OS level. This is so you can use the device with other simulators (Inputs only)
+#define MODE_DEFAULT_IS_HID                         1 // Is HID mode default? (This should almost always be 0). Only enable if you want your device to send Input buttons/axes at the OS level. This is so you can use the device with other simulators (Inputs only)
 
 // Is this an RS-485 Master? leave to 0 for normal operation.
-#define RS485_MASTER_ENABLED                        1 // Set as RS-485 Master. Polls slaves. Forwards data, you still need to choose a transport above (WiFi, Serial, USB etc)
+#define RS485_MASTER_ENABLED                        0 // Set as RS-485 Master. Polls slaves. Forwards data, you still need to choose a transport above (WiFi, Serial, USB etc)
 
 // Here is where you tell the firmware which 'transport' will be used to Communicate with the simulator (only ONE can be selected). 
 // Bluetooth BLE, Pure Native USB, WIFI, Serial (CDC/Socat) or as an RS485 slave. ** Only ONE ** can be active 

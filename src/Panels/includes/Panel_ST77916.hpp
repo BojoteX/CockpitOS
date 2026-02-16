@@ -265,6 +265,14 @@ namespace lgfx
       const uint8_t* getInitCommands(uint8_t listno) const override
       {
         static constexpr uint8_t list0[] = {
+          // ── Software Reset ──
+          // Critical for batch reliability: pin_rst is on an I2C expander (TCA9554)
+          // that LovyanGFX cannot toggle.  Without this, we rely on the display's
+          // internal power-on-reset (POR), which can be marginal if the 3.3V rail
+          // ramp is slow or noisy (varies by USB cable, PSU, component tolerance).
+          // SWRESET forces a known state before the vendor init sequence.
+          0x01, 0 + CMD_INIT_DELAY, 120,  // SWRESET + 120ms (datasheet minimum)
+
           // ── Page / Command Set Control ──
           0xF0, 1, 0x08,             // CMD_SET: Test command page enable
           0xF2, 1, 0x08,             // CSC3: Test command page enable
@@ -529,7 +537,7 @@ namespace lgfx
           // We set _invert = true in the constructor so INVON is sent once, correctly.
           // Putting INVON here would cause a double-invert (our INVON + init_impl's INVOFF).
           0x11, 0 + CMD_INIT_DELAY, 120,     // SLPOUT + 120ms
-          0x29, 0,                           // DISPON
+          0x29, 0 + CMD_INIT_DELAY, 20,     // DISPON + 20ms (allow display controller to stabilize)
 
           0xFF, 0xFF  // ── End of list ──
         };

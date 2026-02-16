@@ -18,6 +18,7 @@ struct InputMapping {
 
 //  label                       source     port bit hidId  DCSCommand           value   Type        group
 static const InputMapping InputMappings[] = {
+    { "MASTER_CAUTION_RESET_SW", "GPIO" ,  0 ,  0 ,   1 , "MASTER_CAUTION_RESET_SW",     1 , "momentary",  0 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);
 
@@ -77,7 +78,7 @@ static const InputHashEntry inputHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"MASTER_CAUTION_RESET_SW", &InputMappings[0]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},

@@ -1,5 +1,5 @@
-// PID:0x140C 
+// PID:0xC174 
 
 #pragma once
 
-#define LABEL_SET RS485_WAVESHARE_MANUAL
+#define LABEL_SET CABIN_PRESSURE_GAUGE

@@ -40,7 +40,7 @@ from config import (
     safe_write_file,
 )
 from boards import (
-    COCKPITOS_DEFAULTS,
+    COCKPITOS_OVERRIDES,
     board_has_dual_usb, preferred_usb_mode,
     validate_config_vs_board, FATAL, WARNING,
     select_board, configure_options,
