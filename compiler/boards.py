@@ -176,22 +176,14 @@ def resolve_arduino_cli(prefs):
     return None
 
 # -----------------------------------------------------------------------------
-# CockpitOS hard defaults for board options (always applied)
+# CockpitOS hard overrides (applied ON TOP of board defaults from boards.txt)
+# Everything else uses the board's own defaults from arduino-cli.
 # -----------------------------------------------------------------------------
-COCKPITOS_DEFAULTS = {
+COCKPITOS_OVERRIDES = {
+    "PartitionScheme": "no_ota",    # No OTA (2MB APP/2MB SPIFFS) — always
     # CDCOnBoot is NOT here — its "disabled" value varies per board (S3="default", S2="dis_cdc").
     # It is resolved dynamically via _cdc_disabled_value() in configure_options() and validation.
-    "PartitionScheme": "no_ota",    # No OTA (2MB APP/2MB SPIFFS)
-    "CPUFreq":         "240",       # 240MHz
-    "FlashMode":       "qio",       # QIO 80MHz
-    "UploadSpeed":     "921600",    # Fastest upload
-    "UploadMode":      "default",   # UART0 / Hardware CDC
-    "DebugLevel":      "none",      # No core debug
-    "LoopCore":        "1",         # Arduino on Core 1
-    "EventsCore":      "1",         # Events on Core 1
-    "EraseFlash":      "none",      # Don't erase
-    "MSCOnBoot":       "default",   # MSC disabled
-    "DFUOnBoot":       "default",   # DFU disabled
+    # USBMode is NOT here — resolved dynamically based on transport in configure_options().
 }
 
 # -----------------------------------------------------------------------------
@@ -405,14 +397,17 @@ def configure_options(fqbn, prefs):
 
     board_options = get_board_options(fqbn)
     if not board_options:
-        warn("Could not retrieve board options. Using CockpitOS defaults.")
-        return dict(COCKPITOS_DEFAULTS)
+        warn("Could not retrieve board options. Using CockpitOS overrides only.")
+        return dict(COCKPITOS_OVERRIDES)
 
-    saved_options = prefs.get("options", {})
     selected = {}
 
-    # Apply CockpitOS hard defaults first
-    for key, val in COCKPITOS_DEFAULTS.items():
+    # Start with the board's own defaults from boards.txt (via arduino-cli)
+    for key, opt in board_options.items():
+        selected[key] = opt["default"]
+
+    # Apply CockpitOS hard overrides on top
+    for key, val in COCKPITOS_OVERRIDES.items():
         if key in board_options:
             selected[key] = val
 
@@ -429,37 +424,29 @@ def configure_options(fqbn, prefs):
         usb_label = "USB-OTG (TinyUSB)" if ideal == "default" else "HW CDC"
         info(f"{DIM}USB Mode -> {usb_label} (auto, matches {transport_label(transport)}){RESET}")
 
-    info(f"{DIM}CockpitOS defaults applied: CDC=Off, Partition=NoOTA 2MB, 240MHz, QIO{RESET}")
+    info(f"{DIM}Board defaults applied from boards.txt + CockpitOS overrides: CDC=Off, Partition=NoOTA{RESET}")
 
     mode = pick("Board options mode:", [
-        ("Quick - use CockpitOS defaults (recommended)", "quick"),
+        ("Quick - use board defaults + CockpitOS overrides (recommended)", "quick"),
         ("Full - configure ALL board options", "full"),
     ], default="quick")
     if mode is None:
         return None
 
     if mode == "quick":
-        for key, opt in board_options.items():
-            if key not in selected:
-                selected[key] = saved_options.get(key, opt["default"])
         return selected
 
-    # Full mode — show everything, allow overriding defaults
+    # Full mode — show everything, allow overriding
     keys_to_show = [k for k in board_options]
-    info(f"{YELLOW}Full mode: you can override CockpitOS defaults (not recommended){RESET}")
+    info(f"{YELLOW}Full mode: you can override any setting{RESET}")
 
     for i, key in enumerate(keys_to_show):
         opt = board_options[key]
-        current_val = selected.get(key, saved_options.get(key, opt["default"]))
+        current_val = selected[key]
         header(f"Board Options ({i+1}/{len(keys_to_show)})")
         chosen = pick(f"{opt['name']}:", opt["values"], default=current_val)
         if chosen is None:
             return None
         selected[key] = chosen
-
-    # Fill remaining with defaults
-    for key, opt in board_options.items():
-        if key not in selected:
-            selected[key] = saved_options.get(key, opt["default"])
 
     return selected
