@@ -211,11 +211,62 @@ No input is missed. Ever.
 
 ---
 
-## What's Next
+## HID Aggregation: The Entire Bus as One USB Device
 
-- HID aggregation mode — slaves send DCS-BIOS commands to the master over the bus as usual, but the master can optionally map those inputs to USB HID buttons and axes, presenting the entire RS485 bus as a single unified USB controller to the PC
-- Per-slave export filtering tables for smart mode bandwidth optimization
-- Diagnostic counters accessible via WiFi for field debugging without physical access
+The default mode of operation is DCS-BIOS — slaves send commands to the master, the master forwards them as UDP to DCS World. This is how it's always worked, and it's how most setups run.
+
+But CockpitOS supports an optional HID mode where the master presents the **entire RS485 bus** as a single USB HID game controller to the PC. Ten slave panels, each with switches, encoders, and sliders — one USB device. No DCS-BIOS software stack on the PC required. No UDP. No middleware. Plug in, recognized as a joystick, assign axes and buttons in any game or sim.
+
+### How It Works
+
+Every input in CockpitOS has an `InputMapping` entry that defines its DCS-BIOS label, its hardware source, and optionally a `hidId`:
+
+- **Digital inputs** (switches, encoders, momentary buttons): `hidId` = button number (1-32). Each maps to a single bit in the 32-button HID report field.
+- **Analog inputs** (potentiometers, sliders): `hidId` = axis index (0-15), referencing the `HIDAxis` enum — X, Y, Z, RX, RY, RZ, Dial, Slider through Slider8. Each maps to one of 16 independent 12-bit axes in the HID report.
+- **No HID mapping**: `hidId = -1`. The input operates in DCS-BIOS mode only.
+
+This means the same `InputMapping.h` file defines both the DCS-BIOS behavior and the HID behavior for every input. One mapping table, dual-purpose.
+
+### The Slave-to-HID Pipeline
+
+When a slave panel detects an input change, it queues a standard DCS-BIOS command — `"MASTER_ARM_SW 1\n"` — into its TX ring buffer. On the next master poll, this command rides the RS485 bus as a normal protocol response. The slave doesn't know or care whether the master is in DCS mode or HID mode. It just sends commands.
+
+On the master side, when a command arrives from a slave:
+
+1. **DCS mode**: The command is forwarded as UDP to DCS World. Standard behavior.
+2. **HID mode**: The command hits the **HID passthrough gate** — an O(1) hash table lookup keyed on `(dcs_label, value)`. The hash table is built at startup from all `InputMapping` entries that have a valid `hidId`. The lookup returns the full mapping entry — including whether it's a button or axis, the HID ID, the control type, and the group.
+
+For buttons, `HIDManager_setButtonDirect()` sets or clears the corresponding bit in the 32-bit button field. Selector-type inputs (multi-position switches) clear all other bits in their exclusivity group first — so a 3-position switch with positions mapped to buttons 5, 6, and 7 in group 2 will always have exactly one of those three bits set. Momentary buttons pulse ON and auto-release after 250ms.
+
+For axes, `HIDManager_setAxisDirect()` scales the DCS-range value (0-65535) down to HID range (0-4095) and writes it directly into the report's axis array.
+
+The 64-byte HID report — 16 axes at 16 bits each, 32 buttons, padding — is dispatched over USB immediately. No dwell delay on the master side (the slave already handled debounce and stabilization before sending).
+
+### Why This Matters
+
+A typical RS485 cockpit might have:
+- Master panel (USB-connected): throttle quadrant, a few toggle switches
+- Slave 1: UFC panel with keypad and rotary encoders
+- Slave 2: left console with gear, flaps, fuel switches
+- Slave 3: right console with radio panels and potentiometers
+- Slave 4: overhead panel with circuit breakers
+
+In DCS mode, each slave sends DCS-BIOS commands and the master relays them. Works perfectly for DCS World.
+
+In HID mode, the same physical setup becomes a single 32-button, 16-axis USB game controller. Windows sees one device. Any game, any sim, any application that supports joystick input can use it directly — MSFS, X-Plane, Star Citizen, racing sims, anything. No plugin, no protocol adapter, no configuration tool. The mapping lives in `InputMapping.h`, compiled into the firmware.
+
+Switch between modes at runtime or set the default in `Config.h` with `MODE_DEFAULT_IS_HID`.
+
+---
+
+## WiFi Debug: Live Bus Monitoring
+
+Since CockpitOS supports WiFi as a transport/debug channel, the RS485 bus can be monitored in real-time from a browser or terminal:
+
+- **As master**: See every slave response — what commands each slave is sending, response timing, error rates
+- **As slave**: See what's being queued for the master — export data arriving, commands waiting to send, buffer utilization
+
+No logic analyzer. No USB-serial adapter. No second computer. Connect to WiFi, open the debug stream, watch the bus live.
 
 ---
 
