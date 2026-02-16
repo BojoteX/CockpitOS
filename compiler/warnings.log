@@ -1,4 +1,8 @@
-# Compile warnings — RS485_SLAVE_1_RS485_WAVESHARE_MANUAL — 2026-02-16 06:50:57
-# Code warnings: 0  |  Framework warnings: 0
+# Compile warnings — RS485_MASTER_RS485_WAVESHARE_MANUAL_USB — 2026-02-16 10:34:49
+# Code warnings: 0  |  Framework warnings: 4
 
-# No warnings — clean build!
+# ── Framework / SDK warnings (ESP-IDF, TinyUSB, etc.) ────────
+C:\Users\jaltu\AppData\Local\Arduino15\packages\esp32\tools\esp32s3-libs\3.3.6/include/arduino_tinyusb/tinyusb/src/class/cdc/cdc_host.h:154:58: warning: missing initializer for member 'cdc_line_control_state_t::<unnamed struct>::rts' [-Wmissing-field-initializers]
+C:\Users\jaltu\AppData\Local\Arduino15\packages\esp32\tools\esp32s3-libs\3.3.6/include/arduino_tinyusb/tinyusb/src/class/cdc/cdc_host.h:162:58: warning: missing initializer for member 'cdc_line_control_state_t::<unnamed struct>::dtr' [-Wmissing-field-initializers]
+C:\Users\jaltu\AppData\Local\Arduino15\packages\esp32\tools\esp32s3-libs\3.3.6/include/arduino_tinyusb/tinyusb/src/class/cdc/cdc_host.h:154:58: warning: missing initializer for member 'cdc_line_control_state_t::<unnamed struct>::rts' [-Wmissing-field-initializers]
+C:\Users\jaltu\AppData\Local\Arduino15\packages\esp32\tools\esp32s3-libs\3.3.6/include/arduino_tinyusb/tinyusb/src/class/cdc/cdc_host.h:162:58: warning: missing initializer for member 'cdc_line_control_state_t::<unnamed struct>::dtr' [-Wmissing-field-initializers]
