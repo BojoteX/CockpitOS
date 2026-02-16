@@ -1199,16 +1199,20 @@ class NetworkManager:
                 data, addr = self.udp_rx_sock.recvfrom(16384)
 
                 # ── Auto-learn DCS source IP (once per session) ────────
-                if (not self._ip_committed and addr and is_valid_ipv4(addr[0])
-                        and self.reply_addr[0] != addr[0]):
-                    self.reply_addr[0] = addr[0]
-                    write_settings_dcs_ip(addr[0])
+                if not self._ip_committed and addr and is_valid_ipv4(addr[0]):
+                    if self.reply_addr[0] != addr[0]:
+                        self.reply_addr[0] = addr[0]
+                        write_settings_dcs_ip(addr[0])
                     self._ip_committed = True
                     # CPU OPTIMISATION [v5.2]: Signal all device_reader threads
                     # blocked on dcs_detected.wait() that the DCS source IP is
                     # now available.  This replaces per-device polling loops.
+                    # CRITICAL: This must fire even when the stored IP already
+                    # matches the incoming source — otherwise readers that use
+                    # dcs_detected.wait() would block forever because the
+                    # auto-learn "new IP" branch was the only path that set it.
                     dcs_detected.set()
-                    self.uiq.put(('data_source', None, addr[0]))
+                    self.uiq.put(('data_source', None, self.reply_addr[0]))
 
                 # ── Deduplicate multicast reflections [v5.2] ──────────
                 # When the socket is joined on N interfaces AND the sender
