@@ -60,16 +60,6 @@
 #define RS485_USE_TASK			1
 #endif
 
-// RX/TX mode selection
-// 1 = ISR-driven (lowest latency, bare-metal UART, TX_DONE non-blocking)
-//     Best performance on a dedicated core without WiFi
-// 0 = Driver-based (ESP-IDF UART driver, blocking TX)
-//     Rock-solid coexistence with WiFi/USB on the same core
-// *** Set in Config.h — this is only a fallback default ***
-#ifndef RS485_USE_ISR_MODE
-#define RS485_USE_ISR_MODE      1
-#endif
-
 // ============================================================================
 // SMART MODE OPTIONS (only apply when SMART_MODE=1)
 // ============================================================================
@@ -108,9 +98,11 @@
 #define RS485_RAW_BUFFER_SIZE   512
 #endif
 
-// Maximum bytes per broadcast in relay mode
+// Maximum bytes per broadcast in relay mode.
+// 124 = 128 FIFO depth - 3 (header) - 1 (checksum) → fits in one FIFO load,
+// avoiding the spin-wait txBytes path for oversized broadcasts.
 #ifndef RS485_RELAY_CHUNK_SIZE
-#define RS485_RELAY_CHUNK_SIZE  128
+#define RS485_RELAY_CHUNK_SIZE  124
 #endif
 
 #endif // !RS485_SMART_MODE
@@ -174,9 +166,8 @@
 #ifndef RS485_TX_WARMUP_AUTO_DELAY_US
 #define RS485_TX_WARMUP_AUTO_DELAY_US 0
 #endif
-// Cooldown delays — NO LONGER USED by either ISR or Driver mode.
-// ISR mode: TX_DONE interrupt releases the bus immediately.
-// Driver mode: bus released immediately after uart_wait_tx_done().
+// Cooldown delays — NO LONGER USED.
+// TX_DONE interrupt releases the bus immediately.
 // Retained for backward config compatibility only.
 #ifndef RS485_TX_COOLDOWN_DELAY_US
 #define RS485_TX_COOLDOWN_DELAY_US  50
@@ -230,10 +221,15 @@
 
 #if RS485_USE_TASK
 
-// Task priority (higher = more important, max typically 24)
-// Should be higher than main loop to ensure consistent timing
+// Task priority — MUST match WiFi (23) for round-robin time slicing.
+// At priority 5, RS485 task gets starved by WiFi (23), USB/tiT (18),
+// esp_timer (22), sys_evt (20) when sharing a core. messageBuffer.complete
+// stays true → no new polls → bus dies.
+// At priority 23, FreeRTOS round-robin gives RS485 a 1ms time slice.
+// RS485 uses <1% of its slice (~5-10µs work, then vTaskDelayUntil sleeps),
+// so WiFi/USB get 99%+ CPU. Confirmed flawless with all on same core.
 #ifndef RS485_TASK_PRIORITY
-#define RS485_TASK_PRIORITY     5
+#define RS485_TASK_PRIORITY     24
 #endif
 
 // Task stack size in bytes

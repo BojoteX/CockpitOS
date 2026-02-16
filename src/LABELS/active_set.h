@@ -1,5 +1,5 @@
-// PID:0x471F 
+// PID:0x3B38 
 
 #pragma once
 
-#define LABEL_SET SLAVE_SAMPLE
+#define LABEL_SET RS485_LOLIN_AUTO

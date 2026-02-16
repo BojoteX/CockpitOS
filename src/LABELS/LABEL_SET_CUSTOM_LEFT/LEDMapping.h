@@ -3,20 +3,20 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
-  DEVICE_GAUGE,
-  DEVICE_GPIO,
-  DEVICE_PCA9555,
-  DEVICE_TM1637,
   DEVICE_WS2812,
+  DEVICE_GPIO,
   DEVICE_NONE,
   DEVICE_GN1640T,
+  DEVICE_PCA9555,
+  DEVICE_TM1637,
+  DEVICE_GAUGE,
 };
 
 struct LEDMapping {
   const char* label;
   LEDDeviceType deviceType;
   union {
-    struct { uint8_t gpio; } gpioInfo;
+    struct { int8_t gpio; } gpioInfo;
     struct { uint8_t gpio; uint16_t minPulse; uint16_t maxPulse; uint16_t period; } gaugeInfo;
     struct { uint8_t address; uint8_t port; uint8_t bit; } pcaInfo;
     struct { uint8_t clkPin; uint8_t dioPin; uint8_t segment; uint8_t bit; } tm1637Info;

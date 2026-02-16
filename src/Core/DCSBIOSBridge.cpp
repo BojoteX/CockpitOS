@@ -33,6 +33,20 @@
     #include "DcsBios.h"    
 #endif
 
+// ───── Forward declarations for file-local functions ─────
+static void flushBufferedDcsCommands();
+static void selectorValidationCallback(const char* label, uint16_t value);
+
+// ───── Single-instance subscription storage (declared extern in DCSBIOSBridge.h) ─────
+MetadataSubscription metadataSubscriptions[MAX_METADATA_SUBSCRIPTIONS];
+size_t metadataSubscriptionCount = 0;
+DisplaySubscription  displaySubscriptions[MAX_DISPLAY_SUBSCRIPTIONS];
+size_t displaySubscriptionCount = 0;
+SelectorSubscription selectorSubscriptions[MAX_SELECTOR_SUBSCRIPTIONS];
+size_t selectorSubscriptionCount = 0;
+LedSubscription      ledSubscriptions[MAX_LED_SUBSCRIPTIONS];
+size_t ledSubscriptionCount = 0;
+
 // For edge cases where we need to force a resync of the panel
 volatile bool forcePanelResyncNow = false;
 
@@ -40,8 +54,6 @@ volatile bool forcePanelResyncNow = false;
 static unsigned long lastNotReadyPrint = 0;
 
 #if (USE_DCSBIOS_WIFI || USE_DCSBIOS_USB || USE_DCSBIOS_BLUETOOTH)
-// Size of max packet for DCS Receive
-static uint8_t reassemblyBuf[DCS_UDP_MAX_REASSEMBLED];
 static uint32_t maxFramesDrainOverflow = 0;  // Global or file-scope
 #endif
 
@@ -88,7 +100,7 @@ bool registerDisplayBuffer(const char* label, char* buf, uint8_t len, bool* dirt
     if (buf)   buf[len] = '\0';
     if (last) last[len] = '\0';
 
-    registeredBuffers[numRegisteredBuffers++] = { label, buf, len, dirtyFlag, last };
+    registeredBuffers[numRegisteredBuffers++] = { label, buf, len, dirtyFlag, last, {} };
     return true;
 }
 
@@ -177,6 +189,8 @@ void DCSBIOS_bustPrevValues() {
     g_prevInit = true;
 }
 
+// Reserved: force-refresh all display buffers on mission start (companion to bustPrevValues)
+#if 0   // TODO: re-enable at line ~536 if display-bust is needed on mission transitions
 static void DCSBIOS_bustDisplayBuffers() {
     for (size_t i = 0; i < numRegisteredBuffers; ++i) {
         RegisteredDisplayBuffer& b = registeredBuffers[i];
@@ -193,6 +207,7 @@ static void DCSBIOS_bustDisplayBuffers() {
         if (b.dirtyFlag) *b.dirtyFlag = true;  // optional: harmless
     }
 }
+#endif
 
 // DcsBiosSniffer Listener
 class DcsBiosSniffer : public DcsBios::ExportStreamListener {
@@ -758,21 +773,6 @@ void processDcsBiosExportByte(uint8_t c) {
 #if USE_DCSBIOS_WIFI || USE_DCSBIOS_USB || USE_DCSBIOS_BLUETOOTH
 void onDcsBiosUdpPacket() {
 
-    // ═══════════════════════════════════════════════════════════════
-    // DIAGNOSTIC #3: Ring buffer drain health
-    // ═══════════════════════════════════════════════════════════════
-    static uint32_t drainCalls = 0;
-    static uint32_t framesPopped = 0;
-    static uint32_t bytesPopped = 0;
-    static uint32_t emptyPolls = 0;
-    static uint32_t lastPrintMs = 0;
-
-    drainCalls++;
-
-    uint32_t framesThisCall = 0;
-    // ═══════════════════════════════════════════════════════════════
-
-
     static struct {
         uint8_t  data[DCS_UDP_MAX_REASSEMBLED];
         size_t   len;
@@ -784,9 +784,6 @@ void onDcsBiosUdpPacket() {
 
     // Phase 1: Drain as many complete UDP frames as possible
     while (dcsUdpRingbufPop(&pkt)) {
-        framesThisCall++;  // DIAG-3
-        bytesPopped += pkt.len;  // DIAG-3
-
         if (reassemblyLen + pkt.len > sizeof(frames[0].data)) {
             reassemblyLen = 0;
             debugPrintln("❌ [RING BUFFER] Overflow! increase DCS_UDP_MAX_REASSEMBLED");
@@ -1095,6 +1092,7 @@ static volatile bool cdcRxReady = false; // This will be set automatically when 
         isConnected = false;
     }
 
+    __attribute__((unused))
     static void cdcLineStateHandler(void* arg, esp_event_base_t base, int32_t id, void* event_data) {
         auto* ev = (arduino_usb_cdc_event_data_t*)event_data;
         bool dtr = ev->line_state.dtr;
@@ -1105,6 +1103,7 @@ static volatile bool cdcRxReady = false; // This will be set automatically when 
             rts ? "ON" : "OFF");
     }
 
+    __attribute__((unused))
     static void cdcLineCodingHandler(void* arg, esp_event_base_t base, int32_t id, void* event_data) {
         auto* ev = (arduino_usb_cdc_event_data_t*)event_data;
 
@@ -1266,7 +1265,9 @@ bool tryToSendDcsBiosMessage(const char* msg, const char* arg) {
     const size_t argLen = strnlen(arg, kMaxArg);
     if (msgLen == kMaxMsg || argLen == kMaxArg) return false;
 
+#if USE_DCSBIOS_SERIAL
     const size_t totalLen = msgLen + 1 + argLen + 1; // "CMD ARG\n"
+#endif
 
 #if !defined(ARDUINO_USB_MODE)
     // Original ESP32: plain Serial
@@ -1305,6 +1306,7 @@ bool tryToSendDcsBiosMessage(const char* msg, const char* arg) {
 
 #elif ((USE_DCSBIOS_SERIAL) && ARDUINO_USB_MODE == 1)
     // Hardware CDC (S3/C3/C6/H2)
+    (void)totalLen;  // not needed — Hardware CDC uses pos tracking
     char buf[64 + 1 + 32 + 1];
     size_t pos = 0;
     memcpy(&buf[pos], msg, msgLen); pos += msgLen;
@@ -1328,6 +1330,82 @@ bool simReady() {
 }
 
 void sendCommand(const char* msg, const char* arg, bool silent) {
+
+    // ── HID passthrough gate ──────────────────────────────────────────────
+    // RS485 Master only: When in HID mode, route slave commands to HID
+    // report instead of DCS transport. Standalone boards never reach
+    // sendCommand() in HID mode — their inputs go directly through
+    // HIDManager_setNamedButton() so this gate is not needed for them.
+    #if RS485_MASTER_ENABLED
+    if (!isModeSelectorDCS()) {
+
+        // --- Step controls: parse direction from arg ---
+        const bool isStepArg = (arg[0] == '+' || arg[0] == '-'
+                                || strcmp(arg, "INC") == 0
+                                || strcmp(arg, "DEC") == 0);
+
+        // All paths below use HIDManager_setButtonDirect() which dispatches
+        // immediately without dwell. The slave already performed dwell
+        // arbitration before sending the command over RS485.
+
+        if (isStepArg) {
+            const bool isUp = (arg[0] == '+' || strcmp(arg, "INC") == 0);
+            const InputMapping* m = findHidMappingByDcs(msg, isUp ? 1 : 0);
+            if (m) {
+                HIDManager_setButtonDirect(m->label, true);
+                if (!silent) debugPrintf("[HID-PASS] %s %s -> %s (step)\n", msg, arg, m->label);
+                return;
+            }
+            // No HID mapping for this step control — fall through to DCS transport
+        }
+        else {
+            const int val = atoi(arg);
+
+            // --- Analog axes: lookup by label (label == oride_label for analogs).
+            // For analog controlType, hidId holds the HIDAxis enum value
+            // (0=AXIS_X, 1=AXIS_Y, ... 7=AXIS_SLIDER) instead of a button bit.
+            // The controlType field determines the interpretation of hidId.
+            {
+                const InputMapping* mAnalog = findInputByLabel(msg);
+                if (mAnalog && mAnalog->controlType && strcmp(mAnalog->controlType, "analog") == 0) {
+                    if (mAnalog->hidId >= 0 && mAnalog->hidId < HID_AXIS_COUNT) {
+                        HIDManager_setAxisDirect((HIDAxis)mAnalog->hidId, (uint16_t)val);
+                        if (!silent) debugPrintf("[HID-PASS] %s %s -> axis %d\n", msg, arg, mAnalog->hidId);
+                        return;
+                    }
+                }
+            }
+
+            // --- Momentary, selector: button lookup by oride_label + value ---
+            const InputMapping* m = findHidMappingByDcs(msg, (uint16_t)val);
+
+            if (m) {
+                HIDManager_setButtonDirect(m->label, true);
+                if (!silent) debugPrintf("[HID-PASS] %s %s -> %s\n", msg, arg, m->label);
+                return;
+            }
+
+            // Momentary release: findHidMappingByDcs returns nullptr for val==0
+            // because momentary entries have oride_value=1 only.
+            // Fallback via findInputByLabel works because label == oride_label
+            // for momentary buttons (structural convention).
+            if (!m && val == 0) {
+                const InputMapping* mFallback = findInputByLabel(msg);
+                if (mFallback && mFallback->hidId > 0 && mFallback->hidId <= 32) {
+                    const char* ctype = mFallback->controlType ? mFallback->controlType : "";
+                    if (strcmp(ctype, "momentary") == 0) {
+                        HIDManager_setButtonDirect(mFallback->label, false); // release
+                        if (!silent) debugPrintf("[HID-PASS] %s %s -> %s (release)\n", msg, arg, mFallback->label);
+                        return;
+                    }
+                }
+            }
+
+            // No HID mapping found — fall through to DCS transport
+        }
+    }
+    #endif
+    // ── End HID passthrough gate ──────────────────────────────────────────
 
 #if RS485_SLAVE_ENABLED
     // In slave mode, queue command for RS-485 transmission

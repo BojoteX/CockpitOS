@@ -112,7 +112,7 @@ bool dcsUdpRingbufPop(DcsUdpRingMsg* out) {
 
 void dcsUdpRingbufPush(const uint8_t* data, size_t len, bool isLastChunk) {
     if (dcsUdpRingFull()) {
-        dcsUdpRecvOverflow++;
+        dcsUdpRecvOverflow = dcsUdpRecvOverflow + 1;
         debugPrintln("❌ [RING BUFFER] Ring buffer is FULL, increase DCS_UDP_RINGBUF_SIZE");
         return;
     }
@@ -126,8 +126,8 @@ void dcsUdpRingbufPush(const uint8_t* data, size_t len, bool isLastChunk) {
     if (pending > dcsUdpRecvHighWater) dcsUdpRecvHighWater = pending;
 
     dcsUdpRecvTotalBytes += len;
-    dcsUdpRecvMsgCount++;
-    if (len > dcsUdpRecvMsgMaxLen) dcsUdpRecvMsgMaxLen = len;    
+    dcsUdpRecvMsgCount = dcsUdpRecvMsgCount + 1;
+    if (len > dcsUdpRecvMsgMaxLen) dcsUdpRecvMsgMaxLen = len;
 }
 
 void dcsUdpRingbufPushChunked(const uint8_t* data, size_t len) {
@@ -138,7 +138,7 @@ void dcsUdpRingbufPushChunked(const uint8_t* data, size_t len) {
     const size_t max_data = DCS_UDP_PACKET_MAXLEN;
     size_t needed = (len + max_data - 1) / max_data;
     if (dcsUdpRingbufAvailable() < needed) {
-        dcsUdpRecvOverflow++;
+        dcsUdpRecvOverflow = dcsUdpRecvOverflow + 1;
         debugPrintln("❌ [RING BUFFER] Available space was less than required, increase DCS_UDP_RINGBUF_SIZE");
         return;
     }
@@ -194,7 +194,7 @@ bool dcsRawUsbOutRingbufPop(DcsRawUsbOutRingMsg* out) {
 
 void dcsRawUsbOutRingbufPush(const uint8_t* data, size_t len, bool isLastChunk) {
     if (dcsRawUsbOutRingFull()) {
-        dcsRawUsbOutOverflow++;
+        dcsRawUsbOutOverflow = dcsRawUsbOutOverflow + 1;
         debugPrintln("❌ [RING BUFFER] Outgoing message overflow! increase DCS_USB_RINGBUF_SIZE");
         return;
     }
@@ -208,7 +208,7 @@ void dcsRawUsbOutRingbufPush(const uint8_t* data, size_t len, bool isLastChunk) 
     if (pending > dcsRawUsbOutHighWater) dcsRawUsbOutHighWater = pending;
 
     dcsRawUsbOutTotalBytes += len;
-    dcsRawUsbOutMsgCount++;
+    dcsRawUsbOutMsgCount = dcsRawUsbOutMsgCount + 1;
     if (len > dcsRawUsbOutMsgMaxLen) dcsRawUsbOutMsgMaxLen = len;
 }
 
@@ -220,7 +220,7 @@ void dcsRawUsbOutRingbufPushChunked(const uint8_t* data, size_t len) {
     const size_t max_data = DCS_USB_PACKET_MAXLEN;
     size_t needed = (len + max_data - 1) / max_data;
     if (dcsRawUsbOutRingbufAvailable() < needed) {
-        dcsRawUsbOutOverflow++;
+        dcsRawUsbOutOverflow = dcsRawUsbOutOverflow + 1;
         debugPrintln("❌ [RING BUFFER] Outgoing message queue would overflow, skipping. Increase DCS_USB_RINGBUF_SIZE");
         return;
     }

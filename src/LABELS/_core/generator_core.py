@@ -9,6 +9,13 @@ import os, sys, json, re, hashlib
 import subprocess
 from collections import defaultdict
 
+# When launched from the compiler tool, skip all interactive pauses.
+_BATCH = os.environ.get("COCKPITOS_BATCH") == "1"
+
+def _pause(msg="\nPress <ENTER> to exit..."):
+    if not _BATCH:
+        input(msg)
+
 def run():
 
     # Get our current working LABEL SET directory
@@ -145,11 +152,11 @@ def run():
 
     if len(valid_jsons) == 0:
         print("ERROR: No valid panel-style JSON file found in current directory.")
-        input("\nPress <ENTER> to exit...")
+        _pause()
         sys.exit(1)
     if len(valid_jsons) > 1:
         print(f"ERROR: Multiple valid panel-style JSON files found: {[f[0] for f in valid_jsons]}")
-        input("\nPress <ENTER> to exit...")
+        _pause()
         sys.exit(1)
 
     JSON_FILE, data = valid_jsons[0]
@@ -185,7 +192,7 @@ def run():
                 for panel in data.keys():
                     sf.write(f"# {panel}\n")
             print(f"\nNow open '{PANELS_SELECTED_FILE}', uncomment the panels you want, and re-run this script.")
-            input("\nPress <ENTER> to exit...")
+            _pause()
             sys.exit(0)
 
         # Always reload the reference (panels.txt just regenerated)
@@ -193,14 +200,14 @@ def run():
         selected_panels = load_panel_list(PANELS_SELECTED_FILE)
         if not selected_panels:
             print("ERROR: No panels selected in selected_panels.txt.")
-            input("\nPress <ENTER> to exit...")
+            _pause()
             sys.exit(1)
         invalid_panels = selected_panels - all_panels
         if invalid_panels:
             print("\nERROR: The following panels in 'selected_panels.txt' are NOT present in 'panels.txt':")
             for panel in sorted(invalid_panels):
                 print(f"  - {panel}")
-            input("\nPress <ENTER> to exit...")
+            _pause()
             sys.exit(1)
         target_objects = selected_panels
 
@@ -213,7 +220,7 @@ def run():
         for panel in sorted(target_objects):
             print(f"  - {panel}")
         print("")
-    input("\nPress <ENTER> to continue and generate the files...")
+    _pause("\nPress <ENTER> to continue and generate the files...")
 
     # ——— HELPERS ———
     def is_prime(n):
@@ -716,8 +723,8 @@ def run():
         else:
             f.write("// No tracked metadata fields found\n")
             f.write("struct MetadataState { const char* label; uint16_t value; };\n")
-            f.write("static MetadataState metadataStates[] = {};\n")
-            f.write("static const size_t numMetadataStates = 0;\n")
+            f.write("static MetadataState metadataStates[] __attribute__((unused)) = {};\n")
+            f.write("static const size_t numMetadataStates __attribute__((unused)) = 0;\n")
             f.write("inline MetadataState* findMetadataState(const char*) { return nullptr; }\n")
 
     print(f"[✓] Generated {OUTPUT_HEADER} with "
@@ -1195,7 +1202,7 @@ def run():
         out.write("  const char* label;\n")
         out.write("  LEDDeviceType deviceType;\n")
         out.write("  union {\n")
-        out.write("    struct { uint8_t gpio; } gpioInfo;\n")
+        out.write("    struct { int8_t gpio; } gpioInfo;\n")
         # out.write("    struct { uint8_t gauge; } gaugeInfo;\n")
         out.write("    struct { uint8_t gpio; uint16_t minPulse; uint16_t maxPulse; uint16_t period; } gaugeInfo;\n")
         out.write("    struct { uint8_t address; uint8_t port; uint8_t bit; } pcaInfo;\n")
@@ -1261,7 +1268,7 @@ def run():
         # SAFETY CHECK: must be inside a LABELS directory
         if parent_dir_name != "LABELS":
             print("ERROR: This script must be run from a subdirectory of 'LABELS'!")
-            input("\nPress <ENTER> to exit...")
+            _pause()
             return
 
         for entry in os.listdir(parent_dir):
@@ -1296,7 +1303,7 @@ def run():
         subprocess.run([sys.executable, display_gen_path], cwd=script_dir, check=True)
     except Exception as e:
         print(f"❌ Error running display_gen.py: {e}")
-        input("\nPress <ENTER> to exit...")
+        _pause()
         sys.exit(1)
 
     print_and_disable_cpp_files()
@@ -1335,7 +1342,6 @@ def run():
 
     # Defaults
     _has_hid_mode_selector = 0
-    _mode_default_is_hid   = 0
 
     # Read existing file to preserve user edits
     existing_fullname = None
@@ -1344,7 +1350,6 @@ def run():
             _txt = _f.read()
         existing_fullname         = extract_define(_txt, "LABEL_SET_FULLNAME")
         _has_hid_mode_selector    = extract_define_int01(_txt, "HAS_HID_MODE_SELECTOR", _has_hid_mode_selector)
-        _mode_default_is_hid      = extract_define_int01(_txt, "MODE_DEFAULT_IS_HID",   _mode_default_is_hid)
 
     # Name used to derive PID
     name_for_pid = existing_fullname if existing_fullname else f"CockpitOS Panel {_ls_name}"
@@ -1360,7 +1365,6 @@ def run():
         '',
         f'#define LABEL_SET_NAME        "{_ls_name}"',
         f'#define HAS_HID_MODE_SELECTOR {_has_hid_mode_selector}',
-        f'#define MODE_DEFAULT_IS_HID   {_mode_default_is_hid}',
         f'#define LABEL_SET_FULLNAME    "{_label_set_fullname}" // You can safely change this',
         f'#define HAS_{_ls_name}',
         f'#define AUTOGEN_USB_PID       0x{_pid:04X} // DO NOT EDIT THIS',
@@ -1397,8 +1401,14 @@ def run():
         print(f"⚠️ Warning: Could not find {panelkind_script}")
     # --- End generate_panelkind.py call ---
 
-    # Press ENTER to exit
-    input("\nPress <ENTER> to exit...")
+    # Write a completion timestamp so the compiler tool can verify
+    # that generate_data.py ran to the end without errors.
+    with open(".last_run", "w", encoding="utf-8") as _ts:
+        from datetime import datetime
+        _ts.write(datetime.now().isoformat())
+
+    # Press ENTER to exit (skipped in batch mode)
+    _pause()
     sys.exit(1)
 
 if __name__ == "__main__":

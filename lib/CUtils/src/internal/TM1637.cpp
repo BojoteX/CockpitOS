@@ -59,22 +59,22 @@ void tm1637_start(TM1637Device& dev) {
     pinMode(dev.dioPin, OUTPUT);
     digitalWrite(dev.dioPin, HIGH);
     digitalWrite(dev.clkPin, HIGH);
-    delayMicroseconds(2);
+    delayMicroseconds(1);
     digitalWrite(dev.dioPin, LOW);
-    delayMicroseconds(2);
+    delayMicroseconds(1);
 }
 
 void tm1637_stop(TM1637Device& dev) {
     // STOP: CLK high, then DIO high
     pinMode(dev.dioPin, OUTPUT);
     digitalWrite(dev.clkPin, LOW);
-    delayMicroseconds(2);
+    delayMicroseconds(1);
     digitalWrite(dev.dioPin, LOW);
-    delayMicroseconds(2);
+    delayMicroseconds(1);
     digitalWrite(dev.clkPin, HIGH);
-    delayMicroseconds(2);
+    delayMicroseconds(1);
     digitalWrite(dev.dioPin, HIGH);
-    delayMicroseconds(2);
+    delayMicroseconds(1);
 }
 
 bool tm1637_writeByte(TM1637Device& dev, uint8_t b) {
@@ -82,18 +82,18 @@ bool tm1637_writeByte(TM1637Device& dev, uint8_t b) {
     for (uint8_t i = 0; i < 8; ++i) {
         digitalWrite(dev.clkPin, LOW);
         digitalWrite(dev.dioPin, (b & 0x01) ? HIGH : LOW);
-        delayMicroseconds(3);
+        delayMicroseconds(1);
         digitalWrite(dev.clkPin, HIGH);
-        delayMicroseconds(3);
+        delayMicroseconds(1);
         b >>= 1;
     }
 
     // ACK bit
     digitalWrite(dev.clkPin, LOW);
     pinMode(dev.dioPin, INPUT_PULLUP);
-    delayMicroseconds(3);
+    delayMicroseconds(1);
     digitalWrite(dev.clkPin, HIGH);
-    delayMicroseconds(3);
+    delayMicroseconds(1);
     bool ack = (digitalRead(dev.dioPin) == LOW);
     digitalWrite(dev.clkPin, LOW);
     pinMode(dev.dioPin, OUTPUT);
@@ -117,7 +117,7 @@ uint8_t tm1637_readKeys(TM1637Device& dev) {
 
     for (uint8_t i = 0; i < 8; i++) {
         digitalWrite(dev.clkPin, LOW);
-        delayMicroseconds(3);
+        delayMicroseconds(1);
 
         int bit = digitalRead(dev.dioPin);
         if (bit)
@@ -126,7 +126,7 @@ uint8_t tm1637_readKeys(TM1637Device& dev) {
             keys &= (uint8_t)~(1U << i);
 
         digitalWrite(dev.clkPin, HIGH);
-        delayMicroseconds(3);
+        delayMicroseconds(1);
     }
 
     tm1637_stop(dev);
@@ -138,21 +138,51 @@ uint8_t tm1637_readKeys(TM1637Device& dev) {
 // -------------------------------------------------------------------
 
 void tm1637_updateDisplay(TM1637Device& dev) {
+    const uint8_t dirty = dev.dirtyGrids;
 
-    tm1637_start(dev);
-    tm1637_writeByte(dev, 0x40); // Auto increment mode
-    tm1637_stop(dev);
+    // Count dirty grids to decide strategy
+    uint8_t dirtyCount = 0;
+    for (uint8_t i = 0; i < 6; ++i)
+        if (dirty & (1u << i)) ++dirtyCount;
 
-    tm1637_start(dev);
-    tm1637_writeByte(dev, TM1637_CMD_SET_ADDR);
-    for (int i = 0; i < 6; i++) {
-        tm1637_writeByte(dev, dev.ledData[i]);
+    if (dirtyCount == 0) return;
+
+    // If <=2 grids changed, use fixed-address mode (0x44): one 2-byte transaction per grid
+    // saves sending all 6 bytes when only 1-2 bits flipped (common case)
+    if (dirtyCount <= 2) {
+        // Fixed-address mode command
+        tm1637_start(dev);
+        tm1637_writeByte(dev, 0x44);
+        tm1637_stop(dev);
+
+        // Write only the dirty grids
+        for (uint8_t g = 0; g < 6; ++g) {
+            if (!(dirty & (1u << g))) continue;
+            tm1637_start(dev);
+            tm1637_writeByte(dev, TM1637_CMD_SET_ADDR | g);
+            tm1637_writeByte(dev, dev.ledData[g]);
+            tm1637_stop(dev);
+        }
+    } else {
+        // Many grids dirty: auto-increment is more efficient (original path)
+        tm1637_start(dev);
+        tm1637_writeByte(dev, 0x40);   // auto-increment mode
+        tm1637_stop(dev);
+
+        tm1637_start(dev);
+        tm1637_writeByte(dev, TM1637_CMD_SET_ADDR);
+        for (int i = 0; i < 6; i++) {
+            tm1637_writeByte(dev, dev.ledData[i]);
+        }
+        tm1637_stop(dev);
     }
+
+    // Display control: ON, max brightness
+    tm1637_start(dev);
+    tm1637_writeByte(dev, TM1637_CMD_DISP_CTRL | 7);
     tm1637_stop(dev);
 
-    tm1637_start(dev);
-    tm1637_writeByte(dev, TM1637_CMD_DISP_CTRL | 7); // max brightness, display ON
-    tm1637_stop(dev);
+    dev.dirtyGrids = 0;
 }
 
 void tm1637_init(TM1637Device& dev, uint8_t clkPin, uint8_t dioPin) {
@@ -162,6 +192,7 @@ void tm1637_init(TM1637Device& dev, uint8_t clkPin, uint8_t dioPin) {
     pinMode(dioPin, OUTPUT);
     memset(dev.ledData, 0, sizeof(dev.ledData));
     dev.needsUpdate = false;
+    dev.dirtyGrids = 0x3F;   // all 6 grids dirty for initial full write
     tm1637_updateDisplay(dev);
 }
 
@@ -176,22 +207,26 @@ void tm1637_displaySingleLED(TM1637Device& dev, uint8_t grid, uint8_t segment, b
 
     if (dev.ledData[grid] != before) {
         dev.needsUpdate = true;
+        dev.dirtyGrids |= (uint8_t)(1u << grid);
     }
 }
 
 void tm1637_clearDisplay(TM1637Device& dev) {
     memset(dev.ledData, 0, sizeof(dev.ledData));
+    dev.dirtyGrids = 0x3F;       // all grids dirty for full write
     tm1637_updateDisplay(dev);   // immediate update (needed for init flashes)
     dev.needsUpdate = false;     // keep flag consistent
 }
 
 void tm1637_allOn(TM1637Device& dev) {
     for (int i = 0; i < 6; i++) dev.ledData[i] = 0xFF;
+    dev.dirtyGrids = 0x3F;
     tm1637_updateDisplay(dev);
 }
 
 void tm1637_allOff(TM1637Device& dev) {
     memset(dev.ledData, 0, sizeof(dev.ledData));
+    dev.dirtyGrids = 0x3F;
     tm1637_updateDisplay(dev);
 }
 
@@ -210,6 +245,12 @@ void tm1637_allOff() {
 }
 
 void tm1637_tick() {
+    // Rate-limit: advisory LEDs don't need >50 Hz refresh (20ms interval)
+    static uint32_t lastTickMs = 0;
+    const uint32_t now = millis();
+    if (now - lastTickMs < 20) return;
+    lastTickMs = now;
+
     for (uint8_t i = 0; i < g_tmCount; ++i) {
         TM1637Device& dev = g_tmDevices[i];
         if (dev.needsUpdate) {

@@ -3,7 +3,9 @@
 #  error "Define LABEL_SET in Config.h (e.g., IFEI)"
 #endif
 
-// helpers
+// helpers (undef to override Config.h's version — identical macro, avoids redefinition warning)
+#undef STR_
+#undef STR
 #define STR_(x) #x
 #define STR(x)  STR_(x)
 #define CAT_(a,b) a##b

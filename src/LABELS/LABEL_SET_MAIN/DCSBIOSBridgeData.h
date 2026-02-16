@@ -305,6 +305,6 @@ inline const DisplayFieldDef* findDisplayFieldByLabel(const char* label) {
 
 // No tracked metadata fields found
 struct MetadataState { const char* label; uint16_t value; };
-static MetadataState metadataStates[] = {};
-static const size_t numMetadataStates = 0;
+static MetadataState metadataStates[] __attribute__((unused)) = {};
+static const size_t numMetadataStates __attribute__((unused)) = 0;
 inline MetadataState* findMetadataState(const char*) { return nullptr; }

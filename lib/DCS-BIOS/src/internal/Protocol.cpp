@@ -48,13 +48,13 @@ namespace DcsBios {
 
 			case DCSBIOS_STATE_DATA_LOW:
 				data = (unsigned int)c;
-				count--;
+				count = count - 1;
 				state = DCSBIOS_STATE_DATA_HIGH;
 				break;
 
 			case DCSBIOS_STATE_DATA_HIGH:
 				data = (c << 8) | data;
-				count--;
+				count = count - 1;
 
 				// We have processed at least one payload word in this frame.
 				processingData = true;
@@ -87,7 +87,7 @@ namespace DcsBios {
 		}
 
 		// SYNC detection (0x55 0x55 0x55 0x55)
-		if (c == 0x55) sync_byte_count++;
+		if (c == 0x55) sync_byte_count = sync_byte_count + 1;
 		else sync_byte_count = 0;
 
 		if (sync_byte_count == 4) {

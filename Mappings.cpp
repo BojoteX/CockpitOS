@@ -204,7 +204,6 @@ void initMappings() {
 #endif
 
     // Print registered panels
-    int n = PanelRegistry_count();
     for (int i=0; i<PanelRegistry_count(); ++i)
       debugPrintf("Registered Panel: %s\n", PanelRegistry_labelAt(i));
 

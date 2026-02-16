@@ -1,7 +1,6 @@
 {
   "fqbn": "esp32:esp32:lolin_s3_mini",
   "options": {
-    "CDCOnBoot": "default",
     "PartitionScheme": "no_ota",
     "CPUFreq": "240",
     "FlashMode": "qio",
@@ -13,10 +12,13 @@
     "EraseFlash": "none",
     "MSCOnBoot": "default",
     "DFUOnBoot": "default",
+    "CDCOnBoot": "default",
     "USBMode": "default"
   },
   "transport": "usb",
   "role": "standalone",
-  "usb_mode": "default",
-  "board_name": "LOLIN S3 Mini"
+  "usb_mode": null,
+  "board_name": "LOLIN S3 Mini",
+  "arduino_cli_path": "C:\\Program Files\\Arduino IDE\\resources\\app\\lib\\backend\\resources\\arduino-cli.exe",
+  "show_detailed_warnings": true
 }

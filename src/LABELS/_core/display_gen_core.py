@@ -7,6 +7,13 @@ CWD is set by the wrapper BEFORE this module is imported.
 """
 import os, sys, json, re
 
+# When launched from the compiler tool, skip all interactive pauses.
+_BATCH = os.environ.get("COCKPITOS_BATCH") == "1"
+
+def _pause(msg="\nPress <ENTER> to exit..."):
+    if not _BATCH:
+        input(msg)
+
 def run():
 
     # --------------------------------
@@ -110,11 +117,11 @@ def run():
 
     if len(valid_jsons) == 0:
         print("ERROR: No valid panel-style JSON file found in current directory.")
-        input("\nPress <ENTER> to exit...")
+        _pause()
         sys.exit(1)
     if len(valid_jsons) > 1:
         print(f"ERROR: Multiple valid panel-style JSON files found: {[f[0] for f in valid_jsons]}")
-        input("\nPress <ENTER> to exit...")
+        _pause()
         sys.exit(1)
 
     JSON_FILE, data = valid_jsons[0]
@@ -286,13 +293,22 @@ def run():
     # WRITE DisplayMapping.cpp
     # --------------------------------
 
-    # Extra Fields for DisplayMapping.cpp *** REMEMBER TO DOUBLE ESCAPE *** 
-    DISPLAYMAPPING_CPP_EXTRA = '''
+    # Extra Fields for DisplayMapping.cpp *** REMEMBER TO DOUBLE ESCAPE ***
+    if field_defs:
+        DISPLAYMAPPING_CPP_EXTRA = '''
 
     const DisplayFieldDefLabel* findFieldByLabel(const char* label) {
         for (size_t i = 0; i < numFieldDefs; ++i)
             if (strcmp(fieldDefs[i].label, label) == 0)
                 return &fieldDefs[i];
+        return nullptr;
+    }
+
+    '''
+    else:
+        DISPLAYMAPPING_CPP_EXTRA = '''
+
+    const DisplayFieldDefLabel* findFieldByLabel(const char* /*label*/) {
         return nullptr;
     }
 

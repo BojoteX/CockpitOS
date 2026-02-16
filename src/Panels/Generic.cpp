@@ -58,6 +58,7 @@ void Generic_init() {
 		// GPIO Inputs Init
         buildAutoAnalogInputs();
         buildGPIOEncoderStates();
+        debugPrintf("🔧 Encoders built: %u\n", numGPIOEncoders);
         buildGpioGroupDefs();
 
 		// HC165 Inputs Init
