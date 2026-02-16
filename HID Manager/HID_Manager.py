@@ -409,6 +409,19 @@ global_stats_lock = threading.Lock()
 
 reply_addr = [STORED_DCS_IP]
 
+# CPU OPTIMISATION [v5.2]: Event signal for DCS source IP detection.
+# Replaces the per-device 200 ms polling loop in device_reader() Phase 2.
+# Previously each reader thread polled `reply_addr[0] is None` at 5 Hz
+# (time.sleep(0.2) in a while loop).  With N panels connected, that was
+# N×5 = 5N needless context switches per second — pure waste while waiting
+# for DCS to start sending.
+# Now: _udp_rx_processor sets this Event once when the first valid UDP
+# packet arrives.  All reader threads call dcs_detected.wait() which blocks
+# in the kernel with ZERO CPU until the Event fires, then all waiters wake
+# simultaneously via a single OS broadcast.  Scales to any number of panels
+# with exactly zero polling wake-ups.
+dcs_detected = threading.Event()
+
 prev_reconnections: Dict[str, int] = {}
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -473,6 +486,42 @@ class DeviceEntry:
         self.disconnected = False
         self.handshaked = False
         self.reconnections = 0
+
+        # BUG FIX [v5.2]: close-once guard.  When a device is physically
+        # unplugged, multiple threads race to close the HID handle:
+        #   - device_reader catches the I/O exception → _close_stale_handle()
+        #   - device_reader's finally block → dev.close()
+        #   - _device_monitor detects serial gone → e.dev.close()
+        # hidapi's hid_close() frees the underlying C handle.  A second call
+        # operates on a freed pointer — undefined behavior in the C layer.
+        # While both sites wrap close() in try/except (so it won't crash in
+        # practice), this is a latent defect.  _close_lock + _closed flag
+        # guarantee dev.close() executes exactly once, regardless of how many
+        # threads attempt it.  The lock is ONLY held for the close() call
+        # itself (microseconds), never during any HID I/O, preserving the
+        # zero-lock-during-I/O invariant.
+        self._close_lock = threading.Lock()
+        self._closed = False
+
+    def close_once(self) -> None:
+        """Close the HID handle exactly once, thread-safe.
+        Multiple threads may call this concurrently (reader finally block,
+        _close_stale_handle, _device_monitor).  Only the first caller
+        actually executes dev.close(); all others are no-ops.
+        The lock is held only for the duration of close() (~microseconds),
+        never during I/O, so it cannot cause the hidapi freezes that
+        motivated the "no locks during I/O" invariant."""
+        with self._close_lock:
+            if self._closed:
+                return
+            self._closed = True
+        # Perform the actual close OUTSIDE the lock — hid_close() is a
+        # blocking OS call (handle teardown), and we don't want to hold
+        # our lock during it.  The _closed flag already prevents re-entry.
+        try:
+            self.dev.close()
+        except Exception:
+            pass
 
     def get_key(self) -> str:
         """Unique identity key for this device.  Uses serial_number when
@@ -546,9 +595,17 @@ def try_fifo_handshake(dev, uiq: Optional[queue.Queue] = None,
     """
     # Pad the handshake token to exactly 64 bytes (report size)
     payload = HANDSHAKE_REQ.ljust(DEFAULT_REPORT_SIZE, b'\x00')
-    attempts = 0
 
-    while attempts < MAX_HANDSHAKE_ATTEMPTS:
+    # BUG FIX [v5.2]: attempts is now incremented UNCONDITIONALLY at the top
+    # of each iteration.  Previously it was only incremented after Steps 1–3
+    # all succeeded without returning True.  If any step threw an exception
+    # and hit `continue`, the counter never advanced — meaning a persistently
+    # malfunctioning device (e.g. broken USB pipe returning errors on every
+    # GET/SET_FEATURE) would spin this loop FOREVER, creating a zombie thread.
+    # The 0.2 s sleep prevented CPU spin, but the thread would never exit.
+    # Now, every iteration — success, failure, or exception — costs exactly
+    # one attempt, guaranteeing termination within MAX_HANDSHAKE_ATTEMPTS.
+    for attempt in range(MAX_HANDSHAKE_ATTEMPTS):
         # Step 1: Check if firmware already has a buffered handshake token
         # (handles reconnection where a previous token was never drained)
         try:
@@ -587,8 +644,7 @@ def try_fifo_handshake(dev, uiq: Optional[queue.Queue] = None,
             time.sleep(0.2)
             continue
 
-        attempts += 1
-        if attempts % 10 == 0 and uiq:
+        if (attempt + 1) % 10 == 0 and uiq:
             uiq.put(('handshake', device_name, "Waiting for handshake..."))
         time.sleep(0.2)
 
@@ -604,16 +660,16 @@ def _close_stale_handle(entry: DeviceEntry, uiq: queue.Queue, where: str, exc) -
     The _device_monitor will subsequently remove the entry from the
     device list and the UI will show "STALE HANDLE (<location>)".
 
+    Uses close_once() [v5.2] instead of raw dev.close() to prevent the
+    double-close race between reader threads and _device_monitor.
+
     Args:
         entry: The device that experienced the error.
         where: Human-readable label for the failing operation
                (e.g. "READ", "FEATURE", "HANDSHAKE").
         exc:   The exception that triggered the recovery.
     """
-    try:
-        entry.dev.close()
-    except Exception:
-        pass
+    entry.close_once()
     entry.disconnected = True
     uiq.put(('status', entry.name, f"STALE HANDLE ({where})"))
     uiq.put(('log', entry.name, f"[stale] {where} exception: {exc}"))
@@ -664,10 +720,17 @@ def device_reader(entry: DeviceEntry, uiq: queue.Queue, udp_send) -> None:
         # Block until _udp_rx_processor has received at least one valid
         # UDP packet and populated reply_addr[0] with the DCS source IP.
         # This prevents sending commands to a stale/unconfigured address.
-        if reply_addr[0] is None and not entry.disconnected:
+        #
+        # CPU OPTIMISATION [v5.2]: Uses dcs_detected threading.Event instead
+        # of polling reply_addr[0] at 5 Hz.  The Event.wait() blocks in the
+        # kernel with zero CPU.  The 0.5 s timeout is purely a safety net to
+        # check entry.disconnected (in case the device is unplugged while
+        # we're still waiting for DCS).  When DCS is detected, ALL waiting
+        # reader threads wake simultaneously from a single Event.set() call.
+        if not dcs_detected.is_set() and not entry.disconnected:
             uiq.put(('log', entry.name, "Waiting for DCS mission start..."))
-        while reply_addr[0] is None and not entry.disconnected:
-            time.sleep(0.2)
+        while not dcs_detected.is_set() and not entry.disconnected:
+            dcs_detected.wait(timeout=0.5)
         if entry.disconnected:
             return
 
@@ -751,11 +814,10 @@ def device_reader(entry: DeviceEntry, uiq: queue.Queue, udp_send) -> None:
                     return
 
     finally:
-        # Ensure the HID handle is always closed, even on unexpected exceptions
-        try:
-            dev.close()
-        except Exception:
-            pass
+        # Ensure the HID handle is always closed, even on unexpected exceptions.
+        # Uses close_once() [v5.2] — safe to call even if _close_stale_handle()
+        # already closed the handle during the try block above.
+        entry.close_once()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # NETWORK MANAGER
@@ -832,12 +894,22 @@ class NetworkManager:
             while self._running and not self.entry.disconnected:
                 # ── Wait for work ──────────────────────────────────────
                 # Blocks on Condition.wait() — thread sleeps in the OS
-                # scheduler with zero CPU.  The 0.2 s timeout is a
-                # safety net to check the disconnected flag even if no
-                # data arrives (paranoia against missed notify).
+                # scheduler with zero CPU.
+                #
+                # CPU OPTIMISATION [v5.2]: Timeout raised from 0.2 s to
+                # 10 s.  The old 200 ms timeout caused 5 wake-ups/second
+                # PER DEVICE even when no data was flowing — pure waste.
+                # The timeout exists only as a paranoia safety net to
+                # eventually check the disconnected flag in the unlikely
+                # event that a notify() is missed.  In practice, all
+                # shutdown paths (stop(), _close_stale_handle, TX write
+                # failure) either call cv.notify() or set entry.disconnected
+                # which is caught on the next wake.  10 s means at most
+                # 0.1 wake/s per device instead of 5 — a 50× reduction
+                # in idle wake-ups per panel.
                 with self.cv:
                     while self._running and not self.q:
-                        self.cv.wait(timeout=0.2)
+                        self.cv.wait(timeout=10.0)
                     if not self._running or self.entry.disconnected:
                         break
                     # Atomically grab all pending work and clear the queue
@@ -1011,6 +1083,10 @@ class NetworkManager:
                     self.reply_addr[0] = addr[0]
                     write_settings_dcs_ip(addr[0])
                     self._ip_committed = True
+                    # CPU OPTIMISATION [v5.2]: Signal all device_reader threads
+                    # blocked on dcs_detected.wait() that the DCS source IP is
+                    # now available.  This replaces per-device polling loops.
+                    dcs_detected.set()
                     self.uiq.put(('data_source', None, addr[0]))
 
                 # ── Update rolling stats ───────────────────────────────
@@ -1089,10 +1165,18 @@ def _ts() -> str:
 class ConsoleUI:
     """Curses-based terminal UI.  Runs on the main thread via curses.wrapper().
 
-    Refresh rate: 100 ms (set by stdscr.timeout(100) — curses getch blocks
-    for up to 100 ms then returns ERR, which drives the paint cycle).
-    This means the UI consumes ~0 CPU when idle and ~0.1% during active
-    DCS sessions (just queue draining and string formatting).
+    CPU OPTIMISATION [v5.2]: Adaptive refresh rate.
+    Previously ran at a fixed 10 Hz (100 ms getch timeout) unconditionally
+    — draining the queue, rebuilding the device table, and repainting every
+    cycle even when nothing had changed.  Now uses a two-speed approach:
+
+      IDLE  (no events in last cycle) : 500 ms getch timeout → 2 Hz refresh
+      ACTIVE (events were consumed)   : 100 ms getch timeout → 10 Hz refresh
+
+    This cuts UI thread wake-ups by 5× during idle (no DCS mission, no
+    device activity) while remaining fully responsive when data is flowing.
+    The transition is instantaneous — any event in the queue triggers the
+    next cycle at 100 ms.
     """
 
     def __init__(self, get_devices_cb):
@@ -1113,15 +1197,22 @@ class ConsoleUI:
         """Enqueue a UI event from any thread."""
         self.uiq.put(evt)
 
-    def _consume(self) -> None:
+    def _consume(self) -> bool:
         """Drain all pending events from the queue and update internal state.
-        Called once per paint cycle (every ~100 ms).  Non-blocking — uses
-        get_nowait() in a loop until the queue is empty."""
+        Called once per paint cycle.  Non-blocking — uses get_nowait() in a
+        loop until the queue is empty.
+
+        Returns True if at least one event was consumed (signals the adaptive
+        refresh logic to use the fast 100 ms timeout for the next cycle),
+        False if the queue was empty (signals idle → 500 ms timeout).
+        [v5.2] Return value added for adaptive UI refresh."""
+        had_events = False
         while True:
             try:
                 typ, *rest = self.uiq.get_nowait()
             except queue.Empty:
                 break
+            had_events = True
             if typ == 'data_source':
                 self._stats['src'] = rest[1]
             elif typ == 'globalstats':
@@ -1141,6 +1232,7 @@ class ConsoleUI:
             rows.append((e.name, getattr(e, 'status', '?'), getattr(e, 'reconnections', 0)))
         rows.sort(key=lambda r: r[0])
         self._rows = rows
+        return had_events
 
     def _paint(self, stdscr) -> None:
         """Render the full UI: header, device table, log, and status bar.
@@ -1187,22 +1279,43 @@ class ConsoleUI:
         curses.doupdate()
 
     def _loop(self, stdscr) -> None:
-        """Main curses loop.  Runs until 'q' or Esc is pressed."""
+        """Main curses loop.  Runs until 'q' or Esc is pressed.
+
+        CPU OPTIMISATION [v5.2]: Adaptive getch timeout.
+        Uses 100 ms (10 Hz) when the previous cycle consumed events, and
+        500 ms (2 Hz) when idle.  This keeps the UI snappy during active
+        DCS sessions while cutting idle wake-ups by 5×.  The transition
+        back to fast mode is instantaneous — any queued event triggers
+        a fast repaint on the very next cycle.
+        """
         curses.curs_set(0)           # Hide cursor
         curses.use_default_colors()  # Transparent background
         curses.init_pair(1, curses.COLOR_RED, -1)     # Disconnected
         curses.init_pair(2, curses.COLOR_GREEN, -1)   # Ready
         curses.init_pair(3, curses.COLOR_YELLOW, -1)  # Waiting
-        stdscr.timeout(100)  # getch() blocks for max 100 ms → 10 Hz refresh
         self._running.set()
 
+        # Adaptive refresh: start active (100 ms) to paint the initial UI
+        # immediately, then drop to idle (500 ms) if no events arrive.
+        _TIMEOUT_ACTIVE = 100   # ms — responsive during data flow
+        _TIMEOUT_IDLE   = 500   # ms — near-zero CPU when nothing happens
+        cur_timeout = _TIMEOUT_ACTIVE
+        stdscr.timeout(cur_timeout)
+
         while self._running.is_set():
-            self._consume()
+            had_events = self._consume()
             self._paint(stdscr)
             ch = stdscr.getch()
             if ch in (ord('q'), 27):  # 'q' or Esc
                 self._running.clear()
-            # No time.sleep() needed — stdscr.timeout(100) handles pacing
+
+            # Adaptive timeout: switch speed based on whether we consumed
+            # events this cycle.  stdscr.timeout() is a cheap call (sets a
+            # single integer in the curses WINDOW struct, no syscall).
+            next_timeout = _TIMEOUT_ACTIVE if had_events else _TIMEOUT_IDLE
+            if next_timeout != cur_timeout:
+                cur_timeout = next_timeout
+                stdscr.timeout(cur_timeout)
 
     def run(self) -> None:
         """Enter the curses event loop (blocks until quit)."""
@@ -1273,10 +1386,9 @@ def start_console_mode() -> None:
                 stale = [e for e in devices if e.info.get('serial_number', '') not in current_serials]
             for e in stale:
                 e.disconnected = True
-                try:
-                    e.dev.close()
-                except Exception:
-                    pass
+                # Uses close_once() [v5.2] — safe even if device_reader
+                # already closed the handle via _close_stale_handle().
+                e.close_once()
                 ui.post(('status', e.name, "DISCONNECTED"))
                 with device_lock:
                     devices[:] = [x for x in devices if x is not e]
