@@ -45,7 +45,8 @@ static size_t perfDebugTmpLen = 0;
 // ——— Monitoring state ———
 static unsigned long _lastReportMs = 0;
 static unsigned long _lastLoopUs   = 0;
-static uint64_t       _busyUsAccum = 0;
+// TODO: _busyUsAccum — reserved for future CPU load % calculation
+// static uint64_t    _busyUsAccum = 0;
 
 // One-time bad-reset alert guard
 static bool _alertShown = false;
@@ -372,7 +373,6 @@ void perfMonitorUpdate() {
 
     flushAllprintsAbove();
 
-    float mainLoopAvgMs = 0.0f;
     float totalLoadMs = 0.0f;
 
     for (int i = 0; i < PERF_LABEL_COUNT; ++i) {
@@ -384,7 +384,6 @@ void perfMonitorUpdate() {
 
         appendOnly_perfDebugPrintf("    ∘ %-15s : %6.2f ms\n", perfLabelNames[i], avgMs);
         if (perfIncludedInLoad[i]) totalLoadMs += avgMs;
-        if (i == PERF_MAIN_LOOP) mainLoopAvgMs = avgMs;
     }
 
     for (int i = 0; i < PERF_LABEL_COUNT; ++i) {

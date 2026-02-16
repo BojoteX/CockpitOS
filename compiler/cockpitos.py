@@ -19,6 +19,7 @@ import os
 import sys
 import json
 import msvcrt
+import ctypes
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -185,7 +186,10 @@ def do_compile(prefs, verbose=False):
         if not confirm("generate_data.py had issues. Continue compiling anyway?", default_yes=False):
             return False
 
-    return compile_sketch(fqbn, opts, verbose=verbose, board_name=prefs.get("board_name"))
+    fresh = load_prefs()
+    show_detail = fresh.get("show_detailed_warnings", False)
+    return compile_sketch(fqbn, opts, verbose=verbose, board_name=prefs.get("board_name"),
+                          show_detailed_warnings=show_detail)
 
 
 def do_quick_compile(prefs, verbose=False):
@@ -230,19 +234,23 @@ def do_quick_compile(prefs, verbose=False):
     info(f"{DIM}Skipping label set selection and generate_data.py{RESET}")
     print()
 
-    return compile_sketch(fqbn, opts, verbose=verbose, board_name=prefs.get("board_name"))
+    fresh = load_prefs()
+    show_detail = fresh.get("show_detailed_warnings", False)
+    return compile_sketch(fqbn, opts, verbose=verbose, board_name=prefs.get("board_name"),
+                          show_detailed_warnings=show_detail)
 
 
 # -----------------------------------------------------------------------------
 # Misc Options sub-menu
 # -----------------------------------------------------------------------------
 def misc_options(prefs):
-    """Sub-menu for Wi-Fi credentials and debug toggles."""
+    """Sub-menu for Wi-Fi credentials, debug toggles, and advanced settings."""
     while True:
         header("Misc Options")
         choice = pick("Select:", [
             ("Wi-Fi Credentials",       "wifi"),
             ("Debug / Verbose Toggles", "debug"),
+            ("Advanced Settings",       "advanced"),
             ("Back",                    "back"),
         ])
         if choice is None or choice == "back":
@@ -252,6 +260,9 @@ def misc_options(prefs):
             input(f"\n  {DIM}Press Enter to continue...{RESET}")
         elif choice == "debug":
             configure_debug_toggles()
+            input(f"\n  {DIM}Press Enter to continue...{RESET}")
+        elif choice == "advanced":
+            configure_advanced_settings()
             input(f"\n  {DIM}Press Enter to continue...{RESET}")
 
 
@@ -378,9 +389,87 @@ def configure_debug_toggles():
         info("No changes.")
 
 
+def configure_advanced_settings():
+    """Advanced settings — Config.h toggles and compiler preferences."""
+    header("Advanced Settings")
+
+    transport = read_current_transport()
+    role      = read_current_role()
+
+    if role == "slave":
+        print()
+        warn("HID mode does not apply to slaves. Slaves are RS485-only devices.")
+        warn("HID mode is configured on the master or standalone device.")
+        print()
+
+    if role != "slave" and transport != "usb":
+        print()
+        error("HID mode requires USB transport. "
+              "Current config will fail to compile if HID is enabled.")
+        print()
+
+    # --- Config.h toggles ---
+    config_toggles = [
+        ("HID mode by default",  "MODE_DEFAULT_IS_HID"),
+    ]
+
+    config_items = []
+    for label, key in config_toggles:
+        val = config_get(key) or "0"
+        config_items.append((label, key, val != "0"))
+
+    # --- Compiler preference toggles ---
+    prefs = load_prefs()
+    show_detail = prefs.get("show_detailed_warnings", False)
+
+    all_items = config_items + [
+        ("Show detailed warnings", "show_detailed_warnings", show_detail),
+    ]
+
+    result = toggle_pick("Toggle options:", all_items)
+    if result is None:
+        return
+
+    # Apply Config.h changes
+    changes = []
+    for label, key in config_toggles:
+        new_val = "1" if result[key] else "0"
+        old_val = config_get(key) or "0"
+        if new_val != old_val:
+            config_set(key, new_val)
+            changes.append(f"{key}: {old_val} -> {new_val}")
+
+    # Apply compiler preference changes
+    new_detail = result.get("show_detailed_warnings", False)
+    if new_detail != show_detail:
+        prefs["show_detailed_warnings"] = new_detail
+        save_prefs(prefs)
+        state_str = "ON" if new_detail else "OFF"
+        changes.append(f"Detailed warnings: {state_str}")
+
+    print()
+    if changes:
+        success("Settings updated:")
+        for c in changes:
+            info(f"  {c}")
+    else:
+        info("No changes.")
+
+
 # =============================================================================
 #  Main menu
 # =============================================================================
+def _bring_existing_to_front():
+    """Find an existing CockpitOS tool window and bring it to the foreground."""
+    user32 = ctypes.windll.user32
+    hwnd = user32.FindWindowW(None, "CockpitOS Management Tool")
+    if hwnd:
+        SW_RESTORE = 9
+        user32.ShowWindow(hwnd, SW_RESTORE)
+        user32.SetForegroundWindow(hwnd)
+        return True
+    return False
+
 def main():
     import platform
     if platform.system() != "Windows":
@@ -389,6 +478,40 @@ def main():
         sys.exit(1)
 
     os.system("")  # Enable ANSI on Windows
+
+    # --- Single-instance guard (lock file) ---
+    lock_path = Path(__file__).parent / ".cockpitos.lock"
+    try:
+        # Exclusive create — fails if file already exists
+        lock_fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.write(lock_fd, str(os.getpid()).encode())
+        os.close(lock_fd)
+    except FileExistsError:
+        # Check if the existing process is still alive
+        try:
+            old_pid = int(lock_path.read_text().strip())
+            kernel32 = ctypes.windll.kernel32
+            handle = kernel32.OpenProcess(0x1000, False, old_pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+            if handle:
+                kernel32.CloseHandle(handle)
+                # Process alive — bring its window forward and exit
+                _bring_existing_to_front()
+                print("\n  CockpitOS tool is already running. Switching to existing window.")
+                sys.exit(0)
+        except (ValueError, OSError):
+            pass
+        # Stale lock — reclaim it
+        lock_path.unlink(missing_ok=True)
+        lock_fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.write(lock_fd, str(os.getpid()).encode())
+        os.close(lock_fd)
+
+    # Clean up lock on exit
+    import atexit
+    atexit.register(lambda: lock_path.unlink(missing_ok=True))
+
+    # Set window title so other instances can find us
+    ctypes.windll.kernel32.SetConsoleTitleW("CockpitOS Management Tool")
 
     prefs = load_prefs()
 
@@ -454,7 +577,8 @@ def main():
         print()
         print(f"     \U0001f5a5\ufe0f {CYAN}{friendly_board}{RESET}")
         if role == "slave":
-            print(f"     \U0001f517 {CYAN}RS485 Slave{RESET}")
+            addr = config_get("RS485_SLAVE_ADDRESS") or "?"
+            print(f"     \U0001f517 {CYAN}RS485 Slave #{addr}{RESET}")
         else:
             print(f"     \U0001f517 {CYAN}{role_str}{RESET}  {DIM}\u00b7{RESET}  {CYAN}{transport_str}{RESET}")
 

@@ -24,7 +24,6 @@ void HC165_init(uint8_t pinPL, uint8_t pinCP, uint8_t pinQH, uint8_t numBits) {
 uint64_t HC165_read() {
     if (!hc165_initialized) return 0xFFFFFFFFFFFFFFFFULL;
 
-    uint64_t prev = lastReadBits;  // Store previous value for diff
     uint64_t result = 0;
 
     digitalWrite(plPin, LOW);
@@ -43,6 +42,7 @@ uint64_t HC165_read() {
     }
 
 #if DEBUG_ENABLED_FOR_HC165_ONLY
+    uint64_t prev = lastReadBits;  // Store previous value for diff
     if (result != prev) {
         HC165_printBitChanges(prev, result, hc165_numBits);
         delay(3);  // Optional: debounce output readability

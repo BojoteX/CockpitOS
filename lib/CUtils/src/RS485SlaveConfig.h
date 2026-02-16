@@ -112,6 +112,12 @@
 #endif
 
 // *** Transceiver timing — Set in Config.h, these are only fallback defaults ***
+// Pre-DE response delay: holds the bus silent after receiving a poll, BEFORE
+// asserting DE. Matches the AVR slave's tx_delay_byte() behavior (~40us phantom
+// byte at 250kbaud). Set to 0 to disable (ESP32-to-ESP32 doesn't need this).
+#ifndef RS485_TX_PRE_DE_DELAY_US
+#define RS485_TX_PRE_DE_DELAY_US    0
+#endif
 // Manual DE pin: warmup ensures transceiver settles into TX mode before data
 #ifndef RS485_TX_WARMUP_DELAY_US
 #define RS485_TX_WARMUP_DELAY_US    50

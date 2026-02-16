@@ -45,24 +45,18 @@ void PCA9555_scanConnectedPanels() {
 
     for (const auto& p : kPanels) {
         bool present = false;
-        int lastWireError = -1;
-        int lastReqFrom = -1;
-
         for (uint8_t attempt = 1; attempt <= 3; ++attempt) {
             Wire.beginTransmission(p.addr);
             Wire.write((uint8_t)0x00);
             int error = Wire.endTransmission(false);
-            int req = 0;
             if (error == 0) {
-                req = Wire.requestFrom(p.addr, (uint8_t)1);
+                int req = Wire.requestFrom(p.addr, (uint8_t)1);
                 if (req == 1) {
-                    int value = Wire.read();
+                    (void)Wire.read();  // Drain the byte; presence confirmed
                     present = true;
                     break;
                 }
             }
-            lastWireError = error;
-            lastReqFrom = req;
             delay(20);
         }
 
@@ -95,8 +89,12 @@ void PCA9555_initCache() {
         Wire.endTransmission();
 
 		// Store initial config states in cache
-        pcaConfigCache[addr][0] = configPort0;
-        pcaConfigCache[addr][1] = configPort1;
+        Wire.beginTransmission(addr);
+        Wire.write(0x06);
+        Wire.endTransmission(false);
+        Wire.requestFrom(addr, (uint8_t)2);
+        pcaConfigCache[addr][0] = Wire.read();
+        pcaConfigCache[addr][1] = Wire.read();
 
     }
 }
@@ -285,14 +283,12 @@ void PCA9555_scanConnectedPanels() {
 
     for (const auto& p : kPanels) {
         bool present = false;
-        esp_err_t lastRet = ESP_FAIL;
         for (uint8_t attempt = 1; attempt <= 3; ++attempt) {
             uint8_t reg = 0x00;
             uint8_t val = 0xEE;
             esp_err_t ret = i2c_master_write_read_device(
                 PCA_I2C_PORT, p.addr, &reg, 1, &val, 1, 100
             );
-            lastRet = ret;
             if (ret == ESP_OK) {
                 present = true;
                 break;
@@ -458,7 +454,8 @@ bool readPCA9555(uint8_t address, byte &port0, byte &port1) {
 // Internal Expander functions
 //////////////////////////////////////////////
 
-// static const char* resolveInputLabel(uint8_t addr, uint8_t port, uint8_t bit);
+// TODO: resolveInputLabel — only caller (isInputBitMapped) is disabled; re-enable together
+#if 0
 static const char* resolveInputLabel(uint8_t addr, uint8_t port, uint8_t bit) {
   char deviceName[20];
   snprintf(deviceName, sizeof(deviceName), "PCA_0x%02X", addr);
@@ -471,8 +468,8 @@ static const char* resolveInputLabel(uint8_t addr, uint8_t port, uint8_t bit) {
   }
   return nullptr;
 }
+#endif
 
-// static const InputMapping* resolveInputMapping(uint8_t addr, uint8_t port, uint8_t bit);
 static const InputMapping* resolveInputMapping(uint8_t addr, uint8_t port, uint8_t bit) {
   char deviceName[20];
   snprintf(deviceName, sizeof(deviceName), "PCA_0x%02X", addr);
@@ -486,9 +483,12 @@ static const InputMapping* resolveInputMapping(uint8_t addr, uint8_t port, uint8
   return nullptr;
 }
 
+// TODO: isInputBitMapped — not currently called; re-enable when needed
+#if 0
 static bool isInputBitMapped(uint8_t addr, uint8_t port, uint8_t bit) {
   return resolveInputLabel(addr, port, bit) != nullptr;
 }
+#endif
 
 void PCA9555_setAllLEDs(bool state) {
   for (int i = 0; i < panelLEDsCount; i++) {
@@ -596,10 +596,9 @@ bool isPCA9555LoggingEnabled() {
   return loggingEnabled;
 }
 
-// Max selector groups (tune as needed)
-#define MAX_SELECTOR_GROUPS 32
-
-// Keep track of last label ID (or use pointer or unique value) per group, per device
+// TODO: Selector group state tracking — not currently called; re-enable when selector dedup is wired up
+#if 0
+// MAX_SELECTOR_GROUPS is defined in Config.h
 struct SelectorGroupState {
     uint8_t addr;
     uint16_t group;
@@ -608,7 +607,6 @@ struct SelectorGroupState {
 static SelectorGroupState selectorStates[MAX_SELECTOR_GROUPS];
 static size_t selectorStatesCount = 0;
 
-// Find or create selector state slot
 static SelectorGroupState* getSelectorState(uint8_t addr, uint16_t group) {
     for (size_t i = 0; i < selectorStatesCount; ++i) {
         if (selectorStates[i].addr == addr && selectorStates[i].group == group) {
@@ -621,6 +619,7 @@ static SelectorGroupState* getSelectorState(uint8_t addr, uint16_t group) {
     }
     return nullptr;
 }
+#endif
 
 // Returns the active InputMapping* for a given group, device, and current port states
 static const InputMapping* getActiveSelectorPosition(uint8_t addr, uint16_t group, byte port0, byte port1) {

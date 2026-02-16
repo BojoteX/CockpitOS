@@ -18,7 +18,7 @@ static volatile bool dcsSourceIPValid = false;
 
 
 
-static char g_deviceName[32] = "UNKNOWN";
+static char g_deviceName[64] = "UNKNOWN";
 
 #define _STRINGIFY(x) #x
 #define STRINGIFY(x) _STRINGIFY(x)
@@ -86,7 +86,7 @@ bool wifiDebugSendRingPop(WifiDebugSendMsg* out) {
 
 void wifiDebugSendRingPush(const char* data, size_t len, bool isLastChunk) {
     if (wifiDbgSendRingFull()) {
-        wifiDebugSendOverflow++;
+        wifiDebugSendOverflow = wifiDebugSendOverflow + 1;
         return;
     }
     if (len >= WIFI_DBG_MSG_MAXLEN) len = WIFI_DBG_MSG_MAXLEN - 1;
@@ -102,8 +102,8 @@ void wifiDebugSendRingPush(const char* data, size_t len, bool isLastChunk) {
 
     // Stats
     wifiDebugSendTotalBytes += len;
-    wifiDebugSendMsgCount++;
-    if (len > wifiDebugSendMsgMaxLen) wifiDebugSendMsgMaxLen = len;    
+    wifiDebugSendMsgCount = wifiDebugSendMsgCount + 1;
+    if (len > wifiDebugSendMsgMaxLen) wifiDebugSendMsgMaxLen = len;
 }
 
 void wifiDebugDrainSendBuffer(void) {
@@ -114,7 +114,7 @@ void wifiDebugDrainSendBuffer(void) {
     while (wifiDebugSendRingPop(&dbgmsg)) {
         if (tempPos + dbgmsg.len > sizeof(udpTempBuf)) {
             tempPos = 0; // overflow: drop the current message
-            wifiDebugSendOverflow++;
+            wifiDebugSendOverflow = wifiDebugSendOverflow + 1;
             continue;
         }
         memcpy(udpTempBuf + tempPos, dbgmsg.msg, dbgmsg.len);
@@ -260,7 +260,7 @@ bool tryToSendDcsBiosMessageUDP(const char* msg, const char* arg) {
 
 	// delay(1); // tiny delay to avoid flooding
 	// delayMicroseconds(100); / / tiny delay to avoid flooding
-	// yield(); // yield to allow background UDP processing
+	yield(); // yield to allow background UDP processing
     
     return true;
 }
@@ -325,7 +325,7 @@ void wifiDebugSendChunked(const char* data, size_t len) {
         temp_len -= take;
     }
     if (wifiDebugSendRingAvailable() < needed) {
-        wifiDebugSendOverflow++;
+        wifiDebugSendOverflow = wifiDebugSendOverflow + 1;
         return; // Drop message, never partial log
     }
 

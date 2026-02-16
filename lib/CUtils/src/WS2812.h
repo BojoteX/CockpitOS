@@ -72,6 +72,7 @@ private:
   uint8_t   bufGRB[3u * WS2812_MAX_LEDS];
   uint8_t   brightness;
   uint32_t  lastShowUs;
+  bool      dirty;       // skip show() when nothing changed
 
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
   void*     tx_chan;  // rmt_channel_handle_t

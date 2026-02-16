@@ -8,3 +8,5 @@
 
 Master Arm Panel
 Master Caution Light
+Radar Altimeter
+Map Gain/Spin Recovery Panel

@@ -40,7 +40,7 @@ void AnalogG_tick() {
 // Generate one servo pulse at the given pin, min/max calibration, and 0-65535 value.
 // Only call this once per DCS-BIOS update (30Hz) or at your desired rate.
 void AnalogG_pulseUs(uint8_t pin, int minPulseUs, int maxPulseUs, uint16_t value) {
-    if (value > 65535) value = 65535; // Clamp
+    // value is uint16_t — max is already 65535, no clamp needed
     int pulseUs = minPulseUs + (int)(((long)(maxPulseUs - minPulseUs) * value) / 65535L);
     digitalWrite(pin, HIGH);
     delayMicroseconds(pulseUs);

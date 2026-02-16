@@ -14,7 +14,7 @@ import shutil
 from pathlib import Path
 
 from ui import (
-    CYAN, DIM, RED, YELLOW, RESET,
+    CYAN, DIM, GREEN, RED, YELLOW, BOLD, RESET,
     header, info, warn, error, cprint,
     pick, pick_live, big_success, big_fail,
     Spinner,
@@ -41,41 +41,188 @@ def _resolve_arduino_data():
 _ARDUINO_DATA = _resolve_arduino_data()
 BUILD_DIR     = _ARDUINO_DATA / "build"
 CACHE_DIR     = _ARDUINO_DATA / "cache"
-OUTPUT_DIR    = SKETCH_DIR / "compiler" / "output"
+OUTPUT_DIR    = SKETCH_DIR / "Binaries" / "Unclassified"
+WARNINGS_LOG  = SKETCH_DIR / "compiler" / "warnings.log"
+ERRORS_LOG    = SKETCH_DIR / "compiler" / "errors.log"
 
 # -----------------------------------------------------------------------------
 # Firmware naming (ALL CAPS)
 # -----------------------------------------------------------------------------
+def _debug_suffix():
+    """Return a debug tag for the firmware filename, or empty string.
+
+    Inspects Config.h debug defines and returns a suffix like:
+      _DEBUG_WIFI, _DEBUG_SERIAL, _DEBUG_WIFI_SERIAL, _VERBOSE_WIFI,
+      _VERBOSE_SERIAL, _VERBOSE, _PERF, etc.
+    """
+    debug_on   = config_get("DEBUG_ENABLED") == "1"
+    verbose    = config_get("VERBOSE_MODE") == "1"
+    verbose_s  = config_get("VERBOSE_MODE_SERIAL_ONLY") == "1"
+    verbose_w  = config_get("VERBOSE_MODE_WIFI_ONLY") == "1"
+    perf_only  = config_get("VERBOSE_PERFORMANCE_ONLY") == "1"
+    debug_perf = config_get("DEBUG_PERFORMANCE") == "1"
+
+    parts = []
+
+    if debug_on:
+        # DEBUG_ENABLED — output channel depends on DEBUG_USE_WIFI / serial
+        # DEBUG_USE_WIFI is derived automatically in Config.h, but we can
+        # check USE_DCSBIOS_WIFI as a proxy (WiFi transport → WiFi debug).
+        wifi_transport = config_get("USE_DCSBIOS_WIFI") == "1"
+        if wifi_transport:
+            parts.append("DEBUG_WIFI")
+        else:
+            parts.append("DEBUG_SERIAL")
+    elif verbose:
+        parts.append("VERBOSE")
+    elif verbose_w and verbose_s:
+        parts.append("VERBOSE_WIFI_SERIAL")
+    elif verbose_w:
+        parts.append("VERBOSE_WIFI")
+    elif verbose_s:
+        parts.append("VERBOSE_SERIAL")
+
+    if perf_only and not parts:
+        parts.append("PERF")
+    elif debug_perf and not parts:
+        parts.append("PERF")
+
+    if not parts:
+        return ""
+    return "_" + "_".join(parts)
+
+
 def build_firmware_name():
     """Build a descriptive firmware filename from current config.
 
     Convention (ALL CAPS):
-      Standalone:   LABEL_TRANSPORT.bin               e.g. MAIN_USB.bin
-      RS485 Master: RS485_MASTER_LABEL_TRANSPORT.bin   e.g. RS485_MASTER_MAIN_USB.bin
-      RS485 Slave:  RS485_SLAVE_LABEL.bin              e.g. RS485_SLAVE_MAIN.bin
+      Standalone:   LABEL_TRANSPORT[_DEBUG].bin          e.g. MAIN_USB.bin, MAIN_USB_DEBUG_WIFI.bin
+      RS485 Master: RS485_MASTER_LABEL_TRANSPORT[_DEBUG].bin
+      RS485 Slave:  RS485_SLAVE_LABEL[_DEBUG].bin
     """
     label = (read_active_label_set() or "UNKNOWN").upper()
     role = read_current_role()
     transport = read_current_transport()
+    dbg = _debug_suffix()
 
     transport_names = {
         "serial": "SERIAL", "usb": "USB", "wifi": "WIFI", "ble": "BLE",
     }
 
     if role == "slave":
-        return f"RS485_SLAVE_{label}"
+        addr = config_get("RS485_SLAVE_ADDRESS") or "1"
+        return f"RS485_SLAVE_{addr}_{label}{dbg}"
     elif role == "master":
         t = transport_names.get(transport, (transport or "UNKNOWN").upper())
-        return f"RS485_MASTER_{label}_{t}"
+        return f"RS485_MASTER_{label}_{t}{dbg}"
     else:
         t = transport_names.get(transport, (transport or "UNKNOWN").upper())
-        return f"{label}_{t}"
+        return f"{label}_{t}{dbg}"
 
 
 # -----------------------------------------------------------------------------
 # Compile
 # -----------------------------------------------------------------------------
-def compile_sketch(fqbn, options, verbose=False, export_bin=False, board_name=None):
+def _is_framework_warning(line):
+    """Return True if a warning line originates from framework / SDK headers."""
+    low = line.lower().replace("\\", "/")
+    # Paths that indicate framework / third-party code
+    return any(tag in low for tag in (
+        "/arduino15/",          # Arduino core & library packages
+        "/packages/esp32/",     # ESP32 Arduino core
+        "/tools/esp32",         # ESP32 toolchain libs
+        "/tinyusb/",            # TinyUSB
+        "/hal/esp32",           # ESP-IDF HAL headers
+        "/include/driver/",     # ESP-IDF driver headers
+        "/include/hal/",        # ESP-IDF HAL include
+        "/include/soc/",        # ESP-IDF SoC headers
+        "/arduino/libraries/",  # Arduino user-installed libraries (LovyanGFX, etc.)
+    ))
+
+
+def _write_warnings_log(fw_name, code_warnings, framework_warnings):
+    """Write the warnings log with classified sections."""
+    lines = [
+        f"# Compile warnings — {fw_name} — {time.strftime('%Y-%m-%d %H:%M:%S')}",
+        f"# Code warnings: {len(code_warnings)}  |  Framework warnings: {len(framework_warnings)}",
+        "",
+    ]
+    if code_warnings:
+        lines.append("# ── CockpitOS code warnings ──────────────────────────────────")
+        lines.extend(code_warnings)
+        lines.append("")
+    if framework_warnings:
+        lines.append("# ── Framework / SDK warnings (ESP-IDF, TinyUSB, etc.) ────────")
+        lines.extend(framework_warnings)
+        lines.append("")
+    if not code_warnings and not framework_warnings:
+        lines.append("# No warnings — clean build!")
+        lines.append("")
+
+    WARNINGS_LOG.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _classify_warnings(warning_lines):
+    """Split warnings into (code, framework) lists.
+
+    GCC emits multi-line warnings: the first line has the full file path,
+    subsequent "context" lines (e.g. ``    7 | #warning ...``) do not.
+    Context lines inherit the classification of the preceding warning.
+    """
+    code = []
+    framework = []
+    last_is_framework = False
+    for w in warning_lines:
+        # A line with a recognisable file path is a "primary" warning line.
+        # Context lines start with spaces/digits/pipe — no drive letter or slash.
+        has_path = re.match(r'[A-Za-z]:[/\\]|/', w)
+        if has_path:
+            last_is_framework = _is_framework_warning(w)
+        # Classify using the current (or inherited) flag
+        if last_is_framework:
+            framework.append(w)
+        else:
+            code.append(w)
+    return code, framework
+
+
+def _print_warning_summary(code_warnings, framework_warnings, show_detail):
+    """Print a classified warning summary after a successful build."""
+    total = len(code_warnings) + len(framework_warnings)
+    if total == 0:
+        cprint(GREEN, f"  {BOLD}Warnings: 0{RESET}")
+        return
+
+    # Always show the totals line
+    parts = []
+    if code_warnings:
+        parts.append(f"{YELLOW}{len(code_warnings)} code{RESET}")
+    if framework_warnings:
+        parts.append(f"{DIM}{len(framework_warnings)} framework{RESET}")
+    cprint(YELLOW, f"  Warnings: {' + '.join(parts)}")
+
+    # Code warnings — ALWAYS shown (these are ours, we care)
+    if code_warnings:
+        print()
+        cprint(YELLOW + BOLD, "  ── CockpitOS code warnings ──")
+        for wl in code_warnings:
+            cprint(YELLOW, f"  {wl}")
+
+    # Framework warnings — show raw lines if detailed, otherwise just a count
+    if framework_warnings and show_detail:
+        print()
+        cprint(DIM, "  ── Framework / SDK warnings ──")
+        for wl in framework_warnings:
+            cprint(DIM, f"  {wl}")
+    elif framework_warnings and not show_detail:
+        cprint(DIM, f"       ({len(framework_warnings)} framework warnings hidden — "
+                     f"enable in Advanced Settings to see details)")
+
+    print()
+
+
+def compile_sketch(fqbn, options, verbose=False, export_bin=False, board_name=None,
+                    show_detailed_warnings=False):
     header("Compiling CockpitOS")
 
     if options:
@@ -104,6 +251,7 @@ def compile_sketch(fqbn, options, verbose=False, export_bin=False, board_name=No
     cmd = [
         str(boards.ARDUINO_CLI), "compile",
         "--fqbn", full_fqbn,
+        "--warnings", "all",
         "--build-path", str(BUILD_DIR),
         "--build-cache-path", str(CACHE_DIR),
         str(SKETCH_DIR),
@@ -127,8 +275,13 @@ def compile_sketch(fqbn, options, verbose=False, export_bin=False, board_name=No
     )
 
     output_lines = []
+    warning_lines = []
     warning_count = 0
     error_count = 0
+
+    def _is_warning(line):
+        low = line.lower()
+        return "warning:" in low or "#warning" in low
 
     if verbose:
         cprint(DIM, "  -- Compiler output -----------------------------------------------")
@@ -141,8 +294,9 @@ def compile_sketch(fqbn, options, verbose=False, export_bin=False, board_name=No
             if "error:" in stripped.lower():
                 cprint(RED, f"  {stripped}")
                 error_count += 1
-            elif "warning:" in stripped.lower():
+            elif _is_warning(stripped):
                 cprint(YELLOW, f"  {stripped}")
+                warning_lines.append(stripped)
                 warning_count += 1
             else:
                 print(f"  {DIM}{stripped}{RESET}")
@@ -153,9 +307,11 @@ def compile_sketch(fqbn, options, verbose=False, export_bin=False, board_name=No
         spinner.start()
         for line in proc.stdout:
             output_lines.append(line)
+            stripped = line.rstrip()
             if "error:" in line.lower():
                 error_count += 1
-            elif "warning:" in line.lower():
+            elif _is_warning(line):
+                warning_lines.append(stripped)
                 warning_count += 1
         spinner.stop()
 
@@ -176,35 +332,110 @@ def compile_sketch(fqbn, options, verbose=False, export_bin=False, board_name=No
                 if m:
                     memory_pct = m.group(1)
 
-        # Find the .bin, rename to descriptive ALL-CAPS name, copy to output/
+        # Find .bin files, rename to descriptive ALL-CAPS names, copy to output/
+        # Copies BOTH the regular .bin (app only, flash at 0x10000) and the
+        # merged .bin (full image with bootloader+partitions, flash at 0x0000).
         fw_name = build_firmware_name()
-        for f in BUILD_DIR.iterdir():
-            if f.suffix == ".bin" and "merged" not in f.name and f.name.startswith("CockpitOS"):
-                build_dest = BUILD_DIR / f"{fw_name}.bin"
-                shutil.copy2(f, build_dest)
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-                OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-                output_dest = OUTPUT_DIR / f"{fw_name}.bin"
-                shutil.copy2(f, output_dest)
-                break
+        copied_app = False
+        copied_merged = False
+        for f in BUILD_DIR.iterdir():
+            if f.suffix != ".bin" or not f.name.startswith("CockpitOS"):
+                continue
+
+            if "merged" in f.name:
+                # Merged binary (bootloader + partitions + app)
+                dest_name = f"{fw_name}.merged.bin"
+                shutil.copy2(f, BUILD_DIR / dest_name)
+                shutil.copy2(f, OUTPUT_DIR / dest_name)
+                copied_merged = True
+            elif not copied_app:
+                # App-only binary
+                dest_name = f"{fw_name}.bin"
+                shutil.copy2(f, BUILD_DIR / dest_name)
+                shutil.copy2(f, OUTPUT_DIR / dest_name)
+                copied_app = True
+
+        # Classify warnings (context lines inherit from preceding warning)
+        code_warnings, framework_warnings = _classify_warnings(warning_lines)
 
         details = []
         if program_pct:
             details.append(f"Program space: {program_pct}%")
         if memory_pct:
             details.append(f"Dynamic memory: {memory_pct}%")
-        details.append(f"Binary: {fw_name}.bin")
-        if warning_count:
-            details.append(f"Warnings: {warning_count}")
+        details.append(f"Binary:  {fw_name}.bin")
+        if copied_merged:
+            details.append(f"Merged:  {fw_name}.merged.bin")
+        if code_warnings:
+            details.append(f"Code warnings: {len(code_warnings)}")
+        if framework_warnings:
+            details.append(f"Framework warnings: {len(framework_warnings)}")
 
         big_success("BUILD SUCCESSFUL", details)
+
+        # Print classified warning summary
+        _print_warning_summary(code_warnings, framework_warnings, show_detailed_warnings)
+
+        # Write warnings log (always overwrite — last session only)
+        _write_warnings_log(fw_name, code_warnings, framework_warnings)
+
+        # Clean up errors log on success
+        if ERRORS_LOG.exists():
+            ERRORS_LOG.unlink()
+
         return True
     else:
         error_lines = [l.rstrip() for l in output_lines if "error:" in l.lower()]
-        details = [f"Exit code {proc.returncode}  ({elapsed:.1f}s)"]
-        details.extend(error_lines[-10:])
 
-        big_fail("BUILD FAILED", details)
+        # Detect linker memory overflow
+        overflow_bytes = None
+        overflow_region = None
+        for l in output_lines:
+            m = re.search(r"overflowed by (\d+) bytes", l)
+            if m:
+                overflow_bytes = int(m.group(1))
+            m2 = re.search(r"will not fit in region `(\S+)'", l)
+            if m2:
+                overflow_region = m2.group(1)
+
+        if overflow_bytes is not None:
+            region_name = "RAM" if "dram" in (overflow_region or "") else "Flash" if "irom" in (overflow_region or "") else (overflow_region or "memory")
+            details = [
+                f"Out of {region_name} — overflowed by {overflow_bytes:,} bytes",
+                f"Region: {overflow_region or 'unknown'}",
+                "",
+                "Try: reduce features, disable unused panels, or use a",
+                "board with more memory (e.g. ESP32-S3 has more RAM).",
+            ]
+            big_fail("OUT OF MEMORY", details)
+        else:
+            details = [f"Exit code {proc.returncode}  ({elapsed:.1f}s)"]
+            details.extend(error_lines[-10:])
+            big_fail("BUILD FAILED", details)
+
+        # Write errors log (always overwrite — last session only)
+        fw_name = build_firmware_name()
+        err_log_lines = [
+            f"# Build errors — {fw_name} — {time.strftime('%Y-%m-%d %H:%M:%S')}",
+            f"# Exit code: {proc.returncode}",
+            "",
+        ]
+        if overflow_bytes is not None:
+            err_log_lines.append(f"# MEMORY OVERFLOW: {overflow_region} overflowed by {overflow_bytes} bytes")
+            err_log_lines.append("")
+        # Capture all error and linker lines
+        for l in output_lines:
+            stripped = l.rstrip()
+            if stripped and ("error" in stripped.lower() or "overflowed" in stripped.lower()
+                            or "will not fit" in stripped.lower() or "undefined reference" in stripped.lower()
+                            or "multiple definition" in stripped.lower()
+                            or "ld returned" in stripped.lower()):
+                err_log_lines.append(stripped)
+        err_log_lines.append("")
+        ERRORS_LOG.write_text("\n".join(err_log_lines), encoding="utf-8")
+
         return False
 
 

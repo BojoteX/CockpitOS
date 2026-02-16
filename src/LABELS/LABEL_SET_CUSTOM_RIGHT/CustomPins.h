@@ -13,8 +13,10 @@
 // HID Switch / Selector
 #define MODE_SWITCH_PIN                       PIN(33)
 
-// Caution Advisory GPIOs
+// Caution Advisory GPIOs (override Pins.h defaults)
+#undef  CA_DIO_PIN
 #define CA_DIO_PIN                            PIN(36)
+#undef  CA_CLK_PIN
 #define CA_CLK_PIN                            PIN(37)
 
 // --- TFT Pins for the Hyd Pressure Custom Right ---

@@ -96,7 +96,7 @@ static constexpr bool                   shared_bus    = false;              // f
 static constexpr bool                   use_lock      = false;              // false = no mutex/lock (recommended)
 static constexpr spi_host_device_t      spi_host      = SPI2_HOST;          // SPI2_HOST or SPI3_HOST
 static constexpr uint8_t                dma_channel   = SPI_DMA_CH_AUTO;    // SPI_DMA_CH_AUTO, 1, or 2
-static constexpr uint32_t               freq_write    = 80000000;           // Write clock (Hz), try lower if unstable
+static constexpr uint32_t               freq_write    = 80000000;           // Write clock (Hz)
 
 // --- Panel binding ---
 class LGFX_CabPress final : public lgfx::LGFX_Device {
@@ -203,8 +203,8 @@ static inline Rect rectPad(const Rect& r, int16_t px) {
 static Rect rotatedAABB(int cx, int cy, int w, int h, int px, int py, float deg) {
     const float rad = deg * (float)M_PI / 180.0f;
     float s = sinf(rad), c = cosf(rad);
-    const float xs[4] = { -px, (float)w - px, (float)w - px, -px };
-    const float ys[4] = { -py, -py, (float)h - py, (float)h - py };
+    const float xs[4] = { (float)-px, (float)w - px, (float)w - px, (float)-px };
+    const float ys[4] = { (float)-py, (float)-py, (float)h - py, (float)h - py };
     float minx = 1e9f, maxx = -1e9f, miny = 1e9f, maxy = -1e9f;
     for (int i = 0; i < 4; ++i) {
         float xr = xs[i] * c - ys[i] * s;
@@ -413,13 +413,35 @@ void CabinPressureGauge_init()
     std::memcpy(bgCache[0], cabinPressBackground, FRAME_BYTES);
     std::memcpy(bgCache[1], cabinPressBackgroundNVG, FRAME_BYTES);
 
+    debugPrintf("🔧 CabPress: About to call tft.init() — freq_write=%u, DC=%d, CS=%d, MOSI=%d, SCLK=%d\n",
+                (unsigned)freq_write, CABIN_PRESSURE_DC_PIN, CABIN_PRESSURE_CS_PIN,
+                CABIN_PRESSURE_MOSI_PIN, CABIN_PRESSURE_SCLK_PIN);
+    debugPrintf("🔧 CabPress: SPI host=%d, dma=%d, shared=%d, lock=%d, spi_mode=0\n",
+                (int)spi_host, (int)dma_channel, (int)shared_bus, (int)use_lock);
+    unsigned long t0 = millis();
+
     tft.init();
+
+    debugPrintf("🔧 CabPress: tft.init() returned in %lu ms\n", millis() - t0);
+
+    debugPrint("🔧 CabPress: setColorDepth...");
     tft.setColorDepth(COLOR_DEPTH_CABIN_PRESS);
+    debugPrintln(" OK");
+
+    debugPrint("🔧 CabPress: setRotation(0)...");
     tft.setRotation(0);
+    debugPrintln(" OK");
+
+    debugPrint("🔧 CabPress: setSwapBytes(true)...");
     tft.setSwapBytes(true);
+    debugPrintln(" OK");
+
+    debugPrint("🔧 CabPress: fillScreen(BLACK)...");
     tft.fillScreen(TFT_BLACK);
+    debugPrintln(" OK");
 
     // Compose sprite (PSRAM)
+    debugPrint("🔧 CabPress: createSprite(frame)...");
     frameSpr.setColorDepth(COLOR_DEPTH_CABIN_PRESS);
     frameSpr.setPsram(true);
     frameSpr.setSwapBytes(false);
@@ -427,12 +449,15 @@ void CabinPressureGauge_init()
         debugPrintln("❌ frameSpr alloc failed!");
         while (1) vTaskDelay(1000);
     }
+    debugPrintln(" OK");
 
     // Needle sprite
+    debugPrint("🔧 CabPress: createSprite(needle)...");
     needleSpr.setColorDepth(COLOR_DEPTH_CABIN_PRESS);
     needleSpr.createSprite(NEEDLE_W, NEEDLE_H);
     needleSpr.setPivot(NEEDLE_PIVOT_X, NEEDLE_PIVOT_Y);
     buildNeedle(needleSpr, cabinPressNeedle);
+    debugPrintln(" OK");
 
     // DCS-BIOS
     subscribeToLedChange("PRESSURE_ALT", onPressureAltChange);
@@ -501,6 +526,6 @@ void CabinPressureGauge_deinit() {
     }
 }
 
-#else
+#elif defined(HAS_ALR67) && defined(ENABLE_TFT_GAUGES) && (ENABLE_TFT_GAUGES == 1)
 #warning "Cabin Pressure Gauge requires ESP32-S2 or ESP32-S3"
 #endif

@@ -1,22 +1,24 @@
 /**
  * @file RS485Slave.cpp
- * @brief RS-485 Slave Driver for CockpitOS - v3.2 ISR-Only
+ * @brief RS-485 Slave Driver for CockpitOS - v3.3 ISR-Only
  *
- * ARCHITECTURE (v3.2 - ISR-Only, bare-metal UART):
+ * ARCHITECTURE (v3.3 - ISR-Only, bare-metal UART):
  *
  *   - UART RX interrupt fires immediately when byte arrives (FIFO threshold=1)
  *   - RXFIFO_TOUT safety net catches bytes in FIFO drain race window
  *   - State machine runs IN the ISR - zero polling latency
  *   - Response TX is NON-BLOCKING: FIFO loaded, TX_DONE interrupt handles cleanup
  *   - ISR cost is O(1) constant time (~8us) regardless of response size
- *   - Matches AVR's TXC interrupt architecture, surpasses it via 128-byte FIFO
+ *   - Surpasses AVR's TXC architecture via 128-byte FIFO burst + zero-delay warmup
  *   - Uses periph_module_enable (no driver install) for bare-metal UART access
- *   - RISC-V fence instruction for FIFO read stability on C3/C6/H2
+ *   - RISC-V fence instructions for FIFO read and txBuffer coherency on C3/C6/H2
  *   - FreeRTOS task only used for export data processing (not RX)
  *
  * V3.0: ISR-driven RX eliminated batch-read timestamp blindness
  * V3.1: TX_DONE non-blocking response (~8us constant ISR cost)
  * V3.2: Removed driver-mode fallback (ISR-only), added RXFIFO_TOUT safety net
+ * V3.3: TX_DONE race fix (state→clear→FIFO→enable ordering), zero-delay warmup,
+ *        state-before-RX-enable in TX_DONE handler, RISC-V txBuffer fence
  *
  * PROTOCOL: 100% compatible with Arduino DCS-BIOS RS485 implementation
  *
@@ -189,6 +191,7 @@ static volatile uint32_t statPolls = 0;
 static volatile uint32_t statBroadcasts = 0;
 static volatile uint32_t statExportBytes = 0;
 static volatile uint32_t statCommandsSent = 0;
+static uint32_t statTxDrops = 0;           // Task context only — NOT volatile
 
 // ============================================================================
 // FREERTOS TASK (when RS485_USE_TASK=1)
@@ -251,7 +254,7 @@ static void processExportData() {
     while (exportReadPos != exportWritePos) {
         uint8_t c = exportBuffer[exportReadPos];
         exportReadPos = (exportReadPos + 1) % RS485_EXPORT_BUFFER_SIZE;
-        statExportBytes++;
+        statExportBytes = statExportBytes + 1;
 
         // Feed byte-by-byte to CockpitOS DCS-BIOS parser
         processDcsBiosExportByte(c);
@@ -268,32 +271,38 @@ static void processExportData() {
 // ============================================================================
 // SEND RESPONSE — NON-BLOCKING (called from ISR when polled)
 // ============================================================================
-// V3.1 Pattern: disableRx → DE assert → warmup → build frame → load FIFO →
-//               arm TX_DONE → return (CPU free!)
+// V3.3 Pattern: DE assert → disableRx → build frame → state → clear → FIFO → enable → return
 //
-// When TX_DONE fires: flush echo → DE release → enableRx → back to RX_WAIT
+// When TX_DONE fires: flush echo → DE release → state → enableRx → back to RX_WAIT
 //
-// Cooldown delay is ELIMINATED. TX_DONE fires when the last bit has physically
-// left the shift register — the bus can be released immediately.
-// Auto-direction warmup is eliminated (hardware switches in nanoseconds).
+// DE is asserted FIRST — the frame build loop (~0.5-15us) provides natural
+// settling time, eliminating the old ets_delay_us() blocking delay.
+// TX_DONE fires when the last bit has physically left the shift register.
+// CRITICAL: state → clear → FIFO → enable ordering prevents TX_DONE event loss
+// (same fix as master v2.4 — see detailed comment inside function).
 
 static void IRAM_ATTR sendResponseISR() {
     uint16_t toSend = txCount_val;
     if (toSend > 253) toSend = 253;
 
+    // Pre-DE delay: match AVR slave tx_delay_byte() bus-silent gap before responding.
+    // AVR slave burns ~40us (one phantom byte) with DE LOW before first real byte.
+    #if RS485_TX_PRE_DE_DELAY_US > 0
+    ets_delay_us(RS485_TX_PRE_DE_DELAY_US);
+    #endif
+
+    // Assert DE — transceiver starts settling into TX mode immediately.
+    // The frame build loop below takes ~0.5-15us at 240MHz, which is more than
+    // enough settling time for any RS485 transceiver (MAX485 = 200ns typical).
+    #if RS485_DE_PIN >= 0
+    setDE_ISR(true);
+    #endif
+
     // Disable RX interrupts during TX to prevent echo bytes triggering ISR
     uart_ll_disable_intr_mask(uartHw, UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT);
 
-    // Warmup — only needed for manual DE pin devices (transceiver settling)
-    // Auto-direction devices switch in nanoseconds on TX activity, no delay needed
-    #if RS485_DE_PIN >= 0
-    setDE_ISR(true);
-    #if RS485_TX_WARMUP_DELAY_US > 0
-    ets_delay_us(RS485_TX_WARMUP_DELAY_US);
-    #endif
-    #endif
-
     // Build complete response in static buffer (not stack — saves ~132 bytes ISR stack)
+    // NOTE: This loop provides natural settling time for the DE pin — no delay needed
     uint8_t txLen = 0;
 
     if (toSend == 0) {
@@ -304,12 +313,18 @@ static void IRAM_ATTR sendResponseISR() {
         txFrameBuf[txLen++] = MSGTYPE_DCSBIOS;
         checksum ^= MSGTYPE_DCSBIOS;
 
+        // RISC-V fence: ensure task-context writes to txBuffer (from queueCommand)
+        // are visible before we read them. portDISABLE_INTERRUPTS on RISC-V
+        // does not imply a memory fence. Xtensa RSIL has implicit barrier semantics.
+#ifdef __riscv
+        __asm__ __volatile__("fence" ::: "memory");
+#endif
         for (uint16_t i = 0; i < toSend; i++) {
             uint8_t c = txBuffer[txTail % RS485_TX_BUFFER_SIZE];
             txFrameBuf[txLen++] = c;
             checksum ^= c;
-            txTail++;
-            txCount_val--;
+            txTail = txTail + 1;
+            txCount_val = txCount_val - 1;
         }
 
         #if RS485_ARDUINO_COMPAT
@@ -318,22 +333,31 @@ static void IRAM_ATTR sendResponseISR() {
         txFrameBuf[txLen++] = checksum;
         #endif
 
-        statCommandsSent++;
+        statCommandsSent = statCommandsSent + 1;
     }
+
+    // CRITICAL ORDERING: state → clear → FIFO → enable
+    //
+    // Why this order matters (matches master v2.4 fix):
+    //   1. Set state FIRST — TX_DONE ISR must see TX_WAITING_DONE before it can fire
+    //   2. Clear stale TX_DONE from previous cycle BEFORE loading new data
+    //   3. Load FIFO — hardware starts transmitting (40us per byte at 250kbps)
+    //   4. Enable TX_DONE interrupt LAST — even if delayed between FIFO load
+    //      and enable, the TX_DONE status bit accumulates in int_raw. When we
+    //      enable int_ena, int_st = int_raw AND int_ena fires the ISR immediately.
+    //
+    // The old order (FIFO → clear → enable → state) had a fatal race:
+    //   If execution was delayed after FIFO load but before clear, the UART
+    //   could finish TX, setting int_raw TX_DONE. Then clear would ERASE that
+    //   pending event, and enable would find nothing. State stuck forever.
+    state = SlaveState::TX_WAITING_DONE;
+    uart_ll_clr_intsts_mask(uartHw, UART_INTR_TX_DONE);
 
     // Load TX FIFO in one burst — hardware shifts bytes out autonomously
     uart_ll_write_txfifo(uartHw, txFrameBuf, txLen);
 
-    // Arm TX_DONE interrupt — fires when last bit leaves the shift register
-    // Clear any stale TX_DONE flag first, then enable
-    uart_ll_clr_intsts_mask(uartHw, UART_INTR_TX_DONE);
+    // Enable TX_DONE AFTER FIFO is loaded — cannot miss the event
     uart_ll_ena_intr_mask(uartHw, UART_INTR_TX_DONE);
-
-    // Mark state — ISR handler will complete the bus turnaround when TX_DONE fires
-    state = SlaveState::TX_WAITING_DONE;
-
-    // Return immediately — CPU is FREE while hardware shifts out the bytes
-    // TX_DONE ISR will handle: flush echo, DE LOW, re-enable RX, back to RX_WAIT
 }
 
 // ============================================================================
@@ -362,16 +386,17 @@ static void IRAM_ATTR uart_isr_handler(void* arg) {
         setDE_ISR(false);
         #endif
 
-        // Re-enable RX interrupts — receiver is active again
-        uart_ll_clr_intsts_mask(uartHw, UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT);
-        uart_ll_ena_intr_mask(uartHw, UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT);
-
         // Disable TX_DONE interrupt — one-shot, don't need it until next response
         uart_ll_disable_intr_mask(uartHw, UART_INTR_TX_DONE);
         uart_ll_clr_intsts_mask(uartHw, UART_INTR_TX_DONE);
 
-        // Back to receive mode
+        // Set state BEFORE re-enabling RX — ensures any incoming byte
+        // processed by the RX loop below sees the correct state
         state = SlaveState::RX_WAIT_ADDRESS;
+
+        // Re-enable RX interrupts — receiver is active again
+        uart_ll_clr_intsts_mask(uartHw, UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT);
+        uart_ll_ena_intr_mask(uartHw, UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT);
     }
 
     // ================================================================
@@ -423,13 +448,13 @@ static void IRAM_ATTR uart_isr_handler(void* arg) {
                     // Packet is complete right now.
                     if (packetAddr == ADDR_BROADCAST) {
                         // Broadcast with no data - ignore
-                        statBroadcasts++;
+                        statBroadcasts = statBroadcasts + 1;
                         state = SlaveState::RX_WAIT_ADDRESS;
                     }
                     else if (packetAddr == RS485_SLAVE_ADDRESS) {
                         // Poll for us — load FIFO and arm TX_DONE, return immediately
                         if (packetMsgType == MSGTYPE_DCSBIOS) {
-                            statPolls++;
+                            statPolls = statPolls + 1;
                             lastPollMs = (uint32_t)(now / 1000);
                             sendResponseISR();
                             // state is now TX_WAITING_DONE — exit the RX loop
@@ -468,7 +493,7 @@ static void IRAM_ATTR uart_isr_handler(void* arg) {
                     exportBuffer[exportWritePos] = c;
                     exportWritePos = (exportWritePos + 1) % RS485_EXPORT_BUFFER_SIZE;
                 }
-                packetDataIdx++;
+                packetDataIdx = packetDataIdx + 1;
 
                 if (packetDataIdx >= packetLength) {
                     state = SlaveState::RX_WAIT_CHECKSUM;
@@ -480,12 +505,12 @@ static void IRAM_ATTR uart_isr_handler(void* arg) {
 
                 // Handle completed packet
                 if (packetAddr == ADDR_BROADCAST) {
-                    statBroadcasts++;
+                    statBroadcasts = statBroadcasts + 1;
                     state = SlaveState::RX_WAIT_ADDRESS;
                 }
                 else if (packetAddr == RS485_SLAVE_ADDRESS) {
                     if (packetMsgType == MSGTYPE_DCSBIOS) {
-                        statPolls++;
+                        statPolls = statPolls + 1;
                         lastPollMs = (uint32_t)(now / 1000);
                         sendResponseISR();
                         // state is now TX_WAITING_DONE — exit the RX loop
@@ -518,7 +543,7 @@ static void IRAM_ATTR uart_isr_handler(void* arg) {
                 // skipRemaining = length + 2 (MsgType + data + checksum),
                 // so the checksum byte is consumed here — no separate
                 // RX_SKIP_CHECKSUM state needed.
-                skipRemaining--;
+                skipRemaining = skipRemaining - 1;
                 if (skipRemaining == 0) {
                     state = SlaveState::RX_WAIT_ADDRESS;
                 }
@@ -577,15 +602,14 @@ static bool initRS485Hardware_ISR() {
     periph_module_enable(RS485_PERIPH_MODULE);
 
     debugPrintln("[RS485S]   [3] Configuring UART parameters...");
-    uart_config_t uart_config = {
-        .baud_rate = RS485_BAUD,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-        .rx_flow_ctrl_thresh = 0,
-        .source_clk = UART_SCLK_DEFAULT
-    };
+    uart_config_t uart_config = {};
+    uart_config.baud_rate = RS485_BAUD;
+    uart_config.data_bits = UART_DATA_8_BITS;
+    uart_config.parity = UART_PARITY_DISABLE;
+    uart_config.stop_bits = UART_STOP_BITS_1;
+    uart_config.flow_ctrl = UART_HW_FLOWCTRL_DISABLE;
+    uart_config.rx_flow_ctrl_thresh = 0;
+    uart_config.source_clk = UART_SCLK_DEFAULT;
 
     esp_err_t err = uart_param_config((uart_port_t)RS485_UART_NUM, &uart_config);
     if (err != ESP_OK) {
@@ -654,8 +678,8 @@ static void rs485SlaveLoop() {
     if (millis() - lastStatusMs >= RS485_STATUS_INTERVAL_MS) {
         lastStatusMs = millis();
 
-        debugPrintf("[RS485S] Polls=%lu Bcasts=%lu Export=%lu Cmds=%lu TxPend=%d\n",
-                    statPolls, statBroadcasts, statExportBytes, statCommandsSent, txCount());
+        debugPrintf("[RS485S] Polls=%lu Bcasts=%lu Export=%lu Cmds=%lu TxPend=%d TxDrop=%lu\n",
+                    statPolls, statBroadcasts, statExportBytes, statCommandsSent, txCount(), statTxDrops);
 
         if (lastPollMs > 0) {
             debugPrintf("[RS485S] Last poll: %lu ms ago\n", millis() - lastPollMs);
@@ -680,7 +704,8 @@ bool RS485Slave_init() {
     if (initialized) return true;
 
     // Initialize state
-    txHead = txTail = 0;
+    txHead = 0;
+    txTail = 0;
     txCount_val = 0;
     exportWritePos = 0;
     exportReadPos = 0;
@@ -787,6 +812,7 @@ bool RS485Slave_queueCommand(const char* label, const char* value) {
     size_t needed = labelLen + 1 + valueLen + 1;  // space + newline
 
     if (needed > RS485_TX_BUFFER_SIZE - txCount()) {
+        statTxDrops++;
         #if RS485_DEBUG_VERBOSE
         debugPrintf("[RS485S] TX buffer full, dropping: %s %s\n", label, value);
         #endif
@@ -798,17 +824,17 @@ bool RS485Slave_queueCommand(const char* label, const char* value) {
 
     for (size_t i = 0; i < labelLen; i++) {
         txBuffer[txHead % RS485_TX_BUFFER_SIZE] = label[i];
-        txHead++;
+        txHead = txHead + 1;
     }
     txBuffer[txHead % RS485_TX_BUFFER_SIZE] = ' ';
-    txHead++;
+    txHead = txHead + 1;
     for (size_t i = 0; i < valueLen; i++) {
         txBuffer[txHead % RS485_TX_BUFFER_SIZE] = value[i];
-        txHead++;
+        txHead = txHead + 1;
     }
     txBuffer[txHead % RS485_TX_BUFFER_SIZE] = '\n';
-    txHead++;
-    txCount_val += needed;
+    txHead = txHead + 1;
+    txCount_val = txCount_val + needed;
 
     portENABLE_INTERRUPTS();
 

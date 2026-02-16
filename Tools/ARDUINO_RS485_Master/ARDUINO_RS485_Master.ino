@@ -9,10 +9,15 @@
    Hardware: Arduino Mega 2560
    TX1 = 18, RX1 = 19, Direction control = pin 2
    MC_READY LED = pin 10 (with 220Ω resistor to GND)
+
+   DIAGNOSTIC: Pin 13 (built-in LED) toggles every time a DCS-BIOS sync
+   frame is detected, so you can verify the stream is being received and
+   parsed correctly even if MC_READY never comes.
 */
 
 #define UART1_TXENABLE_PIN 2
 #define MC_READY_PIN 10
+#define SYNC_LED_PIN 13     // Built-in LED - toggles on each sync frame
 
 // We do NOT define DCSBIOS_RS485_MASTER here — this sketch is fully
 // self-contained and does not use DcsBios.h for the master transport.
@@ -38,6 +43,17 @@
 #define DCSBIOS_STATE_COUNT_HIGH    4
 #define DCSBIOS_STATE_DATA_LOW      5
 #define DCSBIOS_STATE_DATA_HIGH     6
+
+// ============================================================================
+// DIRECT PORT MACROS (must be before first use in ledParser)
+// ============================================================================
+
+#ifndef cbi
+#define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
+#endif
+#ifndef sbi
+#define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
+#endif
 
 // ============================================================================
 // RING BUFFER (from DCS-BIOS library)
@@ -67,6 +83,9 @@ public:
 // ============================================================================
 // Parses the raw DCS-BIOS export stream the master receives from the PC.
 // Watches for address 0x740C (FA-18C MC_READY) and drives pin 10.
+//
+// Also uses DcsBios::LED-style approach: intercepts any address/data pair
+// matching our target and applies the mask immediately.
 
 static uint8_t  ledParserState = DCSBIOS_STATE_WAIT_FOR_SYNC;
 static uint16_t ledParserAddress;
@@ -74,46 +93,74 @@ static uint16_t ledParserCount;
 static uint16_t ledParserData;
 static uint8_t  ledParserSyncCount = 0;
 
+// Diagnostic: sync frame counter + LED toggle
+static volatile bool syncLedState = false;
+
 void ledParserProcessByte(uint8_t c) {
     switch (ledParserState) {
         case DCSBIOS_STATE_WAIT_FOR_SYNC:
             break;
         case DCSBIOS_STATE_ADDRESS_LOW:
-            ledParserAddress = c;
+            ledParserAddress = (uint16_t)c;
             ledParserState = DCSBIOS_STATE_ADDRESS_HIGH;
             break;
         case DCSBIOS_STATE_ADDRESS_HIGH:
-            ledParserAddress |= ((uint16_t)c << 8);
-            ledParserState = (ledParserAddress != 0x5555) ? DCSBIOS_STATE_COUNT_LOW : DCSBIOS_STATE_WAIT_FOR_SYNC;
+            ledParserAddress = ((uint16_t)c << 8) | ledParserAddress;
+            if (ledParserAddress != 0x5555) {
+                ledParserState = DCSBIOS_STATE_COUNT_LOW;
+            } else {
+                ledParserState = DCSBIOS_STATE_WAIT_FOR_SYNC;
+            }
             break;
         case DCSBIOS_STATE_COUNT_LOW:
-            ledParserCount = c;
+            ledParserCount = (uint16_t)c;
             ledParserState = DCSBIOS_STATE_COUNT_HIGH;
             break;
         case DCSBIOS_STATE_COUNT_HIGH:
-            ledParserCount |= ((uint16_t)c << 8);
+            ledParserCount = ((uint16_t)c << 8) | ledParserCount;
             ledParserState = DCSBIOS_STATE_DATA_LOW;
             break;
         case DCSBIOS_STATE_DATA_LOW:
-            ledParserData = c;
+            ledParserData = (uint16_t)c;
             ledParserCount--;
             ledParserState = DCSBIOS_STATE_DATA_HIGH;
             break;
         case DCSBIOS_STATE_DATA_HIGH:
-            ledParserData |= ((uint16_t)c << 8);
+            ledParserData = ((uint16_t)c << 8) | ledParserData;
             ledParserCount--;
             // Check if this is our LED address
             if (ledParserAddress == 0x740C) {
-                digitalWrite(MC_READY_PIN, (ledParserData & 0x8000) ? HIGH : LOW);
+                if (ledParserData & 0x8000) {
+                    sbi(PORTB, 4);   // Pin 10 HIGH — direct port, ISR-safe
+                } else {
+                    cbi(PORTB, 4);   // Pin 10 LOW — direct port, ISR-safe
+                }
             }
             ledParserAddress += 2;
-            ledParserState = (ledParserCount == 0) ? DCSBIOS_STATE_ADDRESS_LOW : DCSBIOS_STATE_DATA_LOW;
+            if (ledParserCount == 0) {
+                ledParserState = DCSBIOS_STATE_ADDRESS_LOW;
+            } else {
+                ledParserState = DCSBIOS_STATE_DATA_LOW;
+            }
             break;
     }
-    if (c == 0x55) { ledParserSyncCount++; } else { ledParserSyncCount = 0; }
+
+    // Sync detection (runs in parallel with state machine)
+    if (c == 0x55) {
+        ledParserSyncCount++;
+    } else {
+        ledParserSyncCount = 0;
+    }
     if (ledParserSyncCount == 4) {
         ledParserState = DCSBIOS_STATE_ADDRESS_LOW;
         ledParserSyncCount = 0;
+        // Toggle built-in LED on each sync — visual proof of stream parsing
+        syncLedState = !syncLedState;
+        if (syncLedState) {
+            sbi(PORTB, 7);   // Pin 13 HIGH on Mega
+        } else {
+            cbi(PORTB, 7);   // Pin 13 LOW on Mega
+        }
     }
 }
 
@@ -121,19 +168,11 @@ void ledParserProcessByte(uint8_t c) {
 // RS485 MASTER (from DCS-BIOS library — with LED hook in rxISR)
 // ============================================================================
 
-#ifndef cbi
-#define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
-#endif
-#ifndef sbi
-#define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
-#endif
-
+// Debug scope pins (directly manipulate port registers for minimum ISR overhead)
 #define s8()  sbi(PORTH,5)
 #define c8()  cbi(PORTH,5)
 #define s9()  sbi(PORTH,6)
 #define c9()  cbi(PORTH,6)
-#define s10() sbi(PORTB,4)
-#define c10() cbi(PORTB,4)
 
 class RS485Master;
 class MasterPCConnection;
@@ -473,7 +512,7 @@ ISR(USART1_RX_vect) { s8(); uart1.rxISR(); c8(); }
 #ifdef UART2_TXENABLE_PIN
 ISR(USART2_UDRE_vect) { s8(); uart2.udreISR(); c8(); }
 ISR(USART2_TX_vect) { s8(); uart2.txcISR(); c8(); }
-ISR(USART2_RX_vect) { s8(); s10(); uart2.rxISR(); c10(); c8(); }
+ISR(USART2_RX_vect) { s8(); uart2.rxISR(); c8(); }
 #endif
 
 #ifdef UART3_TXENABLE_PIN
@@ -489,16 +528,29 @@ ISR(USART3_RX_vect) { s8(); uart3.rxISR(); c8(); }
 // ============================================================================
 
 void setup() {
+    // LED pins
     pinMode(MC_READY_PIN, OUTPUT);
     digitalWrite(MC_READY_PIN, LOW);
+    pinMode(SYNC_LED_PIN, OUTPUT);
+    digitalWrite(SYNC_LED_PIN, LOW);
 
+    // Debug scope pins
     pinMode(8, OUTPUT);
     digitalWrite(8, 0);
     pinMode(9, OUTPUT);
     digitalWrite(9, 0);
-    pinMode(10, OUTPUT);
-    digitalWrite(10, 0);
 
+    // Quick LED test - flash MC_READY and SYNC LEDs 3 times
+    for (int i = 0; i < 3; i++) {
+        digitalWrite(MC_READY_PIN, HIGH);
+        digitalWrite(SYNC_LED_PIN, HIGH);
+        delay(150);
+        digitalWrite(MC_READY_PIN, LOW);
+        digitalWrite(SYNC_LED_PIN, LOW);
+        delay(150);
+    }
+
+    // RS485 bus (UART1)
     #ifdef UART1_TXENABLE_PIN
     pinMode(UART1_TXENABLE_PIN, OUTPUT);
     PRR1 &= ~(1<<PRUSART1);

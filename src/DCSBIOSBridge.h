@@ -14,7 +14,6 @@ bool simReady();
 // --- Prototypes for Selector Validation/Sync ---
 void validateSelectorSync();
 void initializeSelectorValidation();
-static void selectorValidationCallback(const char* label, uint16_t value);
 
 // ───── Subscribe to metadata changes ─────
 #define MAX_METADATA_SUBSCRIPTIONS 32
@@ -22,8 +21,8 @@ struct MetadataSubscription {
     const char* label;
     void (*callback)(const char* label, uint16_t value);
 };
-static MetadataSubscription metadataSubscriptions[MAX_METADATA_SUBSCRIPTIONS];
-static size_t metadataSubscriptionCount = 0;
+extern MetadataSubscription metadataSubscriptions[MAX_METADATA_SUBSCRIPTIONS];
+extern size_t metadataSubscriptionCount;
 bool subscribeToMetadataChange(const char* label, void (*callback)(const char* label, uint16_t value));
 
 // ───── Subscribe to display changes ─────
@@ -32,8 +31,8 @@ struct DisplaySubscription {
     const char* label;
     void (*callback)(const char* label, const char* value);
 };
-static DisplaySubscription displaySubscriptions[MAX_DISPLAY_SUBSCRIPTIONS];
-static size_t displaySubscriptionCount = 0;
+extern DisplaySubscription displaySubscriptions[MAX_DISPLAY_SUBSCRIPTIONS];
+extern size_t displaySubscriptionCount;
 bool subscribeToDisplayChange(const char* label, void (*callback)(const char* label, const char* value));
 
 // ───── Subscribe to selector changes ─────
@@ -42,8 +41,8 @@ struct SelectorSubscription {
     const char* label;
     void (*callback)(const char* label, uint16_t value);
 };
-static SelectorSubscription selectorSubscriptions[MAX_SELECTOR_SUBSCRIPTIONS];
-static size_t selectorSubscriptionCount = 0;
+extern SelectorSubscription selectorSubscriptions[MAX_SELECTOR_SUBSCRIPTIONS];
+extern size_t selectorSubscriptionCount;
 bool subscribeToSelectorChange(const char* label, void (*callback)(const char* label, uint16_t value));
 
 // ───── Subscribe to LED changes ─────
@@ -52,8 +51,8 @@ struct LedSubscription {
     const char* label;
     void (*callback)(const char* label, uint16_t value, uint16_t max_value);
 };
-static LedSubscription ledSubscriptions[MAX_LED_SUBSCRIPTIONS];
-static size_t ledSubscriptionCount = 0;
+extern LedSubscription ledSubscriptions[MAX_LED_SUBSCRIPTIONS];
+extern size_t ledSubscriptionCount;
 bool subscribeToLedChange(const char* label, void (*callback)(const char* label, uint16_t value, uint16_t max_value));
 
 // ───── Query data from anywhere in our program for custom actions (e.g IFEI backlight) ─────
@@ -97,7 +96,7 @@ void dumpAllMetadata();
 void HID_sendRawReport(bool force);
 bool tryToSendDcsBiosMessage(const char* msg, const char* arg);
 bool isSerialConnected();
-static void flushBufferedDcsCommands();
+// flushBufferedDcsCommands() is file-local to DCSBIOSBridge.cpp
 bool replayData();
 void DCSBIOSBridge_setup();
 void DCSBIOSBridge_loop();

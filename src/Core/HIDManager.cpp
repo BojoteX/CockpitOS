@@ -76,6 +76,18 @@
         class GPDevice { public: bool sendReport(const void*, int) { return false; } };
 #endif
 
+// --- HID mode requires USB transport (non-negotiable) ---
+// Only applies when HID is forced at compile time (MODE_DEFAULT_IS_HID=1).
+// HAS_HID_MODE_SELECTOR only means a physical switch exists on the PCB;
+// at runtime the user may choose DCS-BIOS mode over any transport.
+#if !RS485_SLAVE_ENABLED
+  #if defined(MODE_DEFAULT_IS_HID) && (MODE_DEFAULT_IS_HID == 1)
+    #if !USE_DCSBIOS_USB
+      #error "HID mode requires USE_DCSBIOS_USB=1. MODE_DEFAULT_IS_HID is enabled but transport is not USB."
+    #endif
+  #endif
+#endif
+
 #if USE_DCSBIOS_BLUETOOTH
 #include "../BLEManager.h"
 #endif
@@ -177,7 +189,8 @@ static void axCalibSave() {
     debugPrintln("[CAL] Calibration saved to NVS");
 }
 
-// Called on factory reset / bond wipe (optional)
+// Called on factory reset / bond wipe — reserved for future use
+#if 0   // TODO: wire into a factory-reset command or CLI verb
 static void axCalibWipe() {
     calPrefs.begin("axcal", false);
     calPrefs.clear();
@@ -193,6 +206,7 @@ static void axCalibWipe() {
 
     debugPrintln("[CAL] Calibration wiped");
 }
+#endif
 
 // Public wrapper (non-static)
 void HIDManager_saveCalibration() {
@@ -260,7 +274,7 @@ bool closeCDCserial = false;
 bool closeHWCDCserial = false;
 
 // HID Report and device instance
-GamepadReport_t report = { 0 };  // define the extern
+GamepadReport_t report = {};  // define the extern — zero-initializes all fields
 GPDevice        gamepad;         // define the extern
 
 // --- HID step pulse auto-clear ---
@@ -337,15 +351,55 @@ void buildHIDGroupBitmasks() {
   }
 }
 
-// Find the HID mapping whose oride_label and oride_value match this DCS command+value (for selectors).
-static const InputMapping* findHidMappingByDcs(const char* dcsLabel, uint16_t value) {
+// ----------------------------------------------------------------------------
+// O(1) hash lookup for InputMappings[] by oride_label + oride_value
+// Used by the sendCommand() HID gate to resolve slave commands to HID buttons.
+// Composite key: hash(oride_label) ^ (oride_value * 7919) with linear probing.
+// Only entries with valid hidId (1..32) are indexed.
+// ----------------------------------------------------------------------------
+static constexpr size_t HID_DCS_HASH_SIZE = 127; // prime, comfortably > 2x typical InputMappingSize
+struct HidDcsHashEntry {
+    const char*         oride_label;
+    uint16_t            oride_value;
+    const InputMapping* mapping;
+};
+static HidDcsHashEntry hidDcsHashTable[HID_DCS_HASH_SIZE];
+static bool hidDcsHashBuilt = false;
+
+static uint16_t hidDcsHash(const char* label, uint16_t value) {
+    return labelHash(label) ^ (value * 7919);
+}
+
+static void buildHidDcsHashTable() {
+    for (size_t i = 0; i < HID_DCS_HASH_SIZE; ++i)
+        hidDcsHashTable[i] = { nullptr, 0, nullptr };
+
     for (size_t i = 0; i < InputMappingSize; ++i) {
         const auto& m = InputMappings[i];
-        if (m.oride_label
-            && strcmp(m.oride_label, dcsLabel) == 0
-            && (uint16_t)m.oride_value == value) {
-            return &m;
+        if (!m.oride_label || m.hidId <= 0 || m.hidId > 32) continue;
+
+        uint16_t h = hidDcsHash(m.oride_label, (uint16_t)m.oride_value) % HID_DCS_HASH_SIZE;
+        for (size_t probe = 0; probe < HID_DCS_HASH_SIZE; ++probe) {
+            if (!hidDcsHashTable[h].oride_label) {
+                hidDcsHashTable[h] = { m.oride_label, (uint16_t)m.oride_value, &m };
+                break;
+            }
+            h = (h + 1) % HID_DCS_HASH_SIZE;
         }
+    }
+    hidDcsHashBuilt = true;
+}
+
+// Find the HID mapping whose oride_label and oride_value match this DCS command+value.
+const InputMapping* findHidMappingByDcs(const char* dcsLabel, uint16_t value) {
+    if (!hidDcsHashBuilt) buildHidDcsHashTable();
+    uint16_t h = hidDcsHash(dcsLabel, value) % HID_DCS_HASH_SIZE;
+    for (size_t i = 0; i < HID_DCS_HASH_SIZE; ++i) {
+        const auto& e = hidDcsHashTable[h];
+        if (!e.oride_label) return nullptr;
+        if (e.oride_value == value && strcmp(e.oride_label, dcsLabel) == 0)
+            return e.mapping;
+        h = (h + 1) % HID_DCS_HASH_SIZE;
     }
     return nullptr;
 }
@@ -626,6 +680,13 @@ void HIDManager_moveAxis(const char* dcsIdentifier, uint8_t pin, HIDAxis axis, b
     if (!inDcsMode) {                    // HID-only raw path
         int v = analogRead(pin);         // 0..4095
         if (axisInverted(axis)) v = HID_MAX - v;
+        #if RS485_SLAVE_ENABLED
+        {
+            char buf[8];
+            snprintf(buf, sizeof(buf), "%u", (uint16_t)v);
+            sendCommand(dcsIdentifier, buf, false);
+        }
+        #endif
         if (axis < HID_AXIS_COUNT) report.axes[axis] = (uint16_t)v;
         HIDManager_dispatchReport(forceSend);
         return;
@@ -636,6 +697,16 @@ void HIDManager_moveAxis(const char* dcsIdentifier, uint8_t pin, HIDAxis axis, b
     static bool g_bootstrapped[64] = { false };
 
     auto sendHID = [&](int value, bool force) {
+        // RS485 slave: forward axis value to master via sendCommand.
+        // HID report is stubbed on slaves, so dispatch is a no-op locally.
+        // Value is sent as raw ADC (0-4095); master writes directly to report.axes[].
+        #if RS485_SLAVE_ENABLED
+        {
+            char buf[8];
+            snprintf(buf, sizeof(buf), "%u", (uint16_t)value);
+            sendCommand(dcsIdentifier, buf, false);
+        }
+        #endif
         if (axis < HID_AXIS_COUNT) report.axes[axis] = (uint16_t)value;
         HIDManager_dispatchReport(force);
     };
@@ -759,7 +830,7 @@ void HIDManager_setToggleNamedButton(const char* name, bool deferSend) {
     const bool hidAllowed = (!inDcs) || hybridEnabled;
 
     // DCS path
-    if (dcsAllowed && m->oride_label && m->oride_value >= 0) {
+    if (dcsAllowed && m->oride_label) {
         sendDCSBIOSCommand(m->oride_label, newOn ? m->oride_value : 0, forcePanelSyncThisMission);
     }
 
@@ -811,7 +882,7 @@ void HIDManager_setNamedButton(const char* name, bool deferSend, bool pressed) {
                 HIDManager_toggleIfPressed(pressed, name, deferSend);
                 return;
             }
-            else if (m->oride_label && m->oride_value >= 0) {
+            else if (m->oride_label) {
                 const bool force = forcePanelSyncThisMission;
                 sendDCSBIOSCommand(m->oride_label, pressed ? m->oride_value : 0, force);
             }
@@ -854,6 +925,65 @@ void HIDManager_setNamedButton(const char* name, bool deferSend, bool pressed) {
 
     if (pressed) report.buttons |= bit; else report.buttons &= ~bit;
     if (!deferSend) HIDManager_dispatchReport(false);
+}
+
+// ----------------------------------------------------------------------------
+// RS485 Master HID passthrough: immediate dispatch, no dwell.
+// Slave already performed dwell arbitration before sending over RS485,
+// so the master must not add a second dwell layer on top.
+// ----------------------------------------------------------------------------
+void HIDManager_setButtonDirect(const char* name, bool pressed) {
+    const InputMapping* m = findInputByLabel(name);
+    if (!m || m->hidId <= 0 || m->hidId > 32) return;
+
+    const uint32_t bit = (1UL << (m->hidId - 1));
+    const char* ctype = m->controlType ? m->controlType : "";
+    const bool isVarStep = (strcmp(ctype, "variable_step") == 0);
+    const bool isFixStep = (strcmp(ctype, "fixed_step") == 0);
+
+    // Step controls: pulse ON then auto-OFF (same as normal path)
+    if (isVarStep || isFixStep) {
+        report.buttons |= bit;
+        HIDManager_dispatchReport(false);
+        g_hidStepPulseMask |= bit;
+        g_hidStepPulseDueMs[m->hidId] = millis() + STEP_PULSE_MS;
+        return;
+    }
+
+    // Selectors: clear group, set bit, dispatch immediately (NO dwell)
+    if (m->group > 0) {
+        if (pressed) {
+            report.buttons &= ~groupBitmask[m->group];
+            report.buttons |= bit;
+        } else {
+            report.buttons &= ~bit;
+        }
+        HIDManager_dispatchReport(false);
+        return;
+    }
+
+    // Momentary / everything else
+    if (pressed) report.buttons |= bit; else report.buttons &= ~bit;
+    HIDManager_dispatchReport(false);
+}
+
+// ----------------------------------------------------------------------------
+// RS485 Master HID passthrough: write axis value directly, no filtering/dwell.
+// Slave already performed ADC read, EMA filtering, inversion, and threshold
+// gating before sending the value over RS485.
+//
+// AXIS CONVENTION FOR RS485 HID PASSTHROUGH:
+// The 'hidId' field in InputMapping has a dual meaning based on controlType:
+//   - Buttons/selectors: hidId = button bit position (1-32)
+//   - Analog axes:       hidId = HIDAxis enum value (0=AXIS_X, ... 7=AXIS_SLIDER)
+// The controlType ("analog" vs "selector"/"momentary") determines interpretation.
+// ----------------------------------------------------------------------------
+void HIDManager_setAxisDirect(HIDAxis axis, uint16_t value) {
+    if (axis >= HID_AXIS_COUNT) return;
+    // Slave sends DCS-range values (0-65535) through the DCS path on RS485.
+    // HID descriptor declares Logical Max 4095, so we must scale down.
+    report.axes[axis] = (uint16_t)map((long)value, 0, 65535, 0, 4095);
+    HIDManager_dispatchReport(false);
 }
 
 void HIDManager_commitDeferredReport(const char* deviceName) {
