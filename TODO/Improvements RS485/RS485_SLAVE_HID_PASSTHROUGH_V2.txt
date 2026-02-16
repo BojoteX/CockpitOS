@@ -1,0 +1,601 @@
+================================================================================
+  CockpitOS — RS485 Slave HID Passthrough Implementation Guide
+  Audience: LLM Implementation Agent
+  Version: 2.0
+  Date: 2026-02-13
+  Scope: Route RS485 slave input commands to HID reports on the master
+================================================================================
+
+TABLE OF CONTENTS
+  0. Feature Summary
+  1. Architecture Context
+  2. Why This Works (Prerequisites Already Met)
+  3. CRITICAL: Label Namespace — oride_label vs label
+  4. CRITICAL: HID Stack Prerequisites for RS485 Masters
+  5. Implementation — sendCommand() HID Gate
+  6. Implementation — Analog Axis Direct Injection
+  7. Control Type Handling Matrix
+  8. Mode Routing Logic
+  9. What Does NOT Change
+ 10. File Reference Map
+ 11. Testing Checklist
+
+================================================================================
+0. FEATURE SUMMARY
+================================================================================
+
+GOAL: When the RS485 master is in HID mode, input commands received from RS485
+slaves should generate HID reports (gamepad button presses / axis movements)
+on the master, just as if the controls were physically connected to the master.
+
+This enables remote RS485 slave panels to act as HID game controllers through
+the master's USB connection to the PC, without DCS-BIOS or any simulator
+running.
+
+EFFORT: ~40-60 lines of code in sendCommand(), ~5 lines for a new helper
+function in HIDManager.cpp, ~3 lines in HIDManager.h (declarations + exposing
+an existing static function).
+
+================================================================================
+1. ARCHITECTURE CONTEXT
+================================================================================
+
+Current data flow for RS485 slave inputs:
+
+  [Slave panel driver reads hardware]
+    -> HIDManager_setNamedButton(label, ...)             // on slave
+      -> (DCS path) sendDCSBIOSCommand(oride_label, oride_value, force)
+        -> findCmdEntry(label) + snprintf(buf, "%u", value)
+          -> sendCommand(oride_label, "value_string", false)
+            -> RS485Slave_queueCommand(oride_label, "value_string")
+              -> [RS485 bus: master polls, slave responds with "ORIDE_LABEL VALUE\n"]
+                -> processInputCommand() on master       // RS485Master.cpp:727
+                  -> sendCommand(oride_label, "value_string", false) // on master
+                    -> DCS-BIOS transport (WiFi/USB/BLE/Serial) // CURRENT: only path
+
+IMPORTANT: What travels on the RS485 bus is the oride_label (the DCS command
+name), NOT the per-position label. This distinction is critical for selectors
+and step controls. See Section 3.
+
+The slave sends string commands like:
+  - Momentary buttons: "MASTER_CAUTION_RESET_SW 1", "MASTER_CAUTION_RESET_SW 0"
+  - Selectors:         "MASTER_ARM_SW 0", "MASTER_ARM_SW 1"   (oride_label + position value)
+  - Step controls:     "CHART_DIMMER +3200", "CHART_DIMMER -3200"
+                       "SOME_CONTROL INC", "SOME_CONTROL DEC"
+  - Analog axes:       "HMD_OFF_BRT 2048"
+
+These arrive at the master's sendCommand(msg, arg, silent) in DCSBIOSBridge.cpp
+at line 1330. This is the ONLY place that needs modification.
+
+KEY INSIGHT: sendCommand() is the single funnel for ALL outbound commands from
+any source (local panel drivers, RS485 slaves, everything). Adding a HID gate
+here makes ALL command sources HID-capable automatically.
+
+================================================================================
+2. WHY THIS WORKS (PREREQUISITES ALREADY MET)
+================================================================================
+
+The architecture already provides everything needed:
+
+  a) SHARED LABEL NAMESPACE: The master's InputMapping.h contains entries for
+     all labels (local + slave). Each entry has a hidId field.
+
+  b) CENTRALIZED ROUTING: sendCommand() is the single exit point. One gate
+     here covers all command sources.
+
+  c) ORIDE_LABEL LOOKUP EXISTS: findHidMappingByDcs(dcsLabel, value) at
+     HIDManager.cpp:341 searches InputMappings[] by oride_label + oride_value.
+     This is the correct lookup for slave commands since they arrive as
+     oride_label strings (see Section 3).
+
+  d) LABEL-DRIVEN HID: HIDManager_setNamedButton() takes a label string,
+     looks it up via findInputByLabel(), and manipulates report.buttons
+     using the hidId. No pin or hardware dependency.
+
+  e) MODE SELECTION: isModeSelectorDCS() already gates HID vs DCS behavior
+     everywhere. LabelSetConfig.h controls this per label set via
+     HAS_HID_MODE_SELECTOR and MODE_DEFAULT_IS_HID.
+
+  f) STATELESS HID: In HID mode there is no simulator, no export stream, no
+     round-trip confirmation needed. The slave reads physical hardware, sends
+     the state string, master sets the HID bit. Done.
+
+  g) RS485 CODE UNTOUCHED: The slave already sends "ORIDE_LABEL VALUE\n" and
+     the master already parses it into sendCommand(oride_label, value). No
+     RS485 protocol changes needed.
+
+================================================================================
+3. CRITICAL: LABEL NAMESPACE — oride_label vs label
+================================================================================
+
+This is the most important section. V1 of this document used findInputByLabel()
+which would SILENTLY FAIL for selectors and step controls.
+
+THE PROBLEM:
+
+  InputMapping.h has individual per-position entries. Each entry has:
+    - label:       unique name  (e.g. "MASTER_ARM_SW_SAFE", "MASTER_ARM_SW_ARM")
+    - oride_label: DCS command  (e.g. "MASTER_ARM_SW" for both positions)
+    - oride_value: position     (e.g. 0 for SAFE, 1 for ARM)
+    - hidId:       HID button   (e.g. 18 for SAFE, 17 for ARM)
+
+  The hash table (used by findInputByLabel) is keyed by "label", not
+  "oride_label". It contains:
+    {"MASTER_ARM_SW_SAFE", &InputMappings[34]},
+    {"MASTER_ARM_SW_ARM",  &InputMappings[35]},
+  There is NO entry for "MASTER_ARM_SW".
+
+  But the slave sends: "MASTER_ARM_SW 1"  (oride_label + position value).
+  So findInputByLabel("MASTER_ARM_SW") returns nullptr. Silent failure.
+
+WHAT WORKS: For momentary buttons, label == oride_label. For example:
+  { "MASTER_CAUTION_RESET_SW", ..., "MASTER_CAUTION_RESET_SW", 1, "momentary", 0 }
+  Both the label and oride_label are "MASTER_CAUTION_RESET_SW", so
+  findInputByLabel works. But this is ONLY true for momentary buttons.
+
+THE SOLUTION: Use findHidMappingByDcs(dcsLabel, value) at HIDManager.cpp:341.
+This function iterates InputMappings[] matching oride_label + oride_value:
+
+  static const InputMapping* findHidMappingByDcs(const char* dcsLabel, uint16_t value) {
+      for (size_t i = 0; i < InputMappingSize; ++i) {
+          const auto& m = InputMappings[i];
+          if (m.oride_label
+              && strcmp(m.oride_label, dcsLabel) == 0
+              && (uint16_t)m.oride_value == value) {
+              return &m;
+          }
+      }
+      return nullptr;
+  }
+
+This is currently declared static in HIDManager.cpp. It must be exposed:
+  - Remove 'static' keyword from definition in HIDManager.cpp:341
+  - Add declaration in HIDManager.h:
+    const InputMapping* findHidMappingByDcs(const char* dcsLabel, uint16_t value);
+
+LOOKUP STRATEGY BY CONTROL TYPE:
+
+  Type            | msg from slave      | arg from slave  | Lookup call
+  ----------------+---------------------+-----------------+----------------------------------
+  momentary       | "FIRE_EXT_BTN"      | "1" or "0"      | findHidMappingByDcs(msg, atoi(arg))
+  selector        | "MASTER_ARM_SW"     | "0","1","2"...  | findHidMappingByDcs(msg, atoi(arg))
+  variable_step   | "CHART_DIMMER"      | "+3200"/"-3200" | findHidMappingByDcs(msg, isUp?1:0)
+  fixed_step      | "SOME_CONTROL"      | "INC"/"DEC"     | findHidMappingByDcs(msg, isUp?1:0)
+  analog          | "HMD_OFF_BRT"       | "2048"          | findHidMappingByDcs(msg, atoi(arg))
+
+  For step controls: parse arg to determine direction first:
+    bool isUp = (arg[0] == '+' || strcmp(arg, "INC") == 0);
+  Then look up with oride_value 1 (INC) or 0 (DEC), matching the convention
+  in InputMapping.h where DEC entries have oride_value=0 and INC have
+  oride_value=1.
+
+SELECTOR POSITION 0 (val=0):
+
+  V1 used val!=0 as the pressed state, which would treat position 0 as a
+  "release" instead of an active position. This is WRONG.
+
+  With findHidMappingByDcs, the lookup directly resolves to the correct
+  per-position entry (e.g. MASTER_ARM_SW_SAFE for value 0). Since finding
+  a match means "this position is now active", always call:
+    HIDManager_setNamedButton(m->label, false, true)
+  The group bitmask logic inside HIDManager_setNamedButton (lines 840-852)
+  will automatically clear other positions in the same group.
+
+================================================================================
+4. CRITICAL: HID STACK PREREQUISITES FOR RS485 MASTERS
+================================================================================
+
+The USB HID stack is conditionally compiled. At HIDManager.cpp:48:
+
+  #if !USE_DCSBIOS_WIFI && !USE_DCSBIOS_BLUETOOTH && !RS485_SLAVE_ENABLED
+      USBHID HID;                                          // Real HID stack
+  #else
+      struct { bool ready() const { return false; } } HID;  // STUBS
+  #endif
+
+When USE_DCSBIOS_WIFI=1 (common for RS485 masters), the HID stack is STUBBED.
+HID.ready() returns false, gamepad.sendReport() is a no-op. All HID reports
+are silently discarded.
+
+REQUIREMENT: The RS485 master that will use HID passthrough MUST be configured
+with USE_DCSBIOS_USB=1 (not WiFi). This enables the real USB HID stack.
+
+Additionally, the master's LabelSetConfig.h must enable HID mode:
+  - Either: #define MODE_DEFAULT_IS_HID 1   (always HID mode)
+  - Or:     #define HAS_HID_MODE_SELECTOR 1  (physical switch to toggle)
+
+Current RS485 label sets all have MODE_DEFAULT_IS_HID=0 and
+HAS_HID_MODE_SELECTOR=0, meaning they always run in DCS mode. A new label set
+or modified existing label set is needed for HID passthrough.
+
+COMPATIBLE HARDWARE: ESP32-S2 or ESP32-S3 boards with native USB
+(ARDUINO_USB_MODE == 0). This includes LOLIN S2 Mini, Waveshare ESP32-S3, etc.
+
+================================================================================
+5. IMPLEMENTATION — sendCommand() HID GATE
+================================================================================
+
+FILE: src/Core/DCSBIOSBridge.cpp
+FUNCTION: sendCommand() — line 1330
+
+Insert the HID gate at the TOP of sendCommand(), BEFORE the RS485_SLAVE_ENABLED
+block and before any transport-specific #if blocks. The gate should only execute
+on the master (not on slaves, which have their own early return).
+
+PSEUDOCODE:
+
+  void sendCommand(const char* msg, const char* arg, bool silent) {
+
+      // ── NEW: HID passthrough for slave commands (and any sendCommand caller) ──
+      // When in HID mode, route matching labels to HID report instead of DCS
+      // transport. Uses oride_label+value lookup (NOT findInputByLabel) because
+      // the slave sends oride_label strings, not per-position labels.
+      //
+      // This runs on master only (slave has RS485_SLAVE_ENABLED early return below).
+
+      #if !RS485_SLAVE_ENABLED
+      if (!isModeSelectorDCS()) {
+
+          // --- Step controls: parse direction from arg ---
+          const bool isStepArg = (arg[0] == '+' || arg[0] == '-'
+                                  || strcmp(arg, "INC") == 0
+                                  || strcmp(arg, "DEC") == 0);
+
+          if (isStepArg) {
+              const bool isUp = (arg[0] == '+' || strcmp(arg, "INC") == 0);
+              const InputMapping* m = findHidMappingByDcs(msg, isUp ? 1 : 0);
+              if (m && m->hidId > 0 && m->hidId <= 32) {
+                  HIDManager_setNamedButton(m->label, false, true);
+                  if (!silent) debugPrintf("[HID-PASS] %s %s -> %s\n", msg, arg, m->label);
+                  return;
+              }
+              // No HID mapping for this step control — fall through
+          }
+          else {
+              // --- Momentary, selector, analog: parse numeric value ---
+              const int val = atoi(arg);
+              const InputMapping* m = findHidMappingByDcs(msg, (uint16_t)val);
+
+              if (m && m->hidId > 0 && m->hidId <= 32) {
+                  const char* ctype = m->controlType ? m->controlType : "";
+
+                  if (strcmp(ctype, "analog") == 0) {
+                      // Analog axis: scale 16-bit DCS value (0-65535) to 12-bit HID (0-4095)
+                      // See Section 6 for HIDManager_setAxisDirect
+                      // uint16_t hid = map(val, 0, 65535, 0, 4095);
+                      // HIDManager_setAxisDirect(axis, hid);
+                      // NOTE: Axis mapping deferred — see Section 6
+                  }
+                  else {
+                      // Momentary & selectors: always press=true.
+                      //
+                      // For momentary: val=1 means pressed, val=0 means released.
+                      //   findHidMappingByDcs(msg, 1) finds the entry (oride_value=1).
+                      //   findHidMappingByDcs(msg, 0) returns nullptr for momentary
+                      //   since there's no entry with oride_value=0 — falls through.
+                      //   BUT WAIT: momentary release IS needed for HID!
+                      //   See MOMENTARY RELEASE HANDLING below.
+                      //
+                      // For selectors: val is position index. The matched entry IS
+                      //   the active position. Always press=true. The group bitmask
+                      //   logic in HIDManager_setNamedButton clears other positions.
+                      HIDManager_setNamedButton(m->label, false, true);
+                      if (!silent) debugPrintf("[HID-PASS] %s %s -> %s\n", msg, arg, m->label);
+                      return;
+                  }
+              }
+
+              // MOMENTARY RELEASE HANDLING:
+              // When slave sends "FIRE_EXT_BTN 0", findHidMappingByDcs("FIRE_EXT_BTN", 0)
+              // may return nullptr if the entry has oride_value=1 (as most momentary do).
+              // We need to handle the release case. Try findInputByLabel as fallback
+              // for momentary buttons (where label == oride_label):
+              if (!m) {
+                  const InputMapping* mFallback = findInputByLabel(msg);
+                  if (mFallback && mFallback->hidId > 0 && mFallback->hidId <= 32) {
+                      const char* ctype = mFallback->controlType ? mFallback->controlType : "";
+                      if (strcmp(ctype, "momentary") == 0 && val == 0) {
+                          HIDManager_setNamedButton(mFallback->label, false, false);  // release
+                          if (!silent) debugPrintf("[HID-PASS] %s %s (release)\n", msg, arg);
+                          return;
+                      }
+                  }
+              }
+
+              // No HID mapping found — fall through to DCS transport
+          }
+      }
+      #endif
+
+      // ── Existing code below (unchanged) ──
+
+      #if RS485_SLAVE_ENABLED
+          RS485Slave_queueCommand(msg, arg);
+          ...
+          return;
+      #endif
+
+      #if USE_DCSBIOS_WIFI
+          ...
+      #elif USE_DCSBIOS_USB
+          ...
+      // etc.
+  }
+
+IMPORTANT NOTES:
+  - The #if !RS485_SLAVE_ENABLED guard ensures this code ONLY compiles on
+    masters (and standalone devices). Slaves never execute this path since
+    they have their own early return.
+  - The isModeSelectorDCS() check means this is a no-op in DCS mode —
+    existing behavior is 100% preserved.
+  - Labels without a valid hidId (hidId <= 0) fall through to existing
+    transport code. This handles system commands like "PING" and labels
+    that are DCS-only (hidId = -1 in InputMapping).
+  - The return after HID dispatch prevents the command from ALSO going
+    out on the DCS transport. In pure HID mode there is no DCS to talk to.
+  - findHidMappingByDcs is an O(n) scan of InputMappings[]. For the typical
+    mapping size (<100 entries) this is negligible. If performance matters,
+    a secondary hash by oride_label could be added later.
+
+ABOUT MOMENTARY RELEASE:
+  Most momentary entries have oride_value=1 (the "pressed" value). When the
+  slave sends "LABEL 0" (release), findHidMappingByDcs("LABEL", 0) returns
+  nullptr because there is no entry with oride_value=0 for momentary buttons.
+  The fallback to findInputByLabel handles this because for momentary buttons,
+  label == oride_label (e.g. both are "FIRE_EXT_BTN").
+
+  An alternative approach: instead of the fallback, check if val==0 first
+  and use findInputByLabel directly for releases. Either works.
+
+NO RECURSION RISK:
+  HIDManager_setNamedButton has its own internal mode gating. When called in
+  HID mode: inDcs=false, dcsAllowed=false, hidAllowed=true. The DCS path
+  (lines 796-820 which calls sendCommand for step controls) is ENTIRELY
+  SKIPPED. The HID path (lines 822-857) executes independently. No circular
+  call back to sendCommand.
+
+FOR HYBRID MODE (future consideration):
+  If MODE_HYBRID_DCS_HID is defined and enabled, remove the `return` after
+  the HID call so the command also falls through to the DCS transport.
+  This matches the pattern already used in HIDManager_setNamedButton() and
+  HIDManager_moveAxis() for hybrid routing.
+
+================================================================================
+6. IMPLEMENTATION — ANALOG AXIS DIRECT INJECTION
+================================================================================
+
+PROBLEM: HIDManager_moveAxis() expects a GPIO pin number because it calls
+analogRead(pin) internally. Remote slave axes have no local pin on the master.
+
+SOLUTION: Add a lightweight function that writes an axis value directly into
+the HID report and dispatches it. This keeps HIDManager as the single owner
+of the report struct.
+
+FILE: src/Core/HIDManager.cpp
+
+  void HIDManager_setAxisDirect(HIDAxis axis, uint16_t value) {
+      if (axis >= HID_AXIS_COUNT) return;
+      report.axes[axis] = value;
+      HIDManager_dispatchReport(false);
+  }
+
+FILE: src/HIDManager.h
+
+  Add declaration:
+  void HIDManager_setAxisDirect(HIDAxis axis, uint16_t value);
+
+AXIS RESOLUTION: The slave sends analog values as the arg string. In
+HIDManager_moveAxis (line 686-688), DCS mode sends:
+  uint16_t d16 = map(hid, 0, 4095, 0, 65535);
+  sendDCSBIOSCommand(oride_label, d16, force);
+which via sendDCSBIOSCommand at line 1505-1506 becomes:
+  snprintf(buf, sizeof(buf), "%u", value);
+  sendCommand(oride_label, buf, false);
+
+So the slave queues a 16-bit value string (0-65535). The master's HID gate
+should scale it back:
+  int val = atoi(arg);
+  uint16_t hid = map(val, 0, 65535, 0, 4095);
+  HIDManager_setAxisDirect(axis, hid);
+
+AXIS MAPPING: The sendCommand HID gate needs to resolve which HIDAxis enum
+corresponds to the label. Options:
+  a) Add an axis field to InputMapping struct (cleanest, but requires
+     regenerating all label sets)
+  b) Use a small lookup table in the HID gate that maps analog labels to
+     HIDAxis values (pragmatic, no schema change)
+  c) Use the hidId field creatively for analog entries to encode axis index
+     (hacky, not recommended)
+
+Option (b) is recommended for initial implementation. A static mapping like:
+  if (strcmp(msg, "HMD_OFF_BRT") == 0) axis = AXIS_X;
+Or a small generated table alongside InputMapping.
+
+NOTE: If no slave currently sends analog axes over RS485, this can be deferred.
+The button path (Section 5) is the primary deliverable.
+
+================================================================================
+7. CONTROL TYPE HANDLING MATRIX
+================================================================================
+
+  controlType      | arg from slave      | Lookup                                      | HID action
+  -----------------+---------------------+---------------------------------------------+-----------------------------------------------
+  "momentary"      | "1"                 | findHidMappingByDcs(msg, 1) -> entry        | HIDManager_setNamedButton(entry->label, false, true)
+  "momentary"      | "0"                 | findHidMappingByDcs returns nullptr          | fallback: findInputByLabel(msg) -> setNamedButton(label, false, false)
+  "selector"       | "0","1","2"...      | findHidMappingByDcs(msg, val) -> entry       | HIDManager_setNamedButton(entry->label, false, true)
+  "variable_step"  | "+3200" / "-3200"   | findHidMappingByDcs(msg, isUp?1:0) -> entry  | HIDManager_setNamedButton(entry->label, false, true)
+  "fixed_step"     | "INC" / "DEC"       | findHidMappingByDcs(msg, isUp?1:0) -> entry  | HIDManager_setNamedButton(entry->label, false, true)
+  "analog"         | "0"-"65535"         | findHidMappingByDcs(msg, val) -> entry        | HIDManager_setAxisDirect(axis, scaled)  [deferred]
+
+HIDManager_setNamedButton already handles internally:
+  - Group bitmask exclusivity for selectors (clears other bits in group)
+  - Step pulse scheduling (sets bit ON, schedules auto-OFF after STEP_PULSE_MS)
+  - Latch/toggle detection for latched buttons
+  - hidId validation (returns early if hidId <= 0 or > 32)
+  - DCS vs HID mode gating (will be in HID mode when we call it)
+
+So the sendCommand HID gate does NOT need to replicate any of this logic.
+Just call HIDManager_setNamedButton with the resolved per-position label and
+pressed=true. The existing code handles the rest.
+
+CURRENT STATE OF STEP CONTROLS:
+  All existing step control entries across all label sets have hidId=-1
+  (no HID assignment). This means the HID gate will find the entry but
+  the hidId check (hidId > 0 && hidId <= 32) will fail, and the command
+  falls through gracefully. To enable step control HID passthrough, the
+  master's InputMapping must be regenerated with valid hidIds on the
+  INC/DEC entries.
+
+================================================================================
+8. MODE ROUTING LOGIC
+================================================================================
+
+  Mode              | isModeSelectorDCS() | sendCommand behavior
+  ------------------+---------------------+-----------------------------------------
+  HID mode          | false               | NEW: route to HIDManager if hidId valid
+  DCS mode          | true                | UNCHANGED: send via DCS transport
+  Hybrid (future)   | true                | Both: HID + DCS transport
+
+  The mode is determined by:
+  - LabelSetConfig.h: HAS_HID_MODE_SELECTOR, MODE_DEFAULT_IS_HID
+  - Physical switch: MODE_SWITCH_PIN (if HAS_HID_MODE_SELECTOR=1)
+  - CockpitOS.ino: isModeSelectorDCS() function (line 160)
+
+  No changes to mode detection are needed.
+
+  IMPORTANT: The RS485 master's LabelSetConfig.h must enable HID mode.
+  See Section 4 for prerequisites.
+
+================================================================================
+9. WHAT DOES NOT CHANGE
+================================================================================
+
+  FILE                          | CHANGE?  | REASON
+  ------------------------------+----------+--------------------------------------
+  RS485Master.cpp               | NO       | Already calls sendCommand() correctly
+  RS485Slave.cpp                | NO       | Already sends "ORIDE_LABEL VALUE\n"
+  RS485Config.h                 | NO       | No protocol changes
+  RS485SlaveConfig.h            | NO       | No protocol changes
+  HIDManager.cpp (existing fn)  | MINOR    | Remove 'static' from findHidMappingByDcs
+  HIDManager.cpp (new function) | YES      | Add HIDManager_setAxisDirect() (~5 lines)
+  HIDManager.h                  | YES      | Add 2 declarations (~2 lines)
+  DCSBIOSBridge.cpp             | YES      | Add HID gate in sendCommand() (~40-60 lines)
+  InputMapping.h                | NO       | Already has hidId for slave labels
+  LabelSetConfig.h              | NO*      | *Master set MUST have HID mode enabled
+  CockpitOS.ino                 | NO       | isModeSelectorDCS() unchanged
+
+  Total changes: 3 files modified, ~50-70 lines of new/changed code.
+
+================================================================================
+10. FILE REFERENCE MAP
+================================================================================
+
+  src/Core/DCSBIOSBridge.cpp:1330    sendCommand() — INSERT HID GATE HERE
+  src/Core/DCSBIOSBridge.cpp:1469    sendDCSBIOSCommand() — shows how value becomes string
+  src/Core/DCSBIOSBridge.cpp:1505    snprintf(buf, "%u", value) — confirms oride_label format
+  src/Core/HIDManager.cpp:341       findHidMappingByDcs() — CORRECT lookup (remove static)
+  src/Core/HIDManager.cpp:774       HIDManager_setNamedButton() — called by gate
+  src/Core/HIDManager.cpp:608       HIDManager_moveAxis() — reference for axis scaling
+  src/Core/HIDManager.cpp:547       HIDManager_dispatchReport() — called by setAxisDirect
+  src/Core/HIDManager.cpp:263       report (GamepadReport_t) — the HID report struct
+  src/Core/HIDManager.cpp:48        HID stack stub guard — shows WiFi disables real HID
+  src/HIDManager.h                  Add findHidMappingByDcs + setAxisDirect declarations
+  src/Globals.h:61                  isModeSelectorDCS() extern declaration
+  src/LABELS/*/InputMapping.h       hidId, oride_label, oride_value fields
+  src/LABELS/*/LabelSetConfig.h     HAS_HID_MODE_SELECTOR, MODE_DEFAULT_IS_HID
+  CockpitOS.ino:160                 isModeSelectorDCS() implementation
+  lib/CUtils/src/internal/RS485Master.cpp:727  processInputCommand() — parses slave response
+  lib/CUtils/src/internal/RS485Master.cpp:766  sendCommand(label, value, false) call
+  lib/CUtils/src/internal/RS485Slave.cpp       RS485Slave_queueCommand() entry point
+
+================================================================================
+11. TESTING CHECKLIST
+================================================================================
+
+  PREREQUISITES:
+  [ ] Master configured with USE_DCSBIOS_USB=1 (not WiFi)
+  [ ] Master LabelSetConfig.h has MODE_DEFAULT_IS_HID=1 or HAS_HID_MODE_SELECTOR=1
+  [ ] Master InputMapping.h includes entries with valid hidIds for slave labels
+
+  FUNCTIONAL TESTS:
+  [ ] Master in HID mode, slave sends momentary button press ("LABEL 1")
+      -> Verify HID button bit sets in PC game controller viewer
+
+  [ ] Master in HID mode, slave sends momentary button release ("LABEL 0")
+      -> Verify HID button bit clears (tests the findInputByLabel fallback)
+
+  [ ] Master in HID mode, slave sends selector position 0 ("MASTER_ARM_SW 0")
+      -> Verify the SAFE position HID button bit IS SET (not cleared!)
+      -> Verify other positions in the group are cleared
+
+  [ ] Master in HID mode, slave sends selector position 1 ("MASTER_ARM_SW 1")
+      -> Verify the ARM position HID button bit is set
+      -> Verify SAFE position bit is cleared (group exclusivity)
+
+  [ ] Master in HID mode, slave sends variable_step ("CHART_DIMMER +3200")
+      -> Verify INC HID button pulses ON then auto-clears after STEP_PULSE_MS
+      (Requires hidId assigned to INC/DEC entries in master InputMapping)
+
+  [ ] Master in HID mode, slave sends fixed_step ("SOME_CONTROL INC")
+      -> Verify HID button pulses ON then auto-clears after STEP_PULSE_MS
+      (Requires hidId assigned to INC/DEC entries in master InputMapping)
+
+  [ ] Master in HID mode, slave sends analog axis value
+      -> Verify axis moves in PC game controller viewer (if implemented)
+
+  [ ] Master in DCS mode, slave sends any command
+      -> Verify ZERO behavioral change — command goes to DCS transport as before
+
+  [ ] Master in HID mode, slave sends label with hidId=-1 (DCS-only)
+      -> Verify command falls through gracefully (no crash, no HID action)
+
+  [ ] Master in HID mode, local panel input still works
+      -> Verify local buttons/axes still generate HID reports normally
+
+  [ ] System command like "PING" with no InputMapping entry
+      -> Verify no crash, falls through to existing transport code
+
+  EDGE CASES:
+  [ ] Slave sends unknown label not in master's InputMapping
+      -> Verify no crash, falls through gracefully
+
+  [ ] Slave sends malformed arg (empty string, very long string)
+      -> atoi returns 0, findHidMappingByDcs handles gracefully
+
+  [ ] Multiple slaves sending commands concurrently
+      -> Verify no report corruption (sendCommand is called from main loop,
+         single-threaded on master — no concurrency concern)
+
+================================================================================
+CHANGES FROM V1
+================================================================================
+
+  1. CRITICAL FIX: Replaced findInputByLabel() with findHidMappingByDcs()
+     for the primary lookup. findInputByLabel searches by 'label' field but
+     slaves send 'oride_label'. For selectors and step controls, these differ.
+
+  2. CRITICAL FIX: Documented HID stack prerequisites. WiFi-transport masters
+     have the USB HID stack stubbed out. Must use USE_DCSBIOS_USB=1.
+
+  3. IMPORTANT FIX: Selector position 0 now correctly handled. Always call
+     HIDManager_setNamedButton with pressed=true for the resolved entry,
+     rather than using val!=0 which treats position 0 as a release.
+
+  4. IMPORTANT FIX: Step control directional parsing. Parse arg for +/-/INC/DEC
+     to determine direction, then look up with oride_value 1 (INC) or 0 (DEC).
+
+  5. NEW: Momentary release handling. Added fallback to findInputByLabel for
+     "LABEL 0" releases where findHidMappingByDcs returns nullptr.
+
+  6. UPDATED: Effort estimate from ~25 to ~50-70 lines reflecting the more
+     robust lookup logic.
+
+  7. UPDATED: Architecture context clarifies that slaves send oride_label,
+     not per-position labels.
+
+  8. NOTED: All existing step control entries have hidId=-1. Step control HID
+     passthrough requires assigning hidIds when configuring the master label set.
+
+================================================================================
+END OF DOCUMENT
+================================================================================

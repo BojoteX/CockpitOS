@@ -53,34 +53,37 @@ static bool is_encoded_builtin(int pin)
 
 void print_builtin_led_info()
 {
-  int led_raw = -1, led_gpio = -1;
-  int rgb_raw = -1, rgb_gpio = -1;
+  int led_gpio = -1, rgb_gpio = -1;
 
 #if defined(LED_BUILTIN)
-  led_raw  = (int)LED_BUILTIN;
-  led_gpio = decode_builtin_pin(led_raw);
+  {
+    int led_raw  = (int)LED_BUILTIN;
+    led_gpio = decode_builtin_pin(led_raw);
 
-  if (led_gpio >= 0) {
-    debugPrintf("LED_BUILTIN: raw=%d -> gpio=%d (%s)\n",
-                led_raw, led_gpio,
-                is_encoded_builtin(led_raw) ? "encoded/virtual" : "direct gpio");
-  } else {
-    debugPrintf("LED_BUILTIN: raw=%d -> gpio=INVALID\n", led_raw);
+    if (led_gpio >= 0) {
+      debugPrintf("LED_BUILTIN: raw=%d -> gpio=%d (%s)\n",
+                  led_raw, led_gpio,
+                  is_encoded_builtin(led_raw) ? "encoded/virtual" : "direct gpio");
+    } else {
+      debugPrintf("LED_BUILTIN: raw=%d -> gpio=INVALID\n", led_raw);
+    }
   }
 #else
   debugPrintln("LED_BUILTIN: not defined");
 #endif
 
 #if defined(RGB_BUILTIN)
-  rgb_raw  = (int)RGB_BUILTIN;
-  rgb_gpio = decode_builtin_pin(rgb_raw);
+  {
+    int rgb_raw  = (int)RGB_BUILTIN;
+    rgb_gpio = decode_builtin_pin(rgb_raw);
 
-  if (rgb_gpio >= 0) {
-    debugPrintf("RGB_BUILTIN: raw=%d -> gpio=%d (%s)\n",
-                rgb_raw, rgb_gpio,
-                is_encoded_builtin(rgb_raw) ? "encoded/virtual" : "direct gpio");
-  } else {
-    debugPrintf("RGB_BUILTIN: raw=%d -> gpio=INVALID\n", rgb_raw);
+    if (rgb_gpio >= 0) {
+      debugPrintf("RGB_BUILTIN: raw=%d -> gpio=%d (%s)\n",
+                  rgb_raw, rgb_gpio,
+                  is_encoded_builtin(rgb_raw) ? "encoded/virtual" : "direct gpio");
+    } else {
+      debugPrintf("RGB_BUILTIN: raw=%d -> gpio=INVALID\n", rgb_raw);
+    }
   }
 #else
   debugPrintln("RGB_BUILTIN: not defined");
@@ -150,7 +153,7 @@ static void createStartupWatchdog() {
         "StartupWD",            // Name (for debugging)
         2048,                   // Stack size (minimal - just loops and checks)
         NULL,                   // Parameter
-        1,                      // Priority (low is fine)
+        3,                      // Priority (must be higher than TFT tasks to preempt hangs on single-core)
         NULL,                   // Task handle (don't need to store - self-deletes)
         0                       // Core 0 (main code runs on Core 1)
     );
@@ -407,9 +410,7 @@ void loop() {
 
     // Loop logic/order
     panelLoop();           // read inputs, update mappings
-    
     // CoverGate_loop();      // resolve cover/armed actions
-    
     DCSBIOSBridge_loop();  // flush DCS (sees freshly queued actions)
     HIDManager_loop();     // HID flush, keep-alive, pulses
 
@@ -433,5 +434,5 @@ void loop() {
     perfMonitorUpdate();
     #endif   
 
-    delay(1);
+    // delay(1);
 }

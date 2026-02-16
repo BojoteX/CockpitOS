@@ -29,6 +29,7 @@ namespace WS2812Mini
         pin = gpio;
         brightness = 255;
         lastShowUs = 0;
+        dirty = true;
 
         // Clear buffer deterministically.
         memset(bufGRB, 0, sizeof(bufGRB));
@@ -84,7 +85,8 @@ namespace WS2812Mini
         : pin(-1),
         n(0),
         brightness(255),
-        lastShowUs(0)
+        lastShowUs(0),
+        dirty(true)
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
         , tx_chan(nullptr)
         , enc(nullptr)
@@ -94,7 +96,10 @@ namespace WS2812Mini
     {}
 
     void Strip::setBrightness(uint8_t b) noexcept {
-        brightness = b;
+        if (brightness != b) {
+            brightness = b;
+            dirty = true;
+        }
     }
 
     uint16_t Strip::size() const noexcept {
@@ -104,10 +109,14 @@ namespace WS2812Mini
     // ===== Strip: set LED =====
     void Strip::setLED(uint16_t i, uint8_t r, uint8_t g, uint8_t b) noexcept {
         if (i >= n) return;
-        // WS2812 expects GRB order.
-        bufGRB[3u * i + 0] = g;
-        bufGRB[3u * i + 1] = r;
-        bufGRB[3u * i + 2] = b;
+        const uint16_t off = 3u * i;
+        // Only mark dirty if color actually changed
+        if (bufGRB[off] != g || bufGRB[off + 1] != r || bufGRB[off + 2] != b) {
+            bufGRB[off + 0] = g;
+            bufGRB[off + 1] = r;
+            bufGRB[off + 2] = b;
+            dirty = true;
+        }
     }
 
     // ===== Strip: clear =====
@@ -115,15 +124,18 @@ namespace WS2812Mini
         // Only clear the active portion to bounded time.
         const size_t bytes = (size_t)3u * (size_t)n;
         memset(bufGRB, 0, bytes);
+        dirty = true;
     }
 
     // ===== Strip: show =====
     void Strip::show() noexcept {
+        if (!dirty) return;                            // nothing changed, skip TX
         const uint32_t now = micros();
         const uint32_t dt = now - lastShowUs;
-        if (dt < 300u) delayMicroseconds(300u - dt); // was 60us
+        if (dt < 300u) delayMicroseconds(300u - dt);  // was 60us
         sendFrame();
         lastShowUs = micros();
+        dirty = false;
     }
 
     // ===== Strip: sendFrame (encode + TX) =====

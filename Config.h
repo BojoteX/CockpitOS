@@ -19,71 +19,51 @@
   #define WIFI_PASS                     "TestingOnly" // Make sure your Wi-Fi router supports WPA2-PSK (AES/CCMP), otherwise, device will not connect *** THIS IS VERY IMPORTANT ***. ESP32s will Connect to 2.4 GHz and WPA2-PSK (AES/CCMP) capable routers ONLY so make sure yours supports these requirements.
 #endif
 
+//
+#define MODE_DEFAULT_IS_HID                         0 // Is HID mode default? (This should almost always be 0). Only enable if you want your device to send Input buttons/axes at the OS level. This is so you can use the device with other simulators (Inputs only)
+
 // Is this an RS-485 Master? leave to 0 for normal operation.
-#define RS485_MASTER_ENABLED                        1 // Set as RS-485 Master. Polls slaves. Forwards data, you still need to choose a transport above (WiFi, Serial, USB etc)
+#define RS485_MASTER_ENABLED                        0 // Set as RS-485 Master. Polls slaves. Forwards data, you still need to choose a transport above (WiFi, Serial, USB etc)
 
 // Here is where you tell the firmware which 'transport' will be used to Communicate with the simulator (only ONE can be selected). 
 // Bluetooth BLE, Pure Native USB, WIFI, Serial (CDC/Socat) or as an RS485 slave. ** Only ONE ** can be active 
 #define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included in Open Source version of CockpitOS) (Works on ALL ESP32s except S2s and some P4s).
-#define USE_DCSBIOS_WIFI                            1 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
-#define USE_DCSBIOS_USB                             0 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
+#define USE_DCSBIOS_WIFI                            0 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
+#define USE_DCSBIOS_USB                             1 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
 #define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 #define RS485_SLAVE_ENABLED                         0 // Set as RS-485 Slave, you need to also run a master RS485 on a separate device
 
 // RS485 *** [ Slave ] *** (Only if RS485_SLAVE_ENABLED is set to 1)
 #define RS485_SLAVE_ADDRESS                         1 // This is the Slave addres ID! Only use when RS485_SLAVE_ENABLED (above) is set to 1. Choose a device address between (1-126) each slave should have a unique address
+#define RS485_TX_PRE_DE_DELAY_US                   40 // AVR slave sends a phantom 0x00 byte (~40us) with DE low before responding — without this delay the ESP32 responds before the AVR master exits its TXC ISR, causing UDR overrun
 
 // RS485 *** [ Master ] *** (Option only work when RS485_MASTER_ENABLED is set to 1)
 #define RS485_SMART_MODE                            0 // If enabled, filters by DcsOutputTable (only addresses your slaves need). see selected_panels.txt in your panel LABEL SET. Keep in mind SMART mode reduces BANDWIDTH on the RS485 bus at the expense of slightly increased LATENCY (due to filtering)
 #define RS485_MAX_SLAVE_ADDRESS                   127 // Maximum slave address to poll (valid range: 1-127).        
 
-// RS485 (Optional) only for Slave/Master RS485 setups
-#define RS485_DEBUG_VERBOSE                         0 // 1 = Log every poll/response (VERY verbose). 0 = Normal operation
-#define RS485_USE_ISR_MODE                          1 // 1 = ISR-driven (lowest latency, dedicated core). 0 = Not Implemented properly, wont work
-#define RS485_TX_PIN                               17 // GPIO Used for TX (Here's the PIN on your ESP32 you connected to the RS485 Board TX or DI)
-#define RS485_RX_PIN                               18 // GPIO Used for RX (Here's the PIN on your ESP32 you connected to the RS485 Board RX or RO)
-#define RS485_DE_PIN                               -1 // \If your board has a DE pin, connect it to this GPIO, no DE pin? set -1
-#define RS485_STATUS_INTERVAL_MS                60000 // How many milliseconds between each stats banner (60000 = 60 secs = 1 min)
+// RS485 *** General Setting *** 
+#define RS485_TX_WARMUP_DELAY_US                    0 // Manual DE: delay after DE assert before TX
+#define RS485_TX_WARMUP_AUTO_DELAY_US               0 // Auto-direction: delay before TX (internal RX→TX switch)
 
-// REMOVE FOR PRODUCTION
-#define RS485_TEST_BUTTON_GPIO                      0 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
-#define RS485_TEST_SWITCH_GPIO                      1 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
-#define RS485_TEST_LED_GPIO                        15 // Only use when RS485_SLAVE_ENABLED is set to 1. Choose a device address between (1-126) each slave should have a unique address
-
-// RS485 Transceiver Timing (microseconds) — applies to both master and slave.
-// Warmup = delay after enabling TX before sending first byte (transceiver settling).
-// Cooldown = delay after last bit before switching back to RX (protects last bit on wire).
-// Manual = when using a DE pin. Auto = when transceiver handles direction internally.
-// Set to 0 to disable individual delays. All default to 50µs.
-
-#define RS485_TX_WARMUP_DELAY_US                  10 // Manual DE: delay after DE assert before TX
-#define RS485_TX_WARMUP_AUTO_DELAY_US              0 // Auto-direction: delay before TX (internal RX→TX switch)
-
-// RS485 Master Task Configuration:
-//   WiFi transport (USE_DCSBIOS_WIFI=1):  Set RS485_USE_TASK=0. WiFi runs on Core 0, loop() on Core 1.
-//                                         Running RS485 in loop() gives tightest parse-to-broadcast pipeline
-//                                         with zero FreeRTOS scheduling overhead or vTaskDelay gaps.
-//
-//   Non-WiFi transport (USB/Serial):      Set RS485_USE_TASK=1, RS485_TASK_CORE=0.
-//                                         Core 0 is free (no WiFi), so RS485 gets a dedicated core
-//                                         with no contention — maximum determinism.
-//
-#define RS485_USE_TASK                              1  // 0 = runs in loop() (best for WiFi). 1 = dedicated FreeRTOS task (best for USB/Serial/BLE)
-#define RS485_TASK_CORE                             1  // Only relevant/used when RS485_USE_TASK is set to 1 (see above). 0 = Core 0 (ideal when no WiFi). 1 = Core 1 (shares with loop). Ignored on single-core chips
+// RS485 *** Advanced CPU Core management *** 
+#define RS485_USE_TASK                              1 // 0 = runs in loop() (best for WiFi). 1 = dedicated FreeRTOS task (best for USB/Serial/BLE)
+#define RS485_TASK_CORE                             0 // Only relevant/used when RS485_USE_TASK is set to 1 (see above). 0 = Core 0 (ideal when no WiFi). 1 = Core 1 (shares with loop). Ignored on single-core chips
 
 // *** READ THIS *** (Advanced users only)
 // TinyUSB + Wi-Fi enabled at the same time consume a LOT of memory, so if you decide to enable debugging (below) on S2 devices keep that in mind as compiles will most likely fail if both the WiFi stack (for debug or normal operation) is enabled along USB-OTG (TinyUSB). To avoid, simply use an S3 device or stick to the stack capabilities (e.g) Debug via Serial if using USB or Debug via WiFi if using WiFi as transport.  
 
 // For production, ALL THESE should be set to 0. Use for debugging only.
-#define DEBUG_ENABLED                               0  // Use it ONLY when identifying issues or troubleshooting. Not required when using VERBOSE modes below
-#define DEBUG_PERFORMANCE                           0  // Shows profiling for specific tasks and memory usage for debug and troubleshooting.
-#define VERBOSE_MODE                                0  // Verbose will output to both WiFi & Serial (Uses a LOT of Memory, might fail compile on S2 devices).
-#define VERBOSE_MODE_SERIAL_ONLY                    0  // Verbose will only output to Serial. 
-#define VERBOSE_MODE_WIFI_ONLY                      0  // Verbose will only output to WiFi.
-#define VERBOSE_PERFORMANCE_ONLY                    0  // This will output perf snapshots ONLY, make sure you pick VERBOSE_MODE_SERIAL_ONLY or VERBOSE_MODE_WIFI_ONLY so that we know where to output those snapshot ONLY messages.
-#define DEBUG_PERFORMANCE_SHOW_TASKS                0  // Includes the current task list with the snapshot. Not really needed.
-#define DEBUG_LISTENERS_AT_STARTUP                  0  // Debug Listeners for ADVANCED troubleshooting! usually not needed.
-#define PERFORMANCE_SNAPSHOT_INTERVAL_SECONDS       60 // Interval between snapshots (in seconds)
+#define DEBUG_ENABLED                               0 // Use it ONLY when identifying issues or troubleshooting. Not required when using VERBOSE modes below
+#define DEBUG_PERFORMANCE                           0 // Shows profiling for specific tasks and memory usage for debug and troubleshooting.
+#define VERBOSE_MODE                                0 // Verbose will output to both WiFi & Serial (Uses a LOT of Memory, might fail compile on S2 devices).
+#define VERBOSE_MODE_SERIAL_ONLY                    0 // Verbose will only output to Serial. 
+#define VERBOSE_MODE_WIFI_ONLY                      0 // Verbose will only output to WiFi.
+#define VERBOSE_PERFORMANCE_ONLY                    0 // This will output perf snapshots ONLY, make sure you pick VERBOSE_MODE_SERIAL_ONLY or VERBOSE_MODE_WIFI_ONLY so that we know where to output those snapshot ONLY messages.
+#define DEBUG_PERFORMANCE_SHOW_TASKS                0 // Includes the current task list with the snapshot. Not really needed.
+#define DEBUG_LISTENERS_AT_STARTUP                  0 // Debug Listeners for ADVANCED troubleshooting! usually not needed.
+#define RS485_DEBUG_VERBOSE                         0 // 1 = Log every poll/response (VERY verbose). 0 = Normal operation
+#define RS485_STATUS_INTERVAL_MS                60000 // How many milliseconds between each stats banner (60000 = 60 secs = 1 min)
+#define PERFORMANCE_SNAPSHOT_INTERVAL_SECONDS      60 // Interval between snapshots (in seconds)
 
 // Key scanning
 #define DEBUG_ENABLED_FOR_PCA_ONLY                  0  // Use it ONLY when mapping Port/bit/mask in PCA9xxx devices
@@ -103,7 +83,7 @@
 #define TEST_LEDS                                   0 // Interactive menu (via serial console) to test LEDs individually
 #define IS_REPLAY                                   0 // Simulate a loopback DCS stream to check your panel is working and debug via Serial
 #define DCSBIOS_USE_LITE_VERSION                    1 // Set to 1 to use a LITE (local) version of the DCSBIOS Library. 0 Uses the Original unmodified Library (you'll need to install it)
-#define USE_WIRE_FOR_I2C                            0 // If set to 1 uses the Arduino compatible I2C Wire Library (slow). Use 0 for Faster alternative
+#define USE_WIRE_FOR_I2C                            1 // If set to 1 uses the Arduino compatible I2C Wire Library (slow). Use 0 for Faster alternative
 #define PCA_FAST_MODE                               1 // Set to 1 to enable 400MHz PCA Bus FAST MODE 
 #define SERIAL_RX_BUFFER_SIZE                     512 // This is the INCOMING buffer for DCS Data (in bytes) when using CDC / Serial. increase if you see OVERFLOW msg             
 #define SERIAL_TX_TIMEOUT                           5 // in ms (Used for CDC receive stream timeouts)
@@ -153,7 +133,7 @@
 #endif
 
 // WiFi Debug Ring Buffer 
-#define WIFI_DEBUG_USE_RINGBUFFER                   1 // Should be use a ring buffer for WiFi Debug messages? helps when using WiFi DCS Mode. If WiFi is not used, this value is ignored anyway. Also, if using CDC + WiFi Debug, this is REQUIRED to avoid CDC stalls
+#define WIFI_DEBUG_USE_RINGBUFFER                   0 // Should be use a ring buffer for WiFi Debug messages? helps when using WiFi DCS Mode. If WiFi is not used, this value is ignored anyway. Also, if using CDC + WiFi Debug, this is REQUIRED to avoid CDC stalls
 #if WIFI_DEBUG_USE_RINGBUFFER
   #define WIFI_DBG_SEND_RINGBUF_SIZE               32 // How many slots in our buffer
   #define WIFI_DBG_MSG_MAXLEN                      64 // Max size for each slot
@@ -197,15 +177,22 @@
 #define SERIAL_DEBUG_OUTPUT_CHUNK_SIZE           64 // Final Serial.write will use this value to chunk writes
 #define DCS_UDP_MAX_REASSEMBLED                1472 // Or whatever max UDP/Frame size you want
 
-// Stringize helpers
+// Stringize helpers (undef to override any framework defaults)
+#undef _STR
+#undef STR
 #define _STR(x) #x
 #define STR(x)  _STR(x)
 // String form for text macros
 #define LABEL_SET_STR STR(LABEL_SET)
 
 // Required for Descriptor handling. For custom commercial implementations using your own name (you are free to do so), just by mindful of PID, VID, Manufacturer and the actual USB_PRODUCT string. No need for attribution, you can use this software as per the included LICENSE
+#undef USB_VID
+#undef USB_PID
 #define USB_VID		                           0xCAFE // If you change this, make sure you also update the Python script settings.ini file
 #define USB_PID		                           AUTOGEN_USB_PID
+#undef USB_SERIAL
+#undef USB_PRODUCT
+#undef USB_MANUFACTURER
 #define USB_SERIAL                           LABEL_SET_STR
 #define USB_PRODUCT                          USB_SERIAL
 #define USB_MANUFACTURER                     "CockpitOS"
@@ -224,11 +211,24 @@
   #define CONFIG_TINYUSB_CDC_MAX_PORTS              2
 #endif
 
-// Advanced TinyUSB Config Options.
-#define CFG_TUSB_DEBUG                             0  // Enabled TinyUSB debugging 
+// Advanced TinyUSB Config Options (undef first to override framework defaults).
+#undef CFG_TUSB_DEBUG
+#undef CONFIG_TINYUSB_CDC_RX_BUFSIZE
+#undef CONFIG_TINYUSB_CDC_TX_BUFSIZE
+#undef CONFIG_TINYUSB_HID_BUFSIZE
+#undef CONFIG_TINYUSB_MSC_ENABLED
+#undef CONFIG_TINYUSB_HID_ENABLED
+#undef CONFIG_TINYUSB_MIDI_ENABLED
+#undef CONFIG_TINYUSB_VIDEO_ENABLED
+#undef CONFIG_TINYUSB_CUSTOM_CLASS_ENABLED
+#undef CONFIG_TINYUSB_DFU_RT_ENABLED
+#undef CONFIG_TINYUSB_DFU_ENABLED
+#undef CONFIG_TINYUSB_VENDOR_ENABLED
+#undef CONFIG_TINYUSB_NCM_ENABLED
+#define CFG_TUSB_DEBUG                             0  // Enabled TinyUSB debugging
 #define CONFIG_TINYUSB_CDC_RX_BUFSIZE             64
 #define CONFIG_TINYUSB_CDC_TX_BUFSIZE             64
-#define CONFIG_TINYUSB_HID_BUFSIZE                64  
+#define CONFIG_TINYUSB_HID_BUFSIZE                64
 #define CONFIG_TINYUSB_MSC_ENABLED                0
 #define CONFIG_TINYUSB_HID_ENABLED                1
 #define CONFIG_TINYUSB_MIDI_ENABLED               0
@@ -304,7 +304,7 @@
 #endif
 
 #if VERBOSE_PERFORMANCE_ONLY
-  #define DEBUG_PERFORMANCE 1
+  #define DEBUG_PERFORMANCE 0
 #endif
 
 #if USE_DCSBIOS_WIFI && !DEVICE_HAS_WIFI

@@ -25,7 +25,7 @@
     REGISTER_PANEL(TFTHyd, nullptr, nullptr, HydPressureGauge_init, HydPressureGauge_loop, nullptr, 100);
 #endif
 
-#define MAX_MEMORY_TFT 4
+#define MAX_MEMORY_TFT 2
 #define HYD_PRESSURE_GAUGE_DRAW_MIN_INTERVAL_MS 13
 #define RUN_HYD_PRESSURE_GAUGE_AS_TASK 1
 #define BACKLIGHT_LABEL "INST_PNL_DIMMER"
@@ -195,8 +195,8 @@ static inline Rect rectPad(const Rect& r, int16_t px) {
 static Rect rotatedAABB(int cx, int cy, int w, int h, int px, int py, float deg) {
     const float rad = deg * (float)M_PI / 180.0f;
     float s = sinf(rad), c = cosf(rad);
-    const float xs[4] = { -px, (float)w - px, (float)w - px, -px };
-    const float ys[4] = { -py, -py, (float)h - py, (float)h - py };
+    const float xs[4] = { (float)-px, (float)w - px, (float)w - px, (float)-px };
+    const float ys[4] = { (float)-py, (float)-py, (float)h - py, (float)h - py };
     float minx = 1e9f, maxx = -1e9f, miny = 1e9f, maxy = -1e9f;
     for (int i = 0; i < 4; ++i) {
         float xr = xs[i] * c - ys[i] * s;
@@ -495,6 +495,6 @@ void HydPressureGauge_deinit() {
     }
 }
 
-#else
+#elif defined(HAS_CUSTOM_RIGHT) && defined(ENABLE_TFT_GAUGES) && (ENABLE_TFT_GAUGES == 1)
 #warning "Hydraulic Pressure Gauge requires ESP32-S2 or ESP32-S3"
 #endif

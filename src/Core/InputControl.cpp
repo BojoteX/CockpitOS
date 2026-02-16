@@ -349,6 +349,21 @@ size_t numAutoAnalogs = 0;
 void buildAutoAnalogInputs() {
     numAutoAnalogs = 0;
 
+    // Build a reserved-axis mask from explicit hidId assignments.
+    // This prevents auto-assigned axes from colliding with explicit ones
+    // when mixing explicit hidId and hidId=-1 (auto) in the same label set.
+    // For analogs, hidId >= 0 is valid (0=AXIS_X, 1=AXIS_Y, etc.).
+    // Only hidId == -1 means "auto-assign".
+    bool reservedAxis[HID_AXIS_COUNT] = {};
+    for (size_t i = 0; i < InputMappingSize; ++i) {
+        const auto& m = InputMappings[i];
+        if (!m.label || !m.source) continue;
+        if (strcmp(m.controlType, "analog") != 0) continue;
+        if (m.hidId >= 0 && m.hidId < HID_AXIS_COUNT) {
+            reservedAxis[m.hidId] = true;
+        }
+    }
+
 #if ANALOG_AXIS_DESCENDING
     int axisIdx = HID_AXIS_COUNT - 1;
 #define AXIS_AVAIL()   (axisIdx >= 0)
@@ -359,7 +374,7 @@ void buildAutoAnalogInputs() {
 #define NEXT_AXIS()    ((HIDAxis)(axisIdx++))
 #endif
 
-    for (size_t i = 0; i < InputMappingSize && AXIS_AVAIL(); ++i) {
+    for (size_t i = 0; i < InputMappingSize; ++i) {
         const auto& m = InputMappings[i];
         if (!m.label || !m.source) continue;
         if (strcmp(m.controlType, "analog") != 0) continue;
@@ -367,7 +382,29 @@ void buildAutoAnalogInputs() {
         if (strcmp(m.source, "NONE") == 0) continue;                // skip placeholders
         if (strncmp(m.source, "PCA_0x", 6) == 0) continue;          // not analog
 
-        autoAnalogs[numAutoAnalogs++] = AutoAnalogInput{ m.label, (uint8_t)m.port, NEXT_AXIS() };
+        // If InputMapping specifies a valid hidId (>= 0), use it as the axis.
+        // For analogs: hidId 0=AXIS_X, 1=AXIS_Y, ... 15=AXIS_CUSTOM8.
+        // Only hidId == -1 means "auto-assign sequentially".
+        // This keeps axis assignment consistent with the RS485 master HID gate
+        // which also uses hidId for analog→axis mapping.
+        HIDAxis axis;
+        if (m.hidId >= 0 && m.hidId < HID_AXIS_COUNT) {
+            axis = (HIDAxis)m.hidId;
+        } else {
+            // Skip reserved axes so auto-assign never collides with explicit ones
+            while (AXIS_AVAIL() && reservedAxis[axisIdx]) {
+#if ANALOG_AXIS_DESCENDING
+                axisIdx--;
+#else
+                axisIdx++;
+#endif
+            }
+            if (!AXIS_AVAIL()) break;
+            axis = NEXT_AXIS();
+        }
+
+        if (numAutoAnalogs >= MAX_AUTO_ANALOGS) break;
+        autoAnalogs[numAutoAnalogs++] = AutoAnalogInput{ m.label, (uint8_t)m.port, axis };
     }
 
 #undef AXIS_AVAIL
@@ -463,8 +500,8 @@ void pollPCA9555_flat(bool forceSend) {
             const PCA9555Input& pin = pca9555Inputs[i];
             if (pin.addr != addr) continue;
 
-            // Only process REAL bits for momentaries!
-            if (pin.isMomentary && pin.bit >= 0 && pin.bit < 8) {
+            // Only process REAL bits for momentaries! (bit is uint8_t, always >= 0)
+            if (pin.isMomentary && pin.bit < 8) {
                 uint8_t pval = (pin.port == 0) ? port0 : port1;
                 bool pressed = ((pval & (1 << pin.bit)) == 0); // active LOW
                 if (pressed != lastStatePCA9555[i] || forceSend) {
@@ -483,7 +520,7 @@ void pollPCA9555_flat(bool forceSend) {
             for (size_t i = 0; i < numPca9555Inputs; ++i) {
                 const PCA9555Input& pin = pca9555Inputs[i];
                 if (pin.addr != addr || !pin.isSelector || pin.group != group) continue;
-                if (pin.bit == -1 || pin.bit == 255) { fallback = &pin; continue; }
+                if (pin.bit == 255) { fallback = &pin; continue; }  // 255 = fallback sentinel (uint8_t)
 
                 uint8_t pval = (pin.port == 0) ? port0 : port1;
                 if ((pval & (1 << pin.bit)) == 0) { winner = &pin; break; }
@@ -841,6 +878,7 @@ static void TM1637_windowReset(TMKeyWindow& w) {
     for (uint8_t i = 0; i < 17; ++i) w.counts[i] = 0;
 }
 
+#if ADVANCED_TM1637_INPUT_FILTERING
 static void TM1637_windowAdd(TMKeyWindow& w, uint8_t idx) {
     // idx in 0..16 (16 == none)
     if (w.size < TM_WINDOW_SIZE) {
@@ -878,6 +916,7 @@ static int8_t TM1637_windowDominant(const TMKeyWindow& w,
     }
     return (int8_t)bestIdx;
 }
+#endif
 
 // --- Build TM1637 mapping from InputMappings[] ---
 
@@ -899,7 +938,9 @@ static void _TM1637_build() {
     numTMDevs = 0;
     numTMKeys = 0;
 
+    #if DEBUG_ENABLED_FOR_TM1637_ONLY
     bool hasTmMappings = false;
+    #endif
 
     // 1) Build from InputMappings[] (normal case)
     for (size_t i = 0; i < InputMappingSize; ++i) {
@@ -907,7 +948,9 @@ static void _TM1637_build() {
         if (!m.source || strcmp(m.source, "TM1637") != 0 || !m.label) continue;
         if (m.port < 0 || m.bit < 0) continue; // only real keys here
 
+        #if DEBUG_ENABLED_FOR_TM1637_ONLY
         hasTmMappings = true;
+        #endif
 
         TM1637Device* dev = _resolveTMDev((uint8_t)m.port);
         const int8_t d = _findOrAddTMDev(dev);

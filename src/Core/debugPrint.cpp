@@ -14,6 +14,7 @@ bool debugToUDP = false;
 // Temp buffer for Serial ring buffer draining
 static char tempBuf[SERIAL_DEBUG_FLUSH_BUFFER_SIZE]; // Big enough for your largest full message (tune as needed)
 
+#if SERIAL_RINGBUF_SIZE > 0
 static volatile uint32_t serialDebugTotalBytes = 0;
 static volatile uint32_t serialDebugMsgCount = 0;
 static volatile size_t   serialDebugMsgMaxLen = 0;
@@ -23,6 +24,7 @@ static volatile size_t   serialDebugHighWater = 0;
 
 static SerialDebugMsg serialBuf[SERIAL_RINGBUF_SIZE];
 static volatile uint8_t serialHead = 0, serialTail = 0;
+#endif
 
 void debugInit() {
 
@@ -60,6 +62,7 @@ void debugInit() {
 #endif
 }
 
+#if SERIAL_RINGBUF_SIZE > 0
 inline static bool serialRingFull()  { return ((serialHead + 1) % SERIAL_RINGBUF_SIZE) == serialTail; }
 inline static bool serialRingEmpty() { return serialHead == serialTail; }
 
@@ -73,6 +76,13 @@ float serialDebugAvgMsgLen(void) {
 size_t serialDebugMaxMsgLen(void) {
     return serialDebugMsgMaxLen;
 }
+#else
+uint32_t serialDebugGetOverflow(void) { return 0; }
+size_t serialDebugGetHighWater(void) { return 0; }
+size_t serialDebugGetPending(void) { return 0; }
+float serialDebugAvgMsgLen(void) { return 0.0f; }
+size_t serialDebugMaxMsgLen(void) { return 0; }
+#endif
 
 void debugSetOutput(bool toSerial, bool toUDP) {
     debugToSerial = toSerial;
@@ -110,9 +120,10 @@ void debugPrintn(const char* msg, size_t len) {
     #endif
 }
 
+#if SERIAL_RINGBUF_SIZE > 0
 void serialDebugRingPush(const char* msg, size_t len, bool isLastChunk) {
     if (serialRingFull()) {
-        serialDebugOverflow++;
+        serialDebugOverflow = serialDebugOverflow + 1;
         return;
     }
     if (len >= SERIAL_MSG_MAXLEN) len = SERIAL_MSG_MAXLEN - 1;
@@ -128,8 +139,8 @@ void serialDebugRingPush(const char* msg, size_t len, bool isLastChunk) {
 
     // --- Added these lines for stats ---
     serialDebugTotalBytes += len;
-    serialDebugMsgCount++;
-    if (len > serialDebugMsgMaxLen) serialDebugMsgMaxLen = len;   
+    serialDebugMsgCount = serialDebugMsgCount + 1;
+    if (len > serialDebugMsgMaxLen) serialDebugMsgMaxLen = len;
 }
 
 bool serialDebugRingPop(SerialDebugMsg* out) {
@@ -151,6 +162,13 @@ size_t serialDebugRingAvailable() {
     else
         return (serialTail - serialHead) - 1;
 }
+#else
+// Stubs when serial ring buffer is disabled
+void serialDebugRingPush(const char*, size_t, bool) {}
+bool serialDebugRingPop(SerialDebugMsg*) { return false; }
+size_t serialDebugRingPending() { return 0; }
+size_t serialDebugRingAvailable() { return 0; }
+#endif
 
 void serialDebugSendChunked(const char* msg, size_t len) {
 
@@ -159,8 +177,7 @@ void serialDebugSendChunked(const char* msg, size_t len) {
         if (!isSerialConnected()) return;
         writeToConsole(msg, len);
         return;
-    #endif    
-
+    #else
     const size_t max_data = SERIAL_MSG_MAXLEN - 1;
     size_t temp_pos = 0, temp_len = len, needed = 0;
 
@@ -173,7 +190,7 @@ void serialDebugSendChunked(const char* msg, size_t len) {
         temp_len -= take;
     }
     if (serialDebugRingAvailable() < needed) {
-        serialDebugOverflow++;
+        serialDebugOverflow = serialDebugOverflow + 1;
         return;
     }
 
@@ -189,7 +206,8 @@ void serialDebugSendChunked(const char* msg, size_t len) {
     }
 
     if (!mainLoopStarted)
-        sendPendingSerial();    
+        sendPendingSerial();
+    #endif
 }
 
 void serialDebugPrint(const char* msg) {
@@ -217,7 +235,7 @@ void serialDebugPrintln(const char* msg) {
 }
 
 void dumpSerialRingBuffer() {
-#if (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE)
+#if SERIAL_RINGBUF_SIZE > 0 && (USE_DCSBIOS_SERIAL || VERBOSE_MODE_SERIAL_ONLY || VERBOSE_MODE)
     char outbuf[1024];
     size_t olen = 0;
     olen += snprintf(outbuf + olen, sizeof(outbuf) - olen, "\n--- Serial Ring Buffer Dump ---\n");

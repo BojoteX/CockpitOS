@@ -243,7 +243,7 @@ uint16_t const seg14_ascii[128] = {
     0x3087, //  89  Y
     0x01E0, //  90  Z
     0x28C0, //  91  [
-    0x0408, //  92  \
+    0x0408, //  92  backslash
     0x00C5, //  93  ]
     0x0108, //  94  ^
     0x0080, //  95  _
@@ -468,8 +468,7 @@ inline void itoa_percent(char* out, int val) {
 static const DisplayFieldDefLabel nozzleL = { "IFEI_NOZZLE_L", &IFEI_NOZZLE_L_MAP[0][0], 0, 0, 0, 100, FIELD_NUMERIC, 11, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_BARGRAPH };
 static const DisplayFieldDefLabel nozzleR = { "IFEI_NOZZLE_R", &IFEI_NOZZLE_R_MAP[0][0], 0, 0, 0, 100, FIELD_NUMERIC, 11, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_BARGRAPH };
 
-static FieldState nozzleLState = { "" };
-static FieldState nozzleRState = { "" };
+// nozzleLState / nozzleRState removed — nozzle updates use raw uint16_t values directly
 
 // ---- Nozzle pointer trackers ----
 static int lastPercentL = -1;

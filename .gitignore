@@ -1,7 +1,8 @@
 .claude
+nul
+__pycache__
 .credentials
 CLAUDE.md
-transcript.md
 Dev
 build
 Debug Tools/logs

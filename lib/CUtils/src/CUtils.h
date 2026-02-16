@@ -66,6 +66,7 @@ struct TM1637Device {
     uint8_t dioPin;
     uint8_t ledData[6];
     bool    needsUpdate;
+    uint8_t dirtyGrids;   // bitmask: bit i = grid i changed since last flush
 };
 
 uint8_t       TM1637_getDeviceCount();

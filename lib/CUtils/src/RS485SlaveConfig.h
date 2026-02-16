@@ -106,36 +106,18 @@
 #define RS485_ARDUINO_COMPAT    1
 #endif
 
-// ============================================================================
-// RX MODE SELECTION
-// ============================================================================
-// 1 = ISR-driven RX (lowest latency, like AVR)
-//     - UART RX interrupt fires immediately when byte arrives
-//     - State machine runs IN the ISR - no polling latency
-//     - Response sent immediately from ISR when poll detected
-//     - Uses periph_module_enable (no driver install) for bare-metal access
-//     - Adds RISC-V fence instruction for FIFO read stability on C3/C6/H2
-//     - ELIMINATES driver-mode timestamp blindness (batch reading issue)
-//
-// 0 = Driver-based RX (portable fallback)
-//     - Uses ESP-IDF UART driver for RX (uart_read_bytes polling)
-//     - State machine runs in task/main loop
-//     - Slightly higher latency, may have batch-read timing issues
-//     - Use this if ISR mode doesn't work on your specific chip
-//
-// Recommended: 1 (ISR mode) for production use
-
-// *** Set in Config.h — this is only a fallback default ***
-#ifndef RS485_USE_ISR_MODE
-#define RS485_USE_ISR_MODE			1
-#endif
-
 // *** Set in Config.h — this is only a fallback default ***
 #ifndef RS485_USE_TASK
 #define RS485_USE_TASK				1
 #endif
 
 // *** Transceiver timing — Set in Config.h, these are only fallback defaults ***
+// Pre-DE response delay: holds the bus silent after receiving a poll, BEFORE
+// asserting DE. Matches the AVR slave's tx_delay_byte() behavior (~40us phantom
+// byte at 250kbaud). Set to 0 to disable (ESP32-to-ESP32 doesn't need this).
+#ifndef RS485_TX_PRE_DE_DELAY_US
+#define RS485_TX_PRE_DE_DELAY_US    0
+#endif
 // Manual DE pin: warmup ensures transceiver settles into TX mode before data
 #ifndef RS485_TX_WARMUP_DELAY_US
 #define RS485_TX_WARMUP_DELAY_US    50
@@ -144,9 +126,8 @@
 #ifndef RS485_TX_WARMUP_AUTO_DELAY_US
 #define RS485_TX_WARMUP_AUTO_DELAY_US 0
 #endif
-// Cooldown delays — NO LONGER USED by either ISR or Driver mode.
-// ISR mode: TX_DONE interrupt releases the bus immediately.
-// Driver mode: bus released immediately after uart_wait_tx_done().
+// Cooldown delays — NO LONGER USED.
+// TX_DONE interrupt releases the bus immediately.
 // Retained for backward config compatibility only.
 #ifndef RS485_TX_COOLDOWN_DELAY_US
 #define RS485_TX_COOLDOWN_DELAY_US  50

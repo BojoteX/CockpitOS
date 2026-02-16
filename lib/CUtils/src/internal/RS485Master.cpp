@@ -1,28 +1,16 @@
 /**
  * @file RS485Master.cpp
- * @brief RS-485 Master Driver for CockpitOS - v2.4 Dual-Mode (ISR + Driver)
+ * @brief RS-485 Master Driver for CockpitOS - v2.4 ISR-Only
  *
- * ARCHITECTURE (Dual-Path, controlled by RS485_USE_ISR_MODE):
- *
- *   RS485_USE_ISR_MODE 1 (default, max performance):
- *     - Bare-metal UART using uart_ll_* for direct hardware access
- *     - ISR-driven RX with FIFO threshold of 1 for minimum latency
- *     - State machine runs DIRECTLY in ISR (like AVR) - no buffering delay
- *     - TX is NON-BLOCKING: FIFO loaded, TX_DONE interrupt handles bus turnaround
- *     - Bus released within ~1us of last bit (matches AVR TXC behavior)
- *     - Requires a dedicated core (conflicts with WiFi on same core)
- *
- *   RS485_USE_ISR_MODE 0 (stable fallback):
- *     - Uses ESP-IDF UART driver (uart_driver_install) for portable RX/TX
- *     - State machine runs in task/main loop via uart_read_bytes polling
- *     - TX is BLOCKING at task level (uart_write_bytes + uart_wait_tx_done)
- *     - Rock-solid coexistence with WiFi/USB/BLE on the same core
- *     - Slightly higher latency but immune to ISR starvation
- *
- *   Shared between both modes:
- *     - RISC-V memory barriers for ESP32-C3/C6 cache coherency
- *     - Smart mode with DcsOutputTable filtering and change detection
- *     - Relay mode for Arduino-compatible raw byte pumping
+ * ARCHITECTURE:
+ *   - Bare-metal UART using uart_ll_* for direct hardware access
+ *   - ISR-driven RX with FIFO threshold of 1 for minimum latency
+ *   - State machine runs DIRECTLY in ISR (like AVR) - no buffering delay
+ *   - TX is NON-BLOCKING: FIFO loaded, TX_DONE interrupt handles bus turnaround
+ *   - Bus released within ~1us of last bit (matches AVR TXC behavior)
+ *   - RISC-V memory barriers for ESP32-C3/C6 cache coherency
+ *   - Smart mode with DcsOutputTable filtering and change detection
+ *   - Relay mode for Arduino-compatible raw byte pumping
  *
  * V2.3 CRITICAL FIX - TX_DONE NON-BLOCKING TX:
  *   The v2.2 blocking txWithEchoPrevention() held DE HIGH for ~52us after
@@ -40,14 +28,10 @@
  *     a complete message, it's forwarded to CockpitOS immediately.
  *
  * RATIONALE:
- *   Testing showed that for MASTER operation, ISR mode is essential.
- *   The master controls bus timing and needs lowest possible latency
- *   to catch slave responses. RX and TX never overlap for the master
- *   (it always waits for response before next poll), so ISR mode
- *   provides optimal timing-critical response detection.
- *
- *   Slave uses Driver mode because it can receive broadcast data DURING
- *   its TX response, and the DMA-backed buffer handles this overlap.
+ *   ISR mode is the only viable approach for RS485 on ESP32. The master
+ *   controls bus timing and needs lowest possible latency to catch slave
+ *   responses. Both master and slave use bare-metal UART with ISR-driven
+ *   RX and TX_DONE non-blocking TX for optimal timing.
  *
  * PROTOCOL: 100% compatible with Arduino DCS-BIOS RS485 implementation
  *
@@ -60,24 +44,18 @@
 
 // ESP-IDF includes
 #include "esp_attr.h"
-#include "driver/uart.h"
-#include "driver/gpio.h"
-#include "hal/uart_ll.h"           // ISR mode: direct uart_ll_* hardware access
-                                    // Driver mode: not currently used (hardware
-                                    // RS485 mode handles everything via ESP-IDF)
-
-#if RS485_USE_ISR_MODE
-// ISR mode needs additional direct hardware access
 #include "esp_intr_alloc.h"
-#include "hal/gpio_ll.h"
-#include "soc/uart_periph.h"
+// Peripheral module control - handle both old and new ESP-IDF locations
 #if __has_include("esp_private/periph_ctrl.h")
 #include "esp_private/periph_ctrl.h"
 #else
 #include "driver/periph_ctrl.h"
 #endif
-#include "soc/periph_defs.h"
-#endif // RS485_USE_ISR_MODE
+#include "driver/uart.h"
+#include "driver/gpio.h"
+#include "hal/uart_ll.h"
+#include "hal/gpio_ll.h"
+#include "soc/uart_periph.h"
 
 // FreeRTOS includes (for task mode)
 #if RS485_USE_TASK
@@ -97,35 +75,26 @@
 // HARDWARE ABSTRACTION
 // ============================================================================
 
-// UART hardware device pointer — used by ISR mode for all uart_ll_* calls.
-// Defined outside ISR guard so the macro is always available.
+// Map UART number to hardware
 #if RS485_UART_NUM == 0
     #define RS485_UART_DEV      UART_LL_GET_HW(0)
-#elif RS485_UART_NUM == 1
-    #define RS485_UART_DEV      UART_LL_GET_HW(1)
-#else
-    #define RS485_UART_DEV      UART_LL_GET_HW(2)
-#endif
-
-#if RS485_USE_ISR_MODE
-// ISR mode: additional peripheral/interrupt source mappings
-#if RS485_UART_NUM == 0
     #define RS485_UART_PERIPH   PERIPH_UART0_MODULE
     #define RS485_UART_SIGNAL   U0TXD_OUT_IDX
     #define RS485_UART_RX_SIG   U0RXD_IN_IDX
     #define RS485_UART_INTR_SRC ETS_UART0_INTR_SOURCE
 #elif RS485_UART_NUM == 1
+    #define RS485_UART_DEV      UART_LL_GET_HW(1)
     #define RS485_UART_PERIPH   PERIPH_UART1_MODULE
     #define RS485_UART_SIGNAL   U1TXD_OUT_IDX
     #define RS485_UART_RX_SIG   U1RXD_IN_IDX
     #define RS485_UART_INTR_SRC ETS_UART1_INTR_SOURCE
 #else
+    #define RS485_UART_DEV      UART_LL_GET_HW(2)
     #define RS485_UART_PERIPH   PERIPH_UART2_MODULE
     #define RS485_UART_SIGNAL   U2TXD_OUT_IDX
     #define RS485_UART_RX_SIG   U2RXD_IN_IDX
     #define RS485_UART_INTR_SRC ETS_UART2_INTR_SOURCE
 #endif
-#endif // RS485_USE_ISR_MODE
 
 // ============================================================================
 // PROTOCOL CONSTANTS
@@ -149,14 +118,11 @@ enum class MasterState : uint8_t {
 };
 
 // TX completion context — tells the TX_DONE handler what to do after bus turnaround
-// ISR mode only: the TX_DONE ISR reads txContext to decide post-TX state
-#if RS485_USE_ISR_MODE
 enum class TxContext : uint8_t {
     POLL,       // After TX: transition to RX_WAIT_DATALENGTH, start RX timeout
     BROADCAST,  // After TX: go back to IDLE
     TIMEOUT     // After TX: go back to IDLE (timeout zero byte)
 };
-#endif
 
 // ============================================================================
 // MESSAGE BUFFER - Lock-free ring buffer for slave responses
@@ -178,15 +144,15 @@ public:
     void IRAM_ATTR put(uint8_t c) {
         if (getLength() < SIZE) {  // Overflow protection: drop byte if buffer full
             buffer[writePos % SIZE] = c;
-            writePos++;
+            writePos = writePos + 1;
         } else {
-            dropCount++;
+            dropCount = dropCount + 1;
         }
     }
 
     uint8_t get() {
         uint8_t c = buffer[readPos % SIZE];
-        readPos++;
+        readPos = readPos + 1;
         return c;
     }
 
@@ -344,10 +310,10 @@ static inline bool rawEmpty() { return rawHead == rawTail; }
 static void bufferRawByte(uint8_t byte) {
     if (rawCount() >= RS485_RAW_BUFFER_SIZE - 1) {
         // Overflow - discard oldest
-        rawTail++;
+        rawTail = rawTail + 1;
     }
     rawBuffer[rawHead % RS485_RAW_BUFFER_SIZE] = byte;
-    rawHead++;
+    rawHead = rawHead + 1;
 }
 
 #endif // RS485_SMART_MODE
@@ -357,15 +323,9 @@ static void bufferRawByte(uint8_t byte) {
 // ============================================================================
 
 static volatile MasterState state = MasterState::IDLE;
-#if RS485_USE_ISR_MODE
 static volatile TxContext txContext = TxContext::BROADCAST;  // Current TX completion context
 static intr_handle_t intrHandle = nullptr;
-#endif
 static bool initialized = false;
-
-#if !RS485_USE_ISR_MODE
-static portMUX_TYPE rs485TxMux = portMUX_INITIALIZER_UNLOCKED;
-#endif
 
 // Slave tracking
 static bool slavePresent[128];  // Which slaves have responded
@@ -387,8 +347,10 @@ static size_t broadcastLen = 0;
 
 // Statistics
 static uint32_t statPolls = 0;
+static uint32_t statPollsPresent = 0;      // Polls to known-present slaves only
 static uint32_t statResponses = 0;
-static uint32_t statTimeouts = 0;
+static uint32_t statMidMsgTimeouts = 0;    // Slave started responding then went silent
+static uint32_t statDrainStalls = 0;       // messageBuffer stuck complete (task starvation)
 static uint32_t statBroadcasts = 0;
 static uint32_t statInputCmds = 0;
 static uint32_t statBytesOut = 0;
@@ -460,9 +422,13 @@ static void processQueuedCommands() {
 #endif // RS485_USE_TASK
 
 // ============================================================================
-// RX BYTE PROCESSOR - Runs in ISR context (ISR mode) or task context (driver mode)
+// RX BYTE PROCESSOR - Runs in ISR context (like AVR)
 // ============================================================================
 
+// rxStartTime is set ONCE in the TX_DONE handler when a poll completes —
+// matching the AVR's TXC ISR behavior (rx_start_time = micros()). The 5ms
+// mid-message timeout measures from poll-TX-complete, not from last byte.
+// This eliminates per-byte esp_timer_get_time() calls in the ISR hot path.
 static inline void IRAM_ATTR processRxByte(uint8_t c) {
     switch (state) {
         case MasterState::RX_WAIT_DATALENGTH:
@@ -472,24 +438,23 @@ static inline void IRAM_ATTR processRxByte(uint8_t c) {
                 state = MasterState::RX_WAIT_MSGTYPE;
             } else {
                 // Empty response - slave has no data
+                statResponses++;
                 state = MasterState::IDLE;
             }
-            rxStartTime = esp_timer_get_time();
             break;
 
         case MasterState::RX_WAIT_MSGTYPE:
             rxMsgType = c;
             (void)rxMsgType;  // Not used but kept for protocol completeness
             state = MasterState::RX_WAIT_DATA;
-            rxStartTime = esp_timer_get_time();
             break;
 
         case MasterState::RX_WAIT_DATA:
             messageBuffer.put(c);
-            if (--rxtxLen == 0) {
+            rxtxLen = rxtxLen - 1;
+            if (rxtxLen == 0) {
                 state = MasterState::RX_WAIT_CHECKSUM;
             }
-            rxStartTime = esp_timer_get_time();
             break;
 
         case MasterState::RX_WAIT_CHECKSUM:
@@ -497,7 +462,6 @@ static inline void IRAM_ATTR processRxByte(uint8_t c) {
             messageBuffer.complete = true;
             messageCompleteTime = esp_timer_get_time();
             state = MasterState::IDLE;
-            rxStartTime = esp_timer_get_time();
             break;
 
         default:
@@ -505,14 +469,6 @@ static inline void IRAM_ATTR processRxByte(uint8_t c) {
             break;
     }
 }
-
-#if RS485_USE_ISR_MODE
-
-// ############################################################################
-//
-//    ISR MODE: UART HELPERS, ISR, AND NON-BLOCKING TX
-//
-// ############################################################################
 
 // ============================================================================
 // UART HELPERS (must be defined before rxISR — TX_DONE handler calls these)
@@ -617,8 +573,8 @@ static void IRAM_ATTR rxISR(void* arg) {
     uart_ll_clr_intsts_mask(RS485_UART_DEV, uart_intr_status);
 }
 
-// Transmit with echo prevention — NON-BLOCKING (v2.3)
-// V2.3 Pattern: disableRx → DE assert → warmup → load FIFO → arm TX_DONE → return
+// Transmit with echo prevention — NON-BLOCKING (v2.4)
+// V2.4 Pattern: disableRx → DE assert → warmup → state → clear → load FIFO → enable TX_DONE → return
 //
 // When TX_DONE fires (in rxISR): flush echo → DE release → enableRx → set next state
 //
@@ -637,6 +593,24 @@ static void txWithEchoPrevention(const uint8_t* data, size_t len) {
     #endif
     #endif
 
+    // CRITICAL ORDERING: state → clear → FIFO → enable
+    //
+    // Why this order matters (ESP32-S2 single-core race):
+    //   1. Set state FIRST — ISR must see TX_WAITING_DONE before it can fire
+    //   2. Clear stale TX_DONE from previous cycle BEFORE loading new data
+    //   3. Load FIFO — hardware starts transmitting (40us per byte at 250kbps)
+    //   4. Enable TX_DONE interrupt LAST — even if preempted between FIFO load
+    //      and enable, the TX_DONE status bit accumulates in int_raw. When we
+    //      enable int_ena, int_st = int_raw AND int_ena fires the ISR immediately.
+    //
+    // The old order (FIFO → state → clear → enable) had a fatal race:
+    //   If tick preemption occurred after FIFO load but before clear, the UART
+    //   could finish TX during the preemption, setting int_raw TX_DONE. Then
+    //   clear would ERASE that pending event, and enable would find nothing.
+    //   State stuck at TX_WAITING_DONE forever.
+    state = MasterState::TX_WAITING_DONE;
+    uart_ll_clr_intsts_mask(RS485_UART_DEV, UART_INTR_TX_DONE);
+
     // Load TX FIFO — all bytes in one burst for polls/timeouts (<=3 bytes),
     // or use txBytes for larger broadcasts that may exceed FIFO depth
     if (len <= 128) {
@@ -645,53 +619,11 @@ static void txWithEchoPrevention(const uint8_t* data, size_t len) {
         txBytes(data, len);
     }
 
-    // Arm TX_DONE interrupt — fires when last bit leaves shift register
-    uart_ll_clr_intsts_mask(RS485_UART_DEV, UART_INTR_TX_DONE);
+    // Enable TX_DONE AFTER FIFO is loaded — cannot miss the event
     uart_ll_ena_intr_mask(RS485_UART_DEV, UART_INTR_TX_DONE);
-
-    // Mark state — TX_DONE handler in rxISR will complete the bus turnaround
-    state = MasterState::TX_WAITING_DONE;
 
     // Return immediately — CPU is FREE while hardware shifts out the bytes
 }
-
-#else // !RS485_USE_ISR_MODE
-
-// ############################################################################
-//
-//    DRIVER MODE: BLOCKING TX WITH HARDWARE RS485 HALF-DUPLEX
-//
-// ############################################################################
-//
-// For DE-pin devices (RS485_DE_PIN >= 0):
-//   Init configured UART_MODE_RS485_HALF_DUPLEX with RTS mapped to DE pin.
-//   The ESP-IDF UART driver handles EVERYTHING automatically:
-//     - Asserts DE (RTS→HIGH) when uart_write_bytes starts TX
-//     - Suppresses echo at hardware level (rs485tx_rx_en=0)
-//     - TX_DONE ISR inside the driver flushes RX FIFO + de-asserts DE
-//   We just write and wait. Same precision as our ISR-mode TX_DONE handler.
-//
-// For auto-direction devices (RS485_DE_PIN < 0):
-//   No hardware RS485 mode — UART runs in normal mode.
-//   We still need manual echo flush after TX completes.
-//
-// TX buffer = 0 in uart_driver_install, so uart_write_bytes goes directly
-// to the hardware FIFO — no ring buffer, no ISR chain, no scheduler delay.
-
-static void txWithEchoPrevention(const uint8_t* data, size_t len) {
-    // Direct FIFO write + block until last bit leaves shift register
-    uart_write_bytes((uart_port_t)RS485_UART_NUM, (const char*)data, len);
-    uart_wait_tx_done((uart_port_t)RS485_UART_NUM, pdMS_TO_TICKS(10));
-
-    // For DE-pin devices: hardware RS485 mode already handled everything
-    // (DE release + RX FIFO flush) inside the driver's TX_DONE ISR.
-    // For auto-direction devices: no DE pin, but still need echo flush.
-    #if RS485_DE_PIN < 0
-    uart_flush_input((uart_port_t)RS485_UART_NUM);
-    #endif
-}
-
-#endif // RS485_USE_ISR_MODE
 
 // ============================================================================
 // BROADCAST FUNCTIONS
@@ -733,7 +665,7 @@ static void prepareBroadcastData() {
 
     for (size_t i = 0; i < toSend; i++) {
         broadcastBuffer[broadcastLen++] = rawBuffer[rawTail % RS485_RAW_BUFFER_SIZE];
-        rawTail++;
+        rawTail = rawTail + 1;
     }
 }
 #endif
@@ -762,14 +694,8 @@ static void sendBroadcast() {
 
     // FIX: Send entire frame in ONE transmission (matches standalone)
     // Split transmission was causing sync issues
-    #if RS485_USE_ISR_MODE
     txContext = TxContext::BROADCAST;
-    #endif
     txWithEchoPrevention(frame, idx);
-    #if !RS485_USE_ISR_MODE
-    // Driver mode: TX is complete (blocking), go directly to IDLE
-    state = MasterState::IDLE;
-    #endif
 
     statBroadcasts++;
     statBytesOut += idx;
@@ -784,37 +710,20 @@ static void sendPoll(uint8_t addr) {
     uint8_t frame[3] = { addr, MSGTYPE_DCSBIOS, 0 };
 
     currentPollAddr = addr;
-    #if RS485_USE_ISR_MODE
     txContext = TxContext::POLL;
-    #endif
     txWithEchoPrevention(frame, 3);
-    #if RS485_USE_ISR_MODE
     // TX_DONE handler will set rxStartTime and state = RX_WAIT_DATALENGTH
     // This matches AVR exactly: rx_start_time is set in TXC ISR, not before
-    #else
-    // Driver mode: TX is complete (blocking), start listening immediately.
-    // Critical section prevents preemption between bus release (inside
-    // txWithEchoPrevention) and state transition to RX_WAIT_DATALENGTH.
-    portENTER_CRITICAL(&rs485TxMux);
-    rxStartTime = esp_timer_get_time();
-    state = MasterState::RX_WAIT_DATALENGTH;
-    portEXIT_CRITICAL(&rs485TxMux);
-    #endif
 
     statPolls++;
+    if (slavePresent[addr]) statPollsPresent++;
 }
 
 // Send 0x00 byte for timeout (maintains bus sync)
 static void sendTimeoutZero() {
     uint8_t zero = 0x00;
-    #if RS485_USE_ISR_MODE
     txContext = TxContext::TIMEOUT;
-    #endif
     txWithEchoPrevention(&zero, 1);
-    #if !RS485_USE_ISR_MODE
-    // Driver mode: TX is complete (blocking), go directly to IDLE
-    state = MasterState::IDLE;
-    #endif
 }
 
 // ============================================================================
@@ -907,7 +816,7 @@ static void checkRxTimeout() {
             slavePresent[currentPollAddr] = false;  // FIX: Mark slave offline
             sendTimeoutZero();
             // state is now TX_WAITING_DONE — TX_DONE handler will set IDLE
-            statTimeouts++;
+            // Not counted — empty address timeouts are expected, not a fault
         }
         return;
     }
@@ -924,15 +833,11 @@ static void checkRxTimeout() {
             messageBuffer.complete = true;
             messageCompleteTime = esp_timer_get_time();
             state = MasterState::IDLE;
-            statTimeouts++;
+            statMidMsgTimeouts++;
 
             // Flush any remaining bytes from RX and re-enable RX interrupts
-            #if RS485_USE_ISR_MODE
             flushRxFifo();
             enableRxInt();
-            #else
-            uart_flush_input((uart_port_t)RS485_UART_NUM);
-            #endif
         }
     }
 }
@@ -981,132 +886,6 @@ static uint8_t advancePollAddress() {
 }
 
 // ============================================================================
-// HARDWARE INITIALIZATION (mode-specific)
-// ============================================================================
-
-#if RS485_USE_ISR_MODE
-
-static bool initRS485Hardware_ISR() {
-    // Configure DE pin
-    #if RS485_DE_PIN >= 0
-    gpio_config_t de_conf = {
-        .pin_bit_mask = (1ULL << RS485_DE_PIN),
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE
-    };
-    gpio_config(&de_conf);
-    deDeassert();  // Start in RX mode
-    #endif
-
-    // Enable UART peripheral (bare-metal)
-    periph_module_enable(RS485_UART_PERIPH);
-
-    // Configure UART
-    uart_config_t uart_config = {
-        .baud_rate = RS485_BAUD,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-        .rx_flow_ctrl_thresh = 0,
-        .source_clk = UART_SCLK_DEFAULT
-    };
-    uart_param_config((uart_port_t)RS485_UART_NUM, &uart_config);
-
-    // Configure UART pins
-    uart_set_pin((uart_port_t)RS485_UART_NUM, RS485_TX_PIN, RS485_RX_PIN,
-                 UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-
-    // Ensure RX pin has pullup for stable idle state
-    gpio_set_pull_mode((gpio_num_t)RS485_RX_PIN, GPIO_PULLUP_ONLY);
-
-    // Trigger interrupt on every byte for lowest latency
-    uart_ll_set_rxfifo_full_thr(RS485_UART_DEV, 1);
-
-    // Clear and enable interrupts
-    uart_ll_clr_intsts_mask(RS485_UART_DEV, UART_LL_INTR_MASK);
-    uart_ll_ena_intr_mask(RS485_UART_DEV, UART_INTR_RXFIFO_FULL);
-
-    // Install RX interrupt
-    esp_intr_alloc(RS485_UART_INTR_SRC,
-                   ESP_INTR_FLAG_IRAM | ESP_INTR_FLAG_LEVEL1,
-                   rxISR, nullptr, &intrHandle);
-
-    return true;
-}
-
-#else // !RS485_USE_ISR_MODE
-
-static bool initRS485Hardware_Driver() {
-    // ESP-IDF UART driver setup
-    uart_config_t uart_config = {
-        .baud_rate = RS485_BAUD,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-        .rx_flow_ctrl_thresh = 0,
-        .source_clk = UART_SCLK_DEFAULT
-    };
-
-    // TX buffer = 0: uart_write_bytes goes directly to hardware FIFO
-    // (no ring buffer → no ISR chain → no scheduler delay on TX)
-    // RX buffer = 256: incoming bytes buffered by driver
-    esp_err_t err = uart_driver_install((uart_port_t)RS485_UART_NUM, 256, 0, 0, NULL, 0);
-    if (err != ESP_OK) {
-        debugPrintf("[RS485M] ERROR: uart_driver_install failed: %d\n", err);
-        return false;
-    }
-
-    err = uart_param_config((uart_port_t)RS485_UART_NUM, &uart_config);
-    if (err != ESP_OK) {
-        debugPrintf("[RS485M] ERROR: uart_param_config failed: %d\n", err);
-        return false;
-    }
-
-    // Pin config — map RTS to DE pin for hardware RS485 DE control
-    #if RS485_DE_PIN >= 0
-    err = uart_set_pin((uart_port_t)RS485_UART_NUM, RS485_TX_PIN, RS485_RX_PIN,
-                       RS485_DE_PIN, UART_PIN_NO_CHANGE);
-    #else
-    err = uart_set_pin((uart_port_t)RS485_UART_NUM, RS485_TX_PIN, RS485_RX_PIN,
-                       UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    #endif
-    if (err != ESP_OK) {
-        debugPrintf("[RS485M] ERROR: uart_set_pin failed: %d\n", err);
-        return false;
-    }
-
-    // Enable hardware RS485 half-duplex mode for DE-pin devices.
-    // The hardware automatically:
-    //   - Asserts DE (RTS) when TX starts
-    //   - Uses TX_DONE interrupt to de-assert DE when last bit leaves
-    //   - Suppresses echo (rs485tx_rx_en=0 prevents TX bytes entering RX FIFO)
-    //   - Flushes RX FIFO on TX_DONE before releasing bus
-    // This gives the same precision as our ISR-mode TX_DONE handler.
-    #if RS485_DE_PIN >= 0
-    err = uart_set_mode((uart_port_t)RS485_UART_NUM, UART_MODE_RS485_HALF_DUPLEX);
-    if (err != ESP_OK) {
-        debugPrintf("[RS485M] ERROR: uart_set_mode RS485 failed: %d\n", err);
-        return false;
-    }
-    debugPrintln("[RS485M] Hardware RS485 half-duplex mode enabled (auto DE control)");
-    #endif
-
-    // Ensure RX pin has pullup for stable idle state
-    gpio_set_pull_mode((gpio_num_t)RS485_RX_PIN, GPIO_PULLUP_ONLY);
-
-    // Flush any stale data
-    uart_flush_input((uart_port_t)RS485_UART_NUM);
-
-    return true;
-}
-
-#endif // RS485_USE_ISR_MODE
-
-// ============================================================================
 // PUBLIC API
 // ============================================================================
 
@@ -1120,40 +899,75 @@ bool RS485Master_init() {
     currentPollAddr = 1;
 
     #if RS485_SMART_MODE
-        changeHead = changeTail = changeCount = 0;
+        changeHead = 0; changeTail = 0; changeCount = 0;
         parseState = PARSE_WAIT_SYNC;
         syncByteCount = 0;
         #if RS485_CHANGE_DETECT
         initPrevValues();
         #endif
     #else
-        rawHead = rawTail = 0;
+        rawHead = 0; rawTail = 0;
     #endif
 
-    // Initialize hardware (mode-specific)
-    bool hwOk;
-    #if RS485_USE_ISR_MODE
-    hwOk = initRS485Hardware_ISR();
-    #else
-    hwOk = initRS485Hardware_Driver();
+    // Configure DE pin first (before UART)
+    #if RS485_DE_PIN >= 0
+    gpio_config_t de_conf = {
+        .pin_bit_mask = (1ULL << RS485_DE_PIN),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE
+    };
+    gpio_config(&de_conf);
+    deDeassert();  // Start in RX mode
     #endif
 
-    if (!hwOk) {
-        debugPrintln("[RS485M] ERROR: Hardware initialization failed!");
-        return false;
-    }
+    // Enable UART peripheral
+    periph_module_enable(RS485_UART_PERIPH);
+
+    // Configure UART using the SAME approach as working DCS-BIOS library
+    uart_config_t uart_config = {
+        .baud_rate = RS485_BAUD,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .rx_flow_ctrl_thresh = 0,
+        .source_clk = UART_SCLK_DEFAULT,
+        .flags = {0, 0}
+    };
+    uart_param_config((uart_port_t)RS485_UART_NUM, &uart_config);
+
+    // Configure UART pins
+    uart_set_pin((uart_port_t)RS485_UART_NUM, RS485_TX_PIN, RS485_RX_PIN,
+                 UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+
+    // Ensure RX pin has pullup for stable idle state
+    gpio_set_pull_mode((gpio_num_t)RS485_RX_PIN, GPIO_PULLUP_ONLY);
+
+    // Trigger interrupt on every byte for lowest latency
+    uart_ll_set_rxfifo_full_thr(RS485_UART_DEV, 1);
+    // Safety net: RXFIFO_TOUT catches bytes that arrive between FIFO drain
+    // and ISR return (RISC-V FIFO pointer race). 10 bit-periods = ~400us at
+    // 250kbps — well below protocol timeouts.
+    uart_ll_set_rx_tout(RS485_UART_DEV, 10);
+
+    // Clear and enable interrupts
+    uart_ll_clr_intsts_mask(RS485_UART_DEV, UART_LL_INTR_MASK);
+    uart_ll_ena_intr_mask(RS485_UART_DEV, UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT);
+
+    // Install RX interrupt
+    esp_intr_alloc(RS485_UART_INTR_SRC,
+                   ESP_INTR_FLAG_IRAM | ESP_INTR_FLAG_LEVEL1,
+                   rxISR, nullptr, &intrHandle);
 
     initialized = true;
 
-    #if RS485_USE_ISR_MODE
-    debugPrintf("[RS485M] Init OK (v2.3 TX_DONE ISR mode): %d baud, TX=%d, RX=%d, DE=%d\n",
+    debugPrintf("[RS485M] Init OK (v2.3 TX_DONE): %d baud, TX=%d, RX=%d, DE=%d\n",
                 RS485_BAUD, RS485_TX_PIN, RS485_RX_PIN, RS485_DE_PIN);
     debugPrintln("[RS485M] TX: Non-blocking (FIFO burst + TX_DONE interrupt)");
-    #else
-    debugPrintf("[RS485M] Init OK (Driver mode, HW RS485): %d baud, TX=%d, RX=%d, DE=%d\n",
-                RS485_BAUD, RS485_TX_PIN, RS485_RX_PIN, RS485_DE_PIN);
-    debugPrintln("[RS485M] TX: Blocking (uart_write_bytes + uart_wait_tx_done, HW auto-DE)");
-    #endif
+
+    debugPrintf("[RS485M] ISR registered on core %d\n", xPortGetCoreID());
 
     #if RS485_SMART_MODE
         #if RS485_CHANGE_DETECT
@@ -1223,18 +1037,6 @@ bool RS485Master_init() {
 static void rs485PollLoop() {
     if (!initialized) return;
 
-    #if !RS485_USE_ISR_MODE
-    // Driver mode: poll UART for incoming bytes and feed to state machine
-    // The ESP-IDF driver buffers bytes internally; we drain them here
-    {
-        uint8_t rxBuf[64];
-        int len = uart_read_bytes((uart_port_t)RS485_UART_NUM, rxBuf, sizeof(rxBuf), 0);
-        for (int i = 0; i < len; i++) {
-            processRxByte(rxBuf[i]);
-        }
-    }
-    #endif
-
     // V2.2 IMPROVEMENT: Immediate forwarding - check for completed messages FIRST
     // This reduces latency by forwarding slave responses immediately after detection
     if (messageBuffer.complete) {
@@ -1248,7 +1050,7 @@ static void rs485PollLoop() {
         if ((now - messageCompleteTime) > RS485_MSG_DRAIN_TIMEOUT_US) {
             messageBuffer.clear();
             messageBuffer.complete = false;
-            statTimeouts++;
+            statDrainStalls++;
         }
     }
 
@@ -1292,14 +1094,16 @@ static void rs485PollLoop() {
             if (slavePresent[i]) onlineCount++;
         }
 
-        float respRate = statPolls > 0 ? 100.0f * statResponses / statPolls : 0;
+        float respRate = statPollsPresent > 0 ? 100.0f * statResponses / statPollsPresent : 0;
 
         #if RS485_SMART_MODE
-        debugPrintf("[RS485M] Polls=%lu Resp=%.1f%% Bcasts=%lu Cmds=%lu Slaves=%d Queue=%d Drops=%lu\n",
-                    statPolls, respRate, statBroadcasts, statInputCmds, onlineCount, changeCount, messageBuffer.dropCount);
+        debugPrintf("[RS485M] Polls=%lu(%lu) Resp=%.1f%% Bcasts=%lu Cmds=%lu Slaves=%d Queue=%d Drops=%lu MidT=%lu Drain=%lu\n",
+                    statPolls, statPollsPresent, respRate, statBroadcasts, statInputCmds, onlineCount, changeCount, messageBuffer.dropCount,
+                    statMidMsgTimeouts, statDrainStalls);
         #else
-        debugPrintf("[RS485M] Polls=%lu Resp=%.1f%% Bcasts=%lu Cmds=%lu Slaves=%d Raw=%d Drops=%lu\n",
-                    statPolls, respRate, statBroadcasts, statInputCmds, onlineCount, rawCount(), messageBuffer.dropCount);
+        debugPrintf("[RS485M] Polls=%lu(%lu) Resp=%.1f%% Bcasts=%lu Cmds=%lu Slaves=%d Raw=%d Drops=%lu MidT=%lu Drain=%lu\n",
+                    statPolls, statPollsPresent, respRate, statBroadcasts, statInputCmds, onlineCount, rawCount(), messageBuffer.dropCount,
+                    statMidMsgTimeouts, statDrainStalls);
         #endif
     }
     #endif
@@ -1340,9 +1144,9 @@ void RS485Master_forceFullSync() {
         #if RS485_CHANGE_DETECT
         initPrevValues();
         #endif
-        changeHead = changeTail = changeCount = 0;
+        changeHead = 0; changeTail = 0; changeCount = 0;
     #else
-        rawHead = rawTail = 0;
+        rawHead = 0; rawTail = 0;
     #endif
     debugPrintln("[RS485M] Forced full sync");
 }
@@ -1387,16 +1191,12 @@ void RS485Master_printStatus() {
     if (first) debugPrint("(none)");
     debugPrintln("");
 
-    float respRate = statPolls > 0 ? 100.0f * statResponses / statPolls : 0;
-    debugPrintf("[RS485M] Polls: %lu, Responses: %lu (%.1f%%)\n", statPolls, statResponses, respRate);
-    debugPrintf("[RS485M] Timeouts: %lu\n", statTimeouts);
+    float respRate = statPollsPresent > 0 ? 100.0f * statResponses / statPollsPresent : 0;
+    debugPrintf("[RS485M] Polls: %lu (to present: %lu), Responses: %lu (%.1f%%)\n", statPolls, statPollsPresent, statResponses, respRate);
+    debugPrintf("[RS485M] Mid-msg timeouts: %lu, Drain stalls: %lu\n",
+                statMidMsgTimeouts, statDrainStalls);
     debugPrintf("[RS485M] Broadcasts: %lu, Bytes out: %lu\n", statBroadcasts, statBytesOut);
     debugPrintf("[RS485M] Input commands: %lu\n", statInputCmds);
-    #if RS485_USE_ISR_MODE
-    debugPrintln("[RS485M] RX/TX: ISR mode (bare-metal UART, TX_DONE non-blocking)");
-    #else
-    debugPrintln("[RS485M] RX/TX: Driver mode (ESP-IDF UART, blocking TX)");
-    #endif
     #if RS485_USE_TASK
     debugPrintf("[RS485M] Execution: FreeRTOS task (priority %d)\n", RS485_TASK_PRIORITY);
     #else
@@ -1423,15 +1223,11 @@ void RS485Master_stop() {
     }
     #endif
 
-    // Mode-specific cleanup
-    #if RS485_USE_ISR_MODE
+    // Disable UART interrupt
     if (intrHandle) {
         esp_intr_free(intrHandle);
         intrHandle = nullptr;
     }
-    #else
-    uart_driver_delete((uart_port_t)RS485_UART_NUM);
-    #endif
 
     initialized = false;
     debugPrintln("[RS485M] Stopped");
