@@ -611,21 +611,9 @@ void onSelectorChange(const char* label, unsigned int value) {
     } else if (strlen(label) >= 4 && strcmp(label + strlen(label) - 4, "_BTN") == 0) {
         stateStr = (value > 0) ? "ON" : "OFF";
 
-    // 3. Lookup in SelectorMap by exact (label + value) or (dcsCommand + value)
+    // 3. O(1) hash lookup in SelectorMap by (dcsCommand, value)
     } else {
-        const SelectorEntry* match = nullptr;
-
-        for (size_t i = 0; i < SelectorMapSize; ++i) {
-            const SelectorEntry& entry = SelectorMap[i];
-
-            bool matchLabelAndValue = (strcmp(entry.label, label) == 0 && entry.value == value);
-            bool matchDcsAndValue   = (strcmp(entry.dcsCommand, label) == 0 && entry.value == value);
-
-            if (matchLabelAndValue || matchDcsAndValue) {
-                match = &entry;
-                break;
-            }
-        }
+        const SelectorEntry* match = findSelectorByDcsAndValue(label, value);
 
         if (match && match->posLabel && match->posLabel[0] != '\0') {
             stateStr = match->posLabel;

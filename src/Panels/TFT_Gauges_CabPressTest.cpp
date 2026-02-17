@@ -115,7 +115,9 @@
 #include "Assets/CabinPressure/cabinPressNeedle.h"
 #include "Assets/CabinPressure/cabinPressNeedleNVG.h"
 
+// static constexpr uint16_t TRANSPARENT_KEY = 0x2001;
 static constexpr uint16_t TRANSPARENT_KEY = 0x2001;
+
 static constexpr uint16_t NVG_THRESHOLD = 6553;
 
 static constexpr int16_t  SCREEN_W = 360, SCREEN_H = 360;
@@ -526,7 +528,7 @@ void CabinPressureGauge_init()
     // Compose sprite (PSRAM)
     frameSpr.setColorDepth(COLOR_DEPTH_CABIN_PRESS);
     frameSpr.setPsram(true);
-    frameSpr.setSwapBytes(false);
+    frameSpr.setSwapBytes(true);
     if (!frameSpr.createSprite(SCREEN_W, SCREEN_H)) {
         debugPrintln("❌ frameSpr alloc failed!");
         while (1) vTaskDelay(1000);

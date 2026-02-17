@@ -1,0 +1,58 @@
+Generated DisplayMapping.cpp and DisplayMapping.h for devices: HUD, IFEI, UFC
+============================================================
+CockpitOS PanelKind Generator
+============================================================
+Root:   C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS
+Panels: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Panels
+Output: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Generated\PanelKind.h
+
+Permanent PCA entries (4):
+  Brain                    — Auto-detected PCA at 0x26 (runtime)
+  ECM                      — Auto-detected PCA at 0x22 (runtime)
+  MasterARM                — Auto-detected PCA at 0x5B (runtime)
+  AnalogGauge              — Auto-detected when DEVICE_GAUGE in LEDMapping
+
+Scanning 11 panel files...
+  Generic.cpp                              → Generic              (from filename)
+  IFEIPanel.cpp                            → IFEI                 (from PANEL_KIND)
+  TestPanel.cpp                            → TestPanel            (from filename)
+  TFT_Display_CMWS.cpp                     → TFTCmws              (from PANEL_KIND)
+  TFT_Gauges_Battery.cpp                   → TFTBatt              (from PANEL_KIND)
+  TFT_Gauges_BrakePress.cpp                → TFTBrake             (from PANEL_KIND)
+  TFT_Gauges_CabinPressure.cpp             → TFTCabPress          (from PANEL_KIND)
+  TFT_Gauges_CabPressTest.cpp              → TFT_Gauges_CabPressTest (from filename)
+  TFT_Gauges_HydPress.cpp                  → TFTHyd               (from PANEL_KIND)
+  TFT_Gauges_RadarAlt.cpp                  → TFTRadarAlt          (from PANEL_KIND)
+  WingFold.cpp                             → WingFold             (from filename)
+
+Generated: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Generated\PanelKind.h
+  → 4 permanent PCA entries
+  → 11 compiled panel entries
+  → 15 total + COUNT
+
+Done!
+Current LABEL SET: LABEL_SET_IFEI
+
+[INFO] The current target_objects (panel(s) to be processed) are:
+  - External Aircraft Model
+  - Flaps, Landing Gear, Stores Indicator Panel
+  - HUD Video Record Panel
+  - Integrated Fuel/Engine Indicator (IFEI)
+  - Interior Lights Panel
+  - Internal Lights
+  - Station Jettison Select
+
+[✓] Generated DCSBIOSBridgeData.h with 153 outputs,  43 selectors.
+[✓] Generated InputMapping.h with 43 entries.
+✅ Found 27 LED/Analog labels in DcsOutputTable (DCSBIOSBridgeData.h)
+🔢 Using TABLE_SIZE = 59 (next prime ≥ 54)
+✅ LEDMapping.h fully regenerated with dynamic enum from KNOWN_DEVICES.
+
+[INFO] Generating DisplayMapping.cpp/h using display_gen.py ...
+✅ Renamed .cpp files to cpp.DISABLE in the inactive LABEL SETS to avoid linker conflicts
+[✓] Created LabelSetConfig.h with AUTOGEN_USB_PID=0x6E2A (from 'CockpitOS IFEI v2')
+[✓] Created ../active_set.h with LABEL_SET IFEI
+
+============================================================
+Running generate_panelkind.py to update PanelKind.h...
+============================================================

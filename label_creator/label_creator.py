@@ -2,19 +2,23 @@
 CockpitOS Label Creator — Main orchestrator.
 
 Interactive TUI tool for creating new Label Sets.
-Flow:
-  1. Name the new label set (strict regex validation)
-  2. Select template to copy from
-  3. Select aircraft (JSON)
-  4. Interactive panel selection (dual-pane)
-  5. Write selected_panels.txt
-  6. Run reset_data.py + generate_data.py
+Create flow:
+  1. Name the new label set (sanitized automatically)
+  2. Create directory + run reset_data.py (user picks aircraft in its window)
+  3. Interactive panel selection (dual-pane)
+  4. Run generate_data.py (batch mode, no pauses)
 
+Also supports Browse and Delete operations via the main menu.
 Follows the same architectural pattern as the compiler tool.
 """
 
-import json
+import os
+import re
 import sys
+import json
+import time
+import shutil
+import ctypes
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -30,7 +34,19 @@ import panels as panels_mod
 # ---------------------------------------------------------------------------
 SKETCH_DIR = Path(__file__).resolve().parent.parent
 LABELS_DIR = SKETCH_DIR / "src" / "LABELS"
+ACTIVE_SET = LABELS_DIR / "active_set.h"
 PREFS_FILE = Path(__file__).resolve().parent / "creator_prefs.json"
+
+
+def _read_active_label_set() -> str | None:
+    """Read the last successfully generated label set from active_set.h."""
+    if ACTIVE_SET.exists():
+        text = ACTIVE_SET.read_text(encoding="utf-8")
+        m = re.search(r'#define\s+LABEL_SET\s+(\S+)', text)
+        if m:
+            return m.group(1)
+    return None
+
 
 # ---------------------------------------------------------------------------
 # Preferences
@@ -61,6 +77,24 @@ _BANNER = r"""
         Label Set Creator
 """
 
+_WINDOW_TITLE = "CockpitOS Label Creator"
+
+
+# ---------------------------------------------------------------------------
+# Single-instance guard helpers
+# ---------------------------------------------------------------------------
+def _bring_existing_to_front():
+    """Find an existing Label Creator window and bring it to the foreground."""
+    user32 = ctypes.windll.user32
+    hwnd = user32.FindWindowW(None, _WINDOW_TITLE)
+    if hwnd:
+        SW_RESTORE = 9
+        user32.ShowWindow(hwnd, SW_RESTORE)
+        user32.SetForegroundWindow(hwnd)
+        return True
+    return False
+
+
 # ---------------------------------------------------------------------------
 # Step 1: Name the label set
 # ---------------------------------------------------------------------------
@@ -68,9 +102,9 @@ def step_name_label_set(prefs) -> str | None:
     """Ask user for the new label set name. Returns name or None on cancel."""
     ui.header("Step 1: Name Your Label Set")
     print()
-    ui.info("Rules: UPPERCASE letters, digits, underscore only.")
-    ui.info("Must start with a letter. Minimum 2 characters.")
     ui.info("The prefix 'LABEL_SET_' is added automatically.")
+    ui.info("Minimum 2 characters. Spaces and special characters are")
+    ui.info("converted to underscores automatically.")
     print()
 
     while True:
@@ -78,7 +112,17 @@ def step_name_label_set(prefs) -> str | None:
         if raw is None:
             return None     # ESC pressed
 
-        name = raw.strip().upper()
+        name, was_modified = label_set.sanitize_name(raw)
+
+        if not name:
+            ui.error("Name cannot be empty.")
+            continue
+
+        if was_modified:
+            ui.warn(f"Adjusted to: {name}")
+            ui.info(f"(Your input was modified to meet naming rules)")
+            print()
+
         err = label_set.validate_name(name)
         if err:
             ui.error(err)
@@ -95,210 +139,664 @@ def step_name_label_set(prefs) -> str | None:
 
 
 # ---------------------------------------------------------------------------
-# Step 2: Select template
+# Step 2: Panel selection
 # ---------------------------------------------------------------------------
-def step_select_template(prefs) -> Path | None:
-    """Let user pick which existing label set to use as template."""
-    ui.header("Step 2: Select Template")
-    print()
-    ui.info("Choose an existing label set to copy as your starting point.")
-    ui.info("The template provides reset_data.py, generate_data.py, METADATA, etc.")
-    print()
-
-    existing = label_set.list_label_sets()
-    if not existing:
-        ui.error("No existing label sets found!")
-        return None
-
-    # Build options, putting the preferred template first
-    default_template = prefs.get("last_template", "LABEL_SET_TEST_ONLY")
-    options = [(name, LABELS_DIR / name) for name in existing]
-
-    choice = ui.pick_filterable(
-        "Select template:",
-        options,
-        default=LABELS_DIR / default_template if default_template in existing else None,
-    )
-    return choice
-
-
-# ---------------------------------------------------------------------------
-# Step 3: Select aircraft
-# ---------------------------------------------------------------------------
-def step_select_aircraft(prefs) -> tuple[str, Path] | None:
-    """Let user pick which aircraft JSON to use."""
-    ui.header("Step 3: Select Aircraft")
-    print()
-    ui.info("Choose the aircraft for this label set.")
-    ui.info("The aircraft JSON defines all available panels and controls.")
-    print()
-
-    ac_list = aircraft.discover_aircraft()
-    if not ac_list:
-        ui.error("No aircraft JSONs found in any label set!")
-        return None
-
-    default_ac = prefs.get("last_aircraft")
-    options = [(name, (name, path)) for name, path in ac_list]
-
-    choice = ui.pick(
-        "Select aircraft:",
-        options,
-        default=None,
-    )
-    return choice
-
-
-# ---------------------------------------------------------------------------
-# Step 4: Panel selection
-# ---------------------------------------------------------------------------
-def step_select_panels(aircraft_data: dict) -> list[str] | None:
-    """Interactive dual-pane panel selection."""
+def step_select_panels(aircraft_data: dict,
+                       pre_selected: list[str] | None = None,
+                       aircraft_name: str = "",
+                       label_set_name: str = "") -> list[str] | None:
+    """Interactive toggle-list panel selection."""
     all_panels = aircraft.get_categories(aircraft_data)
-    return panels_mod.select_panels(all_panels, aircraft_data)
+    return panels_mod.select_panels(all_panels, aircraft_data, pre_selected,
+                                    aircraft_name=aircraft_name,
+                                    label_set_name=label_set_name)
 
 
 # ---------------------------------------------------------------------------
-# Step 5: Confirm and generate
+# Step 3: Generate
 # ---------------------------------------------------------------------------
-def step_confirm_and_generate(name: str, new_dir: Path, selected: list[str]) -> bool:
-    """Show summary and run generation."""
-    ui.header("Step 5: Confirm & Generate")
-    print()
-    ui.info(f"Label Set:  LABEL_SET_{name}")
-    ui.info(f"Location:   {new_dir}")
-    ui.info(f"Panels:     {len(selected)} selected")
-    print()
-    for p in selected:
-        ui.info(f"  + {p}")
-    print()
+def step_generate(name: str, new_dir: Path, same_window: bool = False) -> bool:
+    """Run generate_data.py and validate output.
 
-    ok = ui.confirm("Proceed with generation?")
-    if not ok:
-        return False
+    No confirmation — the user already confirmed by completing prior steps.
+    Generator runs in batch mode (COCKPITOS_BATCH=1) so no pauses.
 
-    # Run reset_data.py
-    print()
-    ui.info("Running reset_data.py...")
-    try:
-        rc = label_set.run_reset_data(new_dir)
-        if rc == 0:
-            ui.success("reset_data.py completed.")
-        else:
-            ui.warn(f"reset_data.py exited with code {rc}")
-    except FileNotFoundError as e:
-        ui.error(str(e))
-        return False
+    When same_window is True, output is redirected to generate.log and the
+    screen is cleared afterwards to show our own clean result.
+
+    Args:
+        same_window: if True, run generator in the current process (output
+                     logged to generate.log); if False, open a separate window.
+    """
+    # Clean screen so generation results are the only thing visible
+    ui.header(f"Generating — LABEL_SET_{name}")
 
     # Run generate_data.py
+    # Note: generator_core.py always exits with code 1, even on success.
+    # The reliable success signal is the .last_run timestamp file.
     print()
-    ui.info("Running generate_data.py...")
+    ui.info("Generating ...")
+    gen_start = time.time()
+    spinner = ui.Spinner("Generating")
+    spinner.start()
     try:
-        rc = label_set.run_generate_data(new_dir)
-        if rc == 0:
-            ui.success("generate_data.py completed.")
-        else:
-            ui.warn(f"generate_data.py exited with code {rc}")
+        label_set.run_generate_data(new_dir, same_window=same_window)
     except FileNotFoundError as e:
+        spinner.stop()
         ui.error(str(e))
+        return False
+    spinner.stop()
+
+    # Clear screen and show our own clean results
+    ui.header(f"LABEL_SET_{name}")
+    print()
+
+    # Check .last_run to verify the generator completed successfully
+    last_run = new_dir / ".last_run"
+    gen_ok = last_run.exists() and last_run.stat().st_mtime >= gen_start
+
+    # Post-generation validation — verify expected output files
+    expected_files = ["InputMapping.h", "LEDMapping.h", "DCSBIOSBridgeData.h",
+                      "LabelSetConfig.h"]
+    all_found = True
+    for fname in expected_files:
+        fpath = new_dir / fname
+        if fpath.exists():
+            size = fpath.stat().st_size
+            ui.success(f"{fname} ({size:,} bytes)")
+        else:
+            ui.error(f"{fname} — NOT generated!")
+            all_found = False
+
+    if not gen_ok or not all_found:
+        print()
+        log_path = LABELS_DIR / "_core" / "generate.log"
+        if log_path.exists():
+            ui.warn(f"See log: {log_path}")
+        ui.big_fail(
+            "GENERATION FAILED",
+            [
+                "One or more expected files were not created.",
+            ]
+        )
         return False
 
     return True
 
 
 # ---------------------------------------------------------------------------
-# Main
+# Create new label set (full flow)
 # ---------------------------------------------------------------------------
-def main():
-    prefs = load_prefs()
-
-    ui.cls()
-    ui.cprint(ui.CYAN + ui.BOLD, _BANNER)
-    print()
+def do_create(prefs) -> bool:
+    """Run the full create-new-label-set flow. Returns True on success."""
 
     # ---- Step 1: Name ----
     name = step_name_label_set(prefs)
     if not name:
-        ui.warn("Cancelled.")
-        return
+        return False
 
-    # ---- Step 2: Template ----
-    template_dir = step_select_template(prefs)
-    if not template_dir:
-        ui.warn("Cancelled.")
-        return
-
-    prefs["last_template"] = template_dir.name
-    save_prefs(prefs)
-
-    # ---- Step 3: Aircraft ----
-    ac_choice = step_select_aircraft(prefs)
-    if not ac_choice:
-        ui.warn("Cancelled.")
-        return
-
-    ac_name, ac_path = ac_choice
-    prefs["last_aircraft"] = ac_name
-    save_prefs(prefs)
-
-    # ---- Copy template and set up aircraft JSON ----
+    # ---- Create directory + run reset (includes aircraft selection) ----
     ui.header("Setting Up Label Set...")
     print()
-    ui.info(f"Copying template from {template_dir.name}...")
 
-    new_dir = label_set.copy_template(template_dir, name)
+    new_dir = label_set.create_label_set(name)
     ui.success(f"Created LABEL_SET_{name}")
 
-    # Remove old aircraft JSON and deploy the selected one
-    label_set.remove_existing_aircraft_jsons(new_dir)
-    aircraft.deploy_aircraft_json(ac_path, new_dir)
-    ui.success(f"Deployed {ac_path.name}")
+    # Run reset_data.py — creates CustomPins.h, then presents the
+    # interactive aircraft selector in the same window.
+    # Runs in batch mode (skips "Are you sure?" and final pause) but the
+    # aircraft selector is still fully interactive.
+    print()
+    try:
+        rc = label_set.run_reset_data(new_dir, same_window=True)
+    except FileNotFoundError as e:
+        ui.error(str(e))
+        return False
 
-    # Load the aircraft data for panel selection
-    aircraft_data = aircraft.load_aircraft_json(ac_path)
+    # Read the aircraft that the user selected in reset_data.py
+    ac_name = aircraft.read_aircraft_txt(new_dir)
+    if not ac_name:
+        ui.error("No aircraft was selected. Cannot continue.")
+        ui.info(f"You can re-run reset_data.py in LABEL_SET_{name}")
+        return False
 
-    # ---- Step 4: Panel selection ----
-    selected = step_select_panels(aircraft_data)
+    prefs["last_aircraft"] = ac_name
+    save_prefs(prefs)
+    ui.success(f"Aircraft: {ac_name}")
+
+    # Load aircraft data for panel selection
+    aircraft_data = aircraft.load_aircraft_json(ac_name)
+
+    # ---- Step 2: Panel selection ----
+    selected = step_select_panels(aircraft_data, aircraft_name=ac_name,
+                                   label_set_name=f"LABEL_SET_{name}")
     if selected is None:
         ui.warn("Panel selection cancelled.")
-        ui.info(f"Your label set at LABEL_SET_{name} still exists — you can finish manually.")
-        return
+        return False
 
-    if not selected:
-        ui.warn("No panels selected!")
-        ok = ui.confirm("Continue with empty selection?", default_yes=False)
-        if not ok:
-            return
+    # Saved with nothing selected on a brand-new label set = cancel.
+    # (No prior selected_panels.txt exists, and user added nothing.)
+    existing_panels = _read_selected_panels(new_dir)
+    if not selected and not existing_panels:
+        ui.warn("No panels selected — cancelled.")
+        return False
 
     # Write selected_panels.txt
     all_panels = aircraft.get_categories(aircraft_data)
     label_set.write_selected_panels(new_dir, selected, all_panels)
-    ui.success(f"Wrote selected_panels.txt with {len(selected)} panels")
 
-    # ---- Step 5: Confirm & generate ----
-    ok = step_confirm_and_generate(name, new_dir, selected)
-    if ok:
-        print()
-        ui.big_success(
-            f"LABEL_SET_{name} CREATED!",
-            [
-                f"Location: {new_dir}",
-                f"Aircraft: {ac_name}",
-                f"Panels:   {len(selected)}",
-                "",
-                "Next steps:",
-                "  - Edit InputMapping.h to assign hardware (GPIO, PCA, etc.)",
-                "  - Edit LEDMapping.h to assign LED devices",
-                "  - Edit CustomPins.h for pin definitions",
-                "  - Compile with the CockpitOS compiler tool!",
-            ]
-        )
-    else:
-        ui.warn("Generation was not completed.")
-        ui.info(f"You can manually run reset_data.py and generate_data.py in LABEL_SET_{name}")
+    # Confirm what was saved
+    ls_name = f"LABEL_SET_{name}"
+    ui.header(ls_name)
+    print()
+    ui.success(f"selected_panels.txt updated — {len(selected)} panels:")
+    for p in selected:
+        print(f"    + {p}")
+    print()
+    ui.info(f"Aircraft: {ac_name}")
+    prefs["last_label_set"] = ls_name
+    save_prefs(prefs)
+
+    return True
+
+
+# ---------------------------------------------------------------------------
+# Browse existing label sets
+# ---------------------------------------------------------------------------
+def _read_selected_panels(ls_dir: Path) -> list[str]:
+    """Read uncommented panel names from selected_panels.txt."""
+    sp_path = ls_dir / "selected_panels.txt"
+    if not sp_path.exists():
+        return []
+    panels = []
+    for line in sp_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#"):
+            panels.append(stripped)
+    return panels
+
+
+def _run_reset(ls_name: str, ls_dir: Path) -> str | None:
+    """Run reset_data.py for an existing label set (same window).
+
+    Returns the aircraft name from aircraft.txt after reset completes,
+    or None if no aircraft was selected.
+    """
+    bare = ls_name[len("LABEL_SET_"):] if ls_name.startswith("LABEL_SET_") else ls_name
 
     print()
-    input("  Press Enter to exit...")
+    try:
+        label_set.run_reset_data(ls_dir, same_window=True)
+    except FileNotFoundError as e:
+        ui.error(str(e))
+        return None
+
+    ac_name = aircraft.read_aircraft_txt(ls_dir)
+    if ac_name:
+        ui.success(f"Aircraft: {ac_name}")
+    return ac_name
+
+
+def _regenerate(ls_name: str, prefs):
+    """Regenerate files for an existing label set (uninterrupted).
+
+    If no aircraft is set, runs reset_data.py first.
+    If no panels are selected, routes the user to the panel selector first.
+    """
+    ls_dir = LABELS_DIR / ls_name
+
+    # Extract the bare name (without LABEL_SET_ prefix)
+    bare = ls_name[len("LABEL_SET_"):] if ls_name.startswith("LABEL_SET_") else ls_name
+
+    ui.header(f"Regenerating {ls_name}")
+    print()
+
+    # Verify aircraft.txt exists — if not, run reset to let user pick one
+    ac_name = aircraft.read_aircraft_txt(ls_dir)
+    if not ac_name:
+        ui.error("No aircraft assigned to this label set.")
+        ui.info("You'll select one in the next screen.")
+        # Clear screen so user returns to clean output after external window
+        ui.header(f"Resetting — {ls_name}")
+        ac_name = _run_reset(ls_name, ls_dir)
+        if not ac_name:
+            ui.error("No aircraft was selected — cannot regenerate.")
+            input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+            return
+    else:
+        ui.info(f"Aircraft: {ac_name}")
+
+    # Check if panels have been selected — let user review/edit
+    existing_panels = _read_selected_panels(ls_dir)
+    if not existing_panels:
+        print()
+        ui.warn("No panels selected yet — opening panel selector...")
+
+    aircraft_data = aircraft.load_aircraft_json(ac_name)
+    selected = step_select_panels(aircraft_data, pre_selected=existing_panels,
+                                   aircraft_name=ac_name,
+                                   label_set_name=ls_name)
+    if selected is None:
+        ui.warn("Panel selection cancelled.")
+        input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+        return
+
+    if not selected:
+        ui.warn("No panels selected.")
+        input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+        return
+
+    # Write the (possibly updated) selection
+    all_panels = aircraft.get_categories(aircraft_data)
+    label_set.write_selected_panels(ls_dir, selected, all_panels)
+
+    # Confirm what was saved
+    ui.header(f"{ls_name}")
+    print()
+    ui.success(f"selected_panels.txt updated — {len(selected)} panels:")
+    for p in selected:
+        print(f"    + {p}")
+    print()
+    ui.info(f"Aircraft: {ac_name}")
+    prefs["last_label_set"] = ls_name
+    save_prefs(prefs)
+
+    input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+
+
+def do_browse(prefs):
+    """Modify an existing label set (add/delete panels or reset)."""
+    while True:
+        ui.header("Modify Label Set")
+        print()
+
+        existing = label_set.list_label_sets()
+        if not existing:
+            ui.warn("No label sets found.")
+            input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+            return
+
+        ui.info(f"{len(existing)} label sets found")
+        print()
+
+        options = [(name, name) for name in existing]
+        choice = ui.pick_filterable("Select a label set to inspect:", options)
+        if choice is None:
+            return
+
+        # Show details — may return an action
+        action = _show_label_set_info(choice, prefs)
+        if action == "regenerate":
+            _regenerate(choice, prefs)
+            return
+        elif action == "reset":
+            _reset_existing(choice, prefs)
+            return
+
+
+def _reset_existing(ls_name: str, prefs):
+    """Reset data for an existing label set (wipe + pick new aircraft).
+
+    Requires explicit confirmation since this wipes generated files.
+    """
+    ls_dir = LABELS_DIR / ls_name
+    bare = ls_name[len("LABEL_SET_"):] if ls_name.startswith("LABEL_SET_") else ls_name
+
+    ui.header(f"Reset Data — {ls_name}")
+    print()
+    ui.warn("This will wipe all auto-generated files and let you")
+    ui.warn("select a new aircraft for this label set.")
+    print()
+
+    ok = ui.confirm(f"Reset {bare}?")
+    if not ok:
+        ui.info("Cancelled.")
+        input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+        return
+
+    # Clear screen so user returns to clean output after external window
+    ui.header(f"Resetting — {ls_name}")
+
+    ac_name = _run_reset(ls_name, ls_dir)
+    if ac_name:
+        prefs["last_aircraft"] = ac_name
+        save_prefs(prefs)
+    else:
+        ui.error("No aircraft was selected.")
+
+    input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+
+
+def _show_label_set_info(ls_name: str, prefs) -> str | None:
+    """Display detailed info about a label set.
+
+    If no aircraft is assigned, warns the user and auto-runs reset_data.py
+    so they can pick one before returning to the info screen.
+
+    Returns an action string ("regenerate", "reset") or None.
+    Loops internally for config edits (device name, HID toggle, custom pins)
+    so the info screen refreshes after each change.
+    """
+    ls_dir = LABELS_DIR / ls_name
+
+    # ── Ensure aircraft is assigned (one-time check) ─────────────────────
+    ac_name = aircraft.read_aircraft_txt(ls_dir)
+    if not ac_name:
+        ui.header(ls_name)
+        print()
+        ui.error("No aircraft assigned to this label set!")
+        ui.info("You'll select one in the next screen.")
+        ui.header(f"Resetting — {ls_name}")
+        ac_name = _run_reset(ls_name, ls_dir)
+        if not ac_name:
+            ui.error("No aircraft was selected.")
+            input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+            return None
+        prefs["last_aircraft"] = ac_name
+        save_prefs(prefs)
+
+    # ── Info + action loop (re-draws after config edits) ─────────────────
+    while True:
+        ac_name = aircraft.read_aircraft_txt(ls_dir) or "(unknown)"
+        cfg = label_set.read_label_set_config(ls_dir)
+        fullname = cfg["fullname"] or "(not set)"
+        hid_on = cfg["hid_selector"]
+        hid_label = "ON" if hid_on else "OFF"
+        hid_color = ui.GREEN if hid_on else ui.DIM
+
+        ui.header(ls_name)
+        print()
+
+        ui.info(f"Location:     {ls_dir}")
+        ui.info(f"Aircraft:     {ac_name}")
+        ui.info(f"Device Name:  {ui.CYAN}{fullname}{ui.RESET}")
+        ui.info(f"HID Selector: {hid_color}{hid_label}{ui.RESET}")
+
+        # Check for key generated files
+        print()
+        for fname in ["InputMapping.h", "LEDMapping.h", "DCSBIOSBridgeData.h",
+                       "LabelSetConfig.h", "selected_panels.txt"]:
+            fpath = ls_dir / fname
+            if fpath.exists():
+                size = fpath.stat().st_size
+                ui.success(f"{fname} ({size:,} bytes)")
+            else:
+                ui.info(f"{ui.DIM}{fname} — not found{ui.RESET}")
+
+        # Show selected panels (compact inline list, yellow)
+        print()
+        panels = _read_selected_panels(ls_dir)
+        if panels:
+            panel_list = ", ".join(panels)
+            ui.info(f"Selected Panels ({len(panels)}): {ui.YELLOW}{panel_list}{ui.RESET}")
+        else:
+            ui.info(f"{ui.DIM}No panels selected{ui.RESET}")
+
+        # Action menu
+        print()
+        choice = ui.menu_pick([
+            ("---", "Settings"),
+            ("Edit Device Name",         "devname",     "normal"),
+            (f"HID Mode Selector [{hid_label}]", "hid", "normal"),
+            ("Edit Custom Pins",         "pins",        "normal"),
+            ("---", "Actions"),
+            ("Add / Delete panels",      "regenerate",  "normal"),
+            ("RESET LABEL SET",          "reset",       "danger"),
+            ("---",),
+            ("Back",                     "back",        "dim"),
+        ])
+
+        if choice == "devname":
+            _edit_device_name(ls_dir, fullname)
+            continue
+        elif choice == "hid":
+            label_set.write_hid_mode_selector(ls_dir, not hid_on)
+            continue
+        elif choice == "pins":
+            _edit_custom_pins(ls_dir)
+            continue
+        elif choice in ("regenerate", "reset"):
+            return choice
+        else:
+            return None
+
+
+def _edit_device_name(ls_dir: Path, current: str):
+    """Prompt user for a new LABEL_SET_FULLNAME (max 32 chars)."""
+    print()
+    default = current if current != "(not set)" else None
+    new_name = ui.text_input("Device name (max 32 chars)", default=default)
+    if new_name is None or new_name == ui._RESET_SENTINEL:
+        return
+    new_name = new_name.strip()
+    if not new_name:
+        return
+    if len(new_name) > 32:
+        new_name = new_name[:32]
+        ui.warn(f"Truncated to 32 chars: {new_name}")
+    label_set.write_label_set_fullname(ls_dir, new_name)
+    ui.success(f"Device name set to: {new_name}")
+    time.sleep(0.6)
+
+
+def _edit_custom_pins(ls_dir: Path):
+    """Open CustomPins.h in the user's default editor."""
+    pins_file = ls_dir / "CustomPins.h"
+    if not pins_file.exists():
+        ui.warn("CustomPins.h not found in this label set.")
+        input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+        return
+    ui.info(f"Opening {pins_file.name} ...")
+    os.startfile(str(pins_file))
+
+
+# ---------------------------------------------------------------------------
+# Auto-generate a label set
+# ---------------------------------------------------------------------------
+def do_generate(prefs):
+    """Pick a label set and run generate_data.py (same window)."""
+    ui.header("Auto-Generate Label Set")
+    print()
+
+    existing = label_set.list_label_sets()
+    if not existing:
+        ui.warn("No label sets found.")
+        input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+        return
+
+    ui.info(f"{len(existing)} label sets found")
+    print()
+
+    options = [(name, name) for name in existing]
+    choice = ui.pick_filterable("Select a label set to generate:", options)
+    if choice is None:
+        return
+
+    ls_dir = LABELS_DIR / choice
+    bare = choice[len("LABEL_SET_"):] if choice.startswith("LABEL_SET_") else choice
+
+    # Validate: must have aircraft
+    ac_name = aircraft.read_aircraft_txt(ls_dir)
+    if not ac_name:
+        ui.error("No aircraft assigned to this label set.")
+        ui.info("Use 'Modify Label Set' to set an aircraft first.")
+        input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+        return
+
+    # Validate: must have selected panels
+    panels = _read_selected_panels(ls_dir)
+    if not panels:
+        ui.error("No panels selected for this label set.")
+        ui.info("Use 'Modify Label Set' to select panels first.")
+        input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+        return
+
+    # Show what we're about to generate
+    print()
+    ui.info(f"Aircraft: {ac_name}")
+    panel_list = ", ".join(panels)
+    ui.info(f"Panels ({len(panels)}): {ui.YELLOW}{panel_list}{ui.RESET}")
+    print()
+
+    ok = step_generate(bare, ls_dir, same_window=True)
+    if ok:
+        prefs["last_label_set"] = choice
+        save_prefs(prefs)
+        print()
+        ui.big_success(
+            f"{choice} GENERATED!",
+            [f"Aircraft: {ac_name}"],
+        )
+
+    input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+
+
+# ---------------------------------------------------------------------------
+# Delete a label set
+# ---------------------------------------------------------------------------
+def do_delete(prefs):
+    """Let user pick and delete an existing label set."""
+    ui.header("Delete Label Set")
+    print()
+
+    existing = label_set.list_label_sets()
+    if not existing:
+        ui.warn("No label sets found.")
+        input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+        return
+
+    options = [(name, name) for name in existing]
+    choice = ui.pick_filterable("Select label set to delete:", options)
+    if choice is None:
+        return
+
+    ls_dir = LABELS_DIR / choice
+    print()
+    ui.warn(f"This will permanently delete {choice}")
+    ui.warn(f"Location: {ls_dir}")
+    print()
+
+    ok = ui.confirm(f"Delete {choice}?", default_yes=False)
+    if not ok:
+        ui.info("Cancelled.")
+        return
+
+    # Double-confirm for safety
+    ok2 = ui.confirm("Are you absolutely sure?", default_yes=False)
+    if not ok2:
+        ui.info("Cancelled.")
+        return
+
+    shutil.rmtree(ls_dir)
+    ui.success(f"Deleted {choice}")
+
+    # Clear last_label_set if it was the deleted one
+    if prefs.get("last_label_set") == choice:
+        prefs.pop("last_label_set", None)
+        save_prefs(prefs)
+
+    input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+def main():
+    import atexit
+
+    os.system("")  # Enable ANSI on Windows
+
+    # --- Single-instance guard (lock file) ---
+    lock_path = Path(__file__).parent / ".label_creator.lock"
+    try:
+        lock_fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.write(lock_fd, str(os.getpid()).encode())
+        os.close(lock_fd)
+    except FileExistsError:
+        try:
+            old_pid = int(lock_path.read_text().strip())
+            kernel32 = ctypes.windll.kernel32
+            handle = kernel32.OpenProcess(0x1000, False, old_pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+            if handle:
+                kernel32.CloseHandle(handle)
+                _bring_existing_to_front()
+                print("\n  Label Creator is already running. Switching to existing window.")
+                sys.exit(0)
+        except (ValueError, OSError):
+            pass
+        # Stale lock — reclaim it
+        lock_path.unlink(missing_ok=True)
+        lock_fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.write(lock_fd, str(os.getpid()).encode())
+        os.close(lock_fd)
+
+    atexit.register(lambda: lock_path.unlink(missing_ok=True))
+
+    # Set window title so other instances can find us
+    ctypes.windll.kernel32.SetConsoleTitleW(_WINDOW_TITLE)
+
+    prefs = load_prefs()
+
+    while True:
+        # Gather status info on each loop iteration
+        existing = label_set.list_label_sets()
+        active_ls = _read_active_label_set()
+        active_ac = None
+        ls_exists = False
+        if active_ls:
+            ls_dir = LABELS_DIR / f"LABEL_SET_{active_ls}"
+            ls_exists = ls_dir.exists()
+            if ls_exists:
+                active_ac = aircraft.read_aircraft_txt(ls_dir)
+
+        ui.cls()
+        print()
+        ui.cprint(ui.CYAN + ui.BOLD, _BANNER)
+
+        # Status display — emoji lines like the compiler tool
+        print()
+        print(f"     \U0001f5c2\ufe0f  {ui.CYAN}{len(existing)}{ui.RESET} label sets")
+        if active_ls and ls_exists:
+            print(f"     \U0001f3f7\ufe0f  {ui.CYAN}{active_ls}{ui.RESET}")
+            ac_display = active_ac or "(unknown)"
+            print(f"     \U0001f6e9\ufe0f  {ui.CYAN}{ac_display}{ui.RESET}")
+        elif active_ls:
+            print(f"     \U0001f3f7\ufe0f  {ui.RED}{active_ls} (deleted){ui.RESET}")
+        else:
+            print(f"     \U0001f3f7\ufe0f  {ui.DIM}No label set generated yet{ui.RESET}")
+        print()
+
+        choice = ui.menu_pick([
+            ("Create New Label Set",      "create",    "action"),
+            ("Modify Label Set",          "browse",    "normal"),
+            ("Auto-Generate Label Set",   "generate",  "normal"),
+            ("Delete Label Set",          "delete",    "normal"),
+            ("---",),
+            ("Exit",                      "exit",      "dim"),
+        ])
+
+        if choice is None:         # ESC on main menu — just redraw
+            continue
+
+        if choice == "exit":
+            ui.cprint(ui.DIM, "  Bye!")
+            break
+
+        elif choice == "create":
+            ok = do_create(prefs)
+            prefs = load_prefs()    # Reload in case prefs changed during flow
+            input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+
+        elif choice == "browse":
+            do_browse(prefs)
+
+        elif choice == "generate":
+            do_generate(prefs)
+            prefs = load_prefs()
+
+        elif choice == "delete":
+            do_delete(prefs)
+            prefs = load_prefs()
 
 
 if __name__ == "__main__":

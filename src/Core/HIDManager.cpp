@@ -499,16 +499,8 @@ void HIDManager_sendReport(const char* label, int32_t rawValue) {
     const char* dcsLabel = m->oride_label;
     uint16_t    dcsValue = rawValue < 0 ? 0 : (uint16_t)rawValue;
 
-    // look up shared history
-    CommandHistoryEntry* history = dcsbios_getCommandHistory();
-    size_t n = dcsbios_getCommandHistorySize();
-    CommandHistoryEntry* e = nullptr;
-    for (size_t i = 0; i < n; ++i) {
-        if (strcmp(history[i].label, dcsLabel) == 0) {
-            e = &history[i];
-            break;
-        }
-    }
+    // O(1) hash lookup into shared command history
+    CommandHistoryEntry* e = findCmdEntry(dcsLabel);
     if (!e) {
         debugPrintf("⚠️ [HID] %s → no DCS entry (%s)\n", label, dcsLabel);
         return;
