@@ -219,7 +219,8 @@ def menu_pick(items):
       ("---",)                      — separator (not selectable)
 
     Styles:
-      "action"  — bold green block
+      "action"  — bold green block (green bg + white text when selected)
+      "danger"  — bold red block (red bg + white text when selected)
       "normal"  — plain text
       "dim"     — dimmed text
     """
@@ -240,6 +241,9 @@ def menu_pick(items):
             if style == "action":
                 normal = f"     {GREEN}{BOLD}{label}{RESET}{cap_suf}"
                 hilite = f"  \033[42m\033[97m{BOLD} \u25b8 {label} {RESET}{cap_suf}"
+            elif style == "danger":
+                normal = f"     {RED}{BOLD}{label}{RESET}{cap_suf}"
+                hilite = f"  \033[41m\033[97m{BOLD} \u25b8 {label} {RESET}{cap_suf}"
             elif style == "dim":
                 normal = f"     {DIM}{label}{RESET}{cap_suf}"
                 hilite = f"  {REV} \u25b8 {label} {RESET}{cap_suf}"
@@ -568,19 +572,21 @@ def pick_live(prompt, initial_options, scan_fn, interval=2.0, empty_message="No 
         raise
 
 
-def confirm(prompt, default_yes=True):
-    """Y/n prompt. Returns True, False, or None (ESC)."""
-    hint = "Y/n" if default_yes else "y/N"
-    _w(f"\n  {prompt} [{hint}]: ")
+def confirm(prompt, default_yes=False):
+    """Y/n prompt. Returns True, False, or None (ESC).
+
+    Requires explicit 'Y' to confirm. Enter defaults to No.
+    """
+    _w(f"\n  {prompt} [y/N]: ")
     try:
         while True:
             ch = msvcrt.getwch()
             if ch == "\x1b":        # ESC — go back
                 print()
                 return None
-            elif ch == "\r":        # Enter — use default
-                print()
-                return default_yes
+            elif ch == "\r":        # Enter — always No (safe default)
+                print("n")
+                return False
             elif ch.lower() == "y":
                 print("y")
                 return True

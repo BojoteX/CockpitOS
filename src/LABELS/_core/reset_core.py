@@ -5,7 +5,11 @@ CockpitOS Reset Data - Core Module
 Called from LABEL_SET_XXX/reset_data.py wrappers.
 CWD is set by the wrapper BEFORE this module is imported.
 """
-import os
+import os, glob
+from aircraft_selector import select_aircraft
+
+# When launched from the Label Creator tool, skip interactive confirmations.
+_BATCH = os.environ.get("COCKPITOS_BATCH") == "1"
 
 # -----------------------------
 # EDIT THIS TABLE AS NEEDED!
@@ -20,10 +24,9 @@ AUTOGEN_FILES = [
     "CT_Display.cpp",
     "CT_Display.cpp.DISABLED",
     "CT_Display.h",
-    # "panels.txt",
-    # "selected_panels.txt",
+    "panels.txt",
+    "selected_panels.txt",
     "LabelSetConfig.h",
-    # Add more files here if needed
 ]
 
 # Template for CustomPins.h (blanked or newly created)
@@ -162,6 +165,11 @@ def run():
     metadata_dir = "METADATA"
     has_metadata = os.path.isdir(metadata_dir)
 
+    # Read current aircraft selection (if any) for re-pick default
+    current_aircraft = None
+    if os.path.isfile("aircraft.txt"):
+        current_aircraft = open("aircraft.txt", "r", encoding="utf-8").read().strip()
+
     print("The following files will be DELETED if present:")
     print()
 
@@ -172,6 +180,12 @@ def run():
             to_delete.append(fname)
         else:
             print("  -", fname, "(not found)")
+
+    # Also detect legacy local aircraft JSON copies for cleanup
+    local_jsons = [f for f in glob.glob("*.json") if "METADATA" not in f]
+    for fname in local_jsons:
+        print(f"  - {fname} (legacy local copy)")
+        to_delete.append(fname)
 
     # CustomPins.h gets special handling (blank, not delete)
     custom_pins_file = "CustomPins.h"
@@ -198,10 +212,13 @@ def run():
         print("No auto-generated files found to delete.")
 
     print()
-    response = input("Are you absolutely sure you want to proceed? (yes/NO): ")
-    if response.lower().strip() != "yes":
-        print("Aborted. No changes were made.")
-        return
+    if _BATCH:
+        print("Batch mode: proceeding automatically...")
+    else:
+        response = input("Are you absolutely sure you want to proceed? (yes/NO): ")
+        if response.lower().strip() != "yes":
+            print("Aborted. No changes were made.")
+            return
 
     print()
     deleted = 0
@@ -228,6 +245,44 @@ def run():
     print(f"Done. {deleted} file(s) deleted, CustomPins.h ready.")
     if has_metadata:
         print(f"METADATA/ directory preserved.")
+
+    # ── Aircraft selection ──────────────────────────────────────────────────
+    # Clear screen and present aircraft selector
+    os.system("cls" if os.name == "nt" else "clear")
+
+    current_label_set = os.path.basename(os.getcwd())
+    _ls_name = current_label_set[len("LABEL_SET_"):] if current_label_set.startswith("LABEL_SET_") else current_label_set
+
+    print()
+    print("=" * 55)
+    print(f"  LABEL_SET: {_ls_name}")
+    print("=" * 55)
+    print()
+    if deleted > 0:
+        print(f"  {deleted} auto-generated file(s) wiped.")
+        print()
+    print("  Select the aircraft for which this")
+    print("  LABEL_SET will generate its configuration.")
+    print()
+    print("-" * 55)
+
+    core_dir = os.path.dirname(os.path.abspath(__file__))
+    selected = select_aircraft(core_dir, current=current_aircraft)
+    if selected:
+        with open("aircraft.txt", "w", encoding="utf-8") as f:
+            f.write(selected + "\n")
+        print()
+        print("=" * 55)
+        print(f"  SUCCESS! LABEL_SET '{_ls_name}' is ready.")
+        print(f"  Aircraft: {selected}")
+        print("=" * 55)
+    else:
+        print()
+        print("  Aircraft selection cancelled.")
+
+    print()
+    if not _BATCH:
+        input("Press <ENTER> to exit...")
 
 if __name__ == "__main__":
     run()

@@ -1,78 +1,65 @@
 """
 CockpitOS Label Creator — Aircraft JSON management.
 
-Handles discovering, listing, and deploying aircraft definition JSONs.
-Aircraft JSONs live inside existing label sets; this module scans all
-LABEL_SET_* directories and deduplicates by filename so the user can
-pick which aircraft they want.
+Handles discovering and loading aircraft definition JSONs from the
+centralized library at _core/aircraft/. Each LABEL_SET references
+its aircraft via an aircraft.txt file containing the aircraft name.
 """
 
 import json
-import shutil
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-LABELS_DIR = Path(__file__).resolve().parent.parent / "src" / "LABELS"
-
-
-def _is_valid_panel_json(path: Path) -> bool:
-    """Return True if *path* looks like a DCS-BIOS aircraft panel JSON."""
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if not isinstance(data, dict):
-            return False
-        # Must have at least one category with nested controls that have "outputs"
-        for cat_name, cat_val in data.items():
-            if isinstance(cat_val, dict):
-                for ctrl_name, ctrl_val in cat_val.items():
-                    if isinstance(ctrl_val, dict) and "outputs" in ctrl_val:
-                        return True
-        return False
-    except Exception:
-        return False
+LABELS_DIR   = Path(__file__).resolve().parent.parent / "src" / "LABELS"
+AIRCRAFT_DIR = LABELS_DIR / "_core" / "aircraft"
 
 
 def discover_aircraft() -> list[tuple[str, Path]]:
-    """Scan all LABEL_SET_* dirs for aircraft JSONs.
+    """Scan _core/aircraft/ for aircraft JSON files.
 
-    Returns a deduplicated list of (display_name, source_path) sorted
-    alphabetically.  Display name is the stem of the JSON file
-    (e.g. "FA-18C_hornet").
+    Returns a sorted list of (display_name, json_path) tuples.
+    Display name is the stem of the JSON file (e.g. "FA-18C_hornet").
     """
-    seen: dict[str, Path] = {}
+    if not AIRCRAFT_DIR.is_dir():
+        return []
 
-    for ls_dir in sorted(LABELS_DIR.iterdir()):
-        if not ls_dir.is_dir() or not ls_dir.name.startswith("LABEL_SET_"):
-            continue
-        for jf in ls_dir.glob("*.json"):
-            # Skip METADATA jsons
-            if "METADATA" in str(jf):
-                continue
-            if jf.stem in seen:
-                continue
-            if _is_valid_panel_json(jf):
-                seen[jf.stem] = jf
+    results = []
+    for jf in sorted(AIRCRAFT_DIR.iterdir()):
+        if jf.suffix.lower() == ".json" and jf.is_file():
+            results.append((jf.stem, jf))
 
-    return sorted(seen.items(), key=lambda x: x[0])
+    return results
 
 
-def deploy_aircraft_json(source_path: Path, target_dir: Path) -> Path:
-    """Copy an aircraft JSON into *target_dir*.
+def load_aircraft_json(name_or_path) -> dict:
+    """Load and return the parsed aircraft JSON.
 
-    Returns the path to the copied file.
+    Accepts either:
+      - An aircraft name string (e.g. "FA-18C_hornet") — resolved from _core/aircraft/
+      - A Path object — loaded directly
     """
-    dest = target_dir / source_path.name
-    shutil.copy2(source_path, dest)
-    return dest
+    if isinstance(name_or_path, Path):
+        path = name_or_path
+    else:
+        path = AIRCRAFT_DIR / f"{name_or_path}.json"
 
-
-def load_aircraft_json(json_path: Path) -> dict:
-    """Load and return the parsed aircraft JSON."""
-    with open(json_path, "r", encoding="utf-8") as f:
+    with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def read_aircraft_txt(label_set_dir: Path) -> str | None:
+    """Read the aircraft name from a label set's aircraft.txt.
+
+    Returns the aircraft name string or None if not found.
+    """
+    txt = label_set_dir / "aircraft.txt"
+    if txt.exists():
+        name = txt.read_text(encoding="utf-8").strip()
+        if name:
+            return name
+    return None
 
 
 def get_categories(data: dict) -> list[str]:

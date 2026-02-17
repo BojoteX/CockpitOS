@@ -1,1 +1,0 @@
-Custom.json allows you to add your own pseudo labels. This is for extremely rare cases in which you need a custom control not available in the aircraft JSON

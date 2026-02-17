@@ -40,7 +40,6 @@ from config import (
     safe_write_file,
 )
 from boards import (
-    COCKPITOS_OVERRIDES,
     board_has_dual_usb, preferred_usb_mode,
     validate_config_vs_board, FATAL, WARNING,
     select_board, configure_options,
@@ -571,6 +570,7 @@ def main():
         cprint(CYAN + BOLD, "      | |__| (_) | (__ |   <| |_) | | |_| |_| |___) |")
         cprint(CYAN + BOLD, "       \\____\\___/ \\___|_|\\_\\ .__/|_|\\__|\\___/|____/")
         cprint(CYAN + BOLD, "                            |_|")
+        cprint(CYAN + BOLD, "              Compile Tool")
         print()
         role_str = role_label(role)
         transport_str = transport_label(transport) if transport else "?"
