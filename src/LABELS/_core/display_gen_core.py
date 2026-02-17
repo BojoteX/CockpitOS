@@ -19,6 +19,7 @@ def run():
     # --------------------------------
     # CONFIG (adjust as needed)
     # --------------------------------
+    PROCESS_ALL     = False
     DEV_MAPPING_CPP = "DisplayMapping.cpp"
     DEV_MAPPING_H   = "DisplayMapping.h"
     PANELS_SELECTED_FILE = "selected_panels.txt"
@@ -103,41 +104,65 @@ def run():
     # --------------------------------
     # LOAD JSON, PANEL FILTERING
     # --------------------------------
-    # --- Auto-detect valid panel JSON file (same as first script) ---
-    json_files = [f for f in os.listdir() if f.lower().endswith('.json')]
-    valid_jsons = []
-    for fname in json_files:
-        try:
-            with open(fname, "r", encoding="utf-8") as f:
-                data_try = json.load(f)
-            if is_valid_panel_json(data_try):
-                valid_jsons.append((fname, data_try))
-        except Exception:
-            continue  # skip bad files
+    from aircraft_selector import select_aircraft, load_aircraft_json
+    core_dir = os.path.dirname(os.path.abspath(__file__))
+    JSON_FILE = None
+    data = None
 
-    if len(valid_jsons) == 0:
-        print("ERROR: No valid panel-style JSON file found in current directory.")
-        _pause()
-        sys.exit(1)
-    if len(valid_jsons) > 1:
-        print(f"ERROR: Multiple valid panel-style JSON files found: {[f[0] for f in valid_jsons]}")
-        _pause()
-        sys.exit(1)
+    # 1. Try aircraft.txt → load from _core/aircraft/
+    if os.path.isfile("aircraft.txt"):
+        acft_name = open("aircraft.txt", "r", encoding="utf-8").read().strip()
+        JSON_FILE, data = load_aircraft_json(core_dir, acft_name)
+        if not data:
+            print(f"WARNING: aircraft.txt references '{acft_name}' but JSON not found in _core/aircraft/")
 
-    JSON_FILE, data = valid_jsons[0]
+    # 2. Fallback: check for legacy local JSON
+    if data is None:
+        json_files = [f for f in os.listdir() if f.lower().endswith('.json') and "METADATA" not in f]
+        for fname in json_files:
+            try:
+                with open(fname, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if is_valid_panel_json(data):
+                    JSON_FILE = fname
+                    print(f"NOTE: Using legacy local JSON '{fname}'. Run reset_data.py to migrate to centralized aircraft selection.")
+                    break
+            except Exception:
+                continue
 
-    # We do NOT included prefixes from MERGED data (from METADATA dir) we only do so for actual aircraft JSON file
+    # 3. No aircraft.txt and no local JSON → interactive selector
+    if data is None:
+        print("No aircraft configured for this LABEL_SET.")
+        selected = select_aircraft(core_dir)
+        if selected:
+            JSON_FILE, data = load_aircraft_json(core_dir, selected)
+            if data:
+                with open("aircraft.txt", "w", encoding="utf-8") as f:
+                    f.write(selected + "\n")
+                print(f"aircraft.txt written: {selected}")
+        if data is None:
+            print("ERROR: No aircraft selected. Cannot proceed.")
+            _pause()
+            sys.exit(1)
+
+    # We do NOT include prefixes from MERGED data (from METADATA dir) we only do so for actual aircraft JSON file
     REAL_DEVICE_PREFIXES = extract_real_device_prefixes(data)
     merge_metadata_jsons(data)
 
-    if not os.path.isfile(PANELS_SELECTED_FILE):
-        # Warn + create template if needed
-        print(f"WARNING: '{PANELS_SELECTED_FILE}' does not exist.")
-        sys.exit(1)
+    if PROCESS_ALL:
+        target_objects = set(data.keys())
+        print(f"\n⚠️  [WARNING] PROCESS_ALL is set to True! ALL panels in the JSON ({JSON_FILE}) will be processed.")
+        print("    This mode is for PERFORMANCE TESTING or dev only.")
+        print("    To process only panels listed in selected_panels.txt, set PROCESS_ALL = False in your script.\n")
+    else:
+        if not os.path.isfile(PANELS_SELECTED_FILE):
+            # Warn + create template if needed
+            print(f"WARNING: '{PANELS_SELECTED_FILE}' does not exist.")
+            sys.exit(1)
 
-    all_panels = load_panel_list("panels.txt")
-    selected_panels = load_panel_list(PANELS_SELECTED_FILE)
-    target_objects = selected_panels
+        all_panels = load_panel_list("panels.txt")
+        selected_panels = load_panel_list(PANELS_SELECTED_FILE)
+        target_objects = selected_panels
 
     # --------------------------------
     # SUPERTYPE DEVICE PREFIX LOGIC: Find all device prefixes (for DisplayMapping.h)

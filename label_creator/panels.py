@@ -1,15 +1,18 @@
 """
 CockpitOS Label Creator — Interactive panel selection.
 
-Dual-pane TUI: available panels on the left, selected panels on the right.
-The user can browse panels, see what controls each contains, and
-add/remove panels from their selection.
+Three-level drill-down UI:
+  Level 1: Toggle-list panel selector (checkboxes, scroll, boundary flash)
+  Level 2: Scrollable control list for a panel (Label, Description, Type)
+  Level 3: Individual control detail (inputs & outputs)
+
+Navigation: Up/Down = move, Right = drill deeper, Left/Esc = back.
 """
 
 import os
 import sys
 import msvcrt
-import ctypes
+import threading
 
 # ---------------------------------------------------------------------------
 # ANSI constants (mirror ui.py)
@@ -65,168 +68,201 @@ def _summarize(controls: list[dict]) -> str:
         ct = ctrl.get("control_type", "unknown")
         tag = _short_type(ct)
         types[tag] = types.get(tag, 0) + 1
-    parts = [f"{count}{tag}" for tag, count in sorted(types.items(), key=lambda x: -x[1])]
+    parts = [f"({count}){tag}" for tag, count in sorted(types.items(), key=lambda x: -x[1])]
     return " ".join(parts)
 
 
-# ---------------------------------------------------------------------------
-# Interactive dual-pane selector
-# ---------------------------------------------------------------------------
-def select_panels(all_panels: list[str], aircraft_data: dict) -> list[str] | None:
-    """Interactive dual-pane panel selector.
+def _get_controls(aircraft_data: dict, panel_name: str) -> list[dict]:
+    """Extract sorted control dicts from aircraft data for a panel."""
+    cat_data = aircraft_data.get(panel_name, {})
+    controls = []
+    for ctrl_id, ctrl_val in sorted(cat_data.items()):
+        if isinstance(ctrl_val, dict):
+            controls.append(ctrl_val)
+    return controls
 
-    Left pane:  available panels (not yet selected)
-    Right pane: selected panels
-    Current panel's controls shown at bottom.
+
+# ---------------------------------------------------------------------------
+# Interactive toggle-list selector
+# ---------------------------------------------------------------------------
+def select_panels(all_panels: list[str], aircraft_data: dict,
+                  pre_selected: list[str] | None = None,
+                  aircraft_name: str = "",
+                  label_set_name: str = "") -> list[str] | None:
+    """Interactive toggle-list panel selector.
+
+    Each panel is shown as a checkbox row with a compact control summary.
 
     Controls:
-      Up/Down     — navigate current pane
-      Right/Enter — add panel to selected (when on left)
-      Left/Del    — remove panel from selected (when on right)
-      Tab         — switch between left and right pane
-      Space       — preview panel controls
-      Esc         — done / confirm selection
-      Q           — quit without saving (returns None)
+      Up/Down     — navigate
+      Right/Left  — open/close detail view of highlighted panel
+      Enter       — toggle panel selection
+      S           — save selection and continue
+      Esc         — cancel (return None)
+
+    Args:
+      all_panels:      sorted list of all available panel names.
+      aircraft_data:   full aircraft JSON dict (panel_name -> controls).
+      pre_selected:    optional list of panel names already selected.
+      aircraft_name:   aircraft identifier shown in header.
+      label_set_name:  label set name shown in header.
 
     Returns list of selected panel names, or None if cancelled.
     """
-    selected = []
-    available = list(all_panels)
+    if not all_panels:
+        return []
 
-    pane = 0        # 0 = left (available), 1 = right (selected)
-    idx_left = 0
-    idx_right = 0
-    scroll_left = 0
-    scroll_right = 0
-    preview_panel = None    # name of panel being previewed
+    # Build state: {panel_name: bool}
+    pre = set(pre_selected) if pre_selected else set()
+    state = {name: (name in pre) for name in all_panels}
+
+    # Pre-compute control counts and type summaries for each panel
+    ctrl_counts = {}
+    panel_summaries = {}
+    for name in all_panels:
+        controls = _get_controls(aircraft_data, name)
+        ctrl_counts[name] = len(controls)
+        panel_summaries[name] = _summarize(controls)
+
+    total = len(all_panels)
+    idx = 0
+    scroll = 0
 
     cols, rows = _get_terminal_size()
-    pane_width = (cols - 3) // 2    # 3 for divider
-    list_height = rows - 10         # reserve for header, preview, footer
+    # Reserve: 3 header + 1 blank + 1 footer hint + 1 blank = 6 lines
+    list_height = rows - 6
     if list_height < 5:
         list_height = 5
 
-    def _current_list():
-        return available if pane == 0 else selected
+    # ── Scroll indicator chars ─────────────────────────────────────────
+    _SCROLL_BLOCK = "\u2588"    # █  full block
+    _SCROLL_LIGHT = "\u2591"    # ░  light shade
 
-    def _current_idx():
-        return idx_left if pane == 0 else idx_right
+    needs_scroll = total > list_height
 
-    def _current_scroll():
-        return scroll_left if pane == 0 else scroll_right
+    def _selected_count():
+        return sum(1 for v in state.values() if v)
 
-    def _clamp():
-        nonlocal idx_left, idx_right, scroll_left, scroll_right
-        if available:
-            idx_left = max(0, min(idx_left, len(available) - 1))
+    def _scroll_bar_positions():
+        """Return (start_row, end_row) for the scroll thumb within list_height."""
+        if not needs_scroll:
+            return (0, list_height)
+        # Thumb size: proportional to visible / total, minimum 1
+        thumb = max(1, round(list_height * list_height / total))
+        # Thumb position: proportional to scroll / max_scroll
+        max_scroll = total - list_height
+        if max_scroll <= 0:
+            top = 0
         else:
-            idx_left = 0
-        if selected:
-            idx_right = max(0, min(idx_right, len(selected) - 1))
+            top = round(scroll * (list_height - thumb) / max_scroll)
+        return (top, top + thumb)
+
+    def _render_row(i, is_highlighted, scroll_char):
+        """Render a single toggle row with scroll indicator on the right."""
+        name = all_panels[i]
+        mark = f"{GREEN}X{RESET}" if state[name] else " "
+        summary = panel_summaries[name]
+
+        # Format: " > [X] Name                       2SW 3GA  ░"
+        #   prefix = 2 (pointer) + 4 ([X] ) = 6 chars before name
+        prefix_len = 6
+        suffix_len = len(summary) + 2 + 3  # 3 = space + scroll_char + margin
+        name_width = cols - prefix_len - suffix_len - 2
+        if name_width < 20:
+            name_width = 20
+        trunc_name = name[:name_width]
+        pad = name_width - len(trunc_name)
+
+        # Pointer arrow for highlighted row, spaces otherwise
+        # Bracket stays at the SAME column regardless of highlight
+        # Yellow flash variant: entire row turns yellow when at boundary
+        if is_highlighted and _flash_active[0]:
+            return (f" {YELLOW}> [{mark}] {trunc_name}"
+                    f"{' ' * pad}  {summary}"
+                    f" {scroll_char}{RESET}")
+        elif is_highlighted:
+            pointer = f"{CYAN}>{RESET} "
         else:
-            idx_right = 0
-        # Scroll clamping
-        if idx_left < scroll_left:
-            scroll_left = idx_left
-        if idx_left >= scroll_left + list_height:
-            scroll_left = idx_left - list_height + 1
-        if idx_right < scroll_right:
-            scroll_right = idx_right
-        if idx_right >= scroll_right + list_height:
-            scroll_right = idx_right - list_height + 1
+            pointer = "  "
+
+        return (f" {pointer}[{mark}] {trunc_name}"
+                f"{' ' * pad}  {DIM}{summary}{RESET}"
+                f" {DIM}{scroll_char}{RESET}")
+
+    def _clamp_scroll():
+        nonlocal scroll
+        if idx < scroll:
+            scroll = idx
+        if idx >= scroll + list_height:
+            scroll = idx - list_height + 1
+
+    # ── Boundary flash ─────────────────────────────────────────────────
+    _flash_timer = [None]   # mutable container for timer reference
+    _flash_active = [False] # when True, _draw renders highlighted row in yellow
+
+    def _flash_row():
+        """Briefly flash the current row yellow, then restore normal.
+
+        Sets a flag so _draw() renders the highlighted row in yellow,
+        then schedules a timer to clear the flag and redraw normally.
+        This avoids fragile ANSI cursor-movement math entirely.
+        """
+        if _flash_timer[0]:
+            _flash_timer[0].cancel()
+
+        _flash_active[0] = True
+        _draw()
+
+        def _restore():
+            _flash_active[0] = False
+            _draw()
+
+        _flash_timer[0] = threading.Timer(0.15, _restore)
+        _flash_timer[0].daemon = True
+        _flash_timer[0].start()
+
+    _header_w = cols - 4
 
     def _draw():
-        nonlocal preview_panel
+        """Full redraw of the selector screen."""
         os.system("cls" if os.name == "nt" else "clear")
         _w(HIDE_CUR)
 
         # Header
-        _w(f"  {CYAN}{BOLD}{'=' * (cols - 4)}{RESET}\n")
-        _w(f"  {CYAN}{BOLD}  Panel Selector{RESET}\n")
-        _w(f"  {CYAN}{BOLD}{'=' * (cols - 4)}{RESET}\n")
+        sel_count = _selected_count()
+        parts = [label_set_name, aircraft_name]
+        ctx = "  (" + ", ".join(p for p in parts if p) + ")" if any(parts) else ""
+        title = f"Panel Selector{ctx}"
+        counter = f"{sel_count} / {total} selected"
+        spacing = _header_w - len(title) - len(counter) - 4
+        if spacing < 1:
+            spacing = 1
+        _w(f"  {CYAN}{BOLD}{'=' * _header_w}{RESET}\n")
+        _w(f"  {CYAN}{BOLD}  {title}{' ' * spacing}{GREEN}{counter}{RESET}\n")
+        _w(f"  {CYAN}{BOLD}{'=' * _header_w}{RESET}\n")
 
-        # Column headers
-        left_hdr = f" AVAILABLE ({len(available)})"
-        right_hdr = f" SELECTED ({len(selected)})"
-        left_style = f"{CYAN}{BOLD}" if pane == 0 else DIM
-        right_style = f"{GREEN}{BOLD}" if pane == 1 else DIM
-        _w(f"  {left_style}{left_hdr:<{pane_width}}{RESET}")
-        _w(f" {DIM}|{RESET} ")
-        _w(f"{right_style}{right_hdr:<{pane_width}}{RESET}\n")
-        _w(f"  {DIM}{'-' * pane_width} | {'-' * pane_width}{RESET}\n")
+        # Compute scroll bar thumb positions
+        thumb_start, thumb_end = _scroll_bar_positions()
 
-        # Rows
+        # Panel rows
         for row in range(list_height):
-            # Left pane
-            li = scroll_left + row
-            if li < len(available):
-                name = available[li]
-                trunc = name[:pane_width - 5]
-                is_cur = (pane == 0 and li == idx_left)
-                if is_cur:
-                    _w(f"  {REV} > {trunc:<{pane_width - 4}} {RESET}")
-                    preview_panel = name
-                else:
-                    _w(f"     {trunc:<{pane_width - 4}} ")
+            ri = scroll + row
+            # Scroll indicator character for this row
+            if needs_scroll:
+                scroll_char = _SCROLL_BLOCK if thumb_start <= row < thumb_end else _SCROLL_LIGHT
             else:
-                _w(f"  {' ' * pane_width}")
+                scroll_char = " "
 
-            _w(f"{DIM}|{RESET} ")
-
-            # Right pane
-            ri = scroll_right + row
-            if ri < len(selected):
-                name = selected[ri]
-                trunc = name[:pane_width - 5]
-                is_cur = (pane == 1 and ri == idx_right)
-                if is_cur:
-                    _w(f"{REV} > {trunc:<{pane_width - 4}} {RESET}")
-                    preview_panel = name
-                else:
-                    _w(f"   {GREEN}{trunc:<{pane_width - 4}}{RESET} ")
+            if ri < total:
+                _w(_render_row(ri, ri == idx, scroll_char) + "\n")
             else:
-                _w(f" {' ' * pane_width}")
-
-            _w("\n")
-
-        # Divider
-        _w(f"  {DIM}{'=' * (cols - 4)}{RESET}\n")
-
-        # Preview: show controls for the currently highlighted panel
-        cur_list = _current_list()
-        cur_idx = _current_idx()
-        if cur_list and cur_idx < len(cur_list):
-            panel_name = cur_list[cur_idx]
-            cat_data = aircraft_data.get(panel_name, {})
-            controls = []
-            for ctrl_id, ctrl_val in sorted(cat_data.items()):
-                if isinstance(ctrl_val, dict):
-                    controls.append(ctrl_val)
-
-            summary = _summarize(controls)
-            _w(f"  {BOLD}Preview:{RESET} {CYAN}{panel_name}{RESET}")
-            _w(f"  {DIM}({len(controls)} controls: {summary}){RESET}\n")
-
-            # Show up to 4 lines of control details
-            max_preview = min(len(controls), 4)
-            for i in range(max_preview):
-                ctrl = controls[i]
-                ctype = ctrl.get("control_type", "?")
-                desc = ctrl.get("description", "")
-                ident = ctrl.get("identifier", "")
-                tag = _short_type(ctype)
-                line = f"    {DIM}[{tag:>4}]{RESET} {ident:<35} {DIM}{desc[:40]}{RESET}"
-                _w(line + "\n")
-            if len(controls) > max_preview:
-                _w(f"    {DIM}... and {len(controls) - max_preview} more{RESET}\n")
-        else:
-            _w(f"  {DIM}(no panel selected){RESET}\n")
+                _w(ERASE_LN + "\n")
 
         # Footer
-        _w(f"\n  {DIM}Tab=switch pane  Enter/Right=add  Del/Left=remove  Space=detail  Esc=done  Q=cancel{RESET}\n")
+        _w(f"\n  {DIM}\u2191\u2193=move  \u2192=detail  Enter=toggle  S=save  Esc=cancel{RESET}")
 
     # Initial draw
-    _clamp()
+    _clamp_scroll()
     _draw()
 
     try:
@@ -235,128 +271,492 @@ def select_panels(all_panels: list[str], aircraft_data: dict) -> list[str] | Non
 
             if ch in ("\xe0", "\x00"):
                 ch2 = msvcrt.getwch()
-                if ch2 == "H":          # Up
-                    if pane == 0:
-                        idx_left = max(0, idx_left - 1)
+                old = idx
+                if ch2 == "H":          # Up — clamp at top
+                    if idx > 0:
+                        idx -= 1
                     else:
-                        idx_right = max(0, idx_right - 1)
-                elif ch2 == "P":        # Down
-                    if pane == 0:
-                        idx_left = min(len(available) - 1, idx_left + 1) if available else 0
+                        _flash_row()
+                elif ch2 == "P":        # Down — clamp at bottom
+                    if idx < total - 1:
+                        idx += 1
                     else:
-                        idx_right = min(len(selected) - 1, idx_right + 1) if selected else 0
-                elif ch2 == "M":        # Right arrow — add panel
-                    if pane == 0 and available:
-                        panel = available[idx_left]
-                        available.remove(panel)
-                        selected.append(panel)
-                        _clamp()
-                    elif pane == 0:
-                        pass
-                    else:
-                        pass    # Right on right pane: no-op
-                elif ch2 == "K":        # Left arrow — remove panel
-                    if pane == 1 and selected:
-                        panel = selected[idx_right]
-                        selected.remove(panel)
-                        available.append(panel)
-                        available.sort()
-                        _clamp()
-                    elif pane == 1:
-                        pass
-                    else:
-                        pass    # Left on left pane: no-op
-                elif ch2 == "S":        # Delete key
-                    if pane == 1 and selected:
-                        panel = selected[idx_right]
-                        selected.remove(panel)
-                        available.append(panel)
-                        available.sort()
-                        _clamp()
-                _clamp()
+                        _flash_row()
+                elif ch2 == "M":        # Right — detail view (Level 2)
+                    _show_detail(aircraft_data, all_panels[idx], cols, rows,
+                                 label_set_name=label_set_name,
+                                 aircraft_name=aircraft_name)
+                    _draw()
+                    continue
+                else:
+                    continue
+                if old != idx:
+                    _clamp_scroll()
+                    _draw()
+
+            elif ch == "\r":            # Enter — toggle
+                name = all_panels[idx]
+                state[name] = not state[name]
                 _draw()
 
-            elif ch == "\t":            # Tab — switch pane
-                pane = 1 - pane
-                _draw()
-
-            elif ch == "\r":            # Enter — add from left
-                if pane == 0 and available:
-                    panel = available[idx_left]
-                    available.remove(panel)
-                    selected.append(panel)
-                    _clamp()
-                    _draw()
-                elif pane == 1:
-                    # Enter on right pane: show full detail
-                    _show_detail(aircraft_data, selected[idx_right] if selected else None, cols, rows)
-                    _draw()
-
-            elif ch == " ":             # Space — show detail
-                cur_list = _current_list()
-                cur_idx = _current_idx()
-                if cur_list and cur_idx < len(cur_list):
-                    _show_detail(aircraft_data, cur_list[cur_idx], cols, rows)
-                    _draw()
-
-            elif ch == "\x1b":          # Esc — done
+            elif ch.lower() == "s":     # S — save selection
+                if _flash_timer[0]:
+                    _flash_timer[0].cancel()
                 _w(SHOW_CUR)
-                return selected
+                return [name for name in all_panels if state[name]]
 
-            elif ch.lower() == "q":     # Q — cancel
+            elif ch == "\x1b":          # Esc — cancel
+                if _flash_timer[0]:
+                    _flash_timer[0].cancel()
                 _w(SHOW_CUR)
                 return None
 
     except KeyboardInterrupt:
+        if _flash_timer[0]:
+            _flash_timer[0].cancel()
         _w(SHOW_CUR)
         raise
 
 
-def _show_detail(aircraft_data: dict, panel_name: str | None, cols: int, rows: int):
-    """Full-screen detail view of a panel's controls."""
+# ---------------------------------------------------------------------------
+# Level 2 — Scrollable panel detail (list of controls)
+# ---------------------------------------------------------------------------
+def _show_detail(aircraft_data: dict, panel_name: str | None, cols: int, rows: int,
+                 label_set_name: str = "", aircraft_name: str = ""):
+    """Interactive scrollable detail view of a panel's controls.
+
+    Level 2 in the drill-down hierarchy:
+      Up/Down  — navigate controls
+      Right    — drill into control detail (Level 3)
+      Left/Esc — back to panel selector (Level 1)
+    """
     if not panel_name:
         return
 
-    os.system("cls" if os.name == "nt" else "clear")
-    _w(HIDE_CUR)
+    controls = _get_controls(aircraft_data, panel_name)
+    if not controls:
+        return
 
-    cat_data = aircraft_data.get(panel_name, {})
-    controls = []
-    for ctrl_id, ctrl_val in sorted(cat_data.items()):
-        if isinstance(ctrl_val, dict):
-            controls.append(ctrl_val)
+    total = len(controls)
+    idx = 0
+    scroll = 0
+    header_w = cols - 4
 
-    _w(f"  {CYAN}{BOLD}{'=' * (cols - 4)}{RESET}\n")
-    _w(f"  {CYAN}{BOLD}  Panel: {panel_name}{RESET}\n")
-    _w(f"  {CYAN}{BOLD}{'=' * (cols - 4)}{RESET}\n\n")
+    # Reserve: 3 header + 1 summary + 1 blank + 1 col-header + 1 separator
+    #        + list + 1 blank + 1 footer = 9 fixed lines
+    list_height = rows - 9
+    if list_height < 5:
+        list_height = 5
 
-    summary = _summarize(controls)
-    _w(f"  {BOLD}{len(controls)} controls{RESET}  {DIM}({summary}){RESET}\n\n")
+    # Scroll indicator
+    _SCROLL_BLOCK = "\u2588"
+    _SCROLL_LIGHT = "\u2591"
+    needs_scroll = total > list_height
 
-    _w(f"  {BOLD}{'Type':<6} {'Identifier':<40} {'Description':<45} {'Inputs'}{RESET}\n")
-    _w(f"  {DIM}{'-' * 6} {'-' * 40} {'-' * 45} {'-' * 10}{RESET}\n")
+    # Column widths — fixed so scroll bar stays at rightmost column
+    # Layout: " > " (3) + label_w + " " + desc_w + " " + type_w + " " + scroll (1)
+    type_w = 18
+    label_w = 40
+    desc_w = cols - 3 - label_w - 1 - 1 - type_w - 1 - 1
+    if desc_w < 10:
+        desc_w = 10
 
-    max_lines = rows - 12
-    for i, ctrl in enumerate(controls):
-        if i >= max_lines:
-            _w(f"\n  {DIM}... {len(controls) - max_lines} more controls (press any key to go back){RESET}")
-            break
+    # Boundary flash
+    _flash_timer = [None]
+    _flash_active = [False]
 
-        ctype = ctrl.get("control_type", "?")
+    def _scroll_bar_positions():
+        if not needs_scroll:
+            return (0, list_height)
+        thumb = max(1, round(list_height * list_height / total))
+        max_scroll = total - list_height
+        if max_scroll <= 0:
+            top = 0
+        else:
+            top = round(scroll * (list_height - thumb) / max_scroll)
+        return (top, top + thumb)
+
+    def _render_ctrl_row(i, is_highlighted, scroll_char):
+        ctrl = controls[i]
         ident = ctrl.get("identifier", "?")
         desc = ctrl.get("description", "")
-        tag = _short_type(ctype)
+        ctype = ctrl.get("control_type", "?")
+        ident_trunc = ident[:label_w] if len(ident) > label_w else ident
+        desc_trunc = desc[:desc_w] if len(desc) > desc_w else desc
+        ctype_trunc = ctype[:type_w] if len(ctype) > type_w else ctype
 
-        # Count input interfaces
-        inputs = ctrl.get("inputs", [])
-        input_types = [inp.get("interface", "?") for inp in inputs]
-        input_str = ",".join(input_types) if input_types else "-"
+        if is_highlighted and _flash_active[0]:
+            return (f" {YELLOW}> {ident_trunc:<{label_w}} "
+                    f"{desc_trunc:<{desc_w}} {ctype_trunc:<{type_w}}"
+                    f" {scroll_char}{RESET}")
+        elif is_highlighted:
+            pointer = f"{CYAN}>{RESET}"
+        else:
+            pointer = " "
 
-        desc_trunc = desc[:45] if len(desc) > 45 else desc
-        _w(f"  {YELLOW}{tag:<6}{RESET} {ident:<40} {DIM}{desc_trunc:<45}{RESET} {input_str}\n")
+        return (f" {pointer} {YELLOW}{ident_trunc:<{label_w}}{RESET} "
+                f"{DIM}{desc_trunc:<{desc_w}}{RESET} {ctype_trunc:<{type_w}}"
+                f" {DIM}{scroll_char}{RESET}")
 
-    if len(controls) <= max_lines:
-        _w(f"\n  {DIM}(press any key to go back){RESET}")
+    def _clamp_scroll():
+        nonlocal scroll
+        if idx < scroll:
+            scroll = idx
+        if idx >= scroll + list_height:
+            scroll = idx - list_height + 1
 
-    msvcrt.getwch()
-    _w(SHOW_CUR)
+    def _flash_row():
+        if _flash_timer[0]:
+            _flash_timer[0].cancel()
+        _flash_active[0] = True
+        _draw()
+        def _restore():
+            _flash_active[0] = False
+            _draw()
+        _flash_timer[0] = threading.Timer(0.15, _restore)
+        _flash_timer[0].daemon = True
+        _flash_timer[0].start()
+
+    def _draw():
+        os.system("cls" if os.name == "nt" else "clear")
+        _w(HIDE_CUR)
+
+        # Header
+        summary = _summarize(controls)
+        parts = [label_set_name, aircraft_name]
+        ctx = "  (" + ", ".join(p for p in parts if p) + ")" if any(parts) else ""
+        title = f"{panel_name}{ctx}"
+        counter = f"{total} controls - {summary}"
+        spacing = header_w - len(title) - len(counter) - 4
+        if spacing < 1:
+            spacing = 1
+        _w(f"  {CYAN}{BOLD}{'=' * header_w}{RESET}\n")
+        _w(f"  {CYAN}{BOLD}  {title}{' ' * spacing}{GREEN}{counter}{RESET}\n")
+        _w(f"  {CYAN}{BOLD}{'=' * header_w}{RESET}\n")
+
+        # Column headers (aligned with row content: 3-char pointer area + columns)
+        _w(f" {BOLD}  {'Label':<{label_w}} {'Description':<{desc_w}} {'Type'}{RESET}\n")
+
+        # Scroll bar
+        thumb_start, thumb_end = _scroll_bar_positions()
+
+        # Control rows
+        for row in range(list_height):
+            ri = scroll + row
+            if needs_scroll:
+                sc = _SCROLL_BLOCK if thumb_start <= row < thumb_end else _SCROLL_LIGHT
+            else:
+                sc = " "
+            if ri < total:
+                _w(_render_ctrl_row(ri, ri == idx, sc) + "\n")
+            else:
+                _w(ERASE_LN + "\n")
+
+        # Footer
+        _w(f"\n  {DIM}\u2191\u2193=move  \u2192=expand  \u2190=back  Esc=back{RESET}")
+
+    _clamp_scroll()
+    _draw()
+
+    try:
+        while True:
+            ch = msvcrt.getwch()
+
+            if ch in ("\xe0", "\x00"):
+                ch2 = msvcrt.getwch()
+                old = idx
+                if ch2 == "H":          # Up
+                    if idx > 0:
+                        idx -= 1
+                    else:
+                        _flash_row()
+                elif ch2 == "P":        # Down
+                    if idx < total - 1:
+                        idx += 1
+                    else:
+                        _flash_row()
+                elif ch2 == "M":        # Right — drill into control (Level 3)
+                    _show_control_detail(controls[idx], panel_name, cols, rows,
+                                         label_set_name=label_set_name,
+                                         aircraft_name=aircraft_name)
+                    _draw()
+                    continue
+                elif ch2 == "K":        # Left — back to Level 1
+                    if _flash_timer[0]:
+                        _flash_timer[0].cancel()
+                    _w(SHOW_CUR)
+                    return
+                else:
+                    continue
+                if old != idx:
+                    _clamp_scroll()
+                    _draw()
+
+            elif ch == "\x1b":          # Esc — back to Level 1
+                if _flash_timer[0]:
+                    _flash_timer[0].cancel()
+                _w(SHOW_CUR)
+                return
+
+    except KeyboardInterrupt:
+        if _flash_timer[0]:
+            _flash_timer[0].cancel()
+        _w(SHOW_CUR)
+        raise
+
+
+# ---------------------------------------------------------------------------
+# Level 3 — Individual control detail (inputs & outputs)
+# ---------------------------------------------------------------------------
+def _show_control_detail(ctrl: dict, panel_name: str, cols: int, rows: int,
+                         label_set_name: str = "", aircraft_name: str = ""):
+    """Interactive detail view of a single control's inputs and outputs.
+
+    Level 3 in the drill-down hierarchy:
+      Up/Down  — scroll through inputs/outputs
+      Left/Esc — back to panel detail (Level 2)
+    """
+    ident = ctrl.get("identifier", "?")
+    ctype = ctrl.get("control_type", "?")
+    desc = ctrl.get("description", "")
+    inputs = ctrl.get("inputs", [])
+    outputs = ctrl.get("outputs", [])
+    header_w = cols - 4
+
+    # Build a flat list of display rows: section headers + items
+    # Each item is a tuple: (type, data)
+    #   ("section", "Inputs (2)")
+    #   ("input", {input dict})
+    #   ("output", {output dict})
+    #   ("empty", "No inputs")
+    display_rows = []
+
+    display_rows.append(("section", f"Inputs ({len(inputs)})"))
+    if inputs:
+        for inp in inputs:
+            display_rows.append(("input", inp))
+    else:
+        display_rows.append(("empty", "No inputs defined"))
+
+    display_rows.append(("section", f"Outputs ({len(outputs)})"))
+    if outputs:
+        for out in outputs:
+            display_rows.append(("output", out))
+    else:
+        display_rows.append(("empty", "No outputs defined"))
+
+    total = len(display_rows)
+    idx = 0
+    scroll = 0
+
+    # Reserve: 3 header + 2 info lines + 1 blank + list + 1 blank + 1 footer = 8
+    list_height = rows - 8
+    if list_height < 5:
+        list_height = 5
+
+    _SCROLL_BLOCK = "\u2588"
+    _SCROLL_LIGHT = "\u2591"
+    needs_scroll = total > list_height
+
+    _flash_timer = [None]
+    _flash_active = [False]
+
+    def _scroll_bar_positions():
+        if not needs_scroll:
+            return (0, list_height)
+        thumb = max(1, round(list_height * list_height / total))
+        max_scroll = total - list_height
+        if max_scroll <= 0:
+            top = 0
+        else:
+            top = round(scroll * (list_height - thumb) / max_scroll)
+        return (top, top + thumb)
+
+    def _render_detail_row(i, is_highlighted, scroll_char):
+        rtype, data = display_rows[i]
+        content_w = cols - 8  # margins + pointer + scroll
+
+        if rtype == "section":
+            # Section headers are bold, not selectable-looking
+            line = f"  {BOLD}{data}{RESET}"
+            pad = content_w - len(data) + 2
+            if pad < 0:
+                pad = 0
+            return f"{line}{' ' * pad} {DIM}{scroll_char}{RESET}"
+
+        elif rtype == "empty":
+            line = f"    {DIM}{data}{RESET}"
+            pad = content_w - len(data)
+            if pad < 0:
+                pad = 0
+            return f"{line}{' ' * pad} {DIM}{scroll_char}{RESET}"
+
+        elif rtype == "input":
+            iface = data.get("interface", "?")
+            idesc = data.get("description", "")
+            max_val = data.get("max_value", "")
+            step = data.get("suggested_step", "")
+            arg = data.get("argument", "")
+
+            parts = [f"{iface}"]
+            if idesc:
+                parts.append(f"— {idesc}")
+            extras = []
+            if max_val != "":
+                extras.append(f"max={max_val}")
+            if step:
+                extras.append(f"step={step}")
+            if arg:
+                extras.append(f"arg={arg}")
+            if extras:
+                parts.append(f"[{', '.join(extras)}]")
+            text = "  " + " ".join(parts)
+            trunc = text[:content_w]
+            pad = content_w - len(trunc)
+
+            if is_highlighted and _flash_active[0]:
+                return (f" {YELLOW}>{RESET} {YELLOW}{trunc}{RESET}"
+                        f"{' ' * pad} {DIM}{scroll_char}{RESET}")
+            elif is_highlighted:
+                return (f" {CYAN}>{RESET} {trunc}"
+                        f"{' ' * pad} {DIM}{scroll_char}{RESET}")
+            else:
+                return (f"   {DIM}{trunc}{RESET}"
+                        f"{' ' * pad} {DIM}{scroll_char}{RESET}")
+
+        elif rtype == "output":
+            addr = data.get("address", "?")
+            odesc = data.get("description", "")
+            mask = data.get("mask", "")
+            shift = data.get("shift_by", "")
+            max_val = data.get("max_value", "")
+            otype = data.get("type", "")
+            addr_id = data.get("address_mask_shift_identifier", "")
+
+            parts = [f"addr={addr}"]
+            if odesc:
+                parts.append(f"— {odesc}")
+            extras = []
+            if mask != "":
+                extras.append(f"mask={mask}")
+            if shift != "":
+                extras.append(f"shift={shift}")
+            if max_val != "":
+                extras.append(f"max={max_val}")
+            if otype:
+                extras.append(f"type={otype}")
+            if extras:
+                parts.append(f"[{', '.join(extras)}]")
+            text = "  " + " ".join(parts)
+            trunc = text[:content_w]
+            pad = content_w - len(trunc)
+
+            if is_highlighted and _flash_active[0]:
+                return (f" {YELLOW}>{RESET} {YELLOW}{trunc}{RESET}"
+                        f"{' ' * pad} {DIM}{scroll_char}{RESET}")
+            elif is_highlighted:
+                return (f" {CYAN}>{RESET} {trunc}"
+                        f"{' ' * pad} {DIM}{scroll_char}{RESET}")
+            else:
+                return (f"   {DIM}{trunc}{RESET}"
+                        f"{' ' * pad} {DIM}{scroll_char}{RESET}")
+
+        return ""
+
+    def _clamp_scroll():
+        nonlocal scroll
+        if idx < scroll:
+            scroll = idx
+        if idx >= scroll + list_height:
+            scroll = idx - list_height + 1
+
+    def _flash_row():
+        if _flash_timer[0]:
+            _flash_timer[0].cancel()
+        _flash_active[0] = True
+        _draw()
+        def _restore():
+            _flash_active[0] = False
+            _draw()
+        _flash_timer[0] = threading.Timer(0.15, _restore)
+        _flash_timer[0].daemon = True
+        _flash_timer[0].start()
+
+    def _draw():
+        os.system("cls" if os.name == "nt" else "clear")
+        _w(HIDE_CUR)
+
+        # Header
+        l3_parts = [label_set_name, aircraft_name]
+        l3_ctx = "  (" + ", ".join(p for p in l3_parts if p) + ")" if any(l3_parts) else ""
+        l3_title = f"{ident}{l3_ctx}"
+        _w(f"  {CYAN}{BOLD}{'=' * header_w}{RESET}\n")
+        _w(f"  {CYAN}{BOLD}  {l3_title}{RESET}\n")
+        _w(f"  {CYAN}{BOLD}{'=' * header_w}{RESET}\n")
+
+        # Info line
+        _w(f"  {BOLD}Type:{RESET} {ctype}    "
+           f"{BOLD}Description:{RESET} {desc}    "
+           f"{DIM}Panel: {panel_name}{RESET}\n")
+        _w("\n")
+
+        # Scroll bar
+        thumb_start, thumb_end = _scroll_bar_positions()
+
+        # Rows
+        for row in range(list_height):
+            ri = scroll + row
+            if needs_scroll:
+                sc = _SCROLL_BLOCK if thumb_start <= row < thumb_end else _SCROLL_LIGHT
+            else:
+                sc = " "
+            if ri < total:
+                _w(_render_detail_row(ri, ri == idx, sc) + "\n")
+            else:
+                _w(ERASE_LN + "\n")
+
+        # Footer
+        _w(f"\n  {DIM}\u2191\u2193=scroll  \u2190=back  Esc=back{RESET}")
+
+    _clamp_scroll()
+    _draw()
+
+    try:
+        while True:
+            ch = msvcrt.getwch()
+
+            if ch in ("\xe0", "\x00"):
+                ch2 = msvcrt.getwch()
+                old = idx
+                if ch2 == "H":          # Up
+                    if idx > 0:
+                        idx -= 1
+                    else:
+                        _flash_row()
+                elif ch2 == "P":        # Down
+                    if idx < total - 1:
+                        idx += 1
+                    else:
+                        _flash_row()
+                elif ch2 == "K":        # Left — back to Level 2
+                    if _flash_timer[0]:
+                        _flash_timer[0].cancel()
+                    _w(SHOW_CUR)
+                    return
+                else:
+                    continue
+                if old != idx:
+                    _clamp_scroll()
+                    _draw()
+
+            elif ch == "\x1b":          # Esc — back to Level 2
+                if _flash_timer[0]:
+                    _flash_timer[0].cancel()
+                _w(SHOW_CUR)
+                return
+
+    except KeyboardInterrupt:
+        if _flash_timer[0]:
+            _flash_timer[0].cancel()
+        _w(SHOW_CUR)
+        raise

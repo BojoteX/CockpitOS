@@ -9,7 +9,7 @@
     "UploadMode": "default",
     "CPUFreq": "240",
     "FlashMode": "qio120",
-    "PartitionScheme": "no_ota",
+    "PartitionScheme": "rainmaker_4MB",
     "DebugLevel": "none",
     "PSRAM": "enabled",
     "LoopCore": "1",
@@ -23,5 +23,5 @@
   "usb_mode": null,
   "board_name": "Waveshare ESP32-S3-LCD-1.85",
   "arduino_cli_path": "C:\\Program Files\\Arduino IDE\\resources\\app\\lib\\backend\\resources\\arduino-cli.exe",
-  "show_detailed_warnings": true
+  "show_detailed_warnings": false
 }

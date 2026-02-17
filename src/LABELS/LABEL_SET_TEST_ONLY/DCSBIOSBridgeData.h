@@ -142,6 +142,77 @@ static const SelectorEntry SelectorMap[] = {
 };
 static const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);
 
+// O(1) hash lookup for SelectorMap[] by (dcsCommand, value)
+struct SelectorHashEntry { const char* dcsCommand; uint16_t value; const SelectorEntry* entry; };
+static const SelectorHashEntry selectorHashTable[53] = {
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"MASTER_ARM_SW", 1, &SelectorMap[1]},
+  {"MASTER_MODE_AA", 1, &SelectorMap[2]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"MASTER_ARM_SW", 0, &SelectorMap[0]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"MASTER_CAUTION_RESET_SW", 1, &SelectorMap[4]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"MASTER_MODE_AG", 1, &SelectorMap[3]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+};
+
+// Composite hash: labelHash(dcsCommand) ^ (value * 7919)
+inline const SelectorEntry* findSelectorByDcsAndValue(const char* dcsCommand, uint16_t value) {
+  uint16_t startH = (labelHash(dcsCommand) ^ (value * 7919u)) % 53;
+  for (uint16_t i = 0; i < 53; ++i) {
+    uint16_t idx = (startH + i >= 53) ? (startH + i - 53) : (startH + i);
+    const auto& entry = selectorHashTable[idx];
+    if (!entry.dcsCommand) return nullptr;
+    if (entry.value == value && strcmp(entry.dcsCommand, dcsCommand) == 0) return entry.entry;
+  }
+  return nullptr;
+}
+
+
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
     { "MASTER_ARM_SW", 0, 0, true, 1, 0,   0, false, {0}, {0}, 0 },
@@ -184,6 +255,6 @@ inline const DisplayFieldDef* findDisplayFieldByLabel(const char* label) {
 
 // No tracked metadata fields found
 struct MetadataState { const char* label; uint16_t value; };
-static MetadataState metadataStates[] = {};
-static const size_t numMetadataStates = 0;
+static MetadataState metadataStates[] __attribute__((unused)) = {};
+static const size_t numMetadataStates __attribute__((unused)) = 0;
 inline MetadataState* findMetadataState(const char*) { return nullptr; }
