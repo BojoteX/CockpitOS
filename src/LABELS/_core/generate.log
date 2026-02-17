@@ -1,4 +1,4 @@
-Generated DisplayMapping.cpp and DisplayMapping.h for devices: HUD, IFEI, UFC
+Generated DisplayMapping.cpp and DisplayMapping.h for devices: CPG, PLT
 ============================================================
 CockpitOS PanelKind Generator
 ============================================================
@@ -31,27 +31,21 @@ Generated: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Generated\Pan
   → 15 total + COUNT
 
 Done!
-Current LABEL SET: LABEL_SET_IFEI
+Current LABEL SET: LABEL_SET_CMWS_DISPLAY
 
 [INFO] The current target_objects (panel(s) to be processed) are:
-  - External Aircraft Model
-  - Flaps, Landing Gear, Stores Indicator Panel
-  - HUD Video Record Panel
-  - Integrated Fuel/Engine Indicator (IFEI)
-  - Interior Lights Panel
-  - Internal Lights
-  - Station Jettison Select
+  - PLT CMWS
 
-[✓] Generated DCSBIOSBridgeData.h with 153 outputs,  43 selectors.
-[✓] Generated InputMapping.h with 43 entries.
-✅ Found 27 LED/Analog labels in DcsOutputTable (DCSBIOSBridgeData.h)
-🔢 Using TABLE_SIZE = 59 (next prime ≥ 54)
+[✓] Generated DCSBIOSBridgeData.h with 38 outputs,  19 selectors.
+[✓] Generated InputMapping.h with 19 entries.
+✅ Found 2 LED/Analog labels in DcsOutputTable (DCSBIOSBridgeData.h)
+🔢 Using TABLE_SIZE = 53 (next prime ≥ 4)
 ✅ LEDMapping.h fully regenerated with dynamic enum from KNOWN_DEVICES.
 
 [INFO] Generating DisplayMapping.cpp/h using display_gen.py ...
 ✅ Renamed .cpp files to cpp.DISABLE in the inactive LABEL SETS to avoid linker conflicts
-[✓] Created LabelSetConfig.h with AUTOGEN_USB_PID=0x6E2A (from 'CockpitOS IFEI v2')
-[✓] Created ../active_set.h with LABEL_SET IFEI
+[✓] Created LabelSetConfig.h with AUTOGEN_USB_PID=0xC1E5 (from 'CockpitOS AH-64D CMWS Panel')
+[✓] Created ../active_set.h with LABEL_SET CMWS_DISPLAY
 
 ============================================================
 Running generate_panelkind.py to update PanelKind.h...

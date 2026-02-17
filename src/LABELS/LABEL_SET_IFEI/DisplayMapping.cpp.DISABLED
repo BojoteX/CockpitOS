@@ -1,0 +1,136 @@
+// DisplayMapping.cpp - Defines the display fields
+#include "../../Globals.h"
+#include "DisplayMapping.h"
+
+const DisplayFieldDefLabel fieldDefs[] = {
+    { "IFEI_BINGO",            &IFEI_BINGO_MAP[0][0], 5, 7,   0, 20000,  FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_BINGO },
+    { "IFEI_BINGO_TEXTURE",    &IFEI_BINGO_TEXTURE_LABEL,     0, 0,   0, 1,      FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_LABEL },
+    { "IFEI_CLOCK_H",          &IFEI_CLOCK_H_MAP[0][0],      2, 7,   0, 23,     FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_7SEG },
+    { "IFEI_CLOCK_M",          &IFEI_CLOCK_M_MAP[0][0],      2, 7,   0, 59,     FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_7SEG },
+    { "IFEI_CLOCK_S",          &IFEI_CLOCK_S_MAP[0][0],      2, 7,   0, 99,     FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_7SEG },
+    { "IFEI_CODES",            &IFEI_CODES_MAP[0][0],        3, 7, 0, 0,  FIELD_STRING, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_7SEG_SHARED },
+    { "IFEI_DD_1",             &IFEI_DD_1_LABEL,             0, 0, 0, 1,  FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_LABEL },
+    { "IFEI_FF_L",             &IFEI_FF_L_MAP[0][0],  3, 7,   0, 999,    FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_7SEG },
+    { "IFEI_FF_R",             &IFEI_FF_R_MAP[0][0],  3, 7,   0, 999,    FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_7SEG },
+    { "IFEI_FF_TEXTURE",       &IFEI_FF_TEXTURE_LABEL,0, 0,   0, 1,      FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_LABEL },
+    { "IFEI_FUEL_DOWN",        &IFEI_FUEL_DOWN_MAP[0][0],    6, 14, 0, 999999, FIELD_MIXED, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_FUEL },
+    { "IFEI_FUEL_UP",          &IFEI_FUEL_UP_MAP[0][0],      6, 14, 0, 999999, FIELD_MIXED, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_FUEL },
+{ "IFEI_LPOINTER_TEXTURE", &IFEI_LPOINTER_TEXTURE_LABEL, 0, 0, 0, 1, FIELD_BARGRAPH, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_BARGRAPH },
+    { "IFEI_L_TEXTURE",        &IFEI_L_TEXTURE_LABEL,        0, 0, 0, 1,  FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_LABEL },
+    { "IFEI_NOZ_TEXTURE",      &IFEI_NOZ_TEXTURE_LABEL,      0, 0, 0, 1,  FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_LABEL },
+    { "IFEI_OIL_PRESS_L",      &IFEI_OIL_PRESS_L_MAP[0][0],  3, 7, 0, 199,FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_RPM },
+    { "IFEI_OIL_PRESS_R",      &IFEI_OIL_PRESS_R_MAP[0][0],  3, 7, 0, 199,FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_RPM },
+    { "IFEI_OIL_TEXTURE",      &IFEI_OIL_TEXTURE_LABEL,      0, 0, 0, 1,  FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_LABEL },
+    { "IFEI_RPM_L",            &IFEI_RPM_L_MAP[0][0],        3, 7, 0, 199,FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_RPM },
+    { "IFEI_RPM_R",            &IFEI_RPM_R_MAP[0][0],        3, 7, 0, 199,FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_RPM },
+    { "IFEI_RPM_TEXTURE",      &IFEI_RPM_TEXTURE_LABEL,      0, 0, 0, 1,  FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_LABEL },
+{ "IFEI_RPOINTER_TEXTURE", &IFEI_RPOINTER_TEXTURE_LABEL, 0, 0, 0, 1, FIELD_BARGRAPH, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_BARGRAPH },
+    { "IFEI_R_TEXTURE",        &IFEI_R_TEXTURE_LABEL,        0, 0, 0, 1,  FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_LABEL },
+    { "IFEI_SP",               &IFEI_SP_MAP[0][0],           3, 7, 0, 0,  FIELD_STRING, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_7SEG_SHARED },
+    { "IFEI_T",                &IFEI_T_MAP[0][0],            6, 14, 0, 999999, FIELD_MIXED, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_ALPHA_NUM_FUEL },
+    { "IFEI_TEMP_L",           &IFEI_TEMP_L_MAP[0][0],3, 7,   0, 999,    FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_7SEG_SHARED },
+    { "IFEI_TEMP_R",           &IFEI_TEMP_R_MAP[0][0],3, 7,   0, 999,    FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_7SEG_SHARED },
+    { "IFEI_TEMP_TEXTURE",     &IFEI_TEMP_TEXTURE_LABEL,0, 0, 0, 1,      FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_LABEL },
+    { "IFEI_TIMER_H",          &IFEI_TIMER_H_MAP[0][0],      2, 7, 0, 23, FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_7SEG },
+    { "IFEI_TIMER_M",          &IFEI_TIMER_M_MAP[0][0],      2, 7, 0, 59, FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_7SEG },
+    { "IFEI_TIMER_S",          &IFEI_TIMER_S_MAP[0][0],      2, 7, 0, 59, FIELD_NUMERIC, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_7SEG },
+    { "IFEI_TIME_SET_MODE",    &IFEI_TIME_SET_MODE_MAP[0][0],6, 14, 0, 999999, FIELD_MIXED, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_ALPHA_NUM_FUEL },
+    { "IFEI_Z_TEXTURE",        &IFEI_Z_TEXTURE_LABEL, 0, 0,   0, 1,      FIELD_LABEL, 0, &ifei, DISPLAY_IFEI, renderIFEIDispatcher, nullptr, FIELD_RENDER_LABEL }
+};
+size_t numFieldDefs = sizeof(fieldDefs) / sizeof(fieldDefs[0]);
+FieldState fieldStates[sizeof(fieldDefs) / sizeof(fieldDefs[0])];
+
+// --- Hash Table for fieldDefs[] ---
+struct FieldDefHashEntry { const char* label; const DisplayFieldDefLabel* def; };
+static const size_t FIELD_HASH_SIZE = 67;
+static const FieldDefHashEntry fieldDefHashTable[FIELD_HASH_SIZE] = {
+    {"IFEI_OIL_PRESS_R", &fieldDefs[16]},
+    {nullptr, nullptr},
+    {"IFEI_CLOCK_H", &fieldDefs[2]},
+    {"IFEI_FF_R", &fieldDefs[8]},
+    {nullptr, nullptr},
+    {"IFEI_FF_TEXTURE", &fieldDefs[9]},
+    {"IFEI_BINGO_TEXTURE", &fieldDefs[1]},
+    {"IFEI_R_TEXTURE", &fieldDefs[22]},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {"IFEI_TEMP_R", &fieldDefs[26]},
+    {nullptr, nullptr},
+    {"IFEI_T", &fieldDefs[24]},
+    {"IFEI_SP", &fieldDefs[23]},
+    {"IFEI_OIL_PRESS_L", &fieldDefs[15]},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {"IFEI_BINGO", &fieldDefs[0]},
+    {"IFEI_LPOINTER_TEXTURE", &fieldDefs[12]},
+    {"IFEI_TIMER_S", &fieldDefs[30]},
+    {"IFEI_FUEL_DOWN", &fieldDefs[10]},
+    {"IFEI_TIME_SET_MODE", &fieldDefs[31]},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {"IFEI_CODES", &fieldDefs[5]},
+    {"IFEI_NOZ_TEXTURE", &fieldDefs[14]},
+    {nullptr, nullptr},
+    {"IFEI_CLOCK_S", &fieldDefs[4]},
+    {"IFEI_Z_TEXTURE", &fieldDefs[32]},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {"IFEI_RPM_TEXTURE", &fieldDefs[20]},
+    {"IFEI_FF_L", &fieldDefs[7]},
+    {"IFEI_RPM_L", &fieldDefs[18]},
+    {"IFEI_L_TEXTURE", &fieldDefs[13]},
+    {nullptr, nullptr},
+    {"IFEI_RPM_R", &fieldDefs[19]},
+    {"IFEI_RPOINTER_TEXTURE", &fieldDefs[21]},
+    {nullptr, nullptr},
+    {"IFEI_TIMER_M", &fieldDefs[29]},
+    {"IFEI_TEMP_TEXTURE", &fieldDefs[27]},
+    {"IFEI_DD_1", &fieldDefs[6]},
+    {"IFEI_TEMP_L", &fieldDefs[25]},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {"IFEI_TIMER_H", &fieldDefs[28]},
+    {"IFEI_CLOCK_M", &fieldDefs[3]},
+    {"IFEI_FUEL_UP", &fieldDefs[11]},
+    {"IFEI_OIL_TEXTURE", &fieldDefs[17]},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+    {nullptr, nullptr},
+};
+
+// --- labelHash-based lookup (uses shared labelHash from CUtils.h) ---
+const DisplayFieldDefLabel* findFieldDefByLabel(const char* label) {
+    uint16_t startH = labelHash(label) % FIELD_HASH_SIZE;
+    for (uint16_t i = 0; i < FIELD_HASH_SIZE; ++i) {
+        uint16_t idx = (startH + i >= FIELD_HASH_SIZE) ? (startH + i - FIELD_HASH_SIZE) : (startH + i);
+        const auto& entry = fieldDefHashTable[idx];
+        if (!entry.label) return nullptr;
+        if (strcmp(entry.label, label) == 0) return entry.def;
+    }
+    return nullptr;
+}
+
+
+    const DisplayFieldDefLabel* findFieldByLabel(const char* label) {
+        for (size_t i = 0; i < numFieldDefs; ++i)
+            if (strcmp(fieldDefs[i].label, label) == 0)
+                return &fieldDefs[i];
+        return nullptr;
+    }
+
+    
