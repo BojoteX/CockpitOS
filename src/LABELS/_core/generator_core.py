@@ -138,33 +138,54 @@ def run():
                     panels.add(name)
         return panels
 
-    # --- Auto-detect valid panel JSON file ---
-    json_files = [f for f in os.listdir() if f.lower().endswith('.json')]
-    valid_jsons = []
-    for fname in json_files:
-        try:
-            with open(fname, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            if is_valid_panel_json(data):
-                valid_jsons.append((fname, data))
-        except Exception:
-            continue  # skip bad files
+    # --- Load aircraft JSON (centralized in _core/aircraft/) ---
+    from aircraft_selector import select_aircraft, load_aircraft_json
+    core_dir = os.path.dirname(os.path.abspath(__file__))
+    JSON_FILE = None
+    data = None
+    ACFT_NAME = None
 
-    if len(valid_jsons) == 0:
-        print("ERROR: No valid panel-style JSON file found in current directory.")
-        _pause()
-        sys.exit(1)
-    if len(valid_jsons) > 1:
-        print(f"ERROR: Multiple valid panel-style JSON files found: {[f[0] for f in valid_jsons]}")
-        _pause()
-        sys.exit(1)
+    # 1. Try aircraft.txt → load from _core/aircraft/
+    if os.path.isfile("aircraft.txt"):
+        acft_name = open("aircraft.txt", "r", encoding="utf-8").read().strip()
+        JSON_FILE, data = load_aircraft_json(core_dir, acft_name)
+        if data:
+            ACFT_NAME = acft_name
+        else:
+            print(f"WARNING: aircraft.txt references '{acft_name}' but JSON not found in _core/aircraft/")
 
-    JSON_FILE, data = valid_jsons[0]
+    # 2. Fallback: check for legacy local JSON (backward compat during migration)
+    if data is None:
+        json_files = [f for f in os.listdir() if f.lower().endswith('.json') and "METADATA" not in f]
+        for fname in json_files:
+            try:
+                with open(fname, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if is_valid_panel_json(data):
+                    JSON_FILE = fname
+                    ACFT_NAME = os.path.splitext(fname)[0]
+                    print(f"NOTE: Using legacy local JSON '{fname}'. Run reset_data.py to migrate to centralized aircraft selection.")
+                    break
+            except Exception:
+                continue
+
+    # 3. No aircraft.txt and no local JSON → interactive selector
+    if data is None:
+        print("No aircraft configured for this LABEL_SET.")
+        selected = select_aircraft(core_dir)
+        if selected:
+            JSON_FILE, data = load_aircraft_json(core_dir, selected)
+            if data:
+                ACFT_NAME = selected
+                with open("aircraft.txt", "w", encoding="utf-8") as f:
+                    f.write(selected + "\n")
+                print(f"aircraft.txt written: {selected}")
+        if data is None:
+            print("ERROR: No aircraft selected. Cannot proceed.")
+            _pause()
+            sys.exit(1)
+
     merge_metadata_jsons(data)
-
-    # At the top, after valid_jsons[0] is set
-    JSON_FILE, data = valid_jsons[0]
-    ACFT_NAME = os.path.splitext(os.path.basename(JSON_FILE))[0]
 
     # Always (re-)generate panels.txt from current data
     with open("panels.txt", "w", encoding="utf-8") as f:
@@ -546,6 +567,54 @@ def run():
             f.write(f'    {{ "{full}","{cmd}",{val},"{ct}",{grp},"{lab}" }},\n')
 
         f.write("};\nstatic const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);\n")
+
+        # --- Generate hash table for SelectorMap[] keyed by (dcsCommand, value) ---
+        # This replaces the O(n) linear scan in onSelectorChange() with O(1) lookup.
+        # Composite key: labelHash(dcsCommand) ^ (value * 7919), same pattern as hidDcsHashTable.
+        selector_hash_keys = []  # list of (dcsCommand, value, index_into_SelectorMap)
+        for idx, (full, cmd, val, ct, grp, lab) in enumerate(selector_entries):
+            selector_hash_keys.append((cmd, val, idx))
+
+        desired_sel_hash = len(selector_hash_keys) * 2
+        SEL_HASH_SIZE = next_prime(max(desired_sel_hash, 53))
+
+        def label_hash_raw(s):
+            """Raw labelHash matching C++ uint16_t — no modulo applied."""
+            h = 0
+            for c in reversed(s):
+                h = (ord(c) + 31 * h) & 0xFFFF
+            return h
+
+        sel_hash_table = ["{nullptr, 0, nullptr}"] * SEL_HASH_SIZE
+        for cmd, val, idx in selector_hash_keys:
+            h = (label_hash_raw(cmd) ^ (val * 7919)) % SEL_HASH_SIZE
+            for probe in range(SEL_HASH_SIZE):
+                if sel_hash_table[h] == "{nullptr, 0, nullptr}":
+                    sel_hash_table[h] = f'{{"{cmd}", {val}, &SelectorMap[{idx}]}}'
+                    break
+                h = (h + 1) % SEL_HASH_SIZE
+            else:
+                print(f"❌ Selector hash table full! SEL_HASH_SIZE={SEL_HASH_SIZE} too small", file=sys.stderr)
+                sys.exit(1)
+
+        f.write("\n// O(1) hash lookup for SelectorMap[] by (dcsCommand, value)\n")
+        f.write("struct SelectorHashEntry { const char* dcsCommand; uint16_t value; const SelectorEntry* entry; };\n")
+        f.write(f"static const SelectorHashEntry selectorHashTable[{SEL_HASH_SIZE}] = {{\n")
+        for entry in sel_hash_table:
+            f.write(f"  {entry},\n")
+        f.write("};\n\n")
+
+        f.write("// Composite hash: labelHash(dcsCommand) ^ (value * 7919)\n")
+        f.write("inline const SelectorEntry* findSelectorByDcsAndValue(const char* dcsCommand, uint16_t value) {\n")
+        f.write(f"  uint16_t startH = (labelHash(dcsCommand) ^ (value * 7919u)) % {SEL_HASH_SIZE};\n")
+        f.write(f"  for (uint16_t i = 0; i < {SEL_HASH_SIZE}; ++i) {{\n")
+        f.write(f"    uint16_t idx = (startH + i >= {SEL_HASH_SIZE}) ? (startH + i - {SEL_HASH_SIZE}) : (startH + i);\n")
+        f.write("    const auto& entry = selectorHashTable[idx];\n")
+        f.write("    if (!entry.dcsCommand) return nullptr;\n")
+        f.write("    if (entry.value == value && strcmp(entry.dcsCommand, dcsCommand) == 0) return entry.entry;\n")
+        f.write("  }\n")
+        f.write("  return nullptr;\n")
+        f.write("}\n\n")
 
         # Build a flat list of all unique oride_labels and mark selectors with group > 0
         command_tracking = {}

@@ -245,6 +245,107 @@ static const SelectorEntry SelectorMap[] = {
 };
 static const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);
 
+// O(1) hash lookup for SelectorMap[] by (dcsCommand, value)
+struct SelectorHashEntry { const char* dcsCommand; uint16_t value; const SelectorEntry* entry; };
+static const SelectorHashEntry selectorHashTable[83] = {
+  {"IR_COOL_SW", 1, &SelectorMap[29]},
+  {"APU_FIRE_BTN", 1, &SelectorMap[0]},
+  {"HMD_OFF_BRT", 65535, &SelectorMap[25]},
+  {"SPIN_RECOVERY_SW", 1, &SelectorMap[33]},
+  {"HMD_OFF_BRT", 1, &SelectorMap[27]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"INST_PNL_DIMMER", 65535, &SelectorMap[15]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"RIGHT_FIRE_BTN_COVER", 1, &SelectorMap[40]},
+  {nullptr, 0, nullptr},
+  {"WARN_CAUTION_DIMMER", 1, &SelectorMap[22]},
+  {nullptr, 0, nullptr},
+  {"LEFT_FIRE_BTN_COVER", 1, &SelectorMap[24]},
+  {nullptr, 0, nullptr},
+  {"COCKKPIT_LIGHT_MODE_SW", 0, &SelectorMap[6]},
+  {"MASTER_MODE_AG", 1, &SelectorMap[37]},
+  {"CHART_DIMMER", 65535, &SelectorMap[3]},
+  {"CONSOLES_DIMMER", 65535, &SelectorMap[9]},
+  {"LIGHTS_TEST_SW", 0, &SelectorMap[18]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"FLOOD_DIMMER", 1, &SelectorMap[14]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"RIGHT_FIRE_BTN", 1, &SelectorMap[39]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"FIRE_EXT_BTN", 1, &SelectorMap[2]},
+  {"INST_PNL_DIMMER", 0, &SelectorMap[16]},
+  {"SPIN_RECOVERY_SW", 0, &SelectorMap[32]},
+  {nullptr, 0, nullptr},
+  {"WARN_CAUTION_DIMMER", 0, &SelectorMap[21]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"MASTER_ARM_SW", 1, &SelectorMap[35]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"EMER_JETT_BTN", 1, &SelectorMap[1]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"SPIN_RECOVERY_COVER", 1, &SelectorMap[31]},
+  {"FLOOD_DIMMER", 0, &SelectorMap[13]},
+  {nullptr, 0, nullptr},
+  {"IR_COOL_SW", 2, &SelectorMap[30]},
+  {nullptr, 0, nullptr},
+  {"LIGHTS_TEST_SW", 1, &SelectorMap[19]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"FLOOD_DIMMER", 65535, &SelectorMap[12]},
+  {"HMD_OFF_BRT", 0, &SelectorMap[26]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"LEFT_FIRE_BTN", 1, &SelectorMap[23]},
+  {"CHART_DIMMER", 1, &SelectorMap[5]},
+  {"CONSOLES_DIMMER", 1, &SelectorMap[11]},
+  {"IR_COOL_SW", 0, &SelectorMap[28]},
+  {"MASTER_ARM_SW", 0, &SelectorMap[34]},
+  {"MASTER_CAUTION_RESET_SW", 1, &SelectorMap[38]},
+  {"MASTER_MODE_AA", 1, &SelectorMap[36]},
+  {"WARN_CAUTION_DIMMER", 65535, &SelectorMap[20]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"CONSOLES_DIMMER", 0, &SelectorMap[10]},
+  {"CHART_DIMMER", 0, &SelectorMap[4]},
+  {"COCKKPIT_LIGHT_MODE_SW", 1, &SelectorMap[7]},
+  {"COCKKPIT_LIGHT_MODE_SW", 2, &SelectorMap[8]},
+  {"INST_PNL_DIMMER", 1, &SelectorMap[17]},
+};
+
+// Composite hash: labelHash(dcsCommand) ^ (value * 7919)
+inline const SelectorEntry* findSelectorByDcsAndValue(const char* dcsCommand, uint16_t value) {
+  uint16_t startH = (labelHash(dcsCommand) ^ (value * 7919u)) % 83;
+  for (uint16_t i = 0; i < 83; ++i) {
+    uint16_t idx = (startH + i >= 83) ? (startH + i - 83) : (startH + i);
+    const auto& entry = selectorHashTable[idx];
+    if (!entry.dcsCommand) return nullptr;
+    if (entry.value == value && strcmp(entry.dcsCommand, dcsCommand) == 0) return entry.entry;
+  }
+  return nullptr;
+}
+
+
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
     { "APU_FIRE_BTN", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },

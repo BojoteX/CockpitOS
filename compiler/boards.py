@@ -180,7 +180,9 @@ def resolve_arduino_cli(prefs):
 # Everything else uses the board's own defaults from arduino-cli.
 # -----------------------------------------------------------------------------
 COCKPITOS_OVERRIDES = {
-    "PartitionScheme": "no_ota",    # No OTA (2MB APP/2MB SPIFFS) — always
+    # PartitionScheme is NOT here — its "no OTA" value varies per board (generic="no_ota",
+    # S3="noota_ffat", Lilygo boards may differ, etc.).
+    # It is resolved dynamically via _no_ota_partition_value() in configure_options().
     # CDCOnBoot is NOT here — its "disabled" value varies per board (S3="default", S2="dis_cdc").
     # It is resolved dynamically via _cdc_disabled_value() in configure_options() and validation.
     # USBMode is NOT here — resolved dynamically based on transport in configure_options().
@@ -206,6 +208,28 @@ def _cdc_disabled_value(board_options):
         return None
     for label, val in cdc_opt.get("values", []):
         if "disable" in label.lower():
+            return val
+    return None
+
+
+def _no_ota_partition_value(board_options):
+    """Find the PartitionScheme value that means 'No OTA' for this board.
+
+    Different boards use different values:
+      Generic ESP32: "no_ota"   S3: "noota_ffat"   Lilygo: varies.
+    Searches labels for "no ota" first, then values for "noota" / "no_ota".
+    Returns the value string, or None if no matching option is found.
+    """
+    ps_opt = board_options.get("PartitionScheme")
+    if not ps_opt:
+        return None
+    # Pass 1: match label text (most reliable — e.g. "No OTA (2MB APP/2MB SPIFFS)")
+    for label, val in ps_opt.get("values", []):
+        if "no ota" in label.lower():
+            return val
+    # Pass 2: match value string (fallback — e.g. "no_ota", "noota_ffat")
+    for label, val in ps_opt.get("values", []):
+        if "noota" in val.lower() or "no_ota" in val.lower():
             return val
     return None
 
@@ -397,8 +421,8 @@ def configure_options(fqbn, prefs):
 
     board_options = get_board_options(fqbn)
     if not board_options:
-        warn("Could not retrieve board options. Using CockpitOS overrides only.")
-        return dict(COCKPITOS_OVERRIDES)
+        warn("Could not retrieve board options. Board defaults cannot be applied.")
+        return {}
 
     selected = {}
 
@@ -406,10 +430,10 @@ def configure_options(fqbn, prefs):
     for key, opt in board_options.items():
         selected[key] = opt["default"]
 
-    # Apply CockpitOS hard overrides on top
-    for key, val in COCKPITOS_OVERRIDES.items():
-        if key in board_options:
-            selected[key] = val
+    # Partition Scheme: always No OTA (value varies per board)
+    ps_val = _no_ota_partition_value(board_options)
+    if ps_val is not None:
+        selected["PartitionScheme"] = ps_val
 
     # CDC On Boot: always disabled (value varies per board)
     cdc_off = _cdc_disabled_value(board_options)
@@ -424,7 +448,7 @@ def configure_options(fqbn, prefs):
         usb_label = "USB-OTG (TinyUSB)" if ideal == "default" else "HW CDC"
         info(f"{DIM}USB Mode -> {usb_label} (auto, matches {transport_label(transport)}){RESET}")
 
-    info(f"{DIM}Board defaults applied from boards.txt + CockpitOS overrides: CDC=Off, Partition=NoOTA{RESET}")
+    info(f"{DIM}Board defaults from boards.txt + CockpitOS overrides: CDC=Off, Partition=NoOTA{RESET}")
 
     mode = pick("Board options mode:", [
         ("Quick - use board defaults + CockpitOS overrides (recommended)", "quick"),
