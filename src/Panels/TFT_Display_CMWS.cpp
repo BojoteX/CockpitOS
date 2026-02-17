@@ -4,6 +4,24 @@
 
 // PANEL_KIND: TFTCmws
 
+// =============================================================================
+// DISPLAY INTERFACE SELECTION
+// =============================================================================
+// Uncomment EXACTLY ONE of the following lines to select your target hardware.
+// Adding a new display? Define a new CMWS_USE_xxx_INTERFACE, add its pin block,
+// LGFX class, and init branch below.
+// =============================================================================
+
+
+// #define CMWS_USE_SPI_INTERFACE           // ST7789 240×320 via VSPI  (ESP32 Classic, original board)
+// #define CMWS_USE_PARALLEL_INTERFACE      // ST7789 170×320 via 8-bit parallel (LilyGo T-Display S3)
+// #define CMWS_USE_CYD_INTERFACE              // ILI9341 240×320 via HSPI (ESP32-2432S028R "Cheap Yellow Display")
+#define CMWS_USE_PIKAS62_INTERFACE          // ST7789 240×320 via SPI2 (ESP32-S3 + GMT024-08-SPI8P 2.4" TFT)
+
+#if !defined(CMWS_USE_SPI_INTERFACE) && !defined(CMWS_USE_PARALLEL_INTERFACE) && !defined(CMWS_USE_CYD_INTERFACE) && !defined(CMWS_USE_PIKAS62_INTERFACE)
+    #error "No CMWS display interface selected! Uncomment exactly ONE of the CMWS_USE_xxx_INTERFACE defines above."
+#endif
+
 // AH-64D Apache Countermeasures Warning System Display
 //
 // Hardware Support:
@@ -49,7 +67,7 @@
 
 #include "../Globals.h"
 
-#if defined(HAS_CMWS_DISPLAY) && defined(ENABLE_TFT_GAUGES) && (ENABLE_TFT_GAUGES == 1)
+#if (defined(HAS_CMWS_DISPLAY) || defined(HAS_CYD_DISPLAY)) && defined(ENABLE_TFT_GAUGES) && (ENABLE_TFT_GAUGES == 1)
 
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
@@ -58,7 +76,7 @@
 // =============================================================================
 // PANEL REGISTRATION
 // =============================================================================
-#if defined(HAS_CMWS_DISPLAY)
+#if defined(HAS_CMWS_DISPLAY) || defined(HAS_CYD_DISPLAY)
     // REGISTER_PANEL(TFTCmws, nullptr, nullptr, CMWSDisplay_init, CMWSDisplay_loop, nullptr, 100);
     REGISTER_PANEL(TFTCmws, CMWSDisplay_notifyMissionStart, nullptr, CMWSDisplay_init, CMWSDisplay_loop, nullptr, 100);
 #endif
@@ -173,19 +191,6 @@ static const GFXfont* const FONT_DOTO = &Doto_Rounded_Black26pt7b;
 static const GFXfont* const FONT_MILSPEC = &MilSpec3355810pt7b;
 
 // =============================================================================
-// DISPLAY INTERFACE SELECTION (auto-detect if not specified)
-// =============================================================================
-#if !defined(CMWS_USE_SPI_INTERFACE) && !defined(CMWS_USE_PARALLEL_INTERFACE)
-    #if defined(CONFIG_IDF_TARGET_ESP32S3)
-        #define CMWS_USE_PARALLEL_INTERFACE
-    #elif defined(ESP_FAMILY_CLASSIC) || defined(CONFIG_IDF_TARGET_ESP32)
-        #define CMWS_USE_SPI_INTERFACE
-    #else
-        #define CMWS_USE_SPI_INTERFACE
-    #endif
-#endif
-
-// =============================================================================
 // PIN DEFINITIONS - SPI INTERFACE
 // =============================================================================
 #if defined(CMWS_USE_SPI_INTERFACE)
@@ -235,6 +240,39 @@ static const GFXfont* const FONT_MILSPEC = &MilSpec3355810pt7b;
     static constexpr int8_t PIN_RST   = 5;
     static constexpr int8_t PIN_BLK   = 38;
     static constexpr int8_t PIN_POWER = 15;
+
+#endif
+
+// =============================================================================
+// PIN DEFINITIONS - CYD (Cheap Yellow Display, ESP32-2432S028R)
+// =============================================================================
+#if defined(CMWS_USE_CYD_INTERFACE)
+
+    // ILI9341 240x320 via HSPI (VSPI is used by SD card on CYD)
+    static constexpr int8_t PIN_MOSI = 13;
+    static constexpr int8_t PIN_MISO = 12;
+    static constexpr int8_t PIN_SCLK = 14;
+    static constexpr int8_t PIN_CS   = 15;
+    static constexpr int8_t PIN_DC   = 2;
+    static constexpr int8_t PIN_RST  = -1;
+    static constexpr int8_t PIN_BLK  = 21;
+    static constexpr spi_host_device_t CMWS_SPI_HOST = HSPI_HOST;
+
+#endif
+
+// =============================================================================
+// PIN DEFINITIONS - PikaS62 (ESP32-S3 + GMT024-08-SPI8P 2.4" ST7789)
+// =============================================================================
+#if defined(CMWS_USE_PIKAS62_INTERFACE)
+
+    // ST7789 240x320 via SPI2 (default ESP32-S3 SPI bus)
+    static constexpr int8_t PIN_MOSI = 11;
+    static constexpr int8_t PIN_SCLK = 13;
+    static constexpr int8_t PIN_CS   = 10;
+    static constexpr int8_t PIN_DC   = 8;
+    static constexpr int8_t PIN_RST  = 9;
+    static constexpr int8_t PIN_BLK  = -1;    // BLK tied to 3.3V — always on
+    static constexpr spi_host_device_t CMWS_SPI_HOST = SPI2_HOST;
 
 #endif
 
@@ -501,6 +539,121 @@ public:
             _light.config(cfg);
             _panel.setLight(&_light);
         }
+        setPanel(&_panel);
+    }
+};
+
+#endif
+
+// =============================================================================
+// LOVYANGFX DEVICE CLASS - CYD (Cheap Yellow Display, ILI9341 via HSPI)
+// =============================================================================
+#if defined(CMWS_USE_CYD_INTERFACE)
+
+class LGFX_CMWS final : public lgfx::LGFX_Device {
+    lgfx::Bus_SPI       _bus;
+    lgfx::Panel_ILI9341 _panel;
+    lgfx::Light_PWM     _light;
+
+public:
+    LGFX_CMWS() {
+        {
+            auto cfg = _bus.config();
+            cfg.spi_host    = CMWS_SPI_HOST;
+            cfg.spi_mode    = 0;
+            cfg.freq_write  = 40000000;     // 40 MHz — conservative for CYD
+            cfg.freq_read   = 16000000;
+            cfg.spi_3wire   = false;
+            cfg.use_lock    = false;
+            cfg.dma_channel = SPI_DMA_CH_AUTO;
+            cfg.pin_mosi    = PIN_MOSI;
+            cfg.pin_miso    = PIN_MISO;
+            cfg.pin_sclk    = PIN_SCLK;
+            cfg.pin_dc      = PIN_DC;
+            _bus.config(cfg);
+            _panel.setBus(&_bus);
+        }
+        {
+            auto cfg = _panel.config();
+            cfg.pin_cs          = PIN_CS;
+            cfg.pin_rst         = PIN_RST;
+            cfg.pin_busy        = -1;
+            cfg.memory_width    = 320;      // Landscape memory layout
+            cfg.memory_height   = 240;
+            cfg.panel_width     = 320;
+            cfg.panel_height    = 170;      // CMWS viewport height
+            cfg.offset_x        = 0;
+            cfg.offset_y        = 35;       // offset_rotation=4 inverts: rowstart = 240-(170+35) = 35
+            cfg.offset_rotation = 4;        // Bit 2 = mirror/flip flag (fixes CYD mirrored image)
+            cfg.readable        = false;
+            cfg.bus_shared      = false;
+            cfg.invert          = false;    // true made blacks white — not needed
+            cfg.rgb_order       = true;     // CYD2USB: red/blue channels are swapped
+            cfg.dlen_16bit      = false;
+            _panel.config(cfg);
+        }
+        {
+            auto cfg = _light.config();
+            cfg.pin_bl      = PIN_BLK;
+            cfg.invert      = false;
+            cfg.freq        = 5000;     // CYD standard (per witnessmenow reference)
+            cfg.pwm_channel = 0;        // LEDC channel 0 (proven on CYD hardware)
+            _light.config(cfg);
+            _panel.setLight(&_light);
+        }
+        setPanel(&_panel);
+    }
+};
+
+#endif
+
+// =============================================================================
+// LOVYANGFX DEVICE CLASS - PikaS62 (ESP32-S3 + GMT024-08-SPI8P 2.4" ST7789)
+// =============================================================================
+#if defined(CMWS_USE_PIKAS62_INTERFACE)
+
+class LGFX_CMWS final : public lgfx::LGFX_Device {
+    lgfx::Bus_SPI       _bus;
+    lgfx::Panel_ST7789  _panel;
+
+public:
+    LGFX_CMWS() {
+        {
+            auto cfg = _bus.config();
+            cfg.spi_host    = CMWS_SPI_HOST;
+            cfg.spi_mode    = 0;
+            cfg.freq_write  = 80000000;     // 80 MHz — ST7789 max
+            cfg.freq_read   = 16000000;
+            cfg.spi_3wire   = false;
+            cfg.use_lock    = false;
+            cfg.dma_channel = SPI_DMA_CH_AUTO;
+            cfg.pin_mosi    = PIN_MOSI;
+            cfg.pin_miso    = -1;           // No MISO on this board
+            cfg.pin_sclk    = PIN_SCLK;
+            cfg.pin_dc      = PIN_DC;
+            _bus.config(cfg);
+            _panel.setBus(&_bus);
+        }
+        {
+            auto cfg = _panel.config();
+            cfg.pin_cs          = PIN_CS;
+            cfg.pin_rst         = PIN_RST;
+            cfg.pin_busy        = -1;
+            cfg.memory_width    = 240;
+            cfg.memory_height   = 320;
+            cfg.panel_width     = 240;      // Full 240×320 panel
+            cfg.panel_height    = 320;
+            cfg.offset_x        = 0;
+            cfg.offset_y        = 0;
+            cfg.offset_rotation = 0;
+            cfg.readable        = false;
+            cfg.bus_shared      = false;
+            cfg.invert          = true;     // ST7789 typically needs invert
+            cfg.rgb_order       = false;
+            cfg.dlen_16bit      = false;
+            _panel.config(cfg);
+        }
+        // No backlight — BLK tied to 3.3V (always on)
         setPanel(&_panel);
     }
 };
@@ -1526,14 +1679,36 @@ void CMWSDisplay_init() {
 
     // Initialize display (LovyanGFX init() is typically void, handle gracefully)
     tft.init();
-    
-    // Verify display is responding by checking if we can set rotation
-    // (This is a lightweight sanity check since init() doesn't return status)
-    tft.setRotation(3);
-    tft.setColorDepth(16);
-    tft.setSwapBytes(true);
-    tft.setBrightness(255);
-    tft.fillScreen(COL_BLACK);
+
+    #if defined(CMWS_USE_CYD_INTERFACE)
+        // Step 1: Full-screen clear with panel_height=240 (entire display)
+        {
+            auto cfg = tft.getPanel()->config();
+            cfg.panel_height = 240;
+            cfg.offset_y     = 0;
+            tft.getPanel()->config(cfg);
+            tft.setRotation(0);     // recalc offsets for full screen
+        }
+        tft.setColorDepth(16);
+        tft.setSwapBytes(true);
+        tft.setBrightness(128);
+        tft.fillScreen(COL_BLACK);  // clears entire 320×240
+
+        // Step 2: Restore 170px viewport centered with 35px offset
+        {
+            auto cfg = tft.getPanel()->config();
+            cfg.panel_height = 170;
+            cfg.offset_y     = 35;
+            tft.getPanel()->config(cfg);
+            tft.setRotation(0);     // recalc offsets for viewport
+        }
+    #else
+        tft.setRotation(3);
+        tft.setColorDepth(16);
+        tft.setSwapBytes(true);
+        tft.setBrightness(255);
+        tft.fillScreen(COL_BLACK);
+    #endif
 
     g_displayInitialized = true;
 
@@ -1764,7 +1939,7 @@ void CMWSDisplay_bitTest() {
     CMWSDisplay_draw(true);
 }
 
-#else // !HAS_CMWS_DISPLAY || !ENABLE_TFT_GAUGES
+#else // !(HAS_CMWS_DISPLAY || HAS_CYD_DISPLAY) || !ENABLE_TFT_GAUGES
 
 void CMWSDisplay_init() {}
 void CMWSDisplay_loop() {}
