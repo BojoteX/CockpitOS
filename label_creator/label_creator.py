@@ -28,6 +28,8 @@ import ui
 import aircraft
 import label_set
 import panels as panels_mod
+import input_editor
+import led_editor
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -467,6 +469,24 @@ def _reset_existing(ls_name: str, prefs):
     input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
 
 
+def _input_mapping_caption(ls_dir: Path) -> str:
+    """Return 'X/Y wired' caption for InputMapping.h, or 'not generated'."""
+    fpath = ls_dir / "InputMapping.h"
+    if not fpath.exists():
+        return "not generated"
+    wired, total = input_editor.count_wired(str(fpath))
+    return f"{wired}/{total} wired"
+
+
+def _led_mapping_caption(ls_dir: Path) -> str:
+    """Return 'X/Y wired' caption for LEDMapping.h, or 'not generated'."""
+    fpath = ls_dir / "LEDMapping.h"
+    if not fpath.exists():
+        return "not generated"
+    wired, total = led_editor.count_wired(str(fpath))
+    return f"{wired}/{total} wired"
+
+
 def _show_label_set_info(ls_name: str, prefs) -> str | None:
     """Display detailed info about a label set.
 
@@ -534,11 +554,17 @@ def _show_label_set_info(ls_name: str, prefs) -> str | None:
 
         # Action menu
         print()
+        input_cap = _input_mapping_caption(ls_dir)
+        led_cap   = _led_mapping_caption(ls_dir)
+
         choice = ui.menu_pick([
             ("---", "Settings"),
             ("Edit Device Name",         "devname",     "normal"),
             (f"HID Mode Selector [{hid_label}]", "hid", "normal"),
             ("Edit Custom Pins",         "pins",        "normal"),
+            ("---", "Mappings"),
+            ("Edit Input Mapping",       "edit_input",  "normal", input_cap),
+            ("Edit LED Mapping",         "edit_led",    "normal", led_cap),
             ("---", "Actions"),
             ("Add / Delete panels",      "regenerate",  "normal"),
             ("RESET LABEL SET",          "reset",       "danger"),
@@ -554,6 +580,22 @@ def _show_label_set_info(ls_name: str, prefs) -> str | None:
             continue
         elif choice == "pins":
             _edit_custom_pins(ls_dir)
+            continue
+        elif choice == "edit_input":
+            fpath = ls_dir / "InputMapping.h"
+            if not fpath.exists():
+                ui.warn("InputMapping.h not found. Generate first.")
+                input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+            else:
+                input_editor.edit_input_mapping(str(fpath), ls_name, ac_name)
+            continue
+        elif choice == "edit_led":
+            fpath = ls_dir / "LEDMapping.h"
+            if not fpath.exists():
+                ui.warn("LEDMapping.h not found. Generate first.")
+                input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+            else:
+                led_editor.edit_led_mapping(str(fpath), ls_name, ac_name)
             continue
         elif choice in ("regenerate", "reset"):
             return choice

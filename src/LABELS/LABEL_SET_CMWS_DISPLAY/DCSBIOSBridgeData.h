@@ -206,6 +206,77 @@ static const SelectorEntry SelectorMap[] = {
 };
 static const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);
 
+// O(1) hash lookup for SelectorMap[] by (dcsCommand, value)
+struct SelectorHashEntry { const char* dcsCommand; uint16_t value; const SelectorEntry* entry; };
+static const SelectorHashEntry selectorHashTable[53] = {
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"PLT_CMWS_PW", 2, &SelectorMap[15]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"PLT_CMWS_JETT", 1, &SelectorMap[5]},
+  {"PLT_CMWS_PW", 1, &SelectorMap[14]},
+  {"PLT_CMWS_LAMP", 0, &SelectorMap[9]},
+  {"PLT_CMWS_VOL", 65535, &SelectorMap[16]},
+  {"PLT_CMWS_VOL", 0, &SelectorMap[17]},
+  {"PLT_CMWS_BYPASS", 1, &SelectorMap[3]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"PLT_CMWS_LAMP", 65535, &SelectorMap[8]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"PLT_CMWS_LAMP", 1, &SelectorMap[10]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"PLT_CMWS_VOL", 1, &SelectorMap[18]},
+  {"PLT_CMWS_MODE", 1, &SelectorMap[12]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"PLT_CMWS_PW", 0, &SelectorMap[13]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"PLT_CMWS_JETT_CVR", 0, &SelectorMap[6]},
+  {"PLT_CMWS_MODE", 0, &SelectorMap[11]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"PLT_CMWS_BYPASS", 0, &SelectorMap[2]},
+  {"PLT_CMWS_JETT_CVR", 1, &SelectorMap[7]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"PLT_CMWS_JETT", 0, &SelectorMap[4]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"PLT_CMWS_ARM", 1, &SelectorMap[1]},
+  {"PLT_CMWS_ARM", 0, &SelectorMap[0]},
+};
+
+// Composite hash: labelHash(dcsCommand) ^ (value * 7919)
+inline const SelectorEntry* findSelectorByDcsAndValue(const char* dcsCommand, uint16_t value) {
+  uint16_t startH = (labelHash(dcsCommand) ^ (value * 7919u)) % 53;
+  for (uint16_t i = 0; i < 53; ++i) {
+    uint16_t idx = (startH + i >= 53) ? (startH + i - 53) : (startH + i);
+    const auto& entry = selectorHashTable[idx];
+    if (!entry.dcsCommand) return nullptr;
+    if (entry.value == value && strcmp(entry.dcsCommand, dcsCommand) == 0) return entry.entry;
+  }
+  return nullptr;
+}
+
+
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
     { "PLT_CMWS_ARM", 0, 0, true, 1, 0,   0, false, {0}, {0}, 0 },
