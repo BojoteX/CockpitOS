@@ -14,9 +14,9 @@
 
 
 // #define CMWS_USE_SPI_INTERFACE           // ST7789 240×320 via VSPI  (ESP32 Classic, original board)
-// #define CMWS_USE_PARALLEL_INTERFACE      // ST7789 170×320 via 8-bit parallel (LilyGo T-Display S3)
+#define CMWS_USE_PARALLEL_INTERFACE      // ST7789 170×320 via 8-bit parallel (LilyGo T-Display S3)
 // #define CMWS_USE_CYD_INTERFACE              // ILI9341 240×320 via HSPI (ESP32-2432S028R "Cheap Yellow Display")
-#define CMWS_USE_PIKAS62_INTERFACE          // ST7789 240×320 via SPI2 (ESP32-S3 + GMT024-08-SPI8P 2.4" TFT)
+// #define CMWS_USE_PIKAS62_INTERFACE          // ST7789 240×320 via SPI2 (ESP32-S3 + GMT024-08-SPI8P 2.4" TFT)
 
 #if !defined(CMWS_USE_SPI_INTERFACE) && !defined(CMWS_USE_PARALLEL_INTERFACE) && !defined(CMWS_USE_CYD_INTERFACE) && !defined(CMWS_USE_PIKAS62_INTERFACE)
     #error "No CMWS display interface selected! Uncomment exactly ONE of the CMWS_USE_xxx_INTERFACE defines above."

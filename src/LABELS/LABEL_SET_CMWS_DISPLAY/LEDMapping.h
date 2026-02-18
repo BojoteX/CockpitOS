@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
+  DEVICE_PCA9555,
   DEVICE_GN1640T,
+  DEVICE_TM1637,
   DEVICE_GPIO,
   DEVICE_WS2812,
-  DEVICE_GAUGE,
-  DEVICE_PCA9555,
   DEVICE_NONE,
-  DEVICE_TM1637,
+  DEVICE_GAUGE,
 };
 
 struct LEDMapping {
@@ -29,8 +29,13 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
-  { "PLT_CMWS_LAMP", DEVICE_NONE    , {.gpioInfo = {0}}, true, false }, // No Info,
-  { "PLT_CMWS_VOL" , DEVICE_NONE    , {.gpioInfo = {0}}, true, false }, // No Info
+  { "PLT_CMWS_ARM"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "PLT_CMWS_BYPASS"  , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "PLT_CMWS_JETT"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "PLT_CMWS_JETT_CVR", DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "PLT_CMWS_LAMP"    , DEVICE_NONE    , {.gpioInfo = {0}}, true, false }, // No Info,
+  { "PLT_CMWS_MODE"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "PLT_CMWS_VOL"     , DEVICE_NONE    , {.gpioInfo = {0}}, true, false }, // No Info
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);
@@ -44,8 +49,8 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"PLT_CMWS_VOL", &panelLEDs[1]},
-  {"PLT_CMWS_LAMP", &panelLEDs[0]},
+  {"PLT_CMWS_VOL", &panelLEDs[6]},
+  {"PLT_CMWS_LAMP", &panelLEDs[4]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -75,22 +80,22 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {"PLT_CMWS_JETT_CVR", &panelLEDs[3]},
+  {"PLT_CMWS_MODE", &panelLEDs[5]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {"PLT_CMWS_BYPASS", &panelLEDs[1]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {"PLT_CMWS_JETT", &panelLEDs[2]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"PLT_CMWS_ARM", &panelLEDs[0]},
 };
 
 // Reuse shared recursive hash implementation

@@ -286,6 +286,11 @@ public:
 
                 case CT_SELECTOR:
                     onSelectorChange(entry->label, val);
+                    if (pendingUpdateCount < MAX_PENDING_UPDATES) {
+                        pendingUpdates[pendingUpdateCount++] = {entry->label, val, entry->max_value};
+                    } else {
+                        pendingUpdateOverflow++;
+                    }
                     break;
 
                 case CT_DISPLAY: {
