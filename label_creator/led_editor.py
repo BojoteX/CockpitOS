@@ -54,6 +54,51 @@ _DEVICE_INFO_MAP = {
 }
 
 
+# Strict regex: exactly two hex digits
+_HEX2 = re.compile(r'^[0-9A-Fa-f]{2}$')
+
+
+def _prompt_pca_hex_address(current="0x20"):
+    """Prompt for a PCA9555 I2C address with strict validation.
+
+    Returns the address as '0xHH' (e.g. '0x20', '0x5B') or None on cancel.
+    Accepts input with or without 0x prefix. Rejects 0x00.
+    """
+    print()
+    ui.info(f"{DIM}Standard PCA9555 addresses: 0x20-0x27{RESET}")
+    ui.info(f"{DIM}Clones may use other addresses (e.g. 0x5A, 0x5B){RESET}")
+
+    while True:
+        addr = ui.text_input("Address (e.g. 0x20)", default=current)
+        if addr is None:
+            return None
+
+        addr = addr.strip()
+
+        # Strip 0x/0X prefix to isolate hex digits
+        raw_up = addr.upper()
+        if raw_up.startswith("0X"):
+            hex_part = addr[2:]
+        else:
+            hex_part = addr
+
+        # Strict: exactly two hex digits
+        if not _HEX2.match(hex_part):
+            ui.warn(f"Invalid address: {addr}")
+            ui.info(f"{DIM}Enter exactly two hex digits, e.g. 0x20, 0x5B, 27{RESET}")
+            continue
+
+        # Normalize to 0xHH
+        result = "0x" + hex_part.upper()
+
+        # Reject 0x00
+        if hex_part.upper() == "00":
+            ui.warn("Address 0x00 is not valid (firmware skips it)")
+            continue
+
+        return result
+
+
 def _w(text):
     sys.stdout.write(text)
     sys.stdout.flush()
@@ -257,69 +302,143 @@ def _edit_record(record):
 
     # Device-specific fields
     if dev == "GPIO":
-        pin = ui.text_input("GPIO Pin", default=_extract_val(record["info_values"], 0, "0"))
+        # ── GPIO: direct pin control ─────────────────────────────────
+        print()
+        ui.info(f"{CYAN}GPIO LED{RESET} — direct pin on the ESP32.")
+        ui.info(f"{DIM}Uses analogWrite (PWM) if dimmable, digitalWrite otherwise.{RESET}")
+        ui.info(f"{DIM}Must be a PWM-capable pin if dimmable is enabled.{RESET}")
+        print()
+        pin = ui.text_input("GPIO pin (e.g. PIN(6) or 6)",
+                            default=_extract_val(record["info_values"], 0, "0"))
         if pin is None:
             return False
         record["info_values"] = pin.strip()
 
     elif dev == "PCA9555":
-        addr = ui.text_input("Address (e.g. 0x20)", default=_extract_val(record["info_values"], 0, "0x20"))
+        # ── PCA9555: I2C GPIO expander ───────────────────────────────
+        print()
+        ui.info(f"{CYAN}PCA9555 LED{RESET} — I\u00b2C GPIO expander, 16 I/O in two 8-bit ports.")
+        ui.info(f"{DIM}Each LED is identified by: chip address + port (bank) + bit.{RESET}")
+        print()
+        addr = _prompt_pca_hex_address(_extract_val(record["info_values"], 0, "0x20"))
         if addr is None: return False
-        port = ui.text_input("Port (0 or 1)", default=_extract_val(record["info_values"], 1, "0"))
+        print()
+        ui.info(f"{DIM}Port selects which 8-bit bank on the chip:{RESET}")
+        ui.info(f"{DIM}  0 = Port A (pins IO0_0..IO0_7)    1 = Port B (pins IO1_0..IO1_7){RESET}")
+        port = ui.text_input("Port (0 or 1)",
+                             default=_extract_val(record["info_values"], 1, "0"))
         if port is None: return False
-        bit = ui.text_input("Bit (0-7)", default=_extract_val(record["info_values"], 2, "0"))
+        print()
+        ui.info(f"{DIM}Bit position within the port (0-7), one per physical pin.{RESET}")
+        bit = ui.text_input("Bit (0-7)",
+                            default=_extract_val(record["info_values"], 2, "0"))
         if bit is None: return False
-        record["info_values"] = f"{addr.strip()}, {port.strip()}, {bit.strip()}"
+        record["info_values"] = f"{addr}, {port.strip()}, {bit.strip()}"
 
     elif dev == "TM1637":
-        clk = ui.text_input("CLK Pin", default=_extract_val(record["info_values"], 0, "0"))
+        # ── TM1637: LED+keypad driver ────────────────────────────────
+        print()
+        ui.info(f"{CYAN}TM1637 LED{RESET} — LED/keypad driver chip (bit-banged via CLK+DIO).")
+        ui.info(f"{DIM}Has a 6x8 LED matrix: 6 grid positions (segments) x 8 bits each.{RESET}")
+        ui.info(f"{DIM}Multiple chips can share the same CLK pin but need unique DIO pins.{RESET}")
+        print()
+        clk = ui.text_input("CLK pin (clock GPIO)",
+                            default=_extract_val(record["info_values"], 0, "0"))
         if clk is None: return False
-        dio = ui.text_input("DIO Pin", default=_extract_val(record["info_values"], 1, "0"))
+        dio = ui.text_input("DIO pin (data GPIO, unique per chip)",
+                            default=_extract_val(record["info_values"], 1, "0"))
         if dio is None: return False
-        seg = ui.text_input("Segment", default=_extract_val(record["info_values"], 2, "0"))
+        print()
+        ui.info(f"{DIM}Segment = grid position on the chip (0-5).{RESET}")
+        ui.info(f"{DIM}Bit = which LED within that segment (0-7).{RESET}")
+        seg = ui.text_input("Segment (0-5)",
+                            default=_extract_val(record["info_values"], 2, "0"))
         if seg is None: return False
-        bit = ui.text_input("Bit", default=_extract_val(record["info_values"], 3, "0"))
+        bit = ui.text_input("Bit (0-7)",
+                            default=_extract_val(record["info_values"], 3, "0"))
         if bit is None: return False
         record["info_values"] = f"{clk.strip()}, {dio.strip()}, {seg.strip()}, {bit.strip()}"
 
     elif dev == "GN1640T":
-        addr = ui.text_input("Address", default=_extract_val(record["info_values"], 0, "0"))
+        # ── GN1640T: 8x8 LED matrix driver ──────────────────────────
+        print()
+        ui.info(f"{CYAN}GN1640T LED{RESET} — 8x8 LED matrix driver chip.")
+        ui.info(f"{DIM}Each LED is addressed by column (0-7) and row (0-7).{RESET}")
+        ui.info(f"{DIM}Single-instance driver, address is reserved for future use.{RESET}")
+        print()
+        addr = ui.text_input("Address (0 = default)",
+                             default=_extract_val(record["info_values"], 0, "0"))
         if addr is None: return False
-        col = ui.text_input("Column", default=_extract_val(record["info_values"], 1, "0"))
+        col = ui.text_input("Column (0-7)",
+                            default=_extract_val(record["info_values"], 1, "0"))
         if col is None: return False
-        row = ui.text_input("Row", default=_extract_val(record["info_values"], 2, "0"))
+        row = ui.text_input("Row (0-7)",
+                            default=_extract_val(record["info_values"], 2, "0"))
         if row is None: return False
         record["info_values"] = f"{addr.strip()}, {col.strip()}, {row.strip()}"
 
     elif dev == "WS2812":
-        idx = ui.text_input("Index", default=_extract_val(record["info_values"], 0, "0"))
+        # ── WS2812: addressable RGB LEDs ─────────────────────────────
+        print()
+        ui.info(f"{CYAN}WS2812 LED{RESET} — addressable RGB (NeoPixel) on a data strip.")
+        ui.info(f"{DIM}Each LED has an index on the strip and a default color (R,G,B).{RESET}")
+        ui.info(f"{DIM}LEDs on the same GPIO pin belong to the same strip.{RESET}")
+        print()
+        idx = ui.text_input("LED index on strip (0-based position)",
+                            default=_extract_val(record["info_values"], 0, "0"))
         if idx is None: return False
-        pin = ui.text_input("Pin", default=_extract_val(record["info_values"], 1, "0"))
+        pin = ui.text_input("Data pin GPIO (same pin = same strip)",
+                            default=_extract_val(record["info_values"], 1, "0"))
         if pin is None: return False
-        defR = ui.text_input("Default R", default=_extract_val(record["info_values"], 2, "0"))
+        print()
+        ui.info(f"{DIM}Default color when LED is ON (0-255 each).{RESET}")
+        ui.info(f"{DIM}When OFF the LED is black. Brightness scales the color.{RESET}")
+        defR = ui.text_input("Default Red (0-255)",
+                             default=_extract_val(record["info_values"], 2, "0"))
         if defR is None: return False
-        defG = ui.text_input("Default G", default=_extract_val(record["info_values"], 3, "0"))
+        defG = ui.text_input("Default Green (0-255)",
+                             default=_extract_val(record["info_values"], 3, "0"))
         if defG is None: return False
-        defB = ui.text_input("Default B", default=_extract_val(record["info_values"], 4, "0"))
+        defB = ui.text_input("Default Blue (0-255)",
+                             default=_extract_val(record["info_values"], 4, "0"))
         if defB is None: return False
-        defBright = ui.text_input("Default Brightness", default=_extract_val(record["info_values"], 5, "0"))
+        defBright = ui.text_input("Default Brightness (0-255)",
+                                  default=_extract_val(record["info_values"], 5, "0"))
         if defBright is None: return False
         record["info_values"] = (f"{idx.strip()}, {pin.strip()}, "
                                   f"{defR.strip()}, {defG.strip()}, "
                                   f"{defB.strip()}, {defBright.strip()}")
 
     elif dev == "GAUGE":
-        gpio = ui.text_input("GPIO Pin", default=_extract_val(record["info_values"], 0, "0"))
+        # ── GAUGE: analog servo gauge ────────────────────────────────
+        print()
+        ui.info(f"{CYAN}GAUGE{RESET} — analog servo/gauge driven by PWM pulse.")
+        ui.info(f"{DIM}Firmware maps DCS value (0-65535) to a pulse width between{RESET}")
+        ui.info(f"{DIM}min and max microseconds at the given period (typically 50Hz).{RESET}")
+        print()
+        gpio = ui.text_input("Servo GPIO pin (PWM-capable)",
+                             default=_extract_val(record["info_values"], 0, "0"))
         if gpio is None: return False
-        minP = ui.text_input("Min Pulse", default=_extract_val(record["info_values"], 1, "544"))
+        print()
+        ui.info(f"{DIM}Pulse range in microseconds \u2014 defines servo sweep.{RESET}")
+        ui.info(f"{DIM}Typical: min=544, max=2400. Adjust per your servo specs.{RESET}")
+        minP = ui.text_input("Min pulse \u00b5s (servo at 0%)",
+                             default=_extract_val(record["info_values"], 1, "544"))
         if minP is None: return False
-        maxP = ui.text_input("Max Pulse", default=_extract_val(record["info_values"], 2, "2400"))
+        maxP = ui.text_input("Max pulse \u00b5s (servo at 100%)",
+                             default=_extract_val(record["info_values"], 2, "2400"))
         if maxP is None: return False
-        period = ui.text_input("Period", default=_extract_val(record["info_values"], 3, "20000"))
+        print()
+        ui.info(f"{DIM}Period in microseconds. 20000 = 50Hz (standard RC servo).{RESET}")
+        period = ui.text_input("Period \u00b5s (20000 = 50Hz)",
+                               default=_extract_val(record["info_values"], 3, "20000"))
         if period is None: return False
         record["info_values"] = f"{gpio.strip()}, {minP.strip()}, {maxP.strip()}, {period.strip()}"
 
     # Dimmable
+    print()
+    ui.info(f"{DIM}Dimmable: if true, LED intensity follows the panel dimmer (PWM).{RESET}")
+    ui.info(f"{DIM}If false, LED is fully ON or fully OFF.{RESET}")
     dim_opts = [("true", "true"), ("false", "false")]
     dim = ui.pick("Dimmable:", dim_opts, default=record["dimmable"])
     if dim is None:
@@ -327,6 +446,9 @@ def _edit_record(record):
     record["dimmable"] = dim
 
     # Active Low
+    print()
+    ui.info(f"{DIM}Active Low: if true, the LED is ON when the signal is LOW.{RESET}")
+    ui.info(f"{DIM}Most common-cathode LEDs use active HIGH (false).{RESET}")
     alow_opts = [("true", "true"), ("false", "false")]
     alow = ui.pick("Active Low:", alow_opts, default=record["activeLow"])
     if alow is None:
@@ -392,14 +514,17 @@ def edit_led_mapping(filepath, label_set_name="", aircraft_name=""):
             top = round(scroll * (list_height - thumb) / max_scroll)
         return (top, top + thumb)
 
-    # Column widths
-    label_w = max(len(r["label"]) for r in records)
-    label_w = max(label_w, 10)
-    label_w = min(label_w, 30)
+    # Column widths — fill terminal width
+    # Layout: " > " (3) + label + device + info + dim + alow + scroll(1)
     dev_w   = 8
-    info_w  = 30
     dim_w   = 5
     alow_w  = 5
+    # Fixed overhead: prefix(3) + 4 gaps(2 each=8) + scrollbar(1) + margin(1)
+    fixed_cols = 3 + (dev_w + dim_w + alow_w) + 8 + 2
+    # Split remaining space: ~40% label, ~60% info (at least)
+    remaining  = cols - fixed_cols
+    label_w    = max(remaining * 2 // 5, 10)
+    info_w     = max(remaining - label_w, 15)
 
     def _render_row(i, is_highlighted, scroll_char):
         r = records[i]

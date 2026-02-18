@@ -1189,7 +1189,7 @@ def run():
             }
 
 
-    # ——— 2) PARSE DcsOutputTable for all labels (only CT_LED, CT_GAUGE) ———
+    # ——— 2) PARSE DcsOutputTable for all labels (CT_LED, CT_GAUGE, CT_ANALOG, CT_SELECTOR) ———
     if not os.path.exists(OUTPUT_HEADER):
         print(f"❌ Cannot find `{OUTPUT_HEADER}` – adjust OUTPUT_HEADER path.", file=sys.stderr)
         sys.exit(1)
@@ -1205,14 +1205,15 @@ def run():
     for m in dcs_re.finditer(dcs):
         label = m.group(1)
         control_type = m.group(2)
-        if control_type in ("CT_LED", "CT_GAUGE", "CT_ANALOG"):
+        # if control_type in ("CT_LED", "CT_GAUGE", "CT_ANALOG"):
+        if control_type in ("CT_LED", "CT_GAUGE", "CT_ANALOG", "CT_SELECTOR"):
             labels.append(label)
 
     # Duplicate label detection
     if len(labels) != len(set(labels)):
         print("⚠️ WARNING: Duplicate labels detected in DCS table!", file=sys.stderr)
 
-    print(f"✅ Found {len(labels)} LED/Analog labels in DcsOutputTable ({OUTPUT_HEADER})")
+    print(f"✅ Found {len(labels)} LED/Analog/Selector labels in DcsOutputTable ({OUTPUT_HEADER})")
 
     # ——— 3) Compute table size dynamically (load ≤ 50%) ———
     desired = len(labels) * 2
