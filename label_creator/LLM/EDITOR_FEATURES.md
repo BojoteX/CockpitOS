@@ -1,9 +1,9 @@
 # Label Creator — Editor Features & UX Patterns
 
 > **Audience**: LLMs continuing development of this tool.
-> **Last updated**: February 2026 (after MATRIX support, PCA validation,
-> field guidance, contextual menus, terminal-responsive columns, and cursor
-> restoration were implemented).
+> **Last updated**: February 2026 (MATRIX, PCA validation, field guidance,
+> contextual menus, Ctrl+D delete, segment map auto-type detection,
+> conditional display prompts, auto-regenerate, warning style).
 >
 > This document covers knowledge **not present** in `LLM_GUIDE.md` or
 > `ARCHITECTURE.md`. Read those first.
@@ -544,3 +544,103 @@ user exactly what will happen.
 Tables should expand to fill the terminal. Don't waste 40 columns of space
 on wide terminals by hardcoding column widths. Use `os.get_terminal_size()`
 and give the label column all remaining space.
+
+### Only ask what's relevant
+
+Don't prompt for fields that the firmware ignores. Example: minValue/maxValue
+are only used by `FIELD_NUMERIC` (firmware range-checks `value >= min &&
+value <= max`). For FIELD_STRING, FIELD_LABEL, etc., skip the prompt
+entirely — 0,0 is harmless for those types.
+
+### Validate against the generator's conventions
+
+When the generator expects a specific naming pattern, enforce it in the
+editor. Example: segment map entry type (MAP vs LABEL) is determined by
+whether the DCS-BIOS field name ends in `_TEXTURE` or `_LABEL`. Don't
+let users pick the wrong type — auto-determine it.
+
+---
+
+## 10. Ctrl+D Delete Support
+
+### Segment Map Picker (segment_map_editor.py)
+
+Ctrl+D in the segment map device picker deletes the selected segment map
+file with **double confirmation** (two `ui.confirm` prompts). Uses
+`ui.pick(on_delete=callback)` which returns `_DELETE_SENTINEL` — the
+outer loop always redraws after Ctrl+D (whether delete succeeded or was
+cancelled). The Ctrl+D hint is shown on its own line in the footer:
+`Ctrl+D` in red + `= delete selected` in dim.
+
+### Display Editor (display_editor.py)
+
+Ctrl+D in the display entry list deletes the selected record's line from
+`DisplayMapping.cpp`. Single confirmation. The entry will be regenerated
+with defaults on next generate (if a matching segment map exists) or
+omitted entirely (if no segment map matches). This is the only way to
+remove a "preserved" entry that survives regeneration.
+
+---
+
+## 11. Segment Map Auto-Type Detection
+
+The `_prompt_new_entry()` function in `segment_map_editor.py` auto-
+determines the correct entry type from the DCS-BIOS field name:
+
+- Field ending in `_TEXTURE` or `_LABEL` → LABEL type
+- Everything else → MAP type
+
+This matches the generator's `get_map_pointer_and_dims()` logic in
+`display_gen_core.py` (lines 258-264). The old manual type picker was
+removed because mismatches caused the generator to silently skip entries.
+
+---
+
+## 12. Display Editor Conditional Prompts
+
+The edit form only shows prompts relevant to the selected field type:
+
+- **FIELD_NUMERIC**: prompts for minValue/maxValue. Auto-fixes 0,0
+  (which only allows value 0) to 0,99999. Warns if max ≤ min.
+- **FIELD_RENDER_BARGRAPH**: prompts for barCount.
+- **All other types**: skips min/max and barCount entirely.
+
+### "Configured" indicator
+
+Changed from a heuristic (comparing values against generator defaults)
+to a simple check: `segMap != "nullptr"`. Any entry with a real segment
+map pointer is "configured" (shows green). This fixed a bug where
+user-confirmed defaults (FIELD_STRING + FIELD_RENDER_7SEG + 0,0) looked
+identical to untouched generator defaults.
+
+---
+
+## 13. Auto-Regenerate After Segment Map Changes
+
+When `manage_segment_maps()` returns `True` (changed), `label_creator.py`
+automatically runs `_auto_generate()` instead of the old flow that
+returned `"regenerate"` (which routed through `_regenerate()` and opened
+the panel selector). The new flow:
+
+1. Segment map change detected
+2. `_auto_generate()` runs inline (validates aircraft + panels, runs
+   `step_generate`)
+3. Shows big success banner
+4. User presses Enter → returns to Modify Label Set menu
+
+---
+
+## 14. Warning Style (`"warning"`)
+
+Added to `ui.py` for the "Generate & Set as Default" button:
+
+```python
+# Normal state: yellow bold text
+normal = f"     {YELLOW}{BOLD}{pad_label}{RESET}{cap_suf}"
+# Highlighted: yellow background + black text (NO BOLD — bold makes
+# \033[30m render as bright black/gray on many terminals)
+hilite = f"  \033[43m\033[30m ▸ {pad_label}{RESET}{cap_suf}"
+```
+
+The button caption shows `(active)` in green if this label set is
+already the default in `active_set.h`, or `(not active)` in dim if not.

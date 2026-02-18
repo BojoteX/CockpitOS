@@ -12,10 +12,10 @@
 # Antenna Select Panel
 # Arresting Hook Handle and Light
 # Auxiliary Power Unit Panel
-# Canopy Internal Jettison Handle
-# Caution Light Panel
-# Clock
-Cockpit Altimeter
+Canopy Internal Jettison Handle
+Caution Light Panel
+Clock
+# Cockpit Altimeter
 # Comms frequency
 # Communication Panel
 # Defog Panel

@@ -1,7 +1,9 @@
 # CockpitOS Label Creator — Architecture & Implementation Guide
 
 > **Audience**: LLMs continuing development of this tool.
-> **Last updated**: February 2026 (after InputMapping/LEDMapping editors were created).
+> **Last updated**: February 2026 (display editor, segment map manager, Ctrl+D delete, auto-type detection, conditional prompts, warning style, auto-regenerate).
+>
+> **NOTE**: The canonical, most up-to-date architecture document is `label_creator/ARCHITECTURE.md` (the parent directory). This LLM/ copy may lag behind. When in doubt, read the parent.
 
 ---
 
@@ -29,10 +31,12 @@ CockpitOS/                          ← Arduino sketch root (SKETCH_DIR)
 │   ├── panels.py                   ← 3-level drill-down panel browser (Level 1/2/3)
 │   ├── aircraft.py                 ← Aircraft JSON discovery & loading
 │   ├── label_set.py                ← Label set CRUD, subprocess management, config helpers
-│   ├── input_editor.py             ← InputMapping.h TUI editor (NEW)
-│   ├── led_editor.py               ← LEDMapping.h TUI editor (NEW)
+│   ├── input_editor.py             ← InputMapping.h TUI editor (~1620 lines)
+│   ├── led_editor.py               ← LEDMapping.h TUI editor (~700 lines)
+│   ├── display_editor.py           ← DisplayMapping.cpp TUI editor (~750 lines)
+│   ├── segment_map_editor.py       ← {PREFIX}_SegmentMap.h manager (~1430 lines)
 │   ├── creator_prefs.json          ← Workflow preferences (not used for "active" tracking)
-│   └── ARCHITECTURE.md             ← This file
+│   └── ARCHITECTURE.md             ← Canonical architecture doc (more up-to-date than this file)
 │
 ├── src/LABELS/
 │   ├── _core/
@@ -108,10 +112,11 @@ CYAN, GREEN, YELLOW, RED, BOLD, DIM, RESET, REV, HIDE_CUR, SHOW_CUR, ERASE_LN
 ```python
 ("label", "value", "style")           # selectable row
 ("label", "value", "style", "caption") # selectable row with DIM caption suffix
-("---",)                               # plain separator line
+("---",)                               # plain separator line (unicode dash)
 ("---", "Section Name")                # labeled separator (centered with dashes)
+("",)                                  # blank spacer line (empty row, not selectable)
 ```
-Styles: `"action"` (green bg), `"danger"` (red bg), `"normal"`, `"dim"`
+Styles: `"action"` (green bg), `"danger"` (red bg), `"warning"` (yellow bg + black text), `"normal"`, `"dim"`
 
 ### Spinner
 ```python
@@ -162,21 +167,26 @@ Three compact lines — no file sizes, no file paths:
 ```
 
 ### Action Menu (inside _show_label_set_info)
-Ordered by workflow priority: panels → wiring → config → nuclear.
+Uses labeled section separators with blank spacers for breathing room:
 ```
-─────── Panels ─────────
-  Select Panels                  (action style — green)
-──────── Wiring ────────
-  Edit Inputs                   12/44 wired    ← caption from count_wired()
-  Edit LEDs                      8/27 wired
-──────── Config ────────
-  Device Name                    CockpitOS Super Panel  ← caption shows current value
-  HID Mode Selector              OFF                    ← caption shows ON/OFF
+  Select / deselect panels          (3 selected)         ← action style (green)
+  Generate & Set as Default         (active)/(not active) ← warning style (yellow)
+
+  ——— LEDs & Controls ———
+  Edit Inputs                       (12/44 wired)
+  Edit Outputs (LEDs)               (8/27 wired)
+
+  ——— Displays ———
+  Segment Maps                      (1 of 3 devices)
+  Edit Displays                     (5/32 configured)    ← only if DisplayMapping.cpp has entries
+
+  ——— Misc Options ———
+  Device Name                       My Panel Name
+  HID Mode Selector                 ON
   Edit Custom Pins
-────────────────────────
-  RESET LABEL SET                (danger style)
-────────────────────────
-  Back                           (dim style)
+
+  RESET LABEL SET                   (danger style)
+  Back                              (dim style)
 ```
 
 ### LabelSetConfig.h Editing
@@ -480,39 +490,37 @@ When user presses Edit on ANY position in a selector group:
 ```python
 import input_editor
 import led_editor
+import display_editor
+import segment_map_editor
 ```
 
 ### Caption Helpers
 ```python
-def _input_mapping_caption(ls_dir: Path) -> str:
-    # Returns "12/44 wired" or "not generated"
-    fpath = ls_dir / "InputMapping.h"
-    if not fpath.exists(): return "not generated"
-    wired, total = input_editor.count_wired(str(fpath))
-    return f"{wired}/{total} wired"
-
-def _led_mapping_caption(ls_dir: Path) -> str:
-    # Same pattern for LEDMapping.h
+def _input_mapping_caption(ls_dir) -> str:    # "12/44 wired" or "not generated"
+def _led_mapping_caption(ls_dir) -> str:       # "8/27 wired" or "not generated"
+def _display_mapping_caption(ls_dir) -> str:   # "5/32 configured" or "not generated"
+def _segment_map_caption(ls_dir, ac_name) -> str:  # "1 of 3 devices" or "no displays"
 ```
 
-### Menu Integration
-In `_show_label_set_info()`:
-```python
-("---", "Mappings"),
-("Edit Input Mapping", "edit_input", "normal", input_cap),
-("Edit LED Mapping",   "edit_led",   "normal", led_cap),
-```
-
-### Handler
+### Handlers
 ```python
 elif choice == "edit_input":
-    fpath = ls_dir / "InputMapping.h"
-    if not fpath.exists():
-        ui.warn("InputMapping.h not found. Generate first.")
-        input(...)
-    else:
-        input_editor.edit_input_mapping(str(fpath), ls_name, ac_name)
-    continue   # ← loops back to redraw the info screen
+    input_editor.edit_input_mapping(str(ls_dir / "InputMapping.h"), ls_name, ac_name)
+    continue
+elif choice == "edit_led":
+    led_editor.edit_led_mapping(str(ls_dir / "LEDMapping.h"), ls_name, ac_name)
+    continue
+elif choice == "edit_display":
+    display_editor.edit_display_mapping(str(ls_dir / "DisplayMapping.cpp"), ls_name, ac_name)
+    continue
+elif choice == "segment_maps":
+    changed = segment_map_editor.manage_segment_maps(str(ls_dir), ls_name, ac_name)
+    if changed:
+        _auto_generate(ls_name, ls_dir, prefs)  # auto-regenerate in place
+    continue
+elif choice == "set_default":
+    _auto_generate(ls_name, ls_dir, prefs)
+    continue
 ```
 
 ---

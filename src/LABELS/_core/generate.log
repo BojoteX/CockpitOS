@@ -2,9 +2,9 @@ Generated DisplayMapping.cpp and DisplayMapping.h for devices: HUD, IFEI, UFC
 ============================================================
 CockpitOS PanelKind Generator
 ============================================================
-Root:   C:\Users\Jesus\Documents\Arduino\CockpitOS
-Panels: C:\Users\Jesus\Documents\Arduino\CockpitOS\src\Panels
-Output: C:\Users\Jesus\Documents\Arduino\CockpitOS\src\Generated\PanelKind.h
+Root:   C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS
+Panels: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Panels
+Output: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Generated\PanelKind.h
 
 Permanent PCA entries (4):
   Brain                    — Auto-detected PCA at 0x26 (runtime)
@@ -25,39 +25,28 @@ Scanning 11 panel files...
   TFT_Gauges_RadarAlt.cpp                  → TFTRadarAlt          (from PANEL_KIND)
   WingFold.cpp                             → WingFold             (from filename)
 
-Generated: C:\Users\Jesus\Documents\Arduino\CockpitOS\src\Generated\PanelKind.h
+Generated: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Generated\PanelKind.h
   → 4 permanent PCA entries
   → 11 compiled panel entries
   → 15 total + COUNT
 
 Done!
-Current LABEL SET: LABEL_SET_MAIN
+Current LABEL SET: LABEL_SET_NEWIFEI
 
 [INFO] The current target_objects (panel(s) to be processed) are:
-  - APU Fire Warning Extinguisher Light
-  - Angle of Attack Indexer Lights
-  - Emergency Jettison Button
-  - Fire Systems
-  - Interior Lights Panel
-  - LH Advisory Panel
-  - Left Engine Fire Warning Extinguisher Light
-  - Lock Shoot Lights
-  - Map Gain/Spin Recovery Panel
-  - Master Arm Panel
-  - Master Caution Light
-  - RH Advisory Panel
-  - Right Engine Fire Warning Extinguisher Light
+  - HUD
+  - Integrated Fuel/Engine Indicator (IFEI)
 
-[✓] Generated DCSBIOSBridgeData.h with 62 outputs,  41 selectors.
-[✓] Generated InputMapping.h with 41 entries.
-✅ Found 62 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
-🔢 Using TABLE_SIZE = 127 (next prime ≥ 124)
+[✓] Generated DCSBIOSBridgeData.h with 105 outputs,  6 selectors.
+[✓] Generated InputMapping.h with 6 entries.
+✅ Found 6 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
+🔢 Using TABLE_SIZE = 53 (next prime ≥ 12)
 ✅ LEDMapping.h fully regenerated with dynamic enum from KNOWN_DEVICES.
 
 [INFO] Generating DisplayMapping.cpp/h using display_gen.py ...
 ✅ Renamed .cpp files to cpp.DISABLE in the inactive LABEL SETS to avoid linker conflicts
-[✓] Created LabelSetConfig.h with AUTOGEN_USB_PID=0xC8DD (from 'CockpitOS Main Panel v5')
-[✓] Created ../active_set.h with LABEL_SET MAIN
+[✓] Created LabelSetConfig.h with AUTOGEN_USB_PID=0x1CA6 (from 'CockpitOS Panel NEWIFEI')
+[✓] Created ../active_set.h with LABEL_SET NEWIFEI
 
 ============================================================
 Running generate_panelkind.py to update PanelKind.h...

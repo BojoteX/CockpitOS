@@ -4,12 +4,12 @@
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
   DEVICE_WS2812,
+  DEVICE_GPIO,
+  DEVICE_GN1640T,
   DEVICE_GAUGE,
+  DEVICE_PCA9555,
   DEVICE_TM1637,
   DEVICE_NONE,
-  DEVICE_PCA9555,
-  DEVICE_GN1640T,
-  DEVICE_GPIO,
 };
 
 struct LEDMapping {
@@ -29,8 +29,9 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
-  { "PRESSURE_ALT"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "MASTER_CAUTION_LT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
+  { "PRESSURE_ALT"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "MASTER_CAUTION_LT"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "MASTER_CAUTION_RESET_SW", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);
@@ -87,7 +88,7 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"MASTER_CAUTION_RESET_SW", &panelLEDs[2]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},

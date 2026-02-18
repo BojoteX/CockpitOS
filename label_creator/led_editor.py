@@ -29,6 +29,9 @@ HIDE_CUR = "\033[?25l"
 SHOW_CUR = "\033[?25h"
 ERASE_LN = "\033[2K"
 
+_SECTION_SEP = f"\n  {DIM}\u2500\u2500 Configure \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500{RESET}\n"
+_SEL_BG  = "\033[48;5;236m"    # subtle dark gray row highlight
+
 # ---------------------------------------------------------------------------
 # Device type options for the picker
 # ---------------------------------------------------------------------------
@@ -56,6 +59,72 @@ _DEVICE_INFO_MAP = {
 
 # Strict regex: exactly two hex digits
 _HEX2 = re.compile(r'^[0-9A-Fa-f]{2}$')
+
+# ---------------------------------------------------------------------------
+# Beginner-friendly descriptions shown in the device type picker
+# ---------------------------------------------------------------------------
+_DEVICE_DESCRIPTIONS = {
+    "NONE": [
+        f"{BOLD}Not wired{RESET}",
+        f"{DIM}Skip this indicator \u2014 it won't be connected to any{RESET}",
+        f"{DIM}physical LED or gauge on your panel.{RESET}",
+        f"{DIM}You can always come back and wire it later.{RESET}",
+    ],
+    "GPIO": [
+        f"{CYAN}{BOLD}GPIO{RESET} {DIM}\u2014 Direct connection to an ESP32 pin{RESET}",
+        f"{DIM}The simplest wiring: one wire from an LED straight to a{RESET}",
+        f"{DIM}pin on the ESP32 board. No extra chips needed.{RESET}",
+        f"{DIM}If dimmable, the pin must support PWM (most ESP32 pins do).{RESET}",
+        "",
+        f"{DIM}Good for: {RESET}single LEDs, simple ON/OFF indicators,",
+        f"          warning lights with few outputs.",
+    ],
+    "PCA9555": [
+        f"{CYAN}{BOLD}PCA9555{RESET} {DIM}\u2014 I\u00b2C GPIO expander chip{RESET}",
+        f"{DIM}Adds 16 extra output pins via the I\u00b2C bus (just 2 wires).{RESET}",
+        f"{DIM}Two 8-bit ports (bank A and B). Standard chip addresses{RESET}",
+        f"{DIM}are 0x20\u20130x27. Clones may use other addresses.{RESET}",
+        "",
+        f"{DIM}Good for: {RESET}LED panels where you need many outputs",
+        f"          without using up ESP32 pins.",
+    ],
+    "TM1637": [
+        f"{CYAN}{BOLD}TM1637{RESET} {DIM}\u2014 LED/keypad driver chip{RESET}",
+        f"{DIM}Drives a 6\u00d78 LED matrix (6 grid segments \u00d7 8 bits each).{RESET}",
+        f"{DIM}Two-wire interface: CLK + DIO. Multiple chips can share{RESET}",
+        f"{DIM}the same CLK pin but each needs a unique DIO pin.{RESET}",
+        "",
+        f"{DIM}Good for: {RESET}annunciator panels with many indicator LEDs",
+        f"          grouped together on the same chip.",
+    ],
+    "GN1640T": [
+        f"{CYAN}{BOLD}GN1640T{RESET} {DIM}\u2014 8\u00d78 LED matrix driver chip{RESET}",
+        f"{DIM}Drives up to 64 LEDs in an 8-column \u00d7 8-row grid.{RESET}",
+        f"{DIM}Each LED is addressed by its column (0\u20137) and row (0\u20137).{RESET}",
+        f"{DIM}Single-instance driver chip with built-in scanning.{RESET}",
+        "",
+        f"{DIM}Good for: {RESET}large LED indicator grids and matrices",
+        f"          where many LEDs share one driver.",
+    ],
+    "WS2812": [
+        f"{CYAN}{BOLD}WS2812{RESET} {DIM}\u2014 Addressable RGB LED (NeoPixel){RESET}",
+        f"{DIM}Each LED has its own color (R, G, B) and brightness.{RESET}",
+        f"{DIM}LEDs chain on a single data pin \u2014 same pin = same strip.{RESET}",
+        f"{DIM}Each LED is identified by its index on the strip.{RESET}",
+        "",
+        f"{DIM}Good for: {RESET}backlighting, colored status indicators,",
+        f"          RGB annunciators, and decorative lighting.",
+    ],
+    "GAUGE": [
+        f"{CYAN}{BOLD}GAUGE{RESET} {DIM}\u2014 Analog servo gauge driven by PWM pulse{RESET}",
+        f"{DIM}Maps a DCS value (0\u201365535) to a servo position between{RESET}",
+        f"{DIM}min and max pulse width. Typical servo: 544\u20132400\u00b5s at 50Hz.{RESET}",
+        f"{DIM}The GPIO pin must be PWM-capable.{RESET}",
+        "",
+        f"{DIM}Good for: {RESET}physical analog gauges, needle instruments,",
+        f"          and any indicator that uses a servo motor.",
+    ],
+}
 
 
 def _prompt_pca_hex_address(current="0x20"):
@@ -285,7 +354,8 @@ def _edit_record(record):
     print()
 
     # Pick device type
-    dev = ui.pick("Device Type:", LED_DEVICES, default=record["device"])
+    dev = ui.pick("Device Type:", LED_DEVICES, default=record["device"],
+                   descriptions=_DEVICE_DESCRIPTIONS)
     if dev is None:
         return False
 
@@ -303,11 +373,7 @@ def _edit_record(record):
     # Device-specific fields
     if dev == "GPIO":
         # ── GPIO: direct pin control ─────────────────────────────────
-        print()
-        ui.info(f"{CYAN}GPIO LED{RESET} — direct pin on the ESP32.")
-        ui.info(f"{DIM}Uses analogWrite (PWM) if dimmable, digitalWrite otherwise.{RESET}")
-        ui.info(f"{DIM}Must be a PWM-capable pin if dimmable is enabled.{RESET}")
-        print()
+        print(_SECTION_SEP)
         pin = ui.text_input("GPIO pin (e.g. PIN(6) or 6)",
                             default=_extract_val(record["info_values"], 0, "0"))
         if pin is None:
@@ -316,10 +382,7 @@ def _edit_record(record):
 
     elif dev == "PCA9555":
         # ── PCA9555: I2C GPIO expander ───────────────────────────────
-        print()
-        ui.info(f"{CYAN}PCA9555 LED{RESET} — I\u00b2C GPIO expander, 16 I/O in two 8-bit ports.")
-        ui.info(f"{DIM}Each LED is identified by: chip address + port (bank) + bit.{RESET}")
-        print()
+        print(_SECTION_SEP)
         addr = _prompt_pca_hex_address(_extract_val(record["info_values"], 0, "0x20"))
         if addr is None: return False
         print()
@@ -337,11 +400,7 @@ def _edit_record(record):
 
     elif dev == "TM1637":
         # ── TM1637: LED+keypad driver ────────────────────────────────
-        print()
-        ui.info(f"{CYAN}TM1637 LED{RESET} — LED/keypad driver chip (bit-banged via CLK+DIO).")
-        ui.info(f"{DIM}Has a 6x8 LED matrix: 6 grid positions (segments) x 8 bits each.{RESET}")
-        ui.info(f"{DIM}Multiple chips can share the same CLK pin but need unique DIO pins.{RESET}")
-        print()
+        print(_SECTION_SEP)
         clk = ui.text_input("CLK pin (clock GPIO)",
                             default=_extract_val(record["info_values"], 0, "0"))
         if clk is None: return False
@@ -361,11 +420,7 @@ def _edit_record(record):
 
     elif dev == "GN1640T":
         # ── GN1640T: 8x8 LED matrix driver ──────────────────────────
-        print()
-        ui.info(f"{CYAN}GN1640T LED{RESET} — 8x8 LED matrix driver chip.")
-        ui.info(f"{DIM}Each LED is addressed by column (0-7) and row (0-7).{RESET}")
-        ui.info(f"{DIM}Single-instance driver, address is reserved for future use.{RESET}")
-        print()
+        print(_SECTION_SEP)
         addr = ui.text_input("Address (0 = default)",
                              default=_extract_val(record["info_values"], 0, "0"))
         if addr is None: return False
@@ -379,11 +434,7 @@ def _edit_record(record):
 
     elif dev == "WS2812":
         # ── WS2812: addressable RGB LEDs ─────────────────────────────
-        print()
-        ui.info(f"{CYAN}WS2812 LED{RESET} — addressable RGB (NeoPixel) on a data strip.")
-        ui.info(f"{DIM}Each LED has an index on the strip and a default color (R,G,B).{RESET}")
-        ui.info(f"{DIM}LEDs on the same GPIO pin belong to the same strip.{RESET}")
-        print()
+        print(_SECTION_SEP)
         idx = ui.text_input("LED index on strip (0-based position)",
                             default=_extract_val(record["info_values"], 0, "0"))
         if idx is None: return False
@@ -411,11 +462,7 @@ def _edit_record(record):
 
     elif dev == "GAUGE":
         # ── GAUGE: analog servo gauge ────────────────────────────────
-        print()
-        ui.info(f"{CYAN}GAUGE{RESET} — analog servo/gauge driven by PWM pulse.")
-        ui.info(f"{DIM}Firmware maps DCS value (0-65535) to a pulse width between{RESET}")
-        ui.info(f"{DIM}min and max microseconds at the given period (typically 50Hz).{RESET}")
-        print()
+        print(_SECTION_SEP)
         gpio = ui.text_input("Servo GPIO pin (PWM-capable)",
                              default=_extract_val(record["info_values"], 0, "0"))
         if gpio is None: return False
@@ -445,12 +492,13 @@ def _edit_record(record):
         return False
     record["dimmable"] = dim
 
-    # Active Low
+    # Active Low (presented as "Reversed?" for beginners)
     print()
-    ui.info(f"{DIM}Active Low: if true, the LED is ON when the signal is LOW.{RESET}")
-    ui.info(f"{DIM}Most common-cathode LEDs use active HIGH (false).{RESET}")
-    alow_opts = [("true", "true"), ("false", "false")]
-    alow = ui.pick("Active Low:", alow_opts, default=record["activeLow"])
+    ui.info(f"{DIM}Is this LED wired in reverse? (ON when signal is LOW){RESET}")
+    ui.info(f"{DIM}Most LEDs are {BOLD}not{RESET}{DIM} reversed — pick No unless you know otherwise.{RESET}")
+    alow_opts = [("No  (normal, most common)", "false"),
+                 ("Yes (reversed / active-low)", "true")]
+    alow = ui.pick("Reversed?", alow_opts, default=record["activeLow"])
     if alow is None:
         return False
     record["activeLow"] = alow
@@ -537,21 +585,26 @@ def edit_led_mapping(filepath, label_set_name="", aircraft_name=""):
         wired = r["device"] != "NONE"
 
         if is_highlighted and _flash_active[0]:
-            return (f" {YELLOW}> {label_trunc:<{label_w}}  "
+            return (f"{_SEL_BG} {YELLOW}> {label_trunc:<{label_w}}  "
                     f"{dev_trunc:<{dev_w}}  {info_str:<{info_w}}  "
                     f"{dim_str:<{dim_w}}  {alow_str:<{alow_w}}"
                     f" {scroll_char}{RESET}")
         elif is_highlighted:
-            pointer = f"{CYAN}>{RESET}"
-        else:
-            pointer = " "
+            color = GREEN if wired else DIM
+            return (f"{_SEL_BG} {CYAN}>{RESET}{_SEL_BG} "
+                    f"{color}{label_trunc:<{label_w}}{RESET}{_SEL_BG}  "
+                    f"{color}{dev_trunc:<{dev_w}}{RESET}{_SEL_BG}  "
+                    f"{color}{info_str:<{info_w}}{RESET}{_SEL_BG}  "
+                    f"{DIM}{dim_str:<{dim_w}}{RESET}{_SEL_BG}  "
+                    f"{DIM}{alow_str:<{alow_w}}{RESET}{_SEL_BG}"
+                    f" {DIM}{scroll_char}{RESET}")
 
         if wired:
             color = GREEN
         else:
             color = DIM
 
-        return (f" {pointer} {color}{label_trunc:<{label_w}}{RESET}  "
+        return (f"   {color}{label_trunc:<{label_w}}{RESET}  "
                 f"{color}{dev_trunc:<{dev_w}}{RESET}  "
                 f"{color}{info_str:<{info_w}}{RESET}  "
                 f"{DIM}{dim_str:<{dim_w}}{RESET}  "

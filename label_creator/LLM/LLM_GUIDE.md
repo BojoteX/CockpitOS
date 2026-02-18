@@ -89,6 +89,10 @@ CockpitOS/                              <-- Arduino sketch root
 |   +-- aircraft.py                     <-- Aircraft JSON discovery & management
 |   +-- label_set.py                    <-- Label set copy / reset / generate
 |   +-- panels.py                       <-- Interactive dual-pane panel selector
+|   +-- input_editor.py                 <-- InputMapping.h TUI editor
+|   +-- led_editor.py                   <-- LEDMapping.h TUI editor
+|   +-- display_editor.py              <-- DisplayMapping.cpp TUI editor
+|   +-- segment_map_editor.py          <-- {PREFIX}_SegmentMap.h manager
 |   +-- creator_prefs.json              <-- User preferences (auto-created at runtime)
 |   +-- .label_creator.lock             <-- PID lock file (auto-managed, gitignored)
 +-- compiler/                           <-- Compiler tool (separate, pre-existing)
@@ -123,16 +127,21 @@ CockpitOS/                              <-- Arduino sketch root
 ## Dependency Graph (no circular imports)
 
 ```
-label_creator.py --> ui.py          (TUI toolkit, zero domain knowledge)
-                 --> aircraft.py    (JSON discovery, loading, categories)
-                 --> label_set.py   (copy, validate, reset, generate)
-                 --> panels.py      (dual-pane interactive selector)
+label_creator.py --> ui.py                 (TUI toolkit, zero domain knowledge)
+                 --> aircraft.py           (JSON discovery, loading, categories)
+                 --> label_set.py          (copy, validate, reset, generate)
+                 --> panels.py             (dual-pane interactive selector)
+                 --> input_editor.py       (InputMapping.h TUI editor)
+                 --> led_editor.py         (LEDMapping.h TUI editor)
+                 --> display_editor.py     (DisplayMapping.cpp TUI editor)
+                 --> segment_map_editor.py (SegmentMap.h manager)
 ```
 
 **Rule:** `ui.py` imports NOTHING from our modules. `panels.py` is self-contained
 (has its own ANSI constants, does not import `ui.py` — it implements its own
 full-screen rendering). `aircraft.py` and `label_set.py` have zero imports from
-each other. Only `label_creator.py` imports from all modules.
+each other. Only `label_creator.py` imports from all modules. The four editors
+import `ui` for TUI functions but nothing from each other.
 
 **Rule:** External scripts (`reset_data.py`, `generate_data.py`) are ALWAYS run
 via `subprocess.Popen` with `CREATE_NEW_CONSOLE` — they open in their own
@@ -965,41 +974,16 @@ This means running `generate_data.py` on one label set will disable all others.
 
 ---
 
-## Phase 2: Hardware Wiring Automation (FUTURE — NOT YET IMPLEMENTED)
+## Hardware Wiring Editors (IMPLEMENTED)
 
-This is the primary motivation for the entire Label Creator Tool. After
-generation produces label sets with all controls set to `NONE`, Phase 2 will
-provide an interactive TUI for assigning physical hardware to each control.
+All four TUI editors are fully implemented and working:
 
-### Problem Statement
+- **input_editor.py** — InputMapping.h (GPIO, HC165, PCA9555, TM1637, MATRIX sources)
+- **led_editor.py** — LEDMapping.h (GPIO, PCA9555, TM1637, GN1640T, WS2812, GAUGE devices)
+- **display_editor.py** — DisplayMapping.cpp (render types, field types, min/max, Ctrl+D delete)
+- **segment_map_editor.py** — {PREFIX}_SegmentMap.h files (create, edit, Ctrl+D delete, auto-type detection)
 
-After `generate_data.py` runs, the user currently must hand-edit every line of
-`InputMapping.h` and `LEDMapping.h` to assign GPIO pins, PCA9555 addresses,
-TM1637 positions, WS2812 indices, HC165 bits, etc. For a label set with 40+
-inputs and 40+ LEDs, this is extremely tedious and error-prone.
-
-### Key Technical Challenges
-
-1. **Parsing the hash table format**: Entries are at computed hash positions,
-   not sequential. The parser must handle the sparse hash table structure.
-
-2. **Preserving the generator format**: The generator uses specific code style.
-   Modifications must produce output that the generator can re-parse on
-   regeneration (the generator preserves user edits via label-keyed merge).
-
-3. **Pin conflict detection**: Must track all assigned GPIO pins, I2C addresses,
-   SPI buses across both InputMapping and LEDMapping.
-
-4. **Group system**: Selectors with the same `group` number form exclusive
-   groups. The wiring tool should handle group assignment.
-
-5. **Encoder pairs**: Rotary encoders use two InputMapping entries with the
-   same `oride_label`. The wiring tool should pair these automatically.
-
-6. **Analog controls**: Controls with `oride_value=65535` need ADC-capable
-   GPIO pins only.
-
-7. **The PIN() macro**: GPIO numbers use `PIN(X)` for S2/S3 portability.
+All editors preserve user edits across regeneration via label-keyed merge in the generator.
 
 ---
 

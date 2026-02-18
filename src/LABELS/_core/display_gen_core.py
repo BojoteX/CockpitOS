@@ -7,6 +7,13 @@ CWD is set by the wrapper BEFORE this module is imported.
 """
 import os, sys, json, re
 
+# Ensure stdout/stderr can handle Unicode even when piped or redirected
+# on Windows (where the default codec may be cp1252).
+if sys.stdout.encoding and sys.stdout.encoding.lower().replace("-", "") != "utf8":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+
 # When launched from the compiler tool, skip all interactive pauses.
 _BATCH = os.environ.get("COCKPITOS_BATCH") == "1"
 

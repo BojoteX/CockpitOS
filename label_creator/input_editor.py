@@ -29,6 +29,9 @@ HIDE_CUR = "\033[?25l"
 SHOW_CUR = "\033[?25h"
 ERASE_LN = "\033[2K"
 
+_SECTION_SEP = f"\n  {DIM}\u2500\u2500 Configure \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500{RESET}\n"
+_SEL_BG  = "\033[48;5;236m"    # subtle dark gray row highlight
+
 # ---------------------------------------------------------------------------
 # Input source options for the picker
 # ---------------------------------------------------------------------------
@@ -200,6 +203,63 @@ ANALOG_SOURCES = [
     ("NONE (not wired)", "NONE"),
     ("GPIO",             "GPIO"),
 ]
+
+# ---------------------------------------------------------------------------
+# Beginner-friendly descriptions shown in the source picker
+# ---------------------------------------------------------------------------
+_SOURCE_DESCRIPTIONS = {
+    "NONE": [
+        f"{BOLD}Not wired{RESET}",
+        f"{DIM}Skip this control \u2014 it won't be connected to any{RESET}",
+        f"{DIM}physical button or switch on your panel.{RESET}",
+        f"{DIM}You can always come back and wire it later.{RESET}",
+    ],
+    "GPIO": [
+        f"{CYAN}{BOLD}GPIO{RESET} {DIM}\u2014 Direct connection to an ESP32 pin{RESET}",
+        f"{DIM}The simplest wiring: one wire from a button or switch{RESET}",
+        f"{DIM}straight to a pin on the ESP32 board. No extra chips needed.{RESET}",
+        f"{DIM}Uses internal pull-up resistors (active LOW).{RESET}",
+        "",
+        f"{DIM}Good for: {RESET}buttons, toggle switches, rotary encoders,",
+        f"          potentiometers, and small panels with few controls.",
+    ],
+    "HC165": [
+        f"{CYAN}{BOLD}HC165{RESET} {DIM}\u2014 74HC165 shift register chain{RESET}",
+        f"{DIM}Reads many buttons using only 3 shared wires (SPI bus).{RESET}",
+        f"{DIM}Up to 8 chips daisy-chained = 64 button inputs total.{RESET}",
+        f"{DIM}Each button is identified by its chain position (0\u201363).{RESET}",
+        "",
+        f"{DIM}Good for: {RESET}large button panels where you're running",
+        f"          out of ESP32 GPIO pins.",
+    ],
+    "TM1637": [
+        f"{CYAN}{BOLD}TM1637{RESET} {DIM}\u2014 LED/keypad driver chip{RESET}",
+        f"{DIM}Primarily an LED driver, but it also has a built-in key{RESET}",
+        f"{DIM}scanner that can read up to 16 buttons. Two-wire interface{RESET}",
+        f"{DIM}(CLK + DIO). Each button identified by key index (0\u201315).{RESET}",
+        "",
+        f"{DIM}Good for: {RESET}buttons co-located with TM1637-driven LED",
+        f"          indicators on the same chip.",
+    ],
+    "PCA9555": [
+        f"{CYAN}{BOLD}PCA9555{RESET} {DIM}\u2014 I\u00b2C GPIO expander chip{RESET}",
+        f"{DIM}Adds 16 extra I/O pins via the I\u00b2C bus (just 2 wires).{RESET}",
+        f"{DIM}Two 8-bit ports (bank A and B). Standard chip addresses{RESET}",
+        f"{DIM}are 0x20\u20130x27. Clones may use other addresses.{RESET}",
+        "",
+        f"{DIM}Good for: {RESET}expanding I/O when you need more pins than",
+        f"          the ESP32 has available.",
+    ],
+    "MATRIX": [
+        f"{CYAN}{BOLD}MATRIX{RESET} {DIM}\u2014 Strobe/data GPIO matrix for rotary selectors{RESET}",
+        f"{DIM}Uses one shared data pin and one strobe pin per switch{RESET}",
+        f"{DIM}position. Firmware pulls each strobe LOW, reads the data{RESET}",
+        f"{DIM}pin, and builds a binary pattern to identify the position.{RESET}",
+        "",
+        f"{DIM}Good for: {RESET}multi-position rotary switches with many",
+        f"          positions (5+) that would use too many GPIO pins.",
+    ],
+}
 
 
 def _pos_suffix(record, cmd):
@@ -555,7 +615,8 @@ def _edit_standalone(record):
     else:
         help_fn = lambda: _show_help("Help — Momentary / Action", _HELP_MOMENTARY)
 
-    src = ui.pick("Source:", source_list, default=pick_default, on_help=help_fn)
+    src = ui.pick("Source:", source_list, default=pick_default, on_help=help_fn,
+                   descriptions=_SOURCE_DESCRIPTIONS)
     if src is None:
         return False
 
@@ -583,7 +644,8 @@ def _edit_analog(record):
     HID axis assignment (-1 = auto-assign).
     """
     help_fn = lambda: _show_help("Help — Analog Input", _HELP_ANALOG)
-    src = ui.pick("Source:", ANALOG_SOURCES, default=record["source"], on_help=help_fn)
+    src = ui.pick("Source:", ANALOG_SOURCES, default=record["source"], on_help=help_fn,
+                   descriptions=_SOURCE_DESCRIPTIONS)
     if src is None:
         return False
 
@@ -595,6 +657,8 @@ def _edit_analog(record):
         return True
 
     record["source"] = src
+
+    print(_SECTION_SEP)
 
     # GPIO pin (ADC-capable)
     port_val = ui.text_input("ADC pin (e.g. PIN(1) or 1)", default=record["port"])
@@ -636,7 +700,8 @@ def _edit_encoder_pair(records, rec_a, rec_b):
     print()
 
     help_fn = lambda: _show_help("Help — Encoder Pair", _HELP_ENCODER)
-    src = ui.pick("Source:", ENCODER_SOURCES, default=rec_a["source"], on_help=help_fn)
+    src = ui.pick("Source:", ENCODER_SOURCES, default=rec_a["source"], on_help=help_fn,
+                   descriptions=_SOURCE_DESCRIPTIONS)
     if src is None:
         return False
 
@@ -647,6 +712,8 @@ def _edit_encoder_pair(records, rec_a, rec_b):
             r["bit"]    = 0
             r["hidId"]  = -1
         return True
+
+    print(_SECTION_SEP)
 
     # Pin A (DEC / CCW — value=0)
     pin_a = ui.text_input("Pin A — DEC/CCW (e.g. PIN(33))", default=rec_a["port"])
@@ -679,6 +746,8 @@ def _prompt_source_fields(record, src, ctype):
     - MATRIX: port = data/strobe pin, bit = pattern decimal
     """
     is_pca = src.startswith("PCA_0x")
+
+    print(_SECTION_SEP)
 
     # ── Port ──────────────────────────────────────────────────────────
     if src in _FIXED_PORT_SOURCES:
@@ -783,7 +852,7 @@ def _edit_selector_group(records, group_records):
 
     help_fn = lambda: _show_help("Help — Selector Group", _HELP_SELECTOR_GROUP)
     src = ui.pick("Source for this group:", SELECTOR_SOURCES, default=pick_default,
-                  on_help=help_fn)
+                  on_help=help_fn, descriptions=_SOURCE_DESCRIPTIONS)
     if src is None:
         return False
 
@@ -865,11 +934,7 @@ def _edit_selector_gpio_onehot(group_records, cmd, src):
     - Fallback position: port=-1, bit=-1 (fires when no pin is LOW)
     - If all positions are wired (no port=-1), there is no fallback
     """
-    print()
-    ui.info(f"{CYAN}GPIO One-Hot Selector{RESET}")
-    ui.info(f"{DIM}Each position needs a unique GPIO pin (all bit=-1).{RESET}")
-    ui.info(f"{DIM}One position can be the fallback (no pin — fires when no other is LOW).{RESET}")
-    print()
+    print(f"\n  {DIM}\u2500\u2500 {CYAN}One-Hot mode{RESET}{DIM} \u2500 one unique pin per position \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500{RESET}\n")
 
     # Ask user which position is the fallback (or none)
     fb_options = [("No fallback (all positions wired)", -1)]
@@ -934,11 +999,7 @@ def _edit_selector_gpio_regular(group_records, cmd, src):
       would count toward oneHot and potentially trigger CASE 1)
     - bit is set automatically — user only assigns GPIO pins
     """
-    print()
-    ui.info(f"{CYAN}GPIO Regular Selector{RESET}")
-    ui.info(f"{DIM}Each wired position: GPIO pin (active LOW, bit=0 auto-set).{RESET}")
-    ui.info(f"{DIM}One position is the fallback (no pin — fires when no wired pin is active).{RESET}")
-    print()
+    print(f"\n  {DIM}\u2500\u2500 {CYAN}Regular mode{RESET}{DIM} \u2500 one pin per position, bit auto-set \u2500\u2500\u2500\u2500\u2500{RESET}\n")
 
     # Ask which position is the fallback (port=-1)
     fb_options = []
@@ -1001,11 +1062,7 @@ def _edit_selector_pca(group_records, cmd, src):
     - Fallback position: bit = -1 (becomes 255 as uint8_t in firmware)
     - Firmware reads the port byte and checks each bit for LOW
     """
-    print()
-    ui.info(f"{CYAN}PCA9555 Selector{RESET}")
-    ui.info(f"{DIM}Each wired position: port (0=bank A, 1=bank B) + bit (0-7).{RESET}")
-    ui.info(f"{DIM}One position is the fallback (bit=-1, fires when no wired bit is LOW).{RESET}")
-    print()
+    print(_SECTION_SEP)
 
     # Ask which position is the fallback (bit=-1)
     fb_options = []
@@ -1075,11 +1132,7 @@ def _edit_selector_hc165(group_records, cmd, src):
     - Fallback position: bit = -1
     - Firmware reads the 64-bit chain and checks each bit
     """
-    print()
-    ui.info(f"{CYAN}HC165 Selector{RESET}")
-    ui.info(f"{DIM}Each wired position: chain bit position (0-63).{RESET}")
-    ui.info(f"{DIM}One position is the fallback (bit=-1, fires when no wired bit is LOW).{RESET}")
-    print()
+    print(_SECTION_SEP)
 
     # Ask which position is the fallback (bit=-1)
     fb_options = []
@@ -1154,11 +1207,7 @@ def _edit_selector_matrix(group_records, cmd, src):
 
     Returns True if any record was modified.
     """
-    print()
-    ui.info(f"{CYAN}MATRIX Selector{RESET}")
-    ui.info(f"{DIM}Rotary switch scanned via strobe/data GPIO matrix.{RESET}")
-    ui.info(f"{DIM}One shared data pin + one strobe pin per wired position.{RESET}")
-    print()
+    print(_SECTION_SEP)
 
     # ── 1. Data pin ──────────────────────────────────────────────────
     # Try to detect current data pin from existing records
@@ -1396,22 +1445,28 @@ def edit_input_mapping(filepath, label_set_name="", aircraft_name=""):
         wired = r["source"] != "NONE"
 
         if is_highlighted and _flash_active[0]:
-            return (f" {YELLOW}> {label_trunc:<{label_w}}  "
+            return (f"{_SEL_BG} {YELLOW}> {label_trunc:<{label_w}}  "
                     f"{src_trunc:<{src_w}}  {port_trunc:<{port_w}}  "
                     f"{bit_str:>{bit_w}}  {hid_str:>{hid_w}}  "
                     f"{type_trunc:<{type_w}}"
                     f" {scroll_char}{RESET}")
         elif is_highlighted:
-            pointer = f"{CYAN}>{RESET}"
-        else:
-            pointer = " "
+            color = GREEN if wired else DIM
+            return (f"{_SEL_BG} {CYAN}>{RESET}{_SEL_BG} "
+                    f"{color}{label_trunc:<{label_w}}{RESET}{_SEL_BG}  "
+                    f"{color}{src_trunc:<{src_w}}{RESET}{_SEL_BG}  "
+                    f"{color}{port_trunc:<{port_w}}{RESET}{_SEL_BG}  "
+                    f"{color}{bit_str:>{bit_w}}{RESET}{_SEL_BG}  "
+                    f"{color}{hid_str:>{hid_w}}{RESET}{_SEL_BG}  "
+                    f"{DIM}{type_trunc:<{type_w}}{RESET}{_SEL_BG}"
+                    f" {DIM}{scroll_char}{RESET}")
 
         if wired:
             color = GREEN
         else:
             color = DIM
 
-        return (f" {pointer} {color}{label_trunc:<{label_w}}{RESET}  "
+        return (f"   {color}{label_trunc:<{label_w}}{RESET}  "
                 f"{color}{src_trunc:<{src_w}}{RESET}  "
                 f"{color}{port_trunc:<{port_w}}{RESET}  "
                 f"{color}{bit_str:>{bit_w}}{RESET}  "

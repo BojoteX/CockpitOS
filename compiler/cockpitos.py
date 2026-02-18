@@ -20,6 +20,7 @@ import sys
 import json
 import msvcrt
 import ctypes
+import subprocess
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -456,6 +457,29 @@ def configure_advanced_settings():
 
 
 # =============================================================================
+#  Tool switcher — launch sibling CockpitOS tools
+# =============================================================================
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_lock_path = None          # set in main(), cleaned up before exec
+
+def _launch_tool(script_name):
+    """Replace the current process with a sibling CockpitOS tool.
+
+    Uses os.execl so there is no nesting — the old tool is gone,
+    the new one takes over the same console window.
+    """
+    script = _PROJECT_ROOT / script_name
+    if not script.exists():
+        error(f"{script_name} not found.")
+        return
+    # Clean up our lock file before we disappear
+    if _lock_path:
+        _lock_path.unlink(missing_ok=True)
+    cls()
+    os.execl(sys.executable, sys.executable, str(script))
+
+
+# =============================================================================
 #  Main menu
 # =============================================================================
 def _bring_existing_to_front():
@@ -479,7 +503,9 @@ def main():
     os.system("")  # Enable ANSI on Windows
 
     # --- Single-instance guard (lock file) ---
+    global _lock_path
     lock_path = Path(__file__).parent / ".cockpitos.lock"
+    _lock_path = lock_path
     try:
         # Exclusive create — fails if file already exists
         lock_fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
@@ -607,13 +633,19 @@ def main():
         choice = menu_pick([
             ("Board / Options",      "board",     "normal"),
             ("Role / Transport",     "transport", "normal"),
-            ("---",),
-            ("COMPILE",              "compile",   "action"),
-            *([("QUICK COMPILE", "qcompile", "action", "(" + active_ls + ")")] if active_ls != "(none)" else []),
-            ("UPLOAD",               "upload",    "action"),
-            ("---",),
             ("Misc Options",         "misc",      "normal"),
             ("Clear cache/build",    "clean",     "dim"),
+            ("",),
+            ("action_bar", [
+                ("Compile", "compile"),
+                *([ ("Quick Compile", "qcompile") ] if active_ls != "(none)" else []),
+                ("Upload", "upload"),
+            ]),
+            ("",),
+            ("---", "Switch Tool"),
+            ("Label Creator",        "label",     "normal"),
+            ("Environment Setup",    "setup",     "normal"),
+            ("",),
             ("Exit",                 "exit",      "dim"),
         ])
 
@@ -709,6 +741,12 @@ def main():
 
         elif choice == "misc":
             misc_options(prefs)
+
+        elif choice == "label":
+            _launch_tool("LabelCreator-START.py")
+
+        elif choice == "setup":
+            _launch_tool("Setup-START.py")
 
         elif choice == "clean":
             clean_build()

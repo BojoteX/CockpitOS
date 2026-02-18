@@ -71,10 +71,8 @@
 // --- Misc ---
 static constexpr bool     shared_bus = false;
 static constexpr bool     use_lock = false;
-static constexpr uint16_t TRANSPARENT_KEY = 0x2001;
-static constexpr uint16_t NVG_THRESHOLD = 6553;
-
 static constexpr int16_t  SCREEN_W = 240, SCREEN_H = 240;
+#include "includes/TFT_GaugeUtils.h"  // Rect, rectClamp, rotatedAABB, TRANSPARENT_KEY, NVG_THRESHOLD
 static constexpr int16_t  CENTER_X = 120, CENTER_Y = 239;
 static constexpr int16_t  NEEDLE_W = 15, NEEDLE_H = 150;
 static constexpr int16_t  NEEDLE_PIVOT_X = 7, NEEDLE_PIVOT_Y = 150;
@@ -161,52 +159,7 @@ static inline void waitDMADone() {
     if (dmaBusy) { tft.waitDMA(); dmaBusy = false; }
 }
 
-// --- Dirty-rect utils ---
-/*
-struct Rect {
-    int16_t x = 0, y = 0, w = 0, h = 0;
-};
-*/
-
-struct Rect { int16_t x, y, w, h; };
-static inline bool rectEmpty(const Rect& r) { return r.w <= 0 || r.h <= 0; }
-static inline Rect rectClamp(const Rect& r) {
-    int16_t x = r.x, y = r.y, w = r.w, h = r.h;
-    if (x < 0) { w += x; x = 0; } if (y < 0) { h += y; y = 0; }
-    if (x + w > SCREEN_W) w = SCREEN_W - x;
-    if (y + h > SCREEN_H) h = SCREEN_H - y;
-    if (w < 0) w = 0; if (h < 0) h = 0;
-    return { x,y,w,h };
-}
-static inline Rect rectUnion(const Rect& a, const Rect& b) {
-    if (rectEmpty(a)) return b;
-    if (rectEmpty(b)) return a;
-    int16_t x1 = std::min(a.x, b.x), y1 = std::min(a.y, b.y);
-    int16_t x2 = std::max<int16_t>(a.x + a.w, b.x + b.w);
-    int16_t y2 = std::max<int16_t>(a.y + a.h, b.y + b.h);
-    return rectClamp({ x1,y1,(int16_t)(x2 - x1),(int16_t)(y2 - y1) });
-}
-static inline Rect rectPad(const Rect& r, int16_t px) {
-    return rectClamp({ (int16_t)(r.x - px),(int16_t)(r.y - px),(int16_t)(r.w + 2 * px),(int16_t)(r.h + 2 * px) });
-}
-static Rect rotatedAABB(int cx, int cy, int w, int h, int px, int py, float deg) {
-    const float rad = deg * (float)M_PI / 180.0f;
-    float s = sinf(rad), c = cosf(rad);
-    const float xs[4] = { (float)-px, (float)w - px, (float)w - px, (float)-px };
-    const float ys[4] = { (float)-py, (float)-py, (float)h - py, (float)h - py };
-    float minx = 1e9f, maxx = -1e9f, miny = 1e9f, maxy = -1e9f;
-    for (int i = 0; i < 4; ++i) {
-        float xr = xs[i] * c - ys[i] * s;
-        float yr = xs[i] * s + ys[i] * c;
-        float X = (float)cx + xr;
-        float Y = (float)cy + yr;
-        if (X < minx) minx = X; if (X > maxx) maxx = X;
-        if (Y < miny) miny = Y; if (Y > maxy) maxy = Y;
-    }
-    Rect r; r.x = (int16_t)floorf(minx); r.y = (int16_t)floorf(miny);
-    r.w = (int16_t)ceilf(maxx - minx); r.h = (int16_t)ceilf(maxy - miny);
-    return rectClamp(rectPad(r, 2));
-}
+// --- Dirty-rect utils (from TFT_GaugeUtils.h) ---
 static inline void blitBGRectToFrame(const uint16_t* bg, int x, int y, int w, int h) {
     if (w <= 0 || h <= 0) return;
     uint16_t* dst = (uint16_t*)frameSpr.getBuffer();
