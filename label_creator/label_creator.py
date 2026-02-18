@@ -19,6 +19,7 @@ import json
 import time
 import shutil
 import ctypes
+import subprocess
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -30,6 +31,8 @@ import label_set
 import panels as panels_mod
 import input_editor
 import led_editor
+import display_editor
+import segment_map_editor
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -38,6 +41,28 @@ SKETCH_DIR = Path(__file__).resolve().parent.parent
 LABELS_DIR = SKETCH_DIR / "src" / "LABELS"
 ACTIVE_SET = LABELS_DIR / "active_set.h"
 PREFS_FILE = Path(__file__).resolve().parent / "creator_prefs.json"
+
+
+# ---------------------------------------------------------------------------
+# Tool switcher — launch sibling CockpitOS tools
+# ---------------------------------------------------------------------------
+_lock_path = None          # set in main(), cleaned up before exec
+
+def _launch_tool(script_name):
+    """Replace the current process with a sibling CockpitOS tool.
+
+    Uses os.execl so there is no nesting — the old tool is gone,
+    the new one takes over the same console window.
+    """
+    script = SKETCH_DIR / script_name
+    if not script.exists():
+        ui.error(f"{script_name} not found.")
+        return
+    # Clean up our lock file before we disappear
+    if _lock_path:
+        _lock_path.unlink(missing_ok=True)
+    ui.cls()
+    os.execl(sys.executable, sys.executable, str(script))
 
 
 def _read_active_label_set() -> str | None:
@@ -70,13 +95,13 @@ def save_prefs(prefs):
 # ASCII art banner
 # ---------------------------------------------------------------------------
 _BANNER = r"""
-   ____            _          _ _    ___  ____
-  / ___|___   ___| | ___ __ (_) |_ / _ \/ ___|
- | |   / _ \ / __| |/ / '_ \| | __| | | \___ \
- | |__| (_) | (__|   <| |_) | | |_| |_| |___) |
-  \____\___/ \___|_|\_\ .__/|_|\__|\___/|____/
-                       |_|
-        Label Set Creator
+        ____            _          _ _    ___  ____
+       / ___|___   ___ | | ___ __ (_) |_ / _ \/ ___|
+      | |   / _ \ / __|| |/ / '_ \| | __| | | \___ \
+      | |__| (_) | (__ |   <| |_) | | |_| |_| |___) |
+       \____\___/ \___|_|\_\ .__/|_|\__|\___/|____/
+                            |_|
+              Label Set Creator
 """
 
 _WINDOW_TITLE = "CockpitOS Label Creator"
@@ -373,27 +398,17 @@ def _regenerate(ls_name: str, prefs):
         input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
         return
 
-    if not selected:
-        ui.warn("No panels selected.")
-        input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
-        return
-
-    # Write the (possibly updated) selection
+    # Write the (possibly updated) selection — even if empty
     all_panels = aircraft.get_categories(aircraft_data)
     label_set.write_selected_panels(ls_dir, selected, all_panels)
 
-    # Confirm what was saved
-    ui.header(f"{ls_name}")
-    print()
-    ui.success(f"selected_panels.txt updated — {len(selected)} panels:")
-    for p in selected:
-        print(f"    + {p}")
-    print()
-    ui.info(f"Aircraft: {ac_name}")
     prefs["last_label_set"] = ls_name
     save_prefs(prefs)
 
-    input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+    # Auto-generate after saving panel selection (skip if nothing selected)
+    if selected:
+        bare = ls_name[len("LABEL_SET_"):] if ls_name.startswith("LABEL_SET_") else ls_name
+        step_generate(bare, ls_dir, same_window=True)
 
 
 def do_browse(prefs):
@@ -480,6 +495,22 @@ def _led_mapping_caption(ls_dir: Path) -> str:
     return f"{wired}/{total} wired"
 
 
+def _display_mapping_caption(ls_dir: Path) -> str:
+    """Return 'X/Y configured' caption for DisplayMapping.cpp, or 'not generated'."""
+    fpath = ls_dir / "DisplayMapping.cpp"
+    if not fpath.exists():
+        return "not generated"
+    configured, total = display_editor.count_configured(str(fpath))
+    if total == 0:
+        return "no fields"
+    return f"{configured}/{total} configured"
+
+
+def _segment_map_caption(ls_dir: Path, ac_name: str) -> str:
+    """Return 'X of Y devices' caption for the segment maps menu item."""
+    return segment_map_editor.segment_map_caption(ls_dir, ac_name)
+
+
 def _show_label_set_info(ls_name: str, prefs) -> str | None:
     """Display detailed info about a label set.
 
@@ -523,86 +554,98 @@ def _show_label_set_info(ls_name: str, prefs) -> str | None:
         has_led   = (ls_dir / "LEDMapping.h").exists()
         is_generated = has_input or has_led
 
+        panels = _read_selected_panels(ls_dir)
+        has_panels = bool(panels)
+
+        # ── Header — consistent with other sub-screens ─────────────────
         ui.header(ls_name)
         print()
 
-        ui.info(f"Device Name:  {ui.CYAN}{fullname}{ui.RESET}")
-        ui.info(f"Aircraft:     {ac_name}")
-
-        panels = _read_selected_panels(ls_dir)
-        if panels:
-            panel_list = ", ".join(panels)
-            ui.info(f"Panels ({len(panels)}):   {ui.YELLOW}{panel_list}{ui.RESET}")
-        else:
-            ui.info(f"Panels:       {ui.DIM}none selected{ui.RESET}")
-
-        # Action menu — contextual based on generation state
+        # Status lines with emoji — consistent spacing: 5sp + emoji + space
+        print(f"     \U0001f5a5\ufe0f {ui.CYAN}{fullname}{ui.RESET}")
+        print(f"     \U0001f6e9\ufe0f {ui.CYAN}{ac_name}{ui.RESET}")
         print()
 
-        has_panels = bool(panels)
+        # ── Menu ───────────────────────────────────────────────────────
+        panels_cap = f"({len(panels)} selected)" if panels else ""
         panels_label = ("Select / deselect panels"
                         if has_panels
                         else "Select which aircraft panels to include")
 
-        if is_generated:
-            # Full menu: panels, generate, wiring, config, reset
+        if is_generated and has_panels:
             input_cap = _input_mapping_caption(ls_dir)
             led_cap   = _led_mapping_caption(ls_dir)
             fullname_cap = fullname if fullname != "(not set)" else "not set"
             hid_cap = f"{hid_color}{hid_label}{ui.RESET}"
 
+            # Display system: check if DisplayMapping.cpp exists with entries
+            has_display_entries = False
+            display_cap = ""
+            if (ls_dir / "DisplayMapping.cpp").exists():
+                _dc, _dt = display_editor.count_configured(
+                    str(ls_dir / "DisplayMapping.cpp"))
+                has_display_entries = _dt > 0
+                if has_display_entries:
+                    display_cap = _display_mapping_caption(ls_dir)
+
+            segmap_cap = _segment_map_caption(ls_dir, ac_name)
+
+            # Check if this label set is the active (default) one
+            active_ls = _read_active_label_set()
+            bare = ls_name[len("LABEL_SET_"):] if ls_name.startswith("LABEL_SET_") else ls_name
+            is_default = (active_ls == bare)
+            default_cap = (f"{ui.GREEN}(active){ui.RESET}"
+                           if is_default
+                           else f"{ui.DIM}(not active){ui.RESET}")
+
             menu_items = [
-                ("---", "Panels"),
-                (panels_label,               "select_panels", "normal"),
+                (panels_label,               "select_panels", "action", panels_cap),
+                ("Generate & Set as Default", "set_default",  "warning", default_cap),
+                ("",),
+                ("---", "LEDs & Controls"),
+                ("Edit Inputs",              "edit_input",  "normal", f"({input_cap} wired)"),
+                ("Edit Outputs (LEDs)",      "edit_led",    "normal", f"({led_cap} wired)"),
+                ("",),
+                ("---", "Displays"),
+                ("Segment Maps",             "segment_maps","normal", f"({segmap_cap})"),
             ]
-            if has_panels:
+
+            if has_display_entries:
                 menu_items.append(
-                    ("Auto-Generate",        "generate",      "action"))
-            menu_items += [
+                    ("Edit Displays",        "edit_display","normal", f"({display_cap})"),
+                )
+
+            menu_items.extend([
                 ("",),
-                ("---", "Wiring"),
-                ("Edit Inputs",              "edit_input",  "normal", input_cap),
-                ("Edit LEDs",                "edit_led",    "normal", led_cap),
-                ("",),
-                ("---", "Config"),
+                ("---", "Misc Options"),
                 ("Device Name",              "devname",     "normal", fullname_cap),
                 ("HID Mode Selector",        "hid",         "normal", hid_cap),
                 ("Edit Custom Pins",         "pins",        "normal"),
                 ("",),
-                ("---",),
                 ("RESET LABEL SET",          "reset",       "danger"),
-                ("",),
-                ("---",),
                 ("Back",                     "back",        "dim"),
-            ]
+            ])
             choice = ui.menu_pick(menu_items, initial=last_choice)
         else:
-            # Minimal menu: only panels + generate until files exist
             if not has_panels:
                 print(f"  {ui.DIM}Start by selecting which aircraft panels")
                 print(f"  you want to wire to this device.{ui.RESET}")
                 print()
 
             menu_items = [
-                ("---", "Setup"),
-                (panels_label,               "select_panels", "normal"),
-            ]
-            if has_panels:
-                menu_items.append(
-                    ("Auto-Generate",        "generate",      "action"))
-            menu_items += [
+                (panels_label,               "select_panels", "action", panels_cap),
                 ("",),
-                ("---",),
                 ("RESET LABEL SET",          "reset",       "danger"),
-                ("",),
-                ("---",),
                 ("Back",                     "back",        "dim"),
             ]
             choice = ui.menu_pick(menu_items, initial=last_choice)
 
         last_choice = choice    # remember for cursor restoration
 
-        if choice == "devname":
+        if choice == "set_default":
+            _auto_generate(ls_name, ls_dir, prefs)
+            continue
+        elif choice == "devname":
             _edit_device_name(ls_dir, fullname)
             continue
         elif choice == "hid":
@@ -619,11 +662,19 @@ def _show_label_set_info(ls_name: str, prefs) -> str | None:
             led_editor.edit_led_mapping(str(ls_dir / "LEDMapping.h"),
                                         ls_name, ac_name)
             continue
+        elif choice == "edit_display":
+            display_editor.edit_display_mapping(
+                str(ls_dir / "DisplayMapping.cpp"), ls_name, ac_name)
+            continue
+        elif choice == "segment_maps":
+            changed = segment_map_editor.manage_segment_maps(
+                str(ls_dir), ls_name, ac_name)
+            if changed:
+                # Auto-regenerate so new maps are picked up immediately
+                _auto_generate(ls_name, ls_dir, prefs)
+            continue
         elif choice == "select_panels":
             return "regenerate"
-        elif choice == "generate":
-            _auto_generate(ls_name, ls_dir, prefs)
-            continue
         elif choice == "reset":
             return "reset"
         else:
@@ -808,7 +859,9 @@ def main():
     os.system("")  # Enable ANSI on Windows
 
     # --- Single-instance guard (lock file) ---
+    global _lock_path
     lock_path = Path(__file__).parent / ".label_creator.lock"
+    _lock_path = lock_path
     try:
         lock_fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         os.write(lock_fd, str(os.getpid()).encode())
@@ -852,19 +905,21 @@ def main():
 
         ui.cls()
         print()
-        ui.cprint(ui.CYAN + ui.BOLD, _BANNER)
+        for line in _BANNER.strip("\n").splitlines():
+            ui.cprint(ui.CYAN + ui.BOLD, line)
+        print()
 
         # Status display — emoji lines like the compiler tool
         print()
-        print(f"     \U0001f5c2\ufe0f  {ui.CYAN}{len(existing)}{ui.RESET} label sets")
+        print(f"     \U0001f5c2\ufe0f {ui.CYAN}{len(existing)}{ui.RESET} label sets")
         if active_ls and ls_exists:
-            print(f"     \U0001f3f7\ufe0f  {ui.CYAN}{active_ls}{ui.RESET}")
+            print(f"     \U0001f3f7\ufe0f {ui.CYAN}{active_ls}{ui.RESET}")
             ac_display = active_ac or "(unknown)"
-            print(f"     \U0001f6e9\ufe0f  {ui.CYAN}{ac_display}{ui.RESET}")
+            print(f"     \U0001f6e9\ufe0f {ui.CYAN}{ac_display}{ui.RESET}")
         elif active_ls:
-            print(f"     \U0001f3f7\ufe0f  {ui.RED}{active_ls} (deleted){ui.RESET}")
+            print(f"     \U0001f3f7\ufe0f {ui.RED}{active_ls} (deleted){ui.RESET}")
         else:
-            print(f"     \U0001f3f7\ufe0f  {ui.DIM}No label set generated yet{ui.RESET}")
+            print(f"     \U0001f3f7\ufe0f {ui.DIM}No label set generated yet{ui.RESET}")
         print()
 
         choice = ui.menu_pick([
@@ -872,7 +927,11 @@ def main():
             ("Modify Label Set",          "browse",    "normal"),
             ("Auto-Generate Label Set",   "generate",  "normal"),
             ("Delete Label Set",          "delete",    "normal"),
-            ("---",),
+            ("",),
+            ("---", "Switch Tool"),
+            ("Compile Tool",              "compiler",  "normal"),
+            ("Environment Setup",         "setup",     "normal"),
+            ("",),
             ("Exit",                      "exit",      "dim"),
         ])
 
@@ -907,6 +966,12 @@ def main():
         elif choice == "generate":
             do_generate(prefs)
             prefs = load_prefs()
+
+        elif choice == "compiler":
+            _launch_tool("CockpitOS-START.py")
+
+        elif choice == "setup":
+            _launch_tool("Setup-START.py")
 
         elif choice == "delete":
             do_delete(prefs)

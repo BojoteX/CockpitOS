@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
-  DEVICE_TM1637,
+  DEVICE_GPIO,
+  DEVICE_PCA9555,
   DEVICE_NONE,
+  DEVICE_WS2812,
+  DEVICE_TM1637,
   DEVICE_GAUGE,
   DEVICE_GN1640T,
-  DEVICE_GPIO,
-  DEVICE_WS2812,
-  DEVICE_PCA9555,
 };
 
 struct LEDMapping {
@@ -29,7 +29,7 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
-  { "APU_FIRE_BTN"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "APU_FIRE_BTN"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "FIRE_APU_LT"            , DEVICE_TM1637  , {.tm1637Info = {PIN(37), PIN(40), 5, 0}}, false, false }, // TM1637 CLK PIN(37) DIO PIN(40) Seg 5 Bit 0,
   { "AOA_INDEXER_HIGH"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "AOA_INDEXER_HIGH_F"     , DEVICE_WS2812  , {.ws2812Info = {3, WS2812B_PIN,   0, 255,   0, 200}}, true, false }, // WS2812 Index 3,
@@ -37,14 +37,14 @@ static const LEDMapping panelLEDs[] = {
   { "AOA_INDEXER_LOW_F"      , DEVICE_WS2812  , {.ws2812Info = {5, WS2812B_PIN, 255,   0,   0, 200}}, true, false }, // WS2812 Index 5,
   { "AOA_INDEXER_NORMAL"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "AOA_INDEXER_NORMAL_F"   , DEVICE_WS2812  , {.ws2812Info = {4, WS2812B_PIN, 255, 165,   0, 200}}, true, false }, // WS2812 Index 4,
-  { "EMER_JETT_BTN"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "FIRE_EXT_BTN"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "EMER_JETT_BTN"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "FIRE_EXT_BTN"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CHART_DIMMER"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "COCKKPIT_LIGHT_MODE_SW" , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "COCKKPIT_LIGHT_MODE_SW" , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CONSOLES_DIMMER"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "FLOOD_DIMMER"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "INST_PNL_DIMMER"        , DEVICE_GPIO    , {.gpioInfo = {PIN(6)}}, true, false }, // GPIO PIN(6),
-  { "LIGHTS_TEST_SW"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "LIGHTS_TEST_SW"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "WARN_CAUTION_DIMMER"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "LH_ADV_ASPJ_OH"         , DEVICE_TM1637  , {.tm1637Info = {PIN(37), PIN(39), 5, 1}}, false, false }, // TM1637 CLK PIN(37) DIO PIN(39) Seg 5 Bit 1,
   { "LH_ADV_GO"              , DEVICE_TM1637  , {.tm1637Info = {PIN(37), PIN(39), 0, 0}}, false, false }, // TM1637 CLK PIN(37) DIO PIN(39) Seg 0 Bit 0,
@@ -58,25 +58,25 @@ static const LEDMapping panelLEDs[] = {
   { "LH_ADV_STBY"            , DEVICE_TM1637  , {.tm1637Info = {PIN(37), PIN(39), 2, 1}}, false, false }, // TM1637 CLK PIN(37) DIO PIN(39) Seg 2 Bit 1,
   { "LH_ADV_XMIT"            , DEVICE_TM1637  , {.tm1637Info = {PIN(37), PIN(39), 4, 1}}, false, false }, // TM1637 CLK PIN(37) DIO PIN(39) Seg 4 Bit 1,
   { "FIRE_LEFT_LT"           , DEVICE_TM1637  , {.tm1637Info = {PIN(37), PIN(39), 0, 2}}, false, false }, // TM1637 CLK PIN(37) DIO PIN(39) Seg 0 Bit 2,
-  { "LEFT_FIRE_BTN"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "LEFT_FIRE_BTN_COVER"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "LEFT_FIRE_BTN"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "LEFT_FIRE_BTN_COVER"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "LS_LOCK"                , DEVICE_WS2812  , {.ws2812Info = {0, WS2812B_PIN,   0, 255,   0, 255}}, false, false }, // WS2812 Index 0,
   { "LS_SHOOT"               , DEVICE_WS2812  , {.ws2812Info = {1, WS2812B_PIN,   0, 255,   0, 255}}, false, false }, // WS2812 Index 1,
   { "LS_SHOOT_STROBE"        , DEVICE_WS2812  , {.ws2812Info = {2, WS2812B_PIN,   0, 255,   0, 255}}, false, false }, // WS2812 Index 2,
   { "HMD_OFF_BRT"            , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "IR_COOL_SW"             , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "IR_COOL_SW"             , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "SPIN_LT"                , DEVICE_GPIO    , {.gpioInfo = {PIN(34)}}, false, false }, // GPIO PIN(34),
-  { "SPIN_RECOVERY_COVER"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "SPIN_RECOVERY_SW"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "MASTER_ARM_SW"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "MASTER_MODE_AA"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "SPIN_RECOVERY_COVER"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "SPIN_RECOVERY_SW"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "MASTER_ARM_SW"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "MASTER_MODE_AA"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MASTER_MODE_AA_LT"      , DEVICE_PCA9555 , {.pcaInfo = {0x5B, 1, 3}}, false, true }, // PCA 0x5B Port 1 Bit 3,
-  { "MASTER_MODE_AG"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "MASTER_MODE_AG"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MASTER_MODE_AG_LT"      , DEVICE_PCA9555 , {.pcaInfo = {0x5B, 1, 4}}, false, true }, // PCA 0x5B Port 1 Bit 4,
   { "MC_DISCH"               , DEVICE_PCA9555 , {.pcaInfo = {0x5B, 1, 6}}, false, true }, // PCA 0x5B Port 1 Bit 6,
   { "MC_READY"               , DEVICE_PCA9555 , {.pcaInfo = {0x5B, 1, 5}}, false, true }, // PCA 0x5B Port 1 Bit 5,
   { "MASTER_CAUTION_LT"      , DEVICE_TM1637  , {.tm1637Info = {PIN(37), PIN(39), 5, 0}}, false, false }, // TM1637 CLK PIN(37) DIO PIN(39) Seg 5 Bit 0,
-  { "MASTER_CAUTION_RESET_SW", DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "MASTER_CAUTION_RESET_SW", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "RH_ADV_AAA"             , DEVICE_TM1637  , {.tm1637Info = {PIN(37), PIN(40), 4, 0}}, false, false }, // TM1637 CLK PIN(37) DIO PIN(40) Seg 4 Bit 0,
   { "RH_ADV_AI"              , DEVICE_TM1637  , {.tm1637Info = {PIN(37), PIN(40), 4, 1}}, false, false }, // TM1637 CLK PIN(37) DIO PIN(40) Seg 4 Bit 1,
   { "RH_ADV_CW"              , DEVICE_TM1637  , {.tm1637Info = {PIN(37), PIN(40), 5, 1}}, false, false }, // TM1637 CLK PIN(37) DIO PIN(40) Seg 5 Bit 1,
@@ -89,8 +89,8 @@ static const LEDMapping panelLEDs[] = {
   { "RH_ADV_SPARE_RH4"       , DEVICE_TM1637  , {.tm1637Info = {PIN(37), PIN(40), 1, 0}}, false, false }, // TM1637 CLK PIN(37) DIO PIN(40) Seg 1 Bit 0,
   { "RH_ADV_SPARE_RH5"       , DEVICE_TM1637  , {.tm1637Info = {PIN(37), PIN(40), 2, 0}}, false, false }, // TM1637 CLK PIN(37) DIO PIN(40) Seg 2 Bit 0,
   { "FIRE_RIGHT_LT"          , DEVICE_TM1637  , {.tm1637Info = {PIN(37), PIN(40), 0, 2}}, false, false }, // TM1637 CLK PIN(37) DIO PIN(40) Seg 0 Bit 2,
-  { "RIGHT_FIRE_BTN"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "RIGHT_FIRE_BTN_COVER"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }
+  { "RIGHT_FIRE_BTN"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "RIGHT_FIRE_BTN_COVER"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);
