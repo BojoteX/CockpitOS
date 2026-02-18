@@ -146,10 +146,20 @@ class Spinner:
 # -----------------------------------------------------------------------------
 # Interactive pickers
 # -----------------------------------------------------------------------------
-def pick(prompt, options, default=None, on_help=None):
+def pick(prompt, options, default=None, on_help=None, descriptions=None,
+         on_delete=None):
     """Arrow-key picker. Up/Down to move, Enter to select.
 
     If on_help is provided, pressing H calls on_help() and then redraws.
+
+    If descriptions is provided, a dynamic description area below the options
+    shows beginner-friendly help for the currently highlighted option.
+    descriptions is a dict mapping option values to lists of pre-formatted
+    display strings (may contain ANSI codes).
+
+    If on_delete is provided, pressing Ctrl+D calls on_delete(value) with the
+    currently highlighted option's value.  If it returns True the picker exits
+    and returns the special sentinel ``_DELETE_SENTINEL``.
     """
     if not options:
         return None
@@ -163,6 +173,46 @@ def pick(prompt, options, default=None, on_help=None):
 
     total = len(options)
 
+    # Description area setup
+    has_desc = bool(descriptions)
+    if has_desc:
+        # Fixed height = max description length across all options (+ 1 separator)
+        desc_height = max((len(descriptions.get(v, [])) for _, v in options), default=0)
+        desc_total = 1 + desc_height    # separator line + description lines
+    else:
+        desc_total = 0
+
+    # Total lines below the cursor's "bottom" reference point:
+    # all option rows + description area (if any)
+    bottom_offset = total + desc_total
+
+    def _draw_desc():
+        """Render the separator + description area for the current idx."""
+        if not has_desc:
+            return
+        value = options[idx][1]
+        lines = descriptions.get(value, [])
+        dash = "\u2500" * 50
+        _w(f"{ERASE_LN}  {DIM}{dash}{RESET}\n")
+        for di in range(desc_height):
+            _w(ERASE_LN)
+            if di < len(lines):
+                _w(f"  {lines[di]}\n")
+            else:
+                _w("\n")
+
+    def _redraw_desc():
+        """Move cursor from bottom to description area, redraw, return to bottom."""
+        if not has_desc:
+            return
+        # Cursor is at bottom (after all options + desc area).
+        # Move up desc_total lines to reach the separator.
+        _w(f"\033[{desc_total}A")
+        _w("\r")
+        _draw_desc()
+        # Cursor is now back at bottom after _draw_desc prints desc_total lines
+        _w("\r")
+
     def _draw_picker():
         print()
         cprint(BOLD, f"  {prompt}")
@@ -171,6 +221,8 @@ def pick(prompt, options, default=None, on_help=None):
             hint += ", H=help"
         hint += ")"
         cprint(DIM, hint)
+        if on_delete:
+            _w(f"  {RED}Ctrl+D{RESET}{DIM} = delete selected{RESET}\n")
 
         _w(HIDE_CUR)
         for i, (label, _) in enumerate(options):
@@ -178,6 +230,8 @@ def pick(prompt, options, default=None, on_help=None):
                 _w(f"  {REV} > {label} {RESET}\n")
             else:
                 _w(f"     {label}\n")
+
+        _draw_desc()
 
     _draw_picker()
 
@@ -195,7 +249,7 @@ def pick(prompt, options, default=None, on_help=None):
                     continue
                 if old != idx:
                     # Redraw old row (un-highlight)
-                    _w(f"\033[{total - old}A")
+                    _w(f"\033[{bottom_offset - old}A")
                     _w(f"\r{ERASE_LN}     {options[old][0]}")
                     # Redraw new row (highlight)
                     if idx > old:
@@ -204,10 +258,12 @@ def pick(prompt, options, default=None, on_help=None):
                         _w(f"\033[{old - idx}A")
                     _w(f"\r{ERASE_LN}  {REV} > {options[idx][0]} {RESET}")
                     # Return cursor to bottom
-                    remaining = total - idx
+                    remaining = bottom_offset - idx
                     if remaining > 0:
                         _w(f"\033[{remaining}B")
                     _w("\r")
+                    # Update description area
+                    _redraw_desc()
 
             elif ch == "\x1b":      # ESC — go back
                 _w(SHOW_CUR)
@@ -217,6 +273,12 @@ def pick(prompt, options, default=None, on_help=None):
                 _w(SHOW_CUR)
                 return options[idx][1]
 
+            elif ch == "\x04" and on_delete:  # Ctrl+D
+                _w(SHOW_CUR)
+                val = options[idx][1]
+                on_delete(val)
+                return _DELETE_SENTINEL
+
             elif ch in ("h", "H") and on_help:
                 _w(SHOW_CUR)
                 on_help()
@@ -224,6 +286,8 @@ def pick(prompt, options, default=None, on_help=None):
     except KeyboardInterrupt:
         _w(SHOW_CUR)
         raise
+
+_DELETE_SENTINEL = "__DELETE__"
 
 
 def menu_pick(items, initial=None):
@@ -235,6 +299,7 @@ def menu_pick(items, initial=None):
 
     Styles:
       "action"  — bold green block (green bg + white text when selected)
+      "warning" — bold yellow block (yellow bg + black text when selected)
       "danger"  — bold red block (red bg + white text when selected)
       "normal"  — plain text
       "dim"     — dimmed text
@@ -280,6 +345,9 @@ def menu_pick(items, initial=None):
             if style == "action":
                 normal = f"     {GREEN}{BOLD}{pad_label}{RESET}{cap_suf}"
                 hilite = f"  \033[42m\033[97m{BOLD} \u25b8 {pad_label}{RESET}{cap_suf}"
+            elif style == "warning":
+                normal = f"     {YELLOW}{BOLD}{pad_label}{RESET}{cap_suf}"
+                hilite = f"  \033[43m\033[30m \u25b8 {pad_label}{RESET}{cap_suf}"
             elif style == "danger":
                 normal = f"     {RED}{BOLD}{pad_label}{RESET}{cap_suf}"
                 hilite = f"  \033[41m\033[97m{BOLD} \u25b8 {pad_label}{RESET}{cap_suf}"

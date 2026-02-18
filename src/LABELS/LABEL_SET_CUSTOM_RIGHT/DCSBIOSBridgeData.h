@@ -210,6 +210,95 @@ static const SelectorEntry SelectorMap[] = {
 };
 static const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);
 
+// O(1) hash lookup for SelectorMap[] by (dcsCommand, value)
+struct SelectorHashEntry { const char* dcsCommand; uint16_t value; const SelectorEntry* entry; };
+static const SelectorHashEntry selectorHashTable[71] = {
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"WING_FOLD_ROTATE", 0, &SelectorMap[29]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"COCKKPIT_LIGHT_MODE_SW", 0, &SelectorMap[7]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"INST_PNL_DIMMER", 65535, &SelectorMap[16]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"RADALT_HEIGHT", 1, &SelectorMap[25]},
+  {"LIGHTS_TEST_SW", 1, &SelectorMap[20]},
+  {"FLOOD_DIMMER", 65535, &SelectorMap[13]},
+  {"CONSOLES_DIMMER", 1, &SelectorMap[12]},
+  {nullptr, 0, nullptr},
+  {"CHART_DIMMER", 0, &SelectorMap[5]},
+  {"CONSOLES_DIMMER", 65535, &SelectorMap[10]},
+  {"FLOOD_DIMMER", 1, &SelectorMap[15]},
+  {"AV_COOL_SW", 0, &SelectorMap[2]},
+  {"HOOK_LEVER", 0, &SelectorMap[0]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"RADALT_TEST_SW", 1, &SelectorMap[26]},
+  {"INST_PNL_DIMMER", 1, &SelectorMap[18]},
+  {"AV_COOL_SW", 1, &SelectorMap[3]},
+  {"CONSOLES_DIMMER", 0, &SelectorMap[11]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"WING_FOLD_PULL", 1, &SelectorMap[28]},
+  {"WING_FOLD_ROTATE", 1, &SelectorMap[30]},
+  {"WING_FOLD_PULL", 1, &SelectorMap[33]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"INST_PNL_DIMMER", 0, &SelectorMap[17]},
+  {"WARN_CAUTION_DIMMER", 0, &SelectorMap[22]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"COCKKPIT_LIGHT_MODE_SW", 1, &SelectorMap[8]},
+  {"HOOK_LEVER", 1, &SelectorMap[1]},
+  {"WARN_CAUTION_DIMMER", 65535, &SelectorMap[21]},
+  {"WING_FOLD_PULL", 0, &SelectorMap[27]},
+  {"WING_FOLD_PULL", 0, &SelectorMap[32]},
+  {"CHART_DIMMER", 1, &SelectorMap[6]},
+  {nullptr, 0, nullptr},
+  {"LIGHTS_TEST_SW", 0, &SelectorMap[19]},
+  {"RADALT_HEIGHT", 0, &SelectorMap[24]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"CHART_DIMMER", 65535, &SelectorMap[4]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"COCKKPIT_LIGHT_MODE_SW", 2, &SelectorMap[9]},
+  {nullptr, 0, nullptr},
+  {"WARN_CAUTION_DIMMER", 1, &SelectorMap[23]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"WING_FOLD_ROTATE", 2, &SelectorMap[31]},
+  {nullptr, 0, nullptr},
+  {"FLOOD_DIMMER", 0, &SelectorMap[14]},
+};
+
+// Composite hash: labelHash(dcsCommand) ^ (value * 7919)
+inline const SelectorEntry* findSelectorByDcsAndValue(const char* dcsCommand, uint16_t value) {
+  uint16_t startH = (labelHash(dcsCommand) ^ (value * 7919u)) % 71;
+  for (uint16_t i = 0; i < 71; ++i) {
+    uint16_t idx = (startH + i >= 71) ? (startH + i - 71) : (startH + i);
+    const auto& entry = selectorHashTable[idx];
+    if (!entry.dcsCommand) return nullptr;
+    if (entry.value == value && strcmp(entry.dcsCommand, dcsCommand) == 0) return entry.entry;
+  }
+  return nullptr;
+}
+
+
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
     { "AV_COOL_SW", 0, 0, true, 1, 0,   0, false, {0}, {0}, 0 },

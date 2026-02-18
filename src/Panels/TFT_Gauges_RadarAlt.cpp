@@ -78,9 +78,8 @@
 // --- Misc ---
 static constexpr bool shared_bus = false;
 static constexpr bool use_lock = false;
-static constexpr uint16_t TRANSPARENT_KEY = 0x2001;  // color not present in assets
-static constexpr uint16_t NVG_THRESHOLD = 6553;
 static constexpr int16_t SCREEN_W = 360, SCREEN_H = 360;
+#include "includes/TFT_GaugeUtils.h"  // Rect, rectClamp, rotatedAABB, TRANSPARENT_KEY, NVG_THRESHOLD
 static constexpr int16_t LOWALT_X = 95, LOWALT_Y = 158;
 static constexpr int16_t GREEN_X = 229, GREEN_Y = 158;
 static constexpr int16_t OFF_X = 152, OFF_Y = 254;
@@ -241,60 +240,7 @@ static void onDimmerChange(const char*, uint16_t v, uint16_t) {
     }
 }
 
-// ----------------- Dirty-rect utilities -----------------
-
-/*
-struct Rect {
-    int16_t x = 0, y = 0, w = 0, h = 0;
-};
-*/
-
-struct Rect { int16_t x, y, w, h; };
-
-static inline bool rectEmpty(const Rect& r) { return r.w <= 0 || r.h <= 0; }
-static inline Rect rectClamp(const Rect& r) {
-    int16_t x = r.x, y = r.y, w = r.w, h = r.h;
-    if (x < 0) { w += x; x = 0; }
-    if (y < 0) { h += y; y = 0; }
-    if (x + w > SCREEN_W) w = SCREEN_W - x;
-    if (y + h > SCREEN_H) h = SCREEN_H - y;
-    if (w < 0) w = 0;
-    if (h < 0) h = 0;
-    return { x,y,w,h };
-}
-static inline Rect rectUnion(const Rect& a, const Rect& b) {
-    if (rectEmpty(a)) return b;
-    if (rectEmpty(b)) return a;
-    int16_t x1 = std::min(a.x, b.x);
-    int16_t y1 = std::min(a.y, b.y);
-    int16_t x2 = std::max<int16_t>(a.x + a.w, b.x + b.w);
-    int16_t y2 = std::max<int16_t>(a.y + a.h, b.y + b.h);
-    return rectClamp({ x1, y1, (int16_t)(x2 - x1), (int16_t)(y2 - y1) });
-}
-static inline Rect rectPad(const Rect& r, int16_t px) {
-    return rectClamp({ (int16_t)(r.x - px), (int16_t)(r.y - px), (int16_t)(r.w + 2 * px), (int16_t)(r.h + 2 * px) });
-}
-
-// AABB for rotated sprite (pivot inside sprite coordinates)
-static Rect rotatedAABB(int cx, int cy, int w, int h, int pivotX, int pivotY, float deg) {
-    const float rad = deg * (float)M_PI / 180.0f;
-    float s = sinf(rad), c = cosf(rad);
-    // corners relative to pivot
-    const float xs[4] = { (float)-pivotX, (float)w - pivotX, (float)w - pivotX, (float)-pivotX };
-    const float ys[4] = { (float)-pivotY, (float)-pivotY, (float)h - pivotY, (float)h - pivotY };
-    float minx = 1e9f, maxx = -1e9f, miny = 1e9f, maxy = -1e9f;
-    for (int i = 0; i < 4; ++i) {
-        float xr = xs[i] * c - ys[i] * s;
-        float yr = xs[i] * s + ys[i] * c;
-        float X = (float)cx + xr;
-        float Y = (float)cy + yr;
-        if (X < minx) minx = X; if (X > maxx) maxx = X;
-        if (Y < miny) miny = Y; if (Y > maxy) maxy = Y;
-    }
-    Rect r; r.x = (int16_t)floorf(minx); r.y = (int16_t)floorf(miny);
-    r.w = (int16_t)ceilf(maxx - minx); r.h = (int16_t)ceilf(maxy - miny);
-    return rectClamp(rectPad(r, 2)); // small pad for AA edges
-}
+// --- Dirty-rect utils (from TFT_GaugeUtils.h) ---
 
 // Copy a BG sub-rectangle from cache into frame sprite buffer
 static inline void blitBGRectToFrame(const uint16_t* bg, int x, int y, int w, int h) {

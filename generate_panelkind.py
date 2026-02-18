@@ -27,6 +27,13 @@ import sys
 import re
 from pathlib import Path
 
+# Ensure stdout/stderr can handle Unicode (→, ✓, etc.) even when
+# piped or redirected on Windows (where the default codec may be cp1252).
+if sys.stdout.encoding and sys.stdout.encoding.lower().replace("-", "") != "utf8":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+
 # Change to the directory where THIS script is located (should be CockpitOS root)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(SCRIPT_DIR)

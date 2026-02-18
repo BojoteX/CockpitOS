@@ -211,35 +211,64 @@ def pick(prompt, options, default=None):
         raise
 
 
-def menu_pick(items):
+_SEP_COLOR = "\033[38;5;240m"       # subtle gray for separators
+
+
+def menu_pick(items, initial=None):
     """Full-screen arrow-key menu with separators and styled rows.
 
     Each item is a tuple:
       ("label", "value", "style")   — selectable row
-      ("---",)                      — separator (not selectable)
+      ("---",)                      — plain separator (not selectable)
+      ("---", "Title")              — labeled separator (not selectable)
+      ("",)                         — blank spacer (not selectable)
+      ("action_bar", [options])     — horizontal action selector (single row)
+          options: [("Label", "value"), ("Label", "value", "caption"), ...]
 
     Styles:
       "action"  — bold green block
       "normal"  — plain text
       "dim"     — dimmed text
     """
+    _BG_GREEN = "\033[42m"
+    _WHITE    = "\033[97m"
+
     # Build display rows and map selectable indices
-    rows = []           # (display_normal, display_highlighted, value_or_None)
+    rows = []           # entries of various types (see below)
     selectable = []     # indices into rows[] that are selectable
 
     for item in items:
-        if item[0] == "---":
+        if len(item) == 1 and item[0] == "":
+            rows.append("blank")                        # blank spacer row
+
+        elif item[0] == "---":
             if len(item) >= 2:
                 rows.append(("labeled_sep", item[1]))   # labeled separator
             else:
                 rows.append(None)   # plain separator
+
+        elif item[0] == "action_bar":
+            # Horizontal action selector — one row, left/right to pick
+            bar_opts = []   # [(label, value, caption), ...]
+            for opt in item[1]:
+                lbl = opt[0]
+                val = opt[1]
+                cap = opt[2] if len(opt) >= 3 else ""
+                bar_opts.append((lbl, val, cap))
+            selectable.append(len(rows))
+            # bar_sel stored as list so _render_row can mutate it
+            rows.append(("action_bar", bar_opts, [0]))
+
         else:
             label, value, style = item[0], item[1], item[2]
             caption = item[3] if len(item) >= 4 else ""
             cap_suf = f" {DIM}{caption}{RESET}" if caption else ""
             if style == "action":
                 normal = f"     {GREEN}{BOLD}{label}{RESET}{cap_suf}"
-                hilite = f"  \033[42m\033[97m{BOLD} \u25b8 {label} {RESET}{cap_suf}"
+                hilite = f"  {_BG_GREEN}{_WHITE}{BOLD} \u25b8 {label} {RESET}{cap_suf}"
+            elif style == "danger":
+                normal = f"     {RED}{label}{RESET}{cap_suf}"
+                hilite = f"  \033[41m{_WHITE}{BOLD} \u25b8 {label} {RESET}{cap_suf}"
             elif style == "dim":
                 normal = f"     {DIM}{label}{RESET}{cap_suf}"
                 hilite = f"  {REV} \u25b8 {label} {RESET}{cap_suf}"
@@ -253,12 +282,52 @@ def menu_pick(items):
         return None
 
     sel = 0                 # index into selectable[]
+    if initial is not None:
+        for si, ri in enumerate(selectable):
+            entry = rows[ri]
+            if isinstance(entry, tuple) and entry[0] == "action_bar":
+                for bi, (_, val, _) in enumerate(entry[1]):
+                    if val == initial:
+                        sel = si
+                        entry[2][0] = bi
+                        break
+            elif isinstance(entry, tuple) and len(entry) == 3 and entry[2] == initial:
+                sel = si
+                break
+
     total_rows = len(rows)
+
+    def _render_action_bar(bar_opts, bar_sel_list, is_row_sel):
+        """Render the horizontal action bar as segmented buttons.
+
+        Each option occupies a fixed-width cell so labels never shift.
+        The cell width is: 2 (bracket+space) + label + 2 (space+bracket).
+        When brackets are absent, plain spaces fill those positions.
+        """
+        bs = bar_sel_list[0]
+        parts = []
+        for i, (lbl, _, cap) in enumerate(bar_opts):
+            upper = lbl.upper()
+            if is_row_sel:
+                if i == bs:
+                    # Active: green brackets around label
+                    parts.append(f"{GREEN}{BOLD}[ {upper} ]{RESET}")
+                else:
+                    # Inactive: same width, spaces instead of brackets
+                    parts.append(f"  {DIM}{upper}{RESET}  ")
+            else:
+                # Row not focused: all green, padded to same cell width
+                parts.append(f"  {GREEN}{BOLD}{upper}{RESET}  ")
+        joined = "   ".join(parts)
+        return f"     {joined}"
 
     def _render_row(ri, is_sel):
         entry = rows[ri]
+        if entry == "blank":
+            return ""
         if entry is None:
-            return f"     {DIM}\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500{RESET}"
+            line = "\u2500" * 36
+            return f"     {_SEP_COLOR}{line}{RESET}"
         if isinstance(entry, tuple) and entry[0] == "labeled_sep":
             label = entry[1]
             total_w = 36
@@ -266,9 +335,20 @@ def menu_pick(items):
             left = pad // 2
             right = pad - left
             dash = "\u2500"
-            return f"     {DIM}{dash * left} {label} {dash * right}{RESET}"
+            return f"     {_SEP_COLOR}{dash * left} {label} {dash * right}{RESET}"
+        if isinstance(entry, tuple) and entry[0] == "action_bar":
+            return _render_action_bar(entry[1], entry[2], is_sel)
         normal, hilite, _ = entry
         return hilite if is_sel else normal
+
+    def _redraw_single(ri, is_sel):
+        """Move cursor to row ri, redraw it, return cursor to bottom."""
+        _w(f"\033[{total_rows - ri}A")
+        _w(f"\r{ERASE_LN}{_render_row(ri, is_sel)}")
+        remaining = total_rows - ri
+        if remaining > 0:
+            _w(f"\033[{remaining}B")
+        _w("\r")
 
     # Initial draw
     _w(HIDE_CUR)
@@ -281,6 +361,25 @@ def menu_pick(items):
             ch = msvcrt.getwch()
             if ch in ("\xe0", "\x00"):
                 ch2 = msvcrt.getwch()
+
+                # --- Left / Right on action_bar ---
+                cur_ri = selectable[sel]
+                cur_entry = rows[cur_ri]
+                is_bar = isinstance(cur_entry, tuple) and cur_entry[0] == "action_bar"
+
+                if is_bar and ch2 in ("K", "M"):   # Left / Right
+                    bar_opts = cur_entry[1]
+                    bar_sel_list = cur_entry[2]
+                    old_bs = bar_sel_list[0]
+                    if ch2 == "K":       # Left
+                        bar_sel_list[0] = (old_bs - 1) % len(bar_opts)
+                    else:                # Right
+                        bar_sel_list[0] = (old_bs + 1) % len(bar_opts)
+                    if bar_sel_list[0] != old_bs:
+                        _redraw_single(cur_ri, True)
+                    continue
+
+                # --- Up / Down ---
                 old_sel = sel
                 if ch2 == "H":          # Up
                     sel = (sel - 1) % len(selectable)
@@ -312,7 +411,11 @@ def menu_pick(items):
 
             elif ch == "\r":        # Enter
                 _w(SHOW_CUR)
-                _, _, value = rows[selectable[sel]]
+                entry = rows[selectable[sel]]
+                if isinstance(entry, tuple) and entry[0] == "action_bar":
+                    bs = entry[2][0]
+                    return entry[1][bs][1]    # value of selected bar option
+                _, _, value = entry
                 return value
     except KeyboardInterrupt:
         _w(SHOW_CUR)

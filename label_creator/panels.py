@@ -28,6 +28,7 @@ REV      = "\033[7m"
 HIDE_CUR = "\033[?25l"
 SHOW_CUR = "\033[?25h"
 ERASE_LN = "\033[2K"
+_SEL_BG  = "\033[48;5;236m"    # subtle dark gray row highlight
 
 _CONTROL_TYPE_ICONS = {
     "selector":              "SW",    # switch/selector
@@ -175,13 +176,18 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
 
         # Pointer arrow for highlighted row, spaces otherwise
         # Bracket stays at the SAME column regardless of highlight
+        # Background highlight spans the full row when selected
         # Yellow flash variant: entire row turns yellow when at boundary
         if is_highlighted and _flash_active[0]:
-            return (f" {YELLOW}> [{mark}] {trunc_name}"
+            flash_mark = f"{YELLOW}X" if state[name] else " "
+            return (f"{_SEL_BG}{YELLOW} > [{flash_mark}] {trunc_name}"
                     f"{' ' * pad}  {summary}"
                     f" {scroll_char}{RESET}")
         elif is_highlighted:
-            pointer = f"{CYAN}>{RESET} "
+            hi_mark = f"{GREEN}X{RESET}{_SEL_BG}" if state[name] else " "
+            return (f"{_SEL_BG} {CYAN}>{RESET}{_SEL_BG} [{hi_mark}] {trunc_name}"
+                    f"{' ' * pad}  {DIM}{summary}{RESET}{_SEL_BG}"
+                    f" {DIM}{scroll_char}{RESET}")
         else:
             pointer = "  "
 
@@ -386,15 +392,17 @@ def _show_detail(aircraft_data: dict, panel_name: str | None, cols: int, rows: i
         ctype_trunc = ctype[:type_w] if len(ctype) > type_w else ctype
 
         if is_highlighted and _flash_active[0]:
-            return (f" {YELLOW}> {ident_trunc:<{label_w}} "
+            return (f"{_SEL_BG} {YELLOW}> {ident_trunc:<{label_w}} "
                     f"{desc_trunc:<{desc_w}} {ctype_trunc:<{type_w}}"
                     f" {scroll_char}{RESET}")
         elif is_highlighted:
-            pointer = f"{CYAN}>{RESET}"
-        else:
-            pointer = " "
+            return (f"{_SEL_BG} {CYAN}>{RESET}{_SEL_BG} "
+                    f"{YELLOW}{ident_trunc:<{label_w}}{RESET}{_SEL_BG} "
+                    f"{DIM}{desc_trunc:<{desc_w}}{RESET}{_SEL_BG} "
+                    f"{ctype_trunc:<{type_w}}"
+                    f" {DIM}{scroll_char}{RESET}")
 
-        return (f" {pointer} {YELLOW}{ident_trunc:<{label_w}}{RESET} "
+        return (f"   {YELLOW}{ident_trunc:<{label_w}}{RESET} "
                 f"{DIM}{desc_trunc:<{desc_w}}{RESET} {ctype_trunc:<{type_w}}"
                 f" {DIM}{scroll_char}{RESET}")
 
@@ -615,10 +623,10 @@ def _show_control_detail(ctrl: dict, panel_name: str, cols: int, rows: int,
             pad = content_w - len(trunc)
 
             if is_highlighted and _flash_active[0]:
-                return (f" {YELLOW}>{RESET} {YELLOW}{trunc}{RESET}"
+                return (f"{_SEL_BG} {YELLOW}> {trunc}{RESET}"
                         f"{' ' * pad} {DIM}{scroll_char}{RESET}")
             elif is_highlighted:
-                return (f" {CYAN}>{RESET} {trunc}"
+                return (f"{_SEL_BG} {CYAN}>{RESET}{_SEL_BG} {trunc}"
                         f"{' ' * pad} {DIM}{scroll_char}{RESET}")
             else:
                 return (f"   {DIM}{trunc}{RESET}"
@@ -652,10 +660,10 @@ def _show_control_detail(ctrl: dict, panel_name: str, cols: int, rows: int,
             pad = content_w - len(trunc)
 
             if is_highlighted and _flash_active[0]:
-                return (f" {YELLOW}>{RESET} {YELLOW}{trunc}{RESET}"
+                return (f"{_SEL_BG} {YELLOW}> {trunc}{RESET}"
                         f"{' ' * pad} {DIM}{scroll_char}{RESET}")
             elif is_highlighted:
-                return (f" {CYAN}>{RESET} {trunc}"
+                return (f"{_SEL_BG} {CYAN}>{RESET}{_SEL_BG} {trunc}"
                         f"{' ' * pad} {DIM}{scroll_char}{RESET}")
             else:
                 return (f"   {DIM}{trunc}{RESET}"

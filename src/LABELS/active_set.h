@@ -1,5 +1,5 @@
-// PID:0xC8DD 
+// PID:0x522B 
 
 #pragma once
 
-#define LABEL_SET MAIN
+#define LABEL_SET CUSTOM_RIGHT

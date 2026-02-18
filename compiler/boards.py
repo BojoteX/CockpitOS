@@ -143,28 +143,40 @@ def _find_from_system_path():
     return None
 
 
+def _find_bundled():
+    """Check for arduino-cli bundled with the project at compiler/arduino-cli/."""
+    bundled = Path(__file__).resolve().parent / "arduino-cli" / "arduino-cli.exe"
+    if bundled.exists():
+        return bundled
+    return None
+
+
 def resolve_arduino_cli(prefs):
     """Find arduino-cli.exe using a detection chain. Caches result in prefs.
 
-    Priority: cached path → registry → common dirs → PATH.
+    Priority: bundled → cached path → registry → common dirs → PATH.
     Returns a Path to the executable, or None if not found.
     """
     global ARDUINO_CLI
 
-    # 1. Cached path from prefs
-    cached = prefs.get("arduino_cli_path")
-    if cached and Path(cached).exists():
-        ARDUINO_CLI = Path(cached)
-        return ARDUINO_CLI
+    # 1. Bundled with project (compiler/arduino-cli/)
+    found = _find_bundled()
 
-    # 2. Windows registry
-    found = _find_from_registry()
+    # 2. Cached path from prefs
+    if not found:
+        cached = prefs.get("arduino_cli_path")
+        if cached and Path(cached).exists():
+            found = Path(cached)
 
-    # 3. Common install directories
+    # 3. Windows registry (Arduino IDE install)
+    if not found:
+        found = _find_from_registry()
+
+    # 4. Common install directories
     if not found:
         found = _find_from_common_paths()
 
-    # 4. System PATH
+    # 5. System PATH
     if not found:
         found = _find_from_system_path()
 
