@@ -146,8 +146,11 @@ class Spinner:
 # -----------------------------------------------------------------------------
 # Interactive pickers
 # -----------------------------------------------------------------------------
-def pick(prompt, options, default=None):
-    """Arrow-key picker. Up/Down to move, Enter to select."""
+def pick(prompt, options, default=None, on_help=None):
+    """Arrow-key picker. Up/Down to move, Enter to select.
+
+    If on_help is provided, pressing H calls on_help() and then redraws.
+    """
     if not options:
         return None
 
@@ -159,17 +162,24 @@ def pick(prompt, options, default=None):
                 break
 
     total = len(options)
-    print()
-    cprint(BOLD, f"  {prompt}")
-    cprint(DIM, "  (arrows to move, Enter to select, Esc to go back)")
 
-    # Draw all rows
-    _w(HIDE_CUR)
-    for i, (label, _) in enumerate(options):
-        if i == idx:
-            _w(f"  {REV} > {label} {RESET}\n")
-        else:
-            _w(f"     {label}\n")
+    def _draw_picker():
+        print()
+        cprint(BOLD, f"  {prompt}")
+        hint = "  (arrows to move, Enter to select, Esc to go back"
+        if on_help:
+            hint += ", H=help"
+        hint += ")"
+        cprint(DIM, hint)
+
+        _w(HIDE_CUR)
+        for i, (label, _) in enumerate(options):
+            if i == idx:
+                _w(f"  {REV} > {label} {RESET}\n")
+            else:
+                _w(f"     {label}\n")
+
+    _draw_picker()
 
     try:
         while True:
@@ -206,12 +216,17 @@ def pick(prompt, options, default=None):
             elif ch == "\r":        # Enter
                 _w(SHOW_CUR)
                 return options[idx][1]
+
+            elif ch in ("h", "H") and on_help:
+                _w(SHOW_CUR)
+                on_help()
+                _draw_picker()
     except KeyboardInterrupt:
         _w(SHOW_CUR)
         raise
 
 
-def menu_pick(items):
+def menu_pick(items, initial=None):
     """Full-screen arrow-key menu with separators and styled rows.
 
     Each item is a tuple:
@@ -223,50 +238,87 @@ def menu_pick(items):
       "danger"  — bold red block (red bg + white text when selected)
       "normal"  — plain text
       "dim"     — dimmed text
+
+    initial:
+      If provided, the menu starts with the cursor on the item whose
+      value matches *initial*.  Falls back to the first item if not found.
     """
     # Build display rows and map selectable indices
     rows = []           # (display_normal, display_highlighted, value_or_None)
     selectable = []     # indices into rows[] that are selectable
 
+    # Pre-compute caption alignment: find the longest label among items
+    # that have captions, so captions align in a column.
+    max_label_w = 0
+    for item in items:
+        if item[0] not in ("---", "") and len(item) >= 4 and item[3]:
+            max_label_w = max(max_label_w, len(item[0]))
+    # Separator width: based on longest label+caption or minimum 40
+    sep_w = max(max_label_w + 24, 40)
+
     for item in items:
         if item[0] == "---":
             if len(item) >= 2:
-                rows.append(("labeled_sep", item[1]))   # labeled separator
+                rows.append(("labeled_sep", item[1], sep_w))   # labeled separator
             else:
-                rows.append(None)   # plain separator
+                rows.append(("plain_sep", sep_w))   # plain separator
+        elif item[0] == "":
+            rows.append(("blank",))         # blank spacer line
         else:
             label, value, style = item[0], item[1], item[2]
             caption = item[3] if len(item) >= 4 else ""
-            cap_suf = f" {DIM}{caption}{RESET}" if caption else ""
-            if style == "action":
-                normal = f"     {GREEN}{BOLD}{label}{RESET}{cap_suf}"
-                hilite = f"  \033[42m\033[97m{BOLD} \u25b8 {label} {RESET}{cap_suf}"
-            elif style == "danger":
-                normal = f"     {RED}{BOLD}{label}{RESET}{cap_suf}"
-                hilite = f"  \033[41m\033[97m{BOLD} \u25b8 {label} {RESET}{cap_suf}"
-            elif style == "dim":
-                normal = f"     {DIM}{label}{RESET}{cap_suf}"
-                hilite = f"  {REV} \u25b8 {label} {RESET}{cap_suf}"
+            # Align captions: pad label to max_label_w when captions exist
+            if caption and max_label_w > 0:
+                pad_label = label.ljust(max_label_w + 2)
+                cap_suf = f" {DIM}{caption}{RESET}"
+            elif caption:
+                pad_label = label
+                cap_suf = f" {DIM}{caption}{RESET}"
             else:
-                normal = f"     {label}{cap_suf}"
-                hilite = f"  {REV} \u25b8 {label} {RESET}{cap_suf}"
+                pad_label = label
+                cap_suf = ""
+            if style == "action":
+                normal = f"     {GREEN}{BOLD}{pad_label}{RESET}{cap_suf}"
+                hilite = f"  \033[42m\033[97m{BOLD} \u25b8 {pad_label}{RESET}{cap_suf}"
+            elif style == "danger":
+                normal = f"     {RED}{BOLD}{pad_label}{RESET}{cap_suf}"
+                hilite = f"  \033[41m\033[97m{BOLD} \u25b8 {pad_label}{RESET}{cap_suf}"
+            elif style == "dim":
+                normal = f"     {DIM}{pad_label}{RESET}{cap_suf}"
+                hilite = f"  {REV} \u25b8 {pad_label}{RESET}{cap_suf}"
+            else:
+                normal = f"     {pad_label}{cap_suf}"
+                hilite = f"  {REV} \u25b8 {pad_label}{RESET}{cap_suf}"
             selectable.append(len(rows))
             rows.append((normal, hilite, value))
 
     if not selectable:
         return None
 
+    # Resolve initial cursor position
     sel = 0                 # index into selectable[]
+    if initial is not None:
+        for si, ri in enumerate(selectable):
+            entry = rows[ri]
+            if isinstance(entry, tuple) and len(entry) == 3 and entry[2] == initial:
+                sel = si
+                break
     total_rows = len(rows)
 
     def _render_row(ri, is_sel):
         entry = rows[ri]
         if entry is None:
-            return f"     {DIM}\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500{RESET}"
+            return ""
+        if isinstance(entry, tuple) and entry[0] == "blank":
+            return ""
+        if isinstance(entry, tuple) and entry[0] == "plain_sep":
+            w = entry[1]
+            dash = "\u2500"
+            return f"     {DIM}{dash * w}{RESET}"
         if isinstance(entry, tuple) and entry[0] == "labeled_sep":
             label = entry[1]
-            total_w = 36
-            pad = total_w - len(label) - 2
+            w = entry[2]
+            pad = w - len(label) - 2
             left = pad // 2
             right = pad - left
             dash = "\u2500"

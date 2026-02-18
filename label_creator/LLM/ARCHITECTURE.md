@@ -151,22 +151,32 @@ def _read_active_label_set() -> str | None:
 The main menu loop checks `ls_exists = (LABELS_DIR / f"LABEL_SET_{active_ls}").exists()` on every iteration.
 
 ### do_browse() → _show_label_set_info()
-The browse flow picks a label set via `pick_filterable`, then shows `_show_label_set_info()` which **loops internally** — config edits (device name, HID toggle, custom pins, mapping editors) redraw the screen and loop back. Only "Add/Delete panels", "RESET", and "Back" exit the loop.
+The browse flow picks a label set via `pick_filterable`, then shows `_show_label_set_info()` which **loops internally** — config edits (device name, HID toggle, custom pins, mapping editors) redraw the screen and loop back. Only "Select Panels", "RESET", and "Back" exit the loop.
+
+### Info Header (inside _show_label_set_info)
+Three compact lines — no file sizes, no file paths:
+```
+       Aircraft:     FA-18C_hornet
+       Device Name:  CockpitOS Super Panel
+       Panels (2):   Master Arm Panel, Master Caution Light
+```
 
 ### Action Menu (inside _show_label_set_info)
+Ordered by workflow priority: panels → wiring → config → nuclear.
 ```
-─────── Settings ───────
-  Edit Device Name
-  HID Mode Selector [ON/OFF]
+─────── Panels ─────────
+  Select Panels                  (action style — green)
+──────── Wiring ────────
+  Edit Inputs                   12/44 wired    ← caption from count_wired()
+  Edit LEDs                      8/27 wired
+──────── Config ────────
+  Device Name                    CockpitOS Super Panel  ← caption shows current value
+  HID Mode Selector              OFF                    ← caption shows ON/OFF
   Edit Custom Pins
-─────── Mappings ───────
-  Edit Input Mapping          12/44 wired    ← caption from count_wired()
-  Edit LED Mapping             8/27 wired
-─────── Actions ────────
-  Add / Delete panels
-  RESET LABEL SET              (danger style)
 ────────────────────────
-  Back                         (dim style)
+  RESET LABEL SET                (danger style)
+────────────────────────
+  Back                           (dim style)
 ```
 
 ### LabelSetConfig.h Editing
