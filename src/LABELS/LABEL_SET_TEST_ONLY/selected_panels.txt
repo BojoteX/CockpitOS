@@ -15,7 +15,7 @@
 # Canopy Internal Jettison Handle
 # Caution Light Panel
 # Clock
-# Cockpit Altimeter
+Cockpit Altimeter
 # Comms frequency
 # Communication Panel
 # Defog Panel
@@ -56,8 +56,8 @@
 # Left Essential Circuit Breakers
 # Lock Shoot Lights
 # Map Gain/Spin Recovery Panel
-Master Arm Panel
-Master Caution Light
+# Master Arm Panel
+# Master Caution Light
 # Mission Computer and Hydraulic Isolate Panel
 # RH Advisory Panel
 # RWR Control Indicator
