@@ -36,8 +36,8 @@
 #if __has_include(LBLPATH(LABEL_DIR, LatchedButtons.h))
   #include LBLPATH(LABEL_DIR, LatchedButtons.h)
 #else
-  inline const char* kLatchedButtons[] = {};
-  inline const unsigned kLatchedButtonCount = 0;
+  static const char* kLatchedButtons[] = {};
+  static const unsigned kLatchedButtonCount = 0;
 #endif
 
 // --- Per-label-set cover gates (created by generator or Label Creator) ---
@@ -45,8 +45,8 @@
 #if __has_include(LBLPATH(LABEL_DIR, CoverGates.h))
   #include LBLPATH(LABEL_DIR, CoverGates.h)
 #else
-  inline const CoverGateDef kCoverGates[] = {};
-  inline const unsigned kCoverGateCount = 0;
+  static const CoverGateDef kCoverGates[] = {};
+  static const unsigned kCoverGateCount = 0;
 #endif
 
 // friendly name + USB strings

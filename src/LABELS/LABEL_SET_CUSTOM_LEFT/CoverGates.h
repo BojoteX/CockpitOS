@@ -4,7 +4,7 @@
 
 #pragma once
 
-inline const CoverGateDef kCoverGates[] = {
+static const CoverGateDef kCoverGates[] = {
     { "GEN_TIE_SW_RESET", "GEN_TIE_SW_NORM"             , "GEN_TIE_COVER", CoverGateKind::Selector,  500,  500 },
 };
-inline const unsigned kCoverGateCount = sizeof(kCoverGates) / sizeof(kCoverGates[0]);
+static const unsigned kCoverGateCount = sizeof(kCoverGates) / sizeof(kCoverGates[0]);

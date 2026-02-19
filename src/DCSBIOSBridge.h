@@ -55,6 +55,14 @@ extern LedSubscription ledSubscriptions[MAX_LED_SUBSCRIPTIONS];
 extern size_t ledSubscriptionCount;
 bool subscribeToLedChange(const char* label, void (*callback)(const char* label, uint16_t value, uint16_t max_value));
 
+// Semantic aliases — zero-cost, clearer intent for non-LED outputs (gauges, solenoids, servos, etc.)
+inline bool subscribeToOutputChange(const char* label, void (*cb)(const char*, uint16_t, uint16_t)) {
+    return subscribeToLedChange(label, cb);
+}
+inline bool subscribeToGaugeChange(const char* label, void (*cb)(const char*, uint16_t, uint16_t)) {
+    return subscribeToLedChange(label, cb);
+}
+
 // ───── Query data from anywhere in our program for custom actions (e.g IFEI backlight) ─────
 uint16_t getMetadataValue(const char* label);
 uint16_t getLastKnownState(const char* label);

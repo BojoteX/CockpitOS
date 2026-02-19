@@ -4,7 +4,7 @@
 
 #pragma once
 
-inline const CoverGateDef kCoverGates[] = {
+static const CoverGateDef kCoverGates[] = {
     // { "ACTION", "RELEASE_OR_nullptr", "COVER", CoverGateKind::Selector, delay_ms, close_delay_ms },
 };
-inline const unsigned kCoverGateCount = sizeof(kCoverGates) / sizeof(kCoverGates[0]);
+static const unsigned kCoverGateCount = sizeof(kCoverGates) / sizeof(kCoverGates[0]);

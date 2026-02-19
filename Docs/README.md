@@ -24,7 +24,7 @@
 ## Documentation Map
 
 ```
-Docs_v2/
+Docs/
   |
   +-- Getting-Started/
   |     README.md ............... Environment setup guide

@@ -61,14 +61,12 @@ METADATA_PATTERN = re.compile(r'^\s*//\s*PANEL_KIND:\s*(\w+)', re.IGNORECASE)
 SCAN_LINES = 30  # Only scan first N lines for metadata
 
 # =============================================================================
-# PERMANENT ENTRIES — Auto-detected PCA panels (no REGISTER_PANEL)
-# These are always included because they're detected at runtime via I²C scan.
+# PERMANENT ENTRIES — Runtime-detected panels (no REGISTER_PANEL)
+# PCA9555 panels are now fully data-driven from InputMapping/LEDMapping,
+# so Brain, ECM, MasterARM are no longer needed here.
 # Format: (identifier, comment)
 # =============================================================================
 PERMANENT_PCA_ENTRIES = [
-    ("Brain",       "Auto-detected PCA at 0x26 (runtime)"),
-    ("ECM",         "Auto-detected PCA at 0x22 (runtime)"),
-    ("MasterARM",   "Auto-detected PCA at 0x5B (runtime)"),
     ("AnalogGauge", "Auto-detected when DEVICE_GAUGE in LEDMapping"),
 ]
 

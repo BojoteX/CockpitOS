@@ -4,8 +4,7 @@
 
 #pragma once
 
-inline const CoverGateDef kCoverGates[] = {
-    { "SPIN_RECOVERY_SW_RCVY", "SPIN_RECOVERY_SW_NORM"       , "SPIN_RECOVERY_COVER", CoverGateKind::Selector,  500,  500 },
-    { "LEFT_FIRE_BTN", nullptr                       , "LEFT_FIRE_BTN_COVER", CoverGateKind::ButtonMomentary,  350,  300 },
+static const CoverGateDef kCoverGates[] = {
+    // { "ACTION", "RELEASE_OR_nullptr", "COVER", CoverGateKind::Selector, delay_ms, close_delay_ms },
 };
-inline const unsigned kCoverGateCount = sizeof(kCoverGates) / sizeof(kCoverGates[0]);
+static const unsigned kCoverGateCount = sizeof(kCoverGates) / sizeof(kCoverGates[0]);

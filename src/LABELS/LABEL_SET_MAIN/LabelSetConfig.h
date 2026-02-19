@@ -4,6 +4,6 @@
 
 #define LABEL_SET_NAME        "MAIN"
 #define HAS_HID_MODE_SELECTOR 1
-#define LABEL_SET_FULLNAME    "CockpitOS Main Panel v5" // You can safely change this
+#define LABEL_SET_FULLNAME    "CockpitBIOS Main Panel" // You can safely change this
 #define HAS_MAIN
-#define AUTOGEN_USB_PID       0xC8DD // DO NOT EDIT THIS
+#define AUTOGEN_USB_PID       0x9C84 // DO NOT EDIT THIS

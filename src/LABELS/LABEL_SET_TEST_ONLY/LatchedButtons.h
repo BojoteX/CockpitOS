@@ -4,7 +4,7 @@
 
 #pragma once
 
-inline const char* kLatchedButtons[] = {
-    "CMSD_JET_SEL_BTN",
+static const char* kLatchedButtons[] = {
+    // ...add labels of buttons that should latch
 };
-inline const unsigned kLatchedButtonCount = sizeof(kLatchedButtons)/sizeof(kLatchedButtons[0]);
+static const unsigned kLatchedButtonCount = sizeof(kLatchedButtons)/sizeof(kLatchedButtons[0]);

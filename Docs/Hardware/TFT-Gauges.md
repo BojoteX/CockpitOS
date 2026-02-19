@@ -2,7 +2,7 @@
 
 TFT gauges are graphical LCD panels that render instrument displays -- gauge faces with moving needles, digital readouts, and indicator lights. CockpitOS drives these displays using the LovyanGFX library with DMA-accelerated rendering and dirty-rect optimization for smooth, flicker-free updates.
 
-This page provides an overview of TFT gauge capabilities and setup. For a complete guide to creating custom gauge implementations, see the detailed [TFT Gauge Developer Guide](../../Docs/TFT_Gauge_Developer_Guide.md).
+This page provides an overview of TFT gauge capabilities and setup. For a step-by-step guide to wiring and creating TFT gauges, see [How-To/Wire-TFT-Gauges.md](../How-To/Wire-TFT-Gauges.md). For the panel registration system and lifecycle, see [Advanced/Custom-Panels.md](../Advanced/Custom-Panels.md).
 
 ---
 
@@ -187,7 +187,7 @@ TFT gauge visuals (background images, needle sprites) are stored as C header fil
 3. **Storage** -- Assets are stored in PSRAM at runtime; headers are compiled into flash
 4. **Rendering** -- The gauge engine composites background + needle sprites per frame
 
-Each gauge defines its own asset files. See the [TFT Gauge Developer Guide](../../Docs/TFT_Gauge_Developer_Guide.md) for the complete asset creation workflow.
+Each gauge defines its own asset files. See [How-To/Wire-TFT-Gauges.md](../How-To/Wire-TFT-Gauges.md) for the asset creation workflow.
 
 ---
 
@@ -206,7 +206,7 @@ Each gauge defines its own asset files. See the [TFT Gauge Developer Guide](../.
 
 ## Creating Custom Gauges
 
-The [TFT Gauge Developer Guide](../../Docs/TFT_Gauge_Developer_Guide.md) provides a comprehensive step-by-step walkthrough for creating new gauge implementations, including:
+The easiest way to create a new TFT gauge is to copy an existing one from `src/Panels/`. See [How-To/Wire-TFT-Gauges.md](../How-To/Wire-TFT-Gauges.md) for the complete step-by-step walkthrough, including:
 
 - Setting up the LGFX device class for your display
 - Memory allocation and buffer management
@@ -216,8 +216,10 @@ The [TFT Gauge Developer Guide](../../Docs/TFT_Gauge_Developer_Guide.md) provide
 - DMA double-buffer flushing
 - Day/NVG mode switching
 - BIT test sequences
-- PanelKind registration
+- PanelKind registration via `REGISTER_PANEL`
 - Shared utilities in TFT_GaugeUtils.h
+
+For the panel system architecture and `REGISTER_PANEL` details, see [Advanced/Custom-Panels.md](../Advanced/Custom-Panels.md).
 
 ---
 

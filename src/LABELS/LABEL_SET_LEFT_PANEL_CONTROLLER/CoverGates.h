@@ -4,7 +4,7 @@
 
 #pragma once
 
-inline const CoverGateDef kCoverGates[] = {
+static const CoverGateDef kCoverGates[] = {
     { "GAIN_SWITCH_POS1", "GAIN_SWITCH_POS0"            , "GAIN_SWITCH_COVER", CoverGateKind::Selector,  500,  500 },
 };
-inline const unsigned kCoverGateCount = sizeof(kCoverGates) / sizeof(kCoverGates[0]);
+static const unsigned kCoverGateCount = sizeof(kCoverGates) / sizeof(kCoverGates[0]);

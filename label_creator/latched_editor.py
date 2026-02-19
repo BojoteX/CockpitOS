@@ -129,11 +129,11 @@ def write_latched_buttons(filepath, latched_labels):
     lines.append("")
     lines.append("#pragma once")
     lines.append("")
-    lines.append("inline const char* kLatchedButtons[] = {")
+    lines.append("static const char* kLatchedButtons[] = {")
     for label in sorted(latched_labels):
         lines.append(f'    "{label}",')
     lines.append("};")
-    lines.append("inline const unsigned kLatchedButtonCount = sizeof(kLatchedButtons)/sizeof(kLatchedButtons[0]);")
+    lines.append("static const unsigned kLatchedButtonCount = sizeof(kLatchedButtons)/sizeof(kLatchedButtons[0]);")
     lines.append("")
     with open(filepath, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))

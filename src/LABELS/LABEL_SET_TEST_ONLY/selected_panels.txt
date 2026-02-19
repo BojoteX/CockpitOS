@@ -12,14 +12,14 @@
 # Antenna Select Panel
 # Arresting Hook Handle and Light
 # Auxiliary Power Unit Panel
-Canopy Internal Jettison Handle
-Caution Light Panel
-Clock
+# Canopy Internal Jettison Handle
+# Caution Light Panel
+# Clock
 # Cockpit Altimeter
 # Comms frequency
 # Communication Panel
 # Defog Panel
-Dispenser/EMC Panel
+# Dispenser/EMC Panel
 # ECM Dispenser Button
 # Ejection Seat
 # Electrical Power Panel
@@ -52,11 +52,11 @@ Dispenser/EMC Panel
 # LOX Indicator
 # Landing Gear Handle and Warning Tone Silence
 # Left DDI
-Left Engine Fire Warning Extinguisher Light
+# Left Engine Fire Warning Extinguisher Light
 # Left Essential Circuit Breakers
 # Lock Shoot Lights
-Map Gain/Spin Recovery Panel
-# Master Arm Panel
+# Map Gain/Spin Recovery Panel
+Master Arm Panel
 # Master Caution Light
 # Mission Computer and Hydraulic Isolate Panel
 # RH Advisory Panel

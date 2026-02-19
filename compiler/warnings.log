@@ -1,5 +1,5 @@
-# Compile warnings — TEST_ONLY_USB — 2026-02-19 01:49:52
-# Code warnings: 0  |  Framework warnings: 59
+# Compile warnings — ALR67_USB — 2026-02-19 11:52:42
+# Code warnings: 0  |  Framework warnings: 60
 
 # ── Framework / SDK warnings (ESP-IDF, TinyUSB, etc.) ────────
 C:\Users\jaltu\AppData\Local\Arduino15\packages\esp32\tools\esp32s2-libs\3.3.6/include/arduino_tinyusb/tinyusb/src/class/cdc/cdc_host.h:154:58: warning: missing initializer for member 'cdc_line_control_state_t::<unnamed struct>::rts' [-Wmissing-field-initializers]
@@ -12,6 +12,7 @@ C:\Users\jaltu\AppData\Local\Arduino15\packages\esp32\tools\esp32s2-libs\3.3.6/i
 C:\Users\jaltu\AppData\Local\Arduino15\packages\esp32\tools\esp32s2-libs\3.3.6/include/arduino_tinyusb/tinyusb/src/class/cdc/cdc_host.h:162:58: warning: missing initializer for member 'cdc_line_control_state_t::<unnamed struct>::dtr' [-Wmissing-field-initializers]
 C:\Users\jaltu\AppData\Local\Arduino15\packages\esp32\tools\esp32s2-libs\3.3.6/include/arduino_tinyusb/tinyusb/src/class/cdc/cdc_host.h:154:58: warning: missing initializer for member 'cdc_line_control_state_t::<unnamed struct>::rts' [-Wmissing-field-initializers]
 C:\Users\jaltu\AppData\Local\Arduino15\packages\esp32\tools\esp32s2-libs\3.3.6/include/arduino_tinyusb/tinyusb/src/class/cdc/cdc_host.h:162:58: warning: missing initializer for member 'cdc_line_control_state_t::<unnamed struct>::dtr' [-Wmissing-field-initializers]
+C:\Users\jaltu\OneDrive\Documents\Arduino\libraries\LovyanGFX\src\lgfx\v1\platforms\esp32\Bus_SPI.hpp:146:117: warning: array subscript 0 is outside array bounds of 'volatile uint32_t [0]' [-Warray-bounds=]
 C:\Users\jaltu\AppData\Local\Arduino15\packages\esp32\tools\esp32s2-libs\3.3.6/include/arduino_tinyusb/tinyusb/src/class/cdc/cdc_host.h:154:58: warning: missing initializer for member 'cdc_line_control_state_t::<unnamed struct>::rts' [-Wmissing-field-initializers]
 C:\Users\jaltu\AppData\Local\Arduino15\packages\esp32\tools\esp32s2-libs\3.3.6/include/arduino_tinyusb/tinyusb/src/class/cdc/cdc_host.h:162:58: warning: missing initializer for member 'cdc_line_control_state_t::<unnamed struct>::dtr' [-Wmissing-field-initializers]
 C:\Users\jaltu\AppData\Local\Arduino15\packages\esp32\tools\esp32s2-libs\3.3.6/include/arduino_tinyusb/tinyusb/src/class/cdc/cdc_host.h:154:58: warning: missing initializer for member 'cdc_line_control_state_t::<unnamed struct>::rts' [-Wmissing-field-initializers]
