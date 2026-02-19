@@ -19,7 +19,7 @@ Clock
 # Comms frequency
 # Communication Panel
 # Defog Panel
-# Dispenser/EMC Panel
+Dispenser/EMC Panel
 # ECM Dispenser Button
 # Ejection Seat
 # Electrical Power Panel
@@ -52,10 +52,10 @@ Clock
 # LOX Indicator
 # Landing Gear Handle and Warning Tone Silence
 # Left DDI
-# Left Engine Fire Warning Extinguisher Light
+Left Engine Fire Warning Extinguisher Light
 # Left Essential Circuit Breakers
 # Lock Shoot Lights
-# Map Gain/Spin Recovery Panel
+Map Gain/Spin Recovery Panel
 # Master Arm Panel
 # Master Caution Light
 # Mission Computer and Hydraulic Isolate Panel

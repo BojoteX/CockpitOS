@@ -44,6 +44,14 @@ MANIFEST = {
         "library": "LovyanGFX",
         "version": "1.2.19",
     },
+    "hid_manager_deps": {
+        "packages": {
+            "hid":      "hidapi",
+            "filelock": "filelock",
+            "curses":   "windows-curses",
+            "ifaddr":   "ifaddr",
+        },
+    },
 }
 
 # =============================================================================
@@ -355,6 +363,39 @@ def get_cli_version():
 
 
 # =============================================================================
+#  HID Manager dependency helpers
+# =============================================================================
+def get_missing_hid_deps():
+    """Return list of (import_name, pip_name) tuples for missing HID Manager deps."""
+    packages = MANIFEST["hid_manager_deps"]["packages"]
+    missing = []
+    for mod, pip_name in packages.items():
+        try:
+            __import__(mod)
+        except ImportError:
+            missing.append((mod, pip_name))
+    return missing
+
+
+def run_pip(*args, timeout=120):
+    """Run pip via sys.executable -m pip. Returns (returncode, stdout, stderr)."""
+    cmd = [sys.executable, "-m", "pip"] + list(args)
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        return result.returncode, result.stdout, result.stderr
+    except subprocess.TimeoutExpired:
+        return -1, "", "Timed out"
+    except FileNotFoundError:
+        return -1, "", "Python executable not found"
+
+
+# =============================================================================
 #  Status display (shown on main screen, like compiler tool)
 # =============================================================================
 def show_status():
@@ -388,6 +429,17 @@ def show_status():
     else:
         _w(f"     \U0001f4da {CYAN}LovyanGFX: v{lib_ver}{RESET}\n")
 
+    # HID Manager deps
+    missing_deps = get_missing_hid_deps()
+    total_deps = len(MANIFEST["hid_manager_deps"]["packages"])
+    if not missing_deps:
+        _w(f"     \U0001f517 {CYAN}HID Manager deps: all installed{RESET}\n")
+    elif len(missing_deps) == total_deps:
+        _w(f"     \U0001f517 {RED}HID Manager deps: NOT INSTALLED{RESET}\n")
+    else:
+        names = ", ".join(pip for _, pip in missing_deps)
+        _w(f"     \U0001f517 {YELLOW}HID Manager deps: {len(missing_deps)} missing ({names}){RESET}\n")
+
     _w("\n")
 
 
@@ -411,7 +463,7 @@ def ensure_board_index():
 def action_setup():
     """Full setup: install missing components, upgrade outdated ones."""
     show_banner()
-    total = 3
+    total = 4
     ok = True
 
     # --- Step 1: Verify CLI ---
@@ -501,6 +553,34 @@ def action_setup():
     else:
         success(f"{m['library']}@{installed}")
 
+    # --- Step 4: HID Manager Python Dependencies ---
+    step_banner(4, total, "HID Manager Python Dependencies")
+    missing_deps = get_missing_hid_deps()
+
+    if not missing_deps:
+        success("All HID Manager dependencies installed")
+    else:
+        names = ", ".join(pip for _, pip in missing_deps)
+        info(f"Missing packages: {BOLD}{names}{RESET}")
+        if confirm(f"Install missing HID Manager dependencies via pip?"):
+            pip_names = [pip for _, pip in missing_deps]
+            info(f"Installing {CYAN}{' '.join(pip_names)}{RESET}...")
+            rc, _, err = run_pip("install", *pip_names)
+            if rc != 0:
+                error(f"pip install failed: {err.strip()[:200]}")
+                ok = False
+            else:
+                still_missing = get_missing_hid_deps()
+                if still_missing:
+                    names2 = ", ".join(pip for _, pip in still_missing)
+                    error(f"Some packages still missing after install: {names2}")
+                    ok = False
+                else:
+                    success("All HID Manager dependencies installed")
+        else:
+            warn("Skipped. HID Manager requires these packages to run.")
+            ok = False
+
     _w("\n")
     if ok:
         big_success("Setup complete!", [
@@ -532,8 +612,12 @@ def action_reset_to_manifest():
     cur_core = get_installed_core_version(m_core["platform"]) or "none"
     cur_lib = get_installed_lib_version(m_lib["library"]) or "none"
 
+    missing_deps = get_missing_hid_deps()
+    dep_status = f"{len(missing_deps)} missing" if missing_deps else "all installed"
+
     info(f"  {CYAN}ESP32 Core{RESET}   {cur_core} {DIM}->{RESET} {BOLD}{m_core['version']}{RESET}")
     info(f"  {CYAN}LovyanGFX{RESET}    {cur_lib} {DIM}->{RESET} {BOLD}{m_lib['version']}{RESET}")
+    info(f"  {CYAN}HID Deps{RESET}     {dep_status} {DIM}-> reinstall all{RESET}")
     _w("\n")
 
     if not confirm(f"{YELLOW}This may downgrade components. Proceed?{RESET}"):
@@ -564,10 +648,20 @@ def action_reset_to_manifest():
     else:
         success(f"{m_lib['library']}@{m_lib['version']} installed")
 
+    # HID Manager deps
+    pip_names = list(MANIFEST["hid_manager_deps"]["packages"].values())
+    info(f"Installing {CYAN}{' '.join(pip_names)}{RESET}...")
+    rc, _, err = run_pip("install", "--force-reinstall", *pip_names)
+    if rc != 0:
+        error(f"pip install failed: {err.strip()[:200]}")
+    else:
+        success("HID Manager dependencies installed")
+
     _w("\n")
     big_success("Reset complete!", [
         f"  ESP32 Core: {m_core['version']}",
         f"  LovyanGFX:  {m_lib['version']}",
+        f"  HID Deps:   {' '.join(pip_names)}",
     ])
 
     _w(f"  {DIM}Press any key to return to menu...{RESET}")

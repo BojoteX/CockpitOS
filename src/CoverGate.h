@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "../Mappings.h"
+#include "Core/CoverGateDef.h"
 void CoverGate_init(void);
 void CoverGate_loop(void);
 bool CoverGate_intercept(const char* label, bool pressed);

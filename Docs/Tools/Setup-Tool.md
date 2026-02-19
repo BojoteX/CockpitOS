@@ -16,14 +16,15 @@ The tool opens a terminal UI showing the current status of all components and an
 
 ## What It Installs
 
-The Setup Tool manages two components, installing them into **standard Arduino locations** so they are shared with any Arduino IDE you might also have installed:
+The Setup Tool manages three components:
 
 | Component | Version | Install Location |
 |-----------|---------|-----------------|
 | ESP32 Arduino Core (`esp32:esp32`) | 3.3.6 | `%LOCALAPPDATA%/Arduino15/` |
 | LovyanGFX library | 1.2.19 | `~/Documents/Arduino/libraries/` |
+| HID Manager Python deps (`hidapi`, `filelock`, `windows-curses`, `ifaddr`) | latest | Python site-packages |
 
-Both components are required to compile CockpitOS firmware. The ESP32 core provides the board definitions and toolchains for all supported ESP32 variants. LovyanGFX provides TFT display support.
+The ESP32 core and LovyanGFX are installed into **standard Arduino locations** so they are shared with any Arduino IDE you might also have installed. The ESP32 core provides the board definitions and toolchains for all supported ESP32 variants. LovyanGFX provides TFT display support. The HID Manager dependencies are Python packages required by the USB HID bridge tool.
 
 ## The MANIFEST Dictionary
 
@@ -40,6 +41,12 @@ MANIFEST = {
         "library": "LovyanGFX",
         "version": "1.2.19",
     },
+    "hid_manager_deps": {
+        "packages": {
+            "hid": "hidapi", "filelock": "filelock",
+            "curses": "windows-curses", "ifaddr": "ifaddr",
+        },
+    },
 }
 ```
 
@@ -49,17 +56,18 @@ When CockpitOS updates its dependencies, this dictionary is the single place tha
 
 ### Install / Update Environment
 
-This is the main action. It walks through three steps:
+This is the main action. It walks through four steps:
 
 1. **Verify arduino-cli** -- Confirms the bundled CLI binary exists and runs correctly.
 2. **ESP32 Arduino Core** -- Checks if the core is installed. If missing, offers to install. If outdated (older than the MANIFEST version), offers to update.
 3. **LovyanGFX Library** -- Same logic: install if missing, update if outdated.
+4. **HID Manager Dependencies** -- Checks if pip packages required by the HID Manager are installed. If any are missing, offers to install them via pip.
 
 Each step asks for confirmation before making changes. The ESP32 core download is approximately 350 MB, so the first install takes a few minutes depending on your internet connection.
 
 ### Reset to Recommended Versions
 
-Forces the exact versions specified in the MANIFEST dictionary, regardless of what is currently installed. This is useful if:
+Forces the exact versions specified in the MANIFEST dictionary, regardless of what is currently installed. Also reinstalls all HID Manager Python dependencies. This is useful if:
 
 - You accidentally upgraded to a newer version that causes issues
 - You want to match the exact versions that CockpitOS was tested against
@@ -79,6 +87,7 @@ On launch, the tool shows the current state of all components:
      arduino-cli v1.4.1  (bundled)
      ESP32 Core: v3.3.6
      LovyanGFX: v1.2.19
+     HID Manager deps: all installed
 ```
 
 Components are color-coded:

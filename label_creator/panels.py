@@ -90,7 +90,7 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
                   pre_selected: list[str] | None = None,
                   aircraft_name: str = "",
                   label_set_name: str = "") -> list[str] | None:
-    """Interactive toggle-list panel selector.
+    """Interactive toggle-list panel selector with type-to-filter.
 
     Each panel is shown as a checkbox row with a compact control summary.
 
@@ -98,8 +98,9 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
       Up/Down     — navigate
       Right/Left  — open/close detail view of highlighted panel
       Enter       — toggle panel selection
-      S           — save selection and continue
-      Esc         — cancel (return None)
+      Type        — filter panels by name
+      Backspace   — remove last filter character
+      Esc         — clear filter (if active), or save & exit
 
     Args:
       all_panels:      sorted list of all available panel names.
@@ -108,7 +109,7 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
       aircraft_name:   aircraft identifier shown in header.
       label_set_name:  label set name shown in header.
 
-    Returns list of selected panel names, or None if cancelled.
+    Returns list of selected panel names.
     """
     if not all_panels:
         return []
@@ -126,6 +127,8 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
         panel_summaries[name] = _summarize(controls)
 
     total = len(all_panels)
+    filter_text = ""
+    filtered = list(all_panels)
     idx = 0
     scroll = 0
 
@@ -139,19 +142,33 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
     _SCROLL_BLOCK = "\u2588"    # █  full block
     _SCROLL_LIGHT = "\u2591"    # ░  light shade
 
-    needs_scroll = total > list_height
+    def _apply_filter():
+        nonlocal filtered, idx
+        if filter_text:
+            ft = filter_text.lower()
+            filtered = [name for name in all_panels if ft in name.lower()]
+        else:
+            filtered = list(all_panels)
+        if not filtered:
+            idx = 0
+        elif idx >= len(filtered):
+            idx = len(filtered) - 1
+
+    def _needs_scroll():
+        return len(filtered) > list_height
 
     def _selected_count():
         return sum(1 for v in state.values() if v)
 
     def _scroll_bar_positions():
         """Return (start_row, end_row) for the scroll thumb within list_height."""
-        if not needs_scroll:
+        ftotal = len(filtered)
+        if ftotal <= list_height:
             return (0, list_height)
         # Thumb size: proportional to visible / total, minimum 1
-        thumb = max(1, round(list_height * list_height / total))
+        thumb = max(1, round(list_height * list_height / ftotal))
         # Thumb position: proportional to scroll / max_scroll
-        max_scroll = total - list_height
+        max_scroll = ftotal - list_height
         if max_scroll <= 0:
             top = 0
         else:
@@ -160,7 +177,7 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
 
     def _render_row(i, is_highlighted, scroll_char):
         """Render a single toggle row with scroll indicator on the right."""
-        name = all_panels[i]
+        name = filtered[i]
         mark = f"{GREEN}X{RESET}" if state[name] else " "
         summary = panel_summaries[name]
 
@@ -197,6 +214,9 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
 
     def _clamp_scroll():
         nonlocal scroll
+        if not filtered:
+            scroll = 0
+            return
         if idx < scroll:
             scroll = idx
         if idx >= scroll + list_height:
@@ -234,38 +254,54 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
         os.system("cls" if os.name == "nt" else "clear")
         _w(HIDE_CUR)
 
-        # Header
+        ftotal = len(filtered)
+
+        # Header with optional filter display
         sel_count = _selected_count()
         parts = [label_set_name, aircraft_name]
         ctx = "  (" + ", ".join(p for p in parts if p) + ")" if any(parts) else ""
         title = f"Panel Selector{ctx}"
-        counter = f"{sel_count} / {total} selected"
-        spacing = _header_w - len(title) - len(counter) - 4
+        if filter_text:
+            right_text = f"filter: {filter_text}"
+            right_ansi = f"{DIM}filter: {RESET}{YELLOW}{filter_text}"
+        else:
+            right_text = f"{sel_count} / {total} selected"
+            right_ansi = f"{GREEN}{right_text}"
+        spacing = _header_w - len(title) - len(right_text) - 4
         if spacing < 1:
             spacing = 1
         _w(f"  {CYAN}{BOLD}{'=' * _header_w}{RESET}\n")
-        _w(f"  {CYAN}{BOLD}  {title}{' ' * spacing}{GREEN}{counter}{RESET}\n")
+        _w(f"  {CYAN}{BOLD}  {title}{RESET}{' ' * spacing}{right_ansi}{RESET}\n")
         _w(f"  {CYAN}{BOLD}{'=' * _header_w}{RESET}\n")
 
         # Compute scroll bar thumb positions
         thumb_start, thumb_end = _scroll_bar_positions()
 
         # Panel rows
-        for row in range(list_height):
-            ri = scroll + row
-            # Scroll indicator character for this row
-            if needs_scroll:
-                scroll_char = _SCROLL_BLOCK if thumb_start <= row < thumb_end else _SCROLL_LIGHT
-            else:
-                scroll_char = " "
+        if ftotal == 0:
+            _w(f"\n  {DIM}No matches.{RESET}\n")
+            for _ in range(list_height - 2):
+                _w("\n")
+        else:
+            for row in range(list_height):
+                ri = scroll + row
+                # Scroll indicator character for this row
+                if _needs_scroll():
+                    scroll_char = _SCROLL_BLOCK if thumb_start <= row < thumb_end else _SCROLL_LIGHT
+                else:
+                    scroll_char = " "
 
-            if ri < total:
-                _w(_render_row(ri, ri == idx, scroll_char) + "\n")
-            else:
-                _w(ERASE_LN + "\n")
+                if ri < ftotal:
+                    _w(_render_row(ri, ri == idx, scroll_char) + "\n")
+                else:
+                    _w(ERASE_LN + "\n")
 
         # Footer
-        _w(f"\n  {DIM}\u2191\u2193=move  \u2192=detail  Enter=toggle  S=save  Esc=cancel{RESET}")
+        if filter_text:
+            match_info = f"{ftotal}/{total} matches"
+        else:
+            match_info = f"{total} panels"
+        _w(f"\n  {DIM}{match_info}    type to filter  Enter=toggle  Esc=save & exit{RESET}")
 
     # Initial draw
     _clamp_scroll()
@@ -277,6 +313,8 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
 
             if ch in ("\xe0", "\x00"):
                 ch2 = msvcrt.getwch()
+                if not filtered:
+                    continue
                 old = idx
                 if ch2 == "H":          # Up — clamp at top
                     if idx > 0:
@@ -284,12 +322,16 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
                     else:
                         _flash_row()
                 elif ch2 == "P":        # Down — clamp at bottom
-                    if idx < total - 1:
+                    if idx < len(filtered) - 1:
                         idx += 1
                     else:
                         _flash_row()
+                elif ch2 == "I":        # Page Up
+                    idx = max(0, idx - list_height)
+                elif ch2 == "Q":        # Page Down
+                    idx = min(max(0, len(filtered) - 1), idx + list_height)
                 elif ch2 == "M":        # Right — detail view (Level 2)
-                    _show_detail(aircraft_data, all_panels[idx], cols, rows,
+                    _show_detail(aircraft_data, filtered[idx], cols, rows,
                                  label_set_name=label_set_name,
                                  aircraft_name=aircraft_name)
                     _draw()
@@ -301,21 +343,35 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
                     _draw()
 
             elif ch == "\r":            # Enter — toggle
-                name = all_panels[idx]
-                state[name] = not state[name]
+                if filtered:
+                    name = filtered[idx]
+                    state[name] = not state[name]
+                    _draw()
+
+            elif ch == "\x1b":          # Esc — clear filter or save & exit
+                if filter_text:
+                    filter_text = ""
+                    _apply_filter()
+                    _clamp_scroll()
+                    _draw()
+                else:
+                    if _flash_timer[0]:
+                        _flash_timer[0].cancel()
+                    _w(SHOW_CUR)
+                    return [name for name in all_panels if state[name]]
+
+            elif ch == "\x08":          # Backspace — remove filter char
+                if filter_text:
+                    filter_text = filter_text[:-1]
+                    _apply_filter()
+                    _clamp_scroll()
+                    _draw()
+
+            elif ch.isprintable() and ch != "\t":
+                filter_text += ch
+                _apply_filter()
+                _clamp_scroll()
                 _draw()
-
-            elif ch.lower() == "s":     # S — save selection
-                if _flash_timer[0]:
-                    _flash_timer[0].cancel()
-                _w(SHOW_CUR)
-                return [name for name in all_panels if state[name]]
-
-            elif ch == "\x1b":          # Esc — cancel
-                if _flash_timer[0]:
-                    _flash_timer[0].cancel()
-                _w(SHOW_CUR)
-                return None
 
     except KeyboardInterrupt:
         if _flash_timer[0]:
