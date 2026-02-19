@@ -4,11 +4,11 @@
 
 #pragma once
 
-inline const char* kLatchedButtons[] = {
+static const char* kLatchedButtons[] = {
     "SJ_CTR",
     "SJ_LI",
     "SJ_LO",
     "SJ_RI",
     "SJ_RO",
 };
-inline const unsigned kLatchedButtonCount = sizeof(kLatchedButtons)/sizeof(kLatchedButtons[0]);
+static const unsigned kLatchedButtonCount = sizeof(kLatchedButtons)/sizeof(kLatchedButtons[0]);

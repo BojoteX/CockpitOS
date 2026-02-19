@@ -219,7 +219,7 @@ The gauge must also be guarded with a compile-time `#if defined(HAS_YOUR_LABEL_S
 
 - [TFT Gauges Reference](../Hardware/TFT-Gauges.md) -- Hardware overview and supported displays
 - [Servo Gauges](Wire-Analog-Gauges.md) -- Physical needle alternative using servo motors
-- Detailed TFT Gauge Developer Guide in `Docs/TFT_Gauge_Developer_Guide.md` -- Full walkthrough for creating new gauge implementations
+- [Custom Panels](../Advanced/Custom-Panels.md) -- Panel system architecture, REGISTER_PANEL, lifecycle, and DCS-BIOS subscriptions
 
 ---
 

@@ -34,17 +34,12 @@ Done!
 Current LABEL SET: LABEL_SET_TEST_ONLY
 
 [INFO] The current target_objects (panel(s) to be processed) are:
-  - Canopy Internal Jettison Handle
-  - Caution Light Panel
-  - Clock
-  - Dispenser/EMC Panel
-  - Left Engine Fire Warning Extinguisher Light
-  - Map Gain/Spin Recovery Panel
+  - Master Arm Panel
 
-[✓] Generated DCSBIOSBridgeData.h with 31 outputs,  26 selectors.
-[✓] Generated InputMapping.h with 26 entries.
-✅ Found 31 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
-🔢 Using TABLE_SIZE = 67 (next prime ≥ 62)
+[✓] Generated DCSBIOSBridgeData.h with 7 outputs,  4 selectors.
+[✓] Generated InputMapping.h with 4 entries.
+✅ Found 7 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
+🔢 Using TABLE_SIZE = 53 (next prime ≥ 14)
 ✅ LEDMapping.h fully regenerated with dynamic enum from KNOWN_DEVICES.
 
 [INFO] Generating DisplayMapping.cpp/h using display_gen.py ...

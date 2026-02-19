@@ -40,7 +40,7 @@ def run():
     OUTPUT_HEADER   = "DCSBIOSBridgeData.h"
     INPUT_REFERENCE = "InputMapping.h"
     LED_REFERENCE   = "LEDMapping.h"
-    KNOWN_DEVICES   = {
+    KNOWN_DEVICES   = [
         "GPIO",
         "GAUGE",
         "PCA9555",
@@ -48,7 +48,7 @@ def run():
         "GN1640T",
         "WS2812",
         "NONE",
-    }
+    ]
 
     # Types that should behave like selectors in INPUTS
     NORMALIZE_TO_SELECTOR = {
@@ -1461,10 +1461,10 @@ def run():
             _f.write("// Buttons listed here toggle ON/OFF instead of acting as momentary press/release.\n")
             _f.write("// Edit via the Label Creator tool or manually.\n\n")
             _f.write("#pragma once\n\n")
-            _f.write("const char* kLatchedButtons[] = {\n")
+            _f.write("static const char* kLatchedButtons[] = {\n")
             _f.write("    // ...add labels of buttons that should latch\n")
             _f.write("};\n")
-            _f.write("const unsigned kLatchedButtonCount = sizeof(kLatchedButtons)/sizeof(kLatchedButtons[0]);\n")
+            _f.write("static const unsigned kLatchedButtonCount = sizeof(kLatchedButtons)/sizeof(kLatchedButtons[0]);\n")
         print("[+] Created LatchedButtons.h (empty)")
     else:
         print("[=] LatchedButtons.h exists, preserving")
@@ -1476,10 +1476,10 @@ def run():
             _f.write("// Defines selectors/buttons that are physically guarded by a cover.\n")
             _f.write("// Edit via the Label Creator tool or manually.\n\n")
             _f.write("#pragma once\n\n")
-            _f.write("const CoverGateDef kCoverGates[] = {\n")
+            _f.write("static const CoverGateDef kCoverGates[] = {\n")
             _f.write('    // { "ACTION", "RELEASE_OR_nullptr", "COVER", CoverGateKind::Selector, delay_ms, close_delay_ms },\n')
             _f.write("};\n")
-            _f.write("const unsigned kCoverGateCount = sizeof(kCoverGates) / sizeof(kCoverGates[0]);\n")
+            _f.write("static const unsigned kCoverGateCount = sizeof(kCoverGates) / sizeof(kCoverGates[0]);\n")
         print("[+] Created CoverGates.h (empty)")
     else:
         print("[=] CoverGates.h exists, preserving")

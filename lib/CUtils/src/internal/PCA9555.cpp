@@ -6,6 +6,9 @@ static uint8_t addrCache[8];
 static uint8_t cacheSize = 0;
 bool loggingEnabled = false;
 
+// Static label storage for auto-discovered PCA panels ("PCA 0xNN\0" = 9 chars)
+static char pcaLabelBuf[MAX_DEVICES][10];
+
 /////////////////////////////////////
 // Actual i2c functions
 /////////////////////////////////////
@@ -36,38 +39,54 @@ void measureI2Cspeed(uint8_t deviceAddr) {
     debugPrintf("I²C at 0x%02X Read Time: %u us\n", deviceAddr, t1 - t0);
 }
 
-void PCA9555_scanConnectedPanels() {
+// Helper: probe a single I2C address (Wire), returns true if device responds
+static bool _probeI2C_Wire(uint8_t addr, uint8_t retries = 3) {
+    for (uint8_t attempt = 0; attempt < retries; ++attempt) {
+        Wire.beginTransmission(addr);
+        Wire.write((uint8_t)0x00);
+        int error = Wire.endTransmission(false);
+        if (error == 0) {
+            int req = Wire.requestFrom(addr, (uint8_t)1);
+            if (req == 1) {
+                (void)Wire.read();
+                return true;
+            }
+        }
+        delay(20);
+    }
+    return false;
+}
+
+void PCA9555_scanConnectedPanels(const uint8_t* addrs, uint8_t count) {
     delay(500); // Give time for I2C bus to stabilize
 
-    // Step 2: Proceed as before: scan and record expected devices only
     discoveredDeviceCount = 0;
     memset(panelNameByAddr, 0, sizeof(panelNameByAddr));
 
-    for (const auto& p : kPanels) {
-        bool present = false;
-        for (uint8_t attempt = 1; attempt <= 3; ++attempt) {
-            Wire.beginTransmission(p.addr);
-            Wire.write((uint8_t)0x00);
-            int error = Wire.endTransmission(false);
-            if (error == 0) {
-                int req = Wire.requestFrom(p.addr, (uint8_t)1);
-                if (req == 1) {
-                    (void)Wire.read();  // Drain the byte; presence confirmed
-                    present = true;
-                    break;
-                }
+    // Phase 1: Probe addresses from InputMapping + LEDMapping
+    for (uint8_t i = 0; i < count; ++i) {
+        uint8_t addr = addrs[i];
+        if (_probeI2C_Wire(addr)) {
+            if (discoveredDeviceCount < MAX_DEVICES) {
+                snprintf(pcaLabelBuf[discoveredDeviceCount], sizeof(pcaLabelBuf[0]), "PCA 0x%02X", addr);
+                discoveredDevices[discoveredDeviceCount].address = addr;
+                discoveredDevices[discoveredDeviceCount].label = pcaLabelBuf[discoveredDeviceCount];
+                panelNameByAddr[addr] = pcaLabelBuf[discoveredDeviceCount];
+                ++discoveredDeviceCount;
             }
-            delay(20);
+        } else {
+            debugPrintf("[PCA] 0x%02X not responding (expected from mappings)\n", addr);
         }
+    }
 
-        if (present && discoveredDeviceCount < MAX_DEVICES) {
-            discoveredDevices[discoveredDeviceCount].address = p.addr;
-            discoveredDevices[discoveredDeviceCount].label = p.label;
-            ++discoveredDeviceCount;
-            panelNameByAddr[p.addr] = p.label;
-        }
-        else {
-			// Log the error if the device was not found
+    // Phase 2: Full I2C bus sweep for unmapped devices
+    // 0x08-0x77 is the usable 7-bit range (0x00-0x07 and 0x78-0x7F are reserved)
+    // Takes ~10-15ms total — negligible compared to the 500ms stabilization delay
+    for (uint8_t addr = 0x08; addr <= 0x77; ++addr) {
+        if (panelExists(addr)) continue;  // already discovered in Phase 1
+        Wire.beginTransmission(addr);
+        if (Wire.endTransmission() == 0) {
+            debugPrintf("[PCA] 0x%02X detected on I2C bus but NOT in any mapping (unmapped device)\n", addr);
         }
     }
 }
@@ -122,12 +141,14 @@ void PCA9555_autoInitFromLEDMap(uint8_t addr) {
     uint8_t configPort0, configPort1, outputPort0, outputPort1;
     PCA9555_readConfigOutput(addr, configPort0, configPort1, outputPort0, outputPort1);
 
+    int nTotal = 0;
     int nChanged = 0;
     for (int i = 0; i < panelLEDsCount; i++) {
         if (panelLEDs[i].deviceType == DEVICE_PCA9555 && panelLEDs[i].info.pcaInfo.address == addr) {
             uint8_t port = panelLEDs[i].info.pcaInfo.port;
             uint8_t bit = panelLEDs[i].info.pcaInfo.bit;
             const char* label = panelLEDs[i].label;
+            nTotal++;
             if (port == 0) {
                 if (configPort0 & (1 << bit)) {
                     debugPrintf("PCA9555 0x%02X: Pin P0.%u (label=%s) set as OUTPUT (LED)\n", addr, bit, label);
@@ -160,7 +181,7 @@ void PCA9555_autoInitFromLEDMap(uint8_t addr) {
     Wire.write(configPort1);    // Port1
     Wire.endTransmission();
 
-    debugPrintf("PCA9555 0x%02X: %d pins set as OUTPUT (LED)\n", addr, nChanged);
+    debugPrintf("PCA9555 0x%02X: %d LED pins configured (%d changed)\n", addr, nTotal, nChanged);
 }
 
 void PCA9555_write(uint8_t addr, uint8_t port, uint8_t bit, bool state) {
@@ -274,52 +295,57 @@ void measureI2Cspeed(uint8_t deviceAddr) {
     debugPrintf("I²C at 0x%02X Read Time: %u us\n", deviceAddr, t1 - t0);
 }
 
-void PCA9555_scanConnectedPanels() {
+// Helper: probe a single I2C address (ESP-IDF), returns true if device responds
+static bool _probeI2C_IDF(uint8_t addr, uint8_t retries = 3) {
+    for (uint8_t attempt = 0; attempt < retries; ++attempt) {
+        uint8_t reg = 0x00;
+        uint8_t val = 0xEE;
+        esp_err_t ret = i2c_master_write_read_device(
+            PCA_I2C_PORT, addr, &reg, 1, &val, 1, 100
+        );
+        if (ret == ESP_OK) return true;
+        delay(50);
+    }
+    return false;
+}
+
+void PCA9555_scanConnectedPanels(const uint8_t* addrs, uint8_t count) {
     delay(500); // Give time for I2C bus to stabilize
 
-    // Step 2: Proceed as before: scan and record expected devices only
     discoveredDeviceCount = 0;
     memset(panelNameByAddr, 0, sizeof(panelNameByAddr));
 
-    for (const auto& p : kPanels) {
-        bool present = false;
-        for (uint8_t attempt = 1; attempt <= 3; ++attempt) {
-            uint8_t reg = 0x00;
-            uint8_t val = 0xEE;
-            esp_err_t ret = i2c_master_write_read_device(
-                PCA_I2C_PORT, p.addr, &reg, 1, &val, 1, 100
-            );
-            if (ret == ESP_OK) {
-                present = true;
-                break;
+    // Phase 1: Probe addresses from InputMapping + LEDMapping
+    for (uint8_t i = 0; i < count; ++i) {
+        uint8_t addr = addrs[i];
+        if (_probeI2C_IDF(addr)) {
+            if (discoveredDeviceCount < MAX_DEVICES) {
+                snprintf(pcaLabelBuf[discoveredDeviceCount], sizeof(pcaLabelBuf[0]), "PCA 0x%02X", addr);
+                discoveredDevices[discoveredDeviceCount].address = addr;
+                discoveredDevices[discoveredDeviceCount].label = pcaLabelBuf[discoveredDeviceCount];
+                panelNameByAddr[addr] = pcaLabelBuf[discoveredDeviceCount];
+                ++discoveredDeviceCount;
             }
-            delay(50);
-        }
-        if (present && discoveredDeviceCount < MAX_DEVICES) {
-            discoveredDevices[discoveredDeviceCount].address = p.addr;
-            discoveredDevices[discoveredDeviceCount].label = p.label;
-            ++discoveredDeviceCount;
-            panelNameByAddr[p.addr] = p.label;
-        }
-        else {
-			// Log the last error if not found
+        } else {
+            debugPrintf("[PCA] 0x%02X not responding (expected from mappings)\n", addr);
         }
     }
-}
 
-/*
-void PCA9555_scanConnectedPanels() {
-    discoveredDeviceCount = 0;
-    memset(panelNameByAddr, 0, sizeof(panelNameByAddr));
-    for (const auto& p : kPanels) {
-        if (discoveredDeviceCount >= MAX_DEVICES) break;
-        discoveredDevices[discoveredDeviceCount].address = p.addr;
-        discoveredDevices[discoveredDeviceCount].label = p.label;
-        ++discoveredDeviceCount;
-        panelNameByAddr[p.addr] = p.label;
+    // Phase 2: Full I2C bus sweep for unmapped devices
+    // 0x08-0x77 is the usable 7-bit range (0x00-0x07 and 0x78-0x7F are reserved)
+    // Takes ~10-15ms total — negligible compared to the 500ms stabilization delay
+    for (uint8_t addr = 0x08; addr <= 0x77; ++addr) {
+        if (panelExists(addr)) continue;
+        uint8_t reg = 0x00;
+        uint8_t val = 0xFF;
+        esp_err_t ret = i2c_master_write_read_device(
+            PCA_I2C_PORT, addr, &reg, 1, &val, 1, 100
+        );
+        if (ret == ESP_OK) {
+            debugPrintf("[PCA] 0x%02X detected on I2C bus but NOT in any mapping (unmapped device)\n", addr);
+        }
     }
 }
-*/
 
 // Atomic/fast multi-byte write (for cache/init/output, always 3 bytes: reg, val0, val1)
 static inline esp_err_t PCA9555_writeReg2(uint8_t addr, uint8_t reg, uint8_t val0, uint8_t val1) {
@@ -364,12 +390,14 @@ void PCA9555_autoInitFromLEDMap(uint8_t addr) {
     uint8_t configPort0, configPort1, outputPort0, outputPort1;
     PCA9555_readConfigOutput(addr, configPort0, configPort1, outputPort0, outputPort1);
 
+    int nTotal = 0;
     int nChanged = 0;
     for (int i = 0; i < panelLEDsCount; i++) {
         if (panelLEDs[i].deviceType == DEVICE_PCA9555 && panelLEDs[i].info.pcaInfo.address == addr) {
             uint8_t port = panelLEDs[i].info.pcaInfo.port;
             uint8_t bit = panelLEDs[i].info.pcaInfo.bit;
             const char* label = panelLEDs[i].label;
+            nTotal++;
             if (port == 0) {
                 if (configPort0 & (1 << bit)) {
                     debugPrintf("PCA9555 0x%02X: Pin P0.%u (label=%s) set as OUTPUT (LED)\n", addr, bit, label);
@@ -392,7 +420,7 @@ void PCA9555_autoInitFromLEDMap(uint8_t addr) {
     PCA9555_writeReg2(addr, 0x02, outputPort0, outputPort1); // Set output latches
     PCA9555_writeReg2(addr, 0x06, configPort0, configPort1); // Set config
 
-    debugPrintf("PCA9555 0x%02X: %d pins set as OUTPUT (LED)\n", addr, nChanged);
+    debugPrintf("PCA9555 0x%02X: %d LED pins configured (%d changed)\n", addr, nTotal, nChanged);
 }
 
 void PCA9555_write(uint8_t addr, uint8_t port, uint8_t bit, bool state) {

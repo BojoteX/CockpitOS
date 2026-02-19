@@ -83,8 +83,8 @@ _COMMENTED_DEFINE_RE = re.compile(
     r'(?:\s*//\s*(?P<comment>.*))?$'
 )
 
-# Value validation: bare integer or -1 (PIN() macro is NOT used by the editor)
-_PIN_VALUE_RE = re.compile(r'^-?\d+$')
+# Value validation: bare integer, -1, or PIN(x) macro e.g. PIN(39), PIN(GPIO_NUM_39)
+_PIN_VALUE_RE = re.compile(r'^(-?\d+|PIN\(\w+\))$')
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -145,19 +145,19 @@ PIN_GROUPS = [
         "name": "TM1637 7-Segment Displays",
         "required_when": ["TM1637"],
         "pins": [
-            {"define": "LA_DIO_PIN",  "help": "Left Angle display data",    "default": "39"},
-            {"define": "LA_CLK_PIN",  "help": "Left Angle display clock",   "default": "37"},
-            {"define": "RA_DIO_PIN",  "help": "Right Angle display data",   "default": "40"},
-            {"define": "RA_CLK_PIN",  "help": "Right Angle display clock",  "default": "37"},
-            {"define": "CA_DIO_PIN",  "help": "Caution Advisory display data",  "default": "36"},
-            {"define": "CA_CLK_PIN",  "help": "Caution Advisory display clock", "default": "37"},
-            {"define": "JETT_DIO_PIN","help": "Jettison Select display data",   "default": "8"},
-            {"define": "JETT_CLK_PIN","help": "Jettison Select display clock",  "default": "9"},
+            {"define": "LA_DIO_PIN",  "help": "Left Angle display data",    "default": "39", "tm_module": "LA"},
+            {"define": "LA_CLK_PIN",  "help": "Left Angle display clock",   "default": "37", "tm_module": "LA"},
+            {"define": "RA_DIO_PIN",  "help": "Right Angle display data",   "default": "40", "tm_module": "RA"},
+            {"define": "RA_CLK_PIN",  "help": "Right Angle display clock",  "default": "37", "tm_module": "RA"},
+            {"define": "CA_DIO_PIN",  "help": "Caution Advisory display data",  "default": "36", "tm_module": "CA"},
+            {"define": "CA_CLK_PIN",  "help": "Caution Advisory display clock", "default": "37", "tm_module": "CA"},
+            {"define": "JETT_DIO_PIN","help": "Jettison Select display data",   "default": "8",  "tm_module": "JETT"},
+            {"define": "JETT_CLK_PIN","help": "Jettison Select display clock",  "default": "9",  "tm_module": "JETT"},
         ],
     },
     {
         "name": "Mode Switch",
-        "required_when": [],          # optional, never required
+        "required_when": ["HID_SELECTOR"],
         "pins": [
             {"define": "MODE_SWITCH_PIN",
              "help": "HID mode selector switch (rotary or toggle)",
@@ -284,6 +284,39 @@ def detect_devices(input_filepath, led_filepath):
                 tm_devices, key=lambda x: x[1])
 
     return detected
+
+
+def _tm1637_module_is_used(module, known_pins, detected):
+    """Check if a TM1637 module (LA, RA, CA, JETT) is actually in use.
+
+    A module is considered in use if its DIO pin value appears in the
+    detected TM1637 input DIO list or LED device list.  If the module's
+    DIO pin isn't even defined in CustomPins.h, it's not in use.
+    """
+    tm_info = detected.get("TM1637")
+    if not tm_info:
+        return False
+
+    dio_define = f"{module}_DIO_PIN"
+    dio_val = known_pins.get(dio_define)
+    if dio_val is None:
+        return False   # not configured -> not in use
+
+    # Check input DIO pins (collected from InputMapping.h)
+    input_dios = tm_info.get("input_dios", [])
+    if dio_val in input_dios:
+        return True
+
+    # Check LED device (clk, dio) pairs from LEDMapping.h
+    led_devices = tm_info.get("led_devices", [])
+    clk_define = f"{module}_CLK_PIN"
+    clk_val = known_pins.get(clk_define)
+    if clk_val is not None:
+        for clk, dio in led_devices:
+            if clk == clk_val and dio == dio_val:
+                return True
+
+    return False
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -570,12 +603,17 @@ def _build_rows(known_pins, detected):
 
             # Per-pin warning: required group has device detected but this pin is missing
             if grp_required and val is None and pdef.get("type") != "bool":
-                det_str = ", ".join(d for d in required_devs if d in detected)
-                rows.append({
-                    "type": ROW_WARNING,
-                    "group": grp_name,
-                    "message": f"{name} required ({det_str} detected)",
-                })
+                # TM1637: only warn for modules actually in use
+                tm_mod = pdef.get("tm_module")
+                if tm_mod and not _tm1637_module_is_used(tm_mod, known_pins, detected):
+                    pass  # module not in use, skip warning
+                else:
+                    det_str = ", ".join(d for d in required_devs if d in detected)
+                    rows.append({
+                        "type": ROW_WARNING,
+                        "group": grp_name,
+                        "message": f"{name} required ({det_str} detected)",
+                    })
 
     return rows
 
@@ -595,7 +633,8 @@ def _count_defined(known_pins):
 
 def edit_custom_pins(filepath, input_filepath, led_filepath,
                      display_filepath=None,
-                     label_set_name="", aircraft_name=""):
+                     label_set_name="", aircraft_name="",
+                     config_filepath=""):
     """Main entry point: scrollable grouped pin editor."""
 
     # -- Detect devices from mapping files --------------------------------
@@ -611,9 +650,31 @@ def edit_custom_pins(filepath, input_filepath, led_filepath,
 
     known_pins, unknown_lines = parse_custom_pins(filepath)
 
-    # Detect RS485 from label set name (transport mode, not from mappings)
-    if label_set_name and "RS485" in label_set_name.upper():
+    # Detect RS485 from Config.h transport settings
+    if config_filepath and os.path.exists(config_filepath):
+        try:
+            with open(config_filepath, "r", encoding="utf-8") as f:
+                cfg_text = f.read()
+            if (re.search(r'#define\s+RS485_MASTER_ENABLED\s+1\b', cfg_text) or
+                    re.search(r'#define\s+RS485_SLAVE_ENABLED\s+1\b', cfg_text)):
+                detected["RS485"] = True
+        except OSError:
+            pass
+    # Fallback: detect from label set name if Config.h not available
+    if "RS485" not in detected and label_set_name and "RS485" in label_set_name.upper():
         detected["RS485"] = True
+
+    # Detect HID mode selector from LabelSetConfig.h
+    ls_dir = os.path.dirname(filepath)
+    lsc_path = os.path.join(ls_dir, "LabelSetConfig.h")
+    if os.path.exists(lsc_path):
+        try:
+            with open(lsc_path, "r", encoding="utf-8") as f:
+                lsc_text = f.read()
+            if re.search(r'#define\s+HAS_HID_MODE_SELECTOR\s+1\b', lsc_text):
+                detected["HID_SELECTOR"] = True
+        except OSError:
+            pass
 
     # Ensure Feature Enables always present with defaults
     if "ENABLE_TFT_GAUGES" not in known_pins:
@@ -854,7 +915,14 @@ def edit_custom_pins(filepath, input_filepath, led_filepath,
                     continue
                 ri = selectable[sel_idx]
                 row = rows[ri]
-                _edit_pin_value(row, known_pins, detected)
+                # Bool pins: toggle inline, no modal prompt
+                pdef = row["pdef"]
+                if pdef.get("type") == "bool":
+                    name = row["define"]
+                    cur = known_pins.get(name, pdef.get("default", "0"))
+                    known_pins[name] = "0" if cur == "1" else "1"
+                else:
+                    _edit_pin_value(row, known_pins, detected)
                 _rebuild()
                 _clamp_sel()
                 _clamp_scroll()
@@ -939,9 +1007,9 @@ def _edit_pin_value(row, known_pins, detected):
     if pin_type == "bool":
         prompt = f"  Value (0 or 1) [{default}]: "
     elif pin_type == "int":
-        prompt = f"  Value (number or -1) [{default}]: "
+        prompt = f"  Value (number, -1, or PIN(x)) [{default}]: "
     else:
-        prompt = f"  Value (GPIO number or -1) [{default}]: "
+        prompt = f"  Value (GPIO number, -1, or PIN(x)) [{default}]: "
 
     _w(prompt)
 
@@ -967,5 +1035,5 @@ def _edit_pin_value(row, known_pins, detected):
     elif _PIN_VALUE_RE.match(raw):
         known_pins[name] = raw
     else:
-        print(f"  {RED}Invalid: enter a GPIO number or -1{RESET}")
+        print(f"  {RED}Invalid: enter a GPIO number, -1, or PIN(x){RESET}")
         msvcrt.getwch()

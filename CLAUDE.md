@@ -19,7 +19,7 @@ ESP32 firmware (C++/Arduino) for DCS World flight simulator cockpit panels. Phys
 Three Python TUI tools automate the entire workflow — no Arduino IDE or manual file editing needed:
 - **Setup-START.py** — installs ESP32 core + libraries via bundled arduino-cli
 - **CockpitOS-START.py** → `compiler/cockpitos.py` — compiles and uploads firmware
-- **LabelCreator-START.py** → `label_creator/label_creator.py` — creates/edits label sets with built-in editors for InputMapping.h, LEDMapping.h, DisplayMapping.cpp, SegmentMap.h
+- **LabelCreator-START.py** → `label_creator/label_creator.py` — creates/edits label sets with built-in editors for InputMapping.h, LEDMapping.h, DisplayMapping.cpp, SegmentMap.h, CustomPins.h, LatchedButtons.h, CoverGates.h
 
 All tools are Windows-only, Python 3.12+, ANSI TUI, and switch between each other via `os.execl()`.
 
@@ -28,12 +28,9 @@ All tools are Windows-only, Python 3.12+, ANSI TUI, and switch between each othe
 | Topic | Location |
 |-------|----------|
 | **Documentation (current)** | `Docs/` — structured docs (Getting-Started, Tools, Hardware, How-To, Reference, Advanced, LLM) |
-| **Documentation (legacy)** | `Docs_OLD/` — original flat docs, some still have deeper detail |
 | **LLM master reference** | `Docs/LLM/CockpitOS-LLM-Reference.md` — start here for any CockpitOS question |
-| **Firmware deep reference** | `Docs_OLD/COCKPITOS_LLM_INSTRUCTION_SET.txt` (3,368 lines) |
 | **Config.h reference** | `Docs/Reference/Config.md` |
 | **Label Creator internals** | `label_creator/LLM/` — three files: LLM_GUIDE.md, ARCHITECTURE.md, EDITOR_FEATURES.md |
-| **Generator internals** | `Docs_OLD/AUTOGENERATOR_CORE_LLM_GUIDE.md` |
 | **Pending work items** | `TODO.md` (root) + `TODO/` directory (older items, RS485 fixes, perf, DCS-BIOS) |
 | **Session changelogs** | `TODO/SESSION_CHANGELOG_*.md` |
 
@@ -42,14 +39,14 @@ All tools are Windows-only, Python 3.12+, ANSI TUI, and switch between each othe
 ```
 CockpitOS.ino           Entry point
 Config.h                Master config (transport, debug, timing)
-Mappings.cpp/h          Latched buttons + CoverGate arrays (GLOBAL, not per-label-set yet)
+Mappings.cpp/h          Panel init/loop orchestration, PCA auto-detection, isLatchedButton()
 src/Core/               Core firmware (HIDManager, DCSBIOSBridge, CoverGate, InputControl, LEDControl)
 src/Panels/             Panel implementations (Generic.cpp handles most; custom panels for complex logic)
 src/LABELS/             Label sets — one folder per panel/aircraft
 src/LABELS/active_set.h Points to the active label set
 src/LABELS/_core/       Generator modules (generator_core.py, display_gen_core.py, reset_core.py)
 compiler/               Compiler tool source (cockpitos.py, ui.py)
-label_creator/          Label Creator source (label_creator.py, ui.py, input_editor.py, led_editor.py, display_editor.py, segment_map_editor.py)
+label_creator/          Label Creator source (label_creator.py, ui.py, input_editor.py, led_editor.py, display_editor.py, segment_map_editor.py, custompins_editor.py, latched_editor.py, covergate_editor.py)
 HID Manager/            PC-side USB HID bridge
 Debug Tools/            UDP console, stream recorder/player, command testers
 ```
@@ -91,17 +88,17 @@ Each folder in `src/LABELS/LABEL_SET_*/` contains:
 - `CustomPins.h` — pin assignments, feature enables
 - `LabelSetConfig.h` — device name, HID settings
 - `DCSBIOSBridgeData.h` — auto-generated hash tables
+- `LatchedButtons.h` — per-label-set latched button declarations
+- `CoverGates.h` — per-label-set cover gate definitions
 - `selected_panels.txt` — which aircraft panels are included
 
 ## Known Gaps (TODO.md)
 
 These are the remaining manual steps that should be automated:
 
-1. **Latched buttons** — `kLatchedButtons[]` in `Mappings.cpp` is global, not per-label-set. Should move to label set folder and get a Label Creator editor.
-2. **CoverGate** — `kCoverGates[]` in `Mappings.cpp` is global, not per-label-set. Same treatment needed.
-3. **DCS-BIOS installer** — not automated by Setup Tool
-4. **HID Manager deps** — pip installs not automated
-5. **Compiler Misc Options** — some Config.h settings (polling rate, TEST_LEDS, IS_REPLAY, axis tuning) still require manual editing
+1. **DCS-BIOS installer** — not automated by Setup Tool
+2. **HID Manager deps** — pip installs not automated
+3. **Compiler Misc Options** — some Config.h settings (polling rate, TEST_LEDS, IS_REPLAY, axis tuning) still require manual editing
 
 ## User Preferences
 

@@ -96,7 +96,7 @@ def write_covergates(filepath, entries):
     lines.append("")
     lines.append("#pragma once")
     lines.append("")
-    lines.append("inline const CoverGateDef kCoverGates[] = {")
+    lines.append("static const CoverGateDef kCoverGates[] = {")
     for e in entries:
         rel = f'"{e["release"]}"' if e["release"] else "nullptr"
         lines.append(
@@ -106,7 +106,7 @@ def write_covergates(filepath, entries):
             f'{e["delay_ms"]:>4}, {e["close_ms"]:>4} }},'
         )
     lines.append("};")
-    lines.append("inline const unsigned kCoverGateCount = sizeof(kCoverGates) / sizeof(kCoverGates[0]);")
+    lines.append("static const unsigned kCoverGateCount = sizeof(kCoverGates) / sizeof(kCoverGates[0]);")
     lines.append("")
     with open(filepath, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))

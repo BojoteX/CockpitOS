@@ -78,16 +78,18 @@ The `REGISTER_PANEL` macro expands to a static `_AutoPanelRegister` object. Its 
 ```cpp
 // src/Generated/PanelKind.h  (DO NOT EDIT MANUALLY)
 enum class PanelKind : uint8_t {
-    // Auto-detected PCA panels (permanent, no REGISTER_PANEL)
-    Brain,
-    ECM,
-    MasterARM,
-    AnalogGauge,
+    // Auto-detected hardware (permanent, no REGISTER_PANEL)
+    AnalogGauge,         // Auto-detected when DEVICE_GAUGE in LEDMapping
 
     // Compiled panels (auto-generated from src/Panels/*.cpp)
     Generic,
     IFEI,
     TFTBatt,
+    TFTBrake,
+    TFTCabPress,
+    TFTCmws,
+    TFTHyd,
+    TFTRadarAlt,
     WingFold,
     // ... more entries ...
 
@@ -378,7 +380,45 @@ bool shouldPollMs(lastPoll);         // Returns true at POLLING_RATE_HZ
 
 ---
 
-## 8. Reference Implementations
+## 8. InputControl -- Automatic Input Handling
+
+`InputControl.cpp` is the engine behind the Generic panel's input scanning. It automatically handles all `InputMapping.h` entries without requiring custom panel code. Understanding what it does automatically helps you know what you do NOT need to implement in a custom panel.
+
+### What InputControl Handles Automatically
+
+- **GPIO buttons and selectors** -- polls all GPIO-sourced inputs, detects state changes, sends commands
+- **PCA9555 inputs** -- reads I2C expander ports, debounces, detects changes per-bit
+- **HC165 shift registers** -- clocks data in, maps bits to input labels
+- **TM1637 key scanning** -- reads keys from TM1637 modules
+- **Matrix rotary encoders** -- strobes columns and reads rows
+- **Analog axes** -- reads ADC values with EMA filtering, calibration, deadzone, and hysteresis
+- **Selector group logic** -- ensures only one position per group is active, sends the correct value
+- **Encoder step counting** -- tracks A/B quadrature state, sends `variable_step` or `fixed_step` commands
+
+### When to Bypass InputControl
+
+You bypass InputControl when your custom panel reads hardware directly. For example, WingFold reads PCA9555 ports raw because the two-axis interaction cannot be expressed in InputMapping.h. The key rule: if a control appears in `InputMapping.h`, InputControl handles it. If you need custom logic, either:
+
+1. Set the source to `"NONE"` in InputMapping.h so InputControl ignores it, then handle it in your custom panel
+2. Remove it from InputMapping.h entirely and handle all aspects in your panel code
+3. Leave it in InputMapping.h for the command/HID mapping but subscribe to its DCS-BIOS output for custom reactions
+
+---
+
+## 9. PCA9555 Auto-Detection
+
+PCA9555 I2C expanders are fully data-driven. At startup, CockpitOS:
+
+1. **Collects addresses** from `InputMapping.h` (source strings like `"PCA_0x22"`) and `LEDMapping.h` (`DEVICE_PCA9555` entries with `.pcaInfo.address`)
+2. **Probes each address** on the I2C bus with 3 retries
+3. **Sweeps the full I2C range** (0x08-0x77) to detect any unmapped devices
+4. **Reports results** in debug output: which devices responded, which were expected but missing, and which were found but not in any mapping
+
+No hardcoded panel tables or manual registration is needed. Just add `PCA_0xNN` entries to your label set's InputMapping.h or LEDMapping.h and the system handles everything.
+
+---
+
+## 10. Reference Implementations
 
 ### WingFold.cpp -- State Machine Panel
 
@@ -420,9 +460,48 @@ A round GC9A01 TFT gauge using LovyanGFX. Key patterns:
 - **Day/NVG modes:** Automatically switches needle and background assets based on `CONSOLES_DIMMER`.
 - **FreeRTOS task:** Runs rendering at ~200 Hz on a dedicated core.
 
+For a complete TFT gauge development walkthrough, see [How-To/Wire-TFT-Gauges.md](../How-To/Wire-TFT-Gauges.md) and [Hardware/TFT-Gauges.md](../Hardware/TFT-Gauges.md).
+
+### TFT_Gauges_CabinPressure.cpp -- Higher Resolution TFT
+
+**Location:** `src/Panels/TFT_Gauges_CabinPressure.cpp`
+
+A 360x360 round gauge using the ST77961 controller. Key differences from the Battery gauge:
+
+- **Higher resolution** -- 360x360 vs 240x240 requires more PSRAM for backgrounds.
+- **Multiple subscriptions** -- subscribes to both cabin altitude and rate-of-climb.
+- **Two needles** -- renders two independent needle sprites on the same gauge face.
+- **Larger dirty rects** -- higher resolution means more pixels per update; DMA double-buffering is critical.
+
+### TFT_Display_CMWS.cpp -- Multi-Subscription Display
+
+**Location:** `src/Panels/TFT_Display_CMWS.cpp`
+
+The CMWS (Common Missile Warning System) display subscribes to multiple DCS-BIOS fields and renders a text-based tactical display. Key patterns:
+
+- **Many subscriptions** -- subscribes to numerous metadata and LED fields simultaneously.
+- **Complex state management** -- tracks multiple independent data streams and composes a unified display.
+- **Non-gauge TFT** -- demonstrates that TFT panels are not limited to analog gauge faces.
+
+### TestPanel.cpp -- Minimal Example
+
+**Location:** `src/Panels/TestPanel.cpp`
+
+The simplest possible custom panel. Use this as a starting template. It demonstrates the bare minimum: a compile guard, REGISTER_PANEL call, an init function with a DCS-BIOS subscription, and a loop function.
+
 ---
 
-## 9. Best Practices
+## 11. Auto-Tick and Output Drivers
+
+The `panelLoop()` function in `Mappings.cpp` calls `tickOutputDrivers()` after all panel loops finish. This automatically flushes all output driver buffers (PCA9555, TM1637, GN1640T, WS2812) regardless of which panel set the LED state. This means:
+
+- You do NOT need a `tick` function just to flush LED output buffers.
+- If your panel calls `setLED()` or writes to PCA9555 outputs, the data is flushed automatically.
+- The `tick` hook is only needed for panel-specific per-frame work that is not output flushing.
+
+---
+
+## 12. Best Practices
 
 ### Never Block in loop()
 

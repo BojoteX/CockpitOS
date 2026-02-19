@@ -23,25 +23,28 @@ The latched button system converts momentary press/release events into toggle st
 
 ### Declaring Latched Buttons
 
-Latched buttons are declared in the Label Creator-generated `Mappings.cpp` file:
+Latched buttons are declared per-label-set in `LatchedButtons.h` inside the label set folder:
+
+```
+src/LABELS/LABEL_SET_YOURPANEL/LatchedButtons.h
+```
+
+The file is managed by the **Latched Buttons Editor** in the Label Creator and contains:
 
 ```cpp
-const char* kLatchedButtons[] = {
+static const char* kLatchedButtons[] = {
     "FIRE_EXT_BTN",
     "MASTER_ARM_SW",
     "HOOK_BYPASS_SW",
     // ... more labels ...
 };
-const unsigned kLatchedButtonCount = sizeof(kLatchedButtons) / sizeof(kLatchedButtons[0]);
+static const unsigned kLatchedButtonCount = sizeof(kLatchedButtons) / sizeof(kLatchedButtons[0]);
 ```
 
-The `kLatchedButtons[]` array and `kLatchedButtonCount` are declared as externs in `Mappings.h`:
+These are included via `LabelSetSelect.h` (which is pulled in through `Pins.h` and `Globals.h`). The maximum count is defined in `Mappings.h`:
 
 ```cpp
 #define MAX_LATCHED_BUTTONS 16
-
-extern const char* kLatchedButtons[];
-extern const unsigned kLatchedButtonCount;
 
 bool isLatchedButton(const char* label);
 ```

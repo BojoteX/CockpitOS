@@ -58,6 +58,8 @@ Each chip on the same I2C bus must have a unique address. With 8 addresses avail
 
 CockpitOS also supports chips at extended addresses (e.g., 0x5B) found on some modules. The driver handles any valid PCA9555 address.
 
+**Auto-detection:** CockpitOS automatically discovers PCA9555 devices at startup. It collects addresses from your `InputMapping.h` and `LEDMapping.h` entries, probes each one on the I2C bus, and then performs a full bus sweep (0x08-0x77) to report any additional devices not in your mappings. No hardcoded panel tables or manual registration is needed.
+
 ---
 
 ## Wiring

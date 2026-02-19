@@ -84,13 +84,20 @@ The Modify screen menu adapts based on the current state. When files have been g
 | **Segment Maps** | Manages `*_SegmentMap.h` files for your display devices. Shows device count. |
 | **Edit Displays** | Opens the Display Editor for `DisplayMapping.cpp`. Only shown when display entries exist. Shows configuration progress. |
 
+#### Panel Behavior
+
+| Option | Description |
+|--------|-------------|
+| **Edit Latched Buttons** | Opens the Latched Buttons Editor. Configure which buttons use toggle (latched) behavior instead of momentary. Managed per-label-set in `LatchedButtons.h`. |
+| **Edit CoverGates** | Opens the CoverGate Editor. Configure guarded switch covers with timing and sequencing. Managed per-label-set in `CoverGates.h`. |
+
 #### Misc Options
 
 | Option | Description |
 |--------|-------------|
 | **Device Name** | Set or change the `LABEL_SET_FULLNAME` (max 32 characters) |
 | **HID Mode Selector** | Toggle whether this device includes the HID mode selector. Shows ON/OFF status. |
-| **Edit Custom Pins** | Opens `CustomPins.h` in your default text editor |
+| **Edit Custom Pins** | Opens the Custom Pins Editor for `CustomPins.h`. Configure pin assignments, feature enables (ENABLE_PCA9555, ENABLE_TFT_GAUGES), and board-specific settings. Boolean toggles flip with Enter/Space. |
 | **RESET LABEL SET** | Wipes generated files and lets you pick a new aircraft |
 
 The menu remembers your cursor position -- after performing an action, you return to the same menu item you were on.
@@ -163,6 +170,41 @@ Features:
 - Auto-detects field types when adding new entries
 - Auto-regenerates files after changes so new maps are picked up immediately
 - Changes in segment maps trigger an automatic regeneration of the label set
+
+## Custom Pins Editor
+
+The Custom Pins Editor manages `CustomPins.h` -- the per-label-set file that defines pin assignments, feature enables, and board-specific settings.
+
+Features:
+- Scrollable list of all configurable pins and feature flags
+- Boolean toggles (like `ENABLE_PCA9555`, `ENABLE_TFT_GAUGES`) flip instantly with Enter or Space -- no modal prompt
+- Numeric pins open an edit prompt for entering GPIO pin numbers
+- Detected board info is shown for reference
+- Changes are saved directly to `CustomPins.h`
+
+## Latched Buttons Editor
+
+The Latched Buttons Editor manages `LatchedButtons.h` -- the per-label-set file that declares which buttons use toggle (latched) behavior.
+
+Features:
+- Lists all input labels from `InputMapping.h` that can be latched
+- Toggle any label on/off with Enter
+- Selected labels are written to the label set's `LatchedButtons.h`
+- Maximum of `MAX_LATCHED_BUTTONS` (16) entries
+
+For how latched buttons work at the firmware level, see [Advanced/Latched-Buttons.md](../Advanced/Latched-Buttons.md).
+
+## CoverGate Editor
+
+The CoverGate Editor manages `CoverGates.h` -- the per-label-set file that defines guarded switch cover sequences.
+
+Features:
+- Add, edit, and delete CoverGate definitions
+- Configure action label, release label, cover label, kind, timing delays
+- Validates that referenced labels exist in `InputMapping.h`
+- Maximum of `MAX_COVER_GATES` (16) entries
+
+For how CoverGates work at the firmware level, see [Advanced/CoverGate.md](../Advanced/CoverGate.md).
 
 ## Deleting a Label Set
 

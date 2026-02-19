@@ -790,7 +790,8 @@ def _edit_custom_pins(ls_dir: Path, ls_name: str = "", ac_name: str = ""):
         str(ls_dir / "InputMapping.h"),
         str(ls_dir / "LEDMapping.h"),
         str(ls_dir / "DisplayMapping.cpp"),
-        ls_name, ac_name)
+        ls_name, ac_name,
+        config_filepath=str(SKETCH_DIR / "Config.h"))
 
 
 # ---------------------------------------------------------------------------
@@ -943,7 +944,8 @@ def main():
     prefs = load_prefs()
 
     while True:
-        # Gather status info on each loop iteration
+        # Reload prefs and live state every iteration to avoid stale data
+        prefs = load_prefs()
         existing = label_set.list_label_sets()
         active_ls = _read_active_label_set()
         active_ac = None

@@ -4,7 +4,7 @@
 
 #pragma once
 
-inline const char* kLatchedButtons[] = {
+static const char* kLatchedButtons[] = {
     "APU_FIRE_BTN",
 };
-inline const unsigned kLatchedButtonCount = sizeof(kLatchedButtons)/sizeof(kLatchedButtons[0]);
+static const unsigned kLatchedButtonCount = sizeof(kLatchedButtons)/sizeof(kLatchedButtons[0]);

@@ -50,7 +50,7 @@ CockpitOS is **ESP32 firmware** for building physical cockpit panels that interf
 |-------|---------|-----------|
 | **Panel Logic** | Per-aircraft behavior, state machines | `src/Panels/*.cpp` |
 | **Bridge & HID** | DCS-BIOS protocol, USB HID reports | `DCSBIOSBridge.cpp`, `HIDManager.cpp` |
-| **Hardware Abstraction** | Unified API for all hardware types | `CUtils.cpp`, `InputControl.cpp`, `LEDControl.cpp` |
+| **Hardware Abstraction** | Unified API for all hardware types | `lib/CUtils/`, `src/Core/InputControl.cpp`, `src/Core/LEDControl.cpp` |
 | **Hardware** | Physical GPIO, I2C, SPI drivers | ESP32 Arduino Core |
 
 **Deep dive:** [Advanced/Custom-Panels.md](../Advanced/Custom-Panels.md), [Advanced/Display-Pipeline.md](../Advanced/Display-Pipeline.md)
@@ -76,7 +76,7 @@ All three tools:
 
 ### Label Creator Editors
 
-The Label Creator contains four built-in editors:
+The Label Creator contains seven built-in editors:
 
 | Editor | File Edited | Source Module |
 |--------|-------------|---------------|
@@ -84,6 +84,9 @@ The Label Creator contains four built-in editors:
 | **LED Editor** | `LEDMapping.h` | `label_creator/led_editor.py` |
 | **Display Editor** | `DisplayMapping.cpp` | `label_creator/display_editor.py` |
 | **Segment Map Editor** | `*_SegmentMap.h` | `label_creator/segment_map_editor.py` |
+| **Custom Pins Editor** | `CustomPins.h` | `label_creator/custompins_editor.py` |
+| **Latched Buttons Editor** | `LatchedButtons.h` | `label_creator/latched_editor.py` |
+| **CoverGate Editor** | `CoverGates.h` | `label_creator/covergate_editor.py` |
 
 **Deep dive:** [Tools/Label-Creator.md](../Tools/Label-Creator.md)
 
@@ -112,6 +115,8 @@ CockpitOS/
 │   │   │   ├── CustomPins.h
 │   │   │   ├── DCSBIOSBridgeData.h
 │   │   │   ├── *_SegmentMap.h
+│   │   │   ├── LatchedButtons.h      ← Per-label-set latched button config
+│   │   │   ├── CoverGates.h          ← Per-label-set cover gate config
 │   │   │   ├── selected_panels.txt
 │   │   │   └── METADATA/
 │   │   └── (other label sets...)
@@ -122,11 +127,14 @@ CockpitOS/
 │   │   ├── WingFold.cpp   ← State machine example
 │   │   └── TFT_Gauges_*.cpp  ← TFT gauge tasks
 │   │
-│   ├── CUtils.cpp/h       ← Hardware abstraction API
-│   ├── InputControl.cpp/h  ← Input scanning (GPIO, PCA, HC165, TM1637, MATRIX)
-│   ├── LEDControl.cpp/h    ← Output driving (GPIO, PCA, WS2812, TM1637, GN1640T, GAUGE)
+│   ├── Core/              ← Core firmware modules
+│   │   ├── InputControl.cpp/h  ← Input scanning (GPIO, PCA, HC165, TM1637, MATRIX)
+│   │   ├── LEDControl.cpp/h    ← Output driving (GPIO, PCA, WS2812, TM1637, GN1640T, GAUGE)
+│   │   ├── PanelRegistry.cpp   ← Panel registration and lifecycle management
+│   │   └── CoverGate.cpp/h     ← Guarded switch cover state machine
 │   ├── DCSBIOSBridge.cpp/h ← DCS-BIOS protocol parser + subscription system
 │   ├── HIDManager.cpp/h    ← USB HID report generation + input logic
+│   ├── PanelRegistry.h     ← PanelHooks struct, REGISTER_PANEL macro
 │   └── Globals.h           ← Shared includes and forward declarations
 │
 ├── compiler/              ← Compiler tool source
@@ -140,13 +148,14 @@ CockpitOS/
 │   ├── led_editor.py      ← LEDMapping.h editor
 │   ├── display_editor.py  ← DisplayMapping.cpp editor
 │   ├── segment_map_editor.py ← SegmentMap.h editor
+│   ├── custompins_editor.py ← CustomPins.h editor
+│   ├── latched_editor.py    ← LatchedButtons.h editor
+│   ├── covergate_editor.py  ← CoverGates.h editor
 │   ├── _core/aircraft/    ← Aircraft JSON definitions
 │   └── LLM/               ← LLM-specific reference docs
 │
-├── _core/                 ← Generator core modules
-│   ├── generator_core.py
-│   ├── display_gen_core.py
-│   └── reset_core.py
+├── lib/
+│   └── CUtils/            ← Hardware abstraction library (PCA9555, TM1637, GN1640, WS2812, GPIO, HT1622, HC165, etc.)
 │
 ├── HID Manager/           ← USB HID bridge (PC-side)
 │   ├── HID_Manager.py
@@ -158,8 +167,7 @@ CockpitOS/
 │   ├── RECORD_DCS_stream.py
 │   └── (other tools...)
 │
-├── Docs/                  ← Original documentation (legacy)
-└── Docs_v2/               ← New structured documentation
+└── Docs/                  ← Official structured documentation
 ```
 
 ---
@@ -179,6 +187,8 @@ A **Label Set** is a folder in `src/LABELS/` containing all configuration files 
 | `LabelSetConfig.h` | Device name, HID settings | Label Creator Misc Options |
 | `CustomPins.h` | Pin assignments, feature enables (ENABLE_TFT_GAUGES, ENABLE_PCA9555) | Label Creator Custom Pins |
 | `DCSBIOSBridgeData.h` | Auto-generated hash tables for DCS-BIOS lookup | Generator (auto) |
+| `LatchedButtons.h` | Latched (toggle) button declarations | Label Creator Latched Buttons Editor |
+| `CoverGates.h` | Guarded switch cover definitions | Label Creator CoverGate Editor |
 | `selected_panels.txt` | Which aircraft panels are included | Label Creator Panel Selector |
 | `METADATA/*.json` | Custom control overrides | Generator system |
 
@@ -191,8 +201,8 @@ A **Label Set** is a folder in `src/LABELS/` containing all configuration files 
 | Field | Values | Description |
 |-------|--------|-------------|
 | `LABEL` | string | Human-readable name (from DCS-BIOS JSON) |
-| `SOURCE` | `"GPIO"`, `"PCA"`, `"HC165"`, `"TM1637"`, `"MATRIX"`, `"NONE"` | Hardware driver |
-| `port` | int or hex | GPIO pin, I2C address (0x20-0x27), chain position |
+| `SOURCE` | `"GPIO"`, `"PCA_0xNN"`, `"HC165"`, `"TM1637"`, `"MATRIX"`, `"NONE"` | Hardware driver |
+| `port` | int | GPIO pin number, PCA port (0-1), chain position |
 | `bit` | int | Bit within the device (0-15 for PCA, 0-7 for HC165) |
 | `hidButton` | int | USB HID button number (-1 for none) |
 | `dcsCommand` | string | DCS-BIOS command name |
@@ -387,8 +397,8 @@ Question about...
 │   → label_creator/LLM/EDITOR_FEATURES.md
 │
 └── Firmware internals (CUtils, HIDManager, DCSBIOSBridge APIs)?
-    → Docs/COCKPITOS_LLM_INSTRUCTION_SET.txt (3,368 lines, comprehensive)
-    → Advanced/Custom-Panels.md (API reference summary)
+    → Advanced/Custom-Panels.md (API reference, panel lifecycle, subscriptions)
+    → lib/CUtils/src/CUtils.h (hardware abstraction declarations)
 ```
 
 ---
@@ -407,7 +417,7 @@ When working with CockpitOS code or configuration:
 
 5. **USB CDC On Boot must be Disabled** for USB HID mode on S2/S3 boards. This is the #1 compilation error new users hit.
 
-6. **PCA9555 addresses are hex** (0x20-0x27). The Label Creator validates this automatically.
+6. **PCA9555 addresses are hex** (standard: 0x20-0x27, but clones may use any I2C address like 0x5B). PCA devices are auto-detected from InputMapping.h and LEDMapping.h -- no manual panel table needed.
 
 7. **Selector groups** must all share the same DCS-BIOS command name and group number, with different sendValue per position.
 
@@ -486,11 +496,6 @@ When working with CockpitOS code or configuration:
 ### Additional LLM Resources
 | Document | Description |
 |----------|-------------|
-| `Docs/COCKPITOS_LLM_INSTRUCTION_SET.txt` | 3,368-line comprehensive firmware reference (original, no tool docs) |
-| `Docs/AUTOGENERATOR_CORE_LLM_GUIDE.md` | Generator system internals |
-| `Docs/TFT_Gauge_Developer_Guide.md` | Detailed TFT gauge development |
-| `Docs/ADVANCED_DISPLAYS.md` | HT1622 segment LCD deep dive |
-| `Docs/ADVANCED_CONTROLS.md` | REGISTER_PANEL, PanelKind, CoverGate |
 | `label_creator/LLM/LLM_GUIDE.md` | Label Creator complete reference |
 | `label_creator/LLM/ARCHITECTURE.md` | Label Creator implementation guide |
 | `label_creator/LLM/EDITOR_FEATURES.md` | Editor features and UX patterns |
