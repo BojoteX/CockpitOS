@@ -5,50 +5,15 @@
 
 ---
 
-## HIGH PRIORITY — Per-Label-Set Configuration Gaps
+## ~~HIGH PRIORITY — Per-Label-Set Configuration Gaps~~ DONE
 
-### 1. Move Latched Buttons to Per-Label-Set
-**Current state:** `kLatchedButtons[]` is hardcoded in `Mappings.cpp:40-50` — shared across ALL label sets.
-
-**Problem:** Every label set uses the same latched button list, even when the buttons are irrelevant to that aircraft/panel. Users must manually edit C++ to add/remove latched buttons.
-
-**Solution:**
-- Move `kLatchedButtons[]` into a per-label-set file (e.g., `LatchConfig.h` or extend `LabelSetConfig.h`)
-- Add a **Latched Buttons editor** to the Label Creator — user toggles which controls should be latched from the InputMapping list
-- Generator could pre-populate defaults from aircraft JSON if a `"latched": true` flag exists
-- `Mappings.cpp` would `#include` the label-set-specific file instead of hardcoding
-
-**Files affected:**
-- `Mappings.cpp` — remove hardcoded `kLatchedButtons[]`, include per-label-set file
-- `Mappings.h` — keep extern declarations, adjust includes
-- `label_creator/label_creator.py` — add "Latched Buttons" menu item
-- `_core/generator_core.py` — generate default latched list from JSON (optional)
-- Each label set folder — new generated file
+### 1. ~~Move Latched Buttons to Per-Label-Set~~ DONE
+Moved `kLatchedButtons[]` from `Mappings.cpp` into per-label-set `LatchedButtons.h`. Extracted `CoverGateDef` struct/enum to `src/Core/CoverGateDef.h`. `LabelSetSelect.h` uses `__has_include` with empty fallback for label sets that don't have the file. Generator creates empty defaults on first run. Label Creator has a "Latched Buttons" toggle-list editor (`latched_editor.py`).
 
 ---
 
-### 2. Move CoverGate Definitions to Per-Label-Set
-**Current state:** `kCoverGates[]` is hardcoded in `Mappings.cpp:24-37` — shared across ALL label sets.
-
-**Problem:** All panels share the same CoverGate definitions regardless of aircraft. Users must manually write C++ structs with timing values.
-
-**Solution:**
-- Move `kCoverGates[]` into a per-label-set file (e.g., `CoverGateConfig.h`)
-- Add a **CoverGate editor** to the Label Creator:
-  - Select action control (from InputMapping list)
-  - Select release control (for Selector kind, from InputMapping list)
-  - Select cover control (from InputMapping list)
-  - Choose kind: Selector, ButtonMomentary, ButtonLatched
-  - Set delay_ms and close_delay_ms (with sensible defaults)
-- Generator could pre-populate known cover/action pairs from aircraft JSON
-- `Mappings.cpp` would `#include` the label-set-specific file
-
-**Files affected:**
-- `Mappings.cpp` — remove hardcoded `kCoverGates[]`, include per-label-set file
-- `Mappings.h` — keep `CoverGateDef` struct and extern declarations
-- `label_creator/label_creator.py` — add "CoverGate" menu item
-- `_core/generator_core.py` — generate default CoverGate config (optional)
-- Each label set folder — new generated file
+### 2. ~~Move CoverGate Definitions to Per-Label-Set~~ DONE
+Moved `kCoverGates[]` from `Mappings.cpp` into per-label-set `CoverGates.h`. Same `__has_include` fallback pattern. Label Creator has a "Cover Gates" list editor with add/edit/delete (`covergate_editor.py`). Reset tool wipes both files. LABEL_SET_MAIN populated with the original data from Mappings.cpp.
 
 ---
 
@@ -61,10 +26,8 @@
 
 ---
 
-### 4. HID Manager Dependency Installer
-**Current state:** Users must manually `pip install hidapi filelock windows-curses ifaddr`.
-
-**Solution:** Add to Setup Tool — detect missing deps, run pip install.
+### 4. ~~HID Manager Dependency Installer~~ DONE
+Added as Step 4 in `Setup-START.py` `action_setup()` flow. Auto-detects missing pip packages and installs them. Also handled by "Reset to recommended versions".
 
 ---
 
@@ -81,13 +44,11 @@
 
 ---
 
-## LOW PRIORITY — Nice to Have
+## ~~LABEL CREATOR — CustomPins.h Editor~~ DONE
 
-### 6. Socat Setup for Serial Transport
-**Current state:** Users must manually install socat from `Serial Manager/socat/`.
-
-**Solution:** Add to Setup Tool when Serial transport is selected.
+### 6. ~~Intelligent CustomPins.h Editor~~ DONE
+Replaced the "open in Notepad" approach with a TUI editor (`custompins_editor.py`). Scans InputMapping.h and LEDMapping.h to detect which hardware devices are in use (PCA9555, HC165, TM1637, WS2812, etc.), then presents a grouped pin configuration screen with contextual warnings when required pins are missing. Known groups: Feature Enables, I2C Bus, HC165, WS2812, TM1637, Mode Switch, RS485. Unknown defines preserved verbatim. Auto-suggests HC165_BITS from detected input count. Feature enables warn when detection mismatches setting. TFT gauge / IFEI / ALR-67 pin groups deferred to v2.
 
 ---
 
-*Last updated during Docs_v2 documentation restructure.*
+*Last updated during CustomPins.h editor implementation.*

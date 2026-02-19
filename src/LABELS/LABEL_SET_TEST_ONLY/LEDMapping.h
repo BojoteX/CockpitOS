@@ -3,12 +3,12 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
-  DEVICE_GPIO,
   DEVICE_WS2812,
   DEVICE_GAUGE,
-  DEVICE_PCA9555,
   DEVICE_TM1637,
   DEVICE_GN1640T,
+  DEVICE_PCA9555,
+  DEVICE_GPIO,
   DEVICE_NONE,
 };
 
@@ -46,67 +46,94 @@ static const LEDMapping panelLEDs[] = {
   { "CLOCK_ELAPSED_MINUTES"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CLOCK_ELAPSED_SECONDS"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CLOCK_HOURS"              , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "CLOCK_MINUTES"            , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
+  { "CLOCK_MINUTES"            , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "AUX_REL_SW"               , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "CMSD_DISPENSE_SW"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "CMSD_JET_SEL_BTN"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "CMSD_JET_SEL_L"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "ECM_MODE_SW"              , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "FIRE_LEFT_LT"             , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "LEFT_FIRE_BTN"            , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "LEFT_FIRE_BTN_COVER"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "HMD_OFF_BRT"              , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "IR_COOL_SW"               , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "SPIN_LT"                  , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "SPIN_RECOVERY_COVER"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "SPIN_RECOVERY_SW"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);
 
 // Auto-generated hash table
 struct LEDHashEntry { const char* label; const LEDMapping* led; };
-static const LEDHashEntry ledHashTable[53] = {
-  {"CLOCK_ELAPSED_SECONDS", &panelLEDs[15]},
-  {"CANOPY_JETT_HANDLE_UNLOCK", &panelLEDs[1]},
+static const LEDHashEntry ledHashTable[67] = {
+  {"CANOPY_JETT_HANDLE_PULL", &panelLEDs[0]},
+  {"ECM_MODE_SW", &panelLEDs[22]},
+  {nullptr, nullptr},
+  {"AUX_REL_SW", &panelLEDs[18]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"CLIP_R_GEN_LT", &panelLEDs[10]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"LEFT_FIRE_BTN_COVER", &panelLEDs[25]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"CLIP_BATT_SW_LT", &panelLEDs[3]},
+  {nullptr, nullptr},
+  {"CLIP_GEN_TIE_LT", &panelLEDs[8]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {"CLOCK_HOURS", &panelLEDs[16]},
   {nullptr, nullptr},
-  {"CLIP_FCS_HOT_LT", &panelLEDs[6]},
-  {"CLIP_SPARE_CTN2_LT", &panelLEDs[12]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"CLIP_R_GEN_LT", &panelLEDs[10]},
-  {"CLIP_BATT_SW_LT", &panelLEDs[3]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {"IR_COOL_SW", &panelLEDs[27]},
   {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"CLIP_CK_SEAT_LT", &panelLEDs[4]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {"CLIP_FUEL_LO_LT", &panelLEDs[7]},
+  {"CMSD_DISPENSE_SW", &panelLEDs[19]},
+  {"CMSD_JET_SEL_L", &panelLEDs[21]},
+  {"CMSD_JET_SEL_BTN", &panelLEDs[20]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"CLOCK_ELAPSED_SECONDS", &panelLEDs[15]},
+  {"SPIN_RECOVERY_COVER", &panelLEDs[29]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"CLIP_L_GEN_LT", &panelLEDs[9]},
+  {"CLOCK_ELAPSED_MINUTES", &panelLEDs[14]},
+  {"SPIN_LT", &panelLEDs[28]},
+  {"CLIP_FCES_LT", &panelLEDs[5]},
+  {"CLIP_SPARE_CTN3_LT", &panelLEDs[13]},
+  {nullptr, nullptr},
+  {"FIRE_LEFT_LT", &panelLEDs[23]},
+  {"CANOPY_JETT_HANDLE_UNLOCK", &panelLEDs[1]},
+  {"LEFT_FIRE_BTN", &panelLEDs[24]},
+  {"SPIN_RECOVERY_SW", &panelLEDs[30]},
+  {"CLOCK_MINUTES", &panelLEDs[17]},
+  {"HMD_OFF_BRT", &panelLEDs[26]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {"CLIP_APU_ACC_LT", &panelLEDs[2]},
-  {"CLIP_FCES_LT", &panelLEDs[5]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"CLIP_CK_SEAT_LT", &panelLEDs[4]},
-  {"CLOCK_ELAPSED_MINUTES", &panelLEDs[14]},
-  {nullptr, nullptr},
-  {"CLIP_GEN_TIE_LT", &panelLEDs[8]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"CLOCK_MINUTES", &panelLEDs[17]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"CLIP_SPARE_CTN3_LT", &panelLEDs[13]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"CLIP_FCS_HOT_LT", &panelLEDs[6]},
   {"CLIP_SPARE_CTN1_LT", &panelLEDs[11]},
-  {"CANOPY_JETT_HANDLE_PULL", &panelLEDs[0]},
-  {"CLIP_L_GEN_LT", &panelLEDs[9]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"CLIP_SPARE_CTN2_LT", &panelLEDs[12]},
 };
 
 // Reuse shared recursive hash implementation
@@ -114,9 +141,9 @@ constexpr uint16_t ledHash(const char* s) { return labelHash(s); }
 
 // findLED lookup
 inline const LEDMapping* findLED(const char* label) {
-  uint16_t startH = ledHash(label) % 53;
-  for (uint16_t i = 0; i < 53; ++i) {
-    uint16_t idx = (startH + i >= 53) ? (startH + i - 53) : (startH + i);
+  uint16_t startH = ledHash(label) % 67;
+  for (uint16_t i = 0; i < 67; ++i) {
+    uint16_t idx = (startH + i >= 67) ? (startH + i - 67) : (startH + i);
     const auto& entry = ledHashTable[idx];
     if (!entry.label) return nullptr;
     if (strcmp(entry.label, label) == 0) return entry.led;

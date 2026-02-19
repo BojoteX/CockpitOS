@@ -20,36 +20,9 @@
 #include "src/WiFiDebug.h"
 #endif
 
-// This table is where you add selectors or buttons that are physically guarded by a "cover"
-const CoverGateDef kCoverGates[] = {
-    // --- 2-Pos SELECTORS that are physically guarded --- ON_POSITION OFF_POSITION COVER_NAME ACTION_TYPE DELAY(OPEN) DELAY(CLOSE) 
-    { "GAIN_SWITCH_POS1",      "GAIN_SWITCH_POS0",     "GAIN_SWITCH_COVER",         CoverGateKind::Selector,        500,  500 },
-    { "GEN_TIE_SW_RESET",      "GEN_TIE_SW_NORM",      "GEN_TIE_COVER",             CoverGateKind::Selector,        500,  500 },
-    { "SPIN_RECOVERY_SW_RCVY", "SPIN_RECOVERY_SW_NORM","SPIN_RECOVERY_COVER",       CoverGateKind::Selector,        500,  500 },
-
-    // --- Momentary (latching) BUTTONS that are behind a cover --- TOGGLE N/A COVER_NAME ACTION_TYPE DELAY(OPEN) DELAY(CLOSE)
-    { "LEFT_FIRE_BTN",         nullptr,                "LEFT_FIRE_BTN_COVER",       CoverGateKind::ButtonMomentary, 350,  300 },
-    { "RIGHT_FIRE_BTN",        nullptr,                "RIGHT_FIRE_BTN_COVER",      CoverGateKind::ButtonMomentary, 350,  300 },
-    // --- Add other covered buttons as your cockpit expands ---
-    // { "SOME_OTHER_BTN",    nullptr, "SOME_COVER", CoverGateKind::ButtonMomentary, 400, 200 },
-
-    // TODO: Momentary (NON latching) BUTTONS behind a cover. Is it really required?
-};
-
-// This table is where you add LABELS for buttons that require "latching"
-const char* kLatchedButtons[] = {
-    "APU_FIRE_BTN",
-    "CMSD_JET_SEL_BTN",
-    "RWR_POWER_BTN",
-    "SJ_CTR",
-    "SJ_LI",
-    "SJ_LO",
-    "SJ_RI",
-    "SJ_RO",
-    // ...add more as needed
-};
-const unsigned kLatchedButtonCount = sizeof(kLatchedButtons)/sizeof(kLatchedButtons[0]);
-const unsigned kCoverGateCount = sizeof(kCoverGates) / sizeof(kCoverGates[0]);
+// kLatchedButtons[] and kCoverGates[] are now per-label-set.
+// See src/LABELS/LABEL_SET_*/LatchedButtons.h and CoverGates.h
+// Included automatically via LabelSetSelect.h
 
 PanelID getPanelID(uint8_t address) {
   for (auto &p : kPanels)

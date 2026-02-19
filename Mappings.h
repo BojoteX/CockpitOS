@@ -40,24 +40,9 @@ const char* getPanelName(uint8_t addr);  // Declaration
 #define MAX_COVER_GATES 16   // Or whatever is your true max, bump as needed!
 #define MAX_LATCHED_BUTTONS 16  // or however many you'll need
 
-enum class CoverGateKind : uint8_t {
-    Selector,
-    ButtonMomentary,
-    ButtonLatched,
-};
-
-struct CoverGateDef {
-    const char* action_label;
-    const char* release_label;
-    const char* cover_label;
-    CoverGateKind kind;
-    uint16_t delay_ms;
-    uint16_t close_delay_ms;
-};
-extern const CoverGateDef kCoverGates[];
-extern const unsigned kCoverGateCount;
-extern const char* kLatchedButtons[];
-extern const unsigned kLatchedButtonCount;
+#include "src/Core/CoverGateDef.h"
+// kCoverGates[] and kLatchedButtons[] are defined inline in LabelSetSelect.h
+// (included via Pins.h into every translation unit)
 
 void initMappings();
 void initializePanels(bool force);

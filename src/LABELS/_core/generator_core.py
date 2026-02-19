@@ -1454,6 +1454,36 @@ def run():
     print(f"[✓] Created {labelsetconfig_filename} with AUTOGEN_USB_PID=0x{_pid:04X} (from '{name_for_pid}')")
     # --- End of LabelSetConfig.h generation ---
 
+    # --- LatchedButtons.h (create if missing, never overwrite) ---
+    if not os.path.exists("LatchedButtons.h"):
+        with open("LatchedButtons.h", "w", encoding="utf-8") as _f:
+            _f.write("// LatchedButtons.h -- Per-label-set latched button configuration\n")
+            _f.write("// Buttons listed here toggle ON/OFF instead of acting as momentary press/release.\n")
+            _f.write("// Edit via the Label Creator tool or manually.\n\n")
+            _f.write("#pragma once\n\n")
+            _f.write("const char* kLatchedButtons[] = {\n")
+            _f.write("    // ...add labels of buttons that should latch\n")
+            _f.write("};\n")
+            _f.write("const unsigned kLatchedButtonCount = sizeof(kLatchedButtons)/sizeof(kLatchedButtons[0]);\n")
+        print("[+] Created LatchedButtons.h (empty)")
+    else:
+        print("[=] LatchedButtons.h exists, preserving")
+
+    # --- CoverGates.h (create if missing, never overwrite) ---
+    if not os.path.exists("CoverGates.h"):
+        with open("CoverGates.h", "w", encoding="utf-8") as _f:
+            _f.write("// CoverGates.h -- Per-label-set cover gate configuration\n")
+            _f.write("// Defines selectors/buttons that are physically guarded by a cover.\n")
+            _f.write("// Edit via the Label Creator tool or manually.\n\n")
+            _f.write("#pragma once\n\n")
+            _f.write("const CoverGateDef kCoverGates[] = {\n")
+            _f.write('    // { "ACTION", "RELEASE_OR_nullptr", "COVER", CoverGateKind::Selector, delay_ms, close_delay_ms },\n')
+            _f.write("};\n")
+            _f.write("const unsigned kCoverGateCount = sizeof(kCoverGates) / sizeof(kCoverGates[0]);\n")
+        print("[+] Created CoverGates.h (empty)")
+    else:
+        print("[=] CoverGates.h exists, preserving")
+
     # Set the active set
     # --- Emit active.set.h one directory up ---
     active_set_path = os.path.join(os.path.dirname(current_dir), "active_set.h")

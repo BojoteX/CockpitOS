@@ -32,6 +32,23 @@
 #include LBLPATH(LABEL_DIR, LEDMapping.h)
 #include LBLPATH(LABEL_DIR, DisplayMapping.h)
 
+// --- Per-label-set latched buttons (created by generator or Label Creator) ---
+#if __has_include(LBLPATH(LABEL_DIR, LatchedButtons.h))
+  #include LBLPATH(LABEL_DIR, LatchedButtons.h)
+#else
+  inline const char* kLatchedButtons[] = {};
+  inline const unsigned kLatchedButtonCount = 0;
+#endif
+
+// --- Per-label-set cover gates (created by generator or Label Creator) ---
+#include "Core/CoverGateDef.h"
+#if __has_include(LBLPATH(LABEL_DIR, CoverGates.h))
+  #include LBLPATH(LABEL_DIR, CoverGates.h)
+#else
+  inline const CoverGateDef kCoverGates[] = {};
+  inline const unsigned kCoverGateCount = 0;
+#endif
+
 // friendly name + USB strings
 #ifndef LABEL_SET_NAME
 #  define LABEL_SET_NAME STR(LABEL_SET)
