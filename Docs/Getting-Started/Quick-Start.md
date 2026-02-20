@@ -262,20 +262,19 @@ The editor saves your changes when you exit, just like the input editor.
 
 For this tutorial, we will use **WiFi** because it is the simplest transport to get started with. You do not need any bridge software on your PC -- the ESP32 talks directly to DCS-BIOS over your network.
 
-Open `Config.h` in the CockpitOS root folder (use any text editor) and set:
+The Compiler Tool handles all transport and WiFi configuration for you. Open the Compiler Tool (`CockpitOS-START.py`) and:
 
-```cpp
-#define USE_DCSBIOS_WIFI    1
-#define USE_DCSBIOS_USB     0
-#define USE_DCSBIOS_SERIAL  0
-```
+1. Select **Role / Transport** from the menu
+2. Choose **No** when asked "Is this an RS485 Master?"
+3. Select **WiFi** as the transport
 
-Then set your WiFi credentials:
+Then configure your WiFi credentials:
 
-```cpp
-#define WIFI_SSID   "YourNetworkName"
-#define WIFI_PASS   "YourPassword"
-```
+1. Select **Misc Options** from the menu
+2. Select **Wi-Fi Credentials**
+3. Enter your network SSID and password
+
+The tool writes these settings to `Config.h` and `.credentials/wifi.h` automatically.
 
 ```
 +-----------------------------------------------------------------------+
@@ -297,9 +296,9 @@ Then set your WiFi credentials:
 |  recommend USB HID transport (on S2, S3, or P4 boards). USB HID      |
 |  is faster, more reliable, and does not depend on your network.       |
 |                                                                       |
-|  To switch to USB later, just change USE_DCSBIOS_USB to 1 and        |
-|  USE_DCSBIOS_WIFI to 0 in Config.h, recompile, and run the           |
-|  HID Manager on your PC.                                              |
+|  To switch to USB later, open the Compiler Tool and change the        |
+|  transport to USB in Role / Transport. Then run the HID Manager       |
+|  on your PC.                                                          |
 +-----------------------------------------------------------------------+
 ```
 
@@ -374,11 +373,10 @@ python "Debug Tools\CONSOLE_UDP_debug.py"
 
 This shows WiFi connection status, incoming DCS-BIOS data, and outgoing commands from your panel.
 
-You can also enable verbose WiFi logging in `Config.h`:
+You can also enable verbose WiFi logging through the Compiler Tool:
 
-```cpp
-#define VERBOSE_MODE_WIFI_ONLY    1
-```
+1. Select **Misc Options** > **Debug / Verbose Toggles**
+2. Enable **Verbose output over WiFi**
 
 Recompile and re-upload after making this change.
 
@@ -441,7 +439,7 @@ Run through this list to make sure you have not missed anything:
 |  PROBLEM: Compilation fails                                           |
 +-----------------------------------------------------------------------+
 |  - Re-run the Setup Tool and choose "Reset to Manifest Versions"      |
-|  - Make sure only ONE transport is set to 1 in Config.h               |
+|  - Use the Compiler Tool's Role / Transport to set the transport      |
 |  - The Compiler Tool handles board settings automatically, so if you  |
 |    previously used Arduino IDE, those old settings will not interfere  |
 +-----------------------------------------------------------------------+
@@ -463,7 +461,7 @@ Run through this list to make sure you have not missed anything:
 You have a working panel. Here is where to go from here:
 
 - **Add more hardware** -- See the [Hardware Guides](../Hardware/README.md) for wiring rotary encoders, shift registers, I2C expanders, TFT displays, and more
-- **Switch to USB HID** -- Change `Config.h` to use `USE_DCSBIOS_USB=1`, recompile, and run the [HID Manager](../Tools/HID-Manager.md) on your PC for lower latency
+- **Switch to USB HID** -- Use the Compiler Tool's Role / Transport menu to switch to USB, recompile, and run the [HID Manager](../Tools/Debug-Tools.md#hid-manager) on your PC for lower latency
 - **Add another aircraft** -- Create additional label sets for different aircraft using the Label Creator
 - **Build multi-panel setups** -- Use [RS485 networking](../How-To/Wire-RS485-Network.md) to connect multiple ESP32 boards together
 - **Create custom panels** -- Write your own panel code using [REGISTER_PANEL](../Advanced/Custom-Panels.md) for special behavior

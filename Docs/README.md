@@ -17,7 +17,7 @@
 | **Follow a step-by-step how-to** | [How-To Guides](How-To/README.md) |
 | **Look up a Config.h setting** | [Config Reference](Reference/Config.md) |
 | **Troubleshoot a problem** | [FAQ & Troubleshooting](Reference/FAQ.md) |
-| **Build something advanced** | [Advanced Topics](Advanced/README.md) |
+| **Build something advanced** | [Custom Panels](Advanced/Custom-Panels.md) |
 
 ---
 
@@ -35,8 +35,7 @@ Docs/
   |     Setup-Tool.md .......... Environment installer (Setup-START.py)
   |     Compiler-Tool.md ....... Firmware compiler (CockpitOS-START.py)
   |     Label-Creator.md ....... Label set editor (LabelCreator-START.py)
-  |     Debug-Tools.md ......... Debug & replay utilities
-  |     HID-Manager.md ......... USB HID bridge for PC
+  |     Debug-Tools.md ......... Debug & replay utilities + HID Manager
   |
   +-- Hardware/
   |     README.md ............... Hardware overview & board selection
