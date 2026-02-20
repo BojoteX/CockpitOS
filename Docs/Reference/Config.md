@@ -215,6 +215,15 @@ These flags enable raw I/O tracing for specific hardware peripherals. Use only w
 | `SERIAL_DEBUG_USE_RINGBUFFER` | `0` | Use a ring buffer for serial debug messages. |
 | `WIFI_DEBUG_USE_RINGBUFFER` | `0` | Use a ring buffer for WiFi debug messages. Required when using CDC + WiFi debug to avoid stalls. |
 
+When ring buffers are enabled, the following sub-settings change automatically:
+
+| Flag | When Enabled | When Disabled | Description |
+|------|:------------:|:-------------:|-------------|
+| `SERIAL_RINGBUF_SIZE` | `64` | `0` | Serial debug ring buffer depth |
+| `SERIAL_MSG_MAXLEN` | `64` | `1024` | Max serial debug message length |
+| `WIFI_DBG_SEND_RINGBUF_SIZE` | `32` | `0` | WiFi debug ring buffer depth |
+| `WIFI_DBG_MSG_MAXLEN` | `64` | `1472` | Max WiFi debug message length |
+
 ### Internal Buffers (Do Not Modify)
 
 | Flag | Default | Description |
@@ -256,6 +265,13 @@ These are set automatically. Override only if you know what you are doing.
 | `CONFIG_TINYUSB_MSC_ENABLED` | `0` | Mass storage class disabled. |
 | `CONFIG_TINYUSB_MIDI_ENABLED` | `0` | MIDI class disabled. |
 | `CONFIG_TINYUSB_VIDEO_ENABLED` | `0` | Video class disabled. |
+| `CONFIG_TINYUSB_CDC_ENABLED` | `1` | CDC class enabled. |
+| `CONFIG_TINYUSB_CDC_MAX_PORTS` | `2` | CDC port count. |
+| `CONFIG_TINYUSB_CUSTOM_CLASS_ENABLED` | `0` | Custom class disabled. |
+| `CONFIG_TINYUSB_DFU_RT_ENABLED` | `0` | DFU runtime disabled. |
+| `CONFIG_TINYUSB_DFU_ENABLED` | `0` | DFU class disabled. |
+| `CONFIG_TINYUSB_VENDOR_ENABLED` | `0` | Vendor class disabled. |
+| `CONFIG_TINYUSB_NCM_ENABLED` | `0` | NCM (network) class disabled. |
 
 ---
 

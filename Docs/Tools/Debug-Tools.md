@@ -187,7 +187,7 @@ python "Debug Tools/FRAME_avg_size.py" --stream SHORT
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `--stream` | `LAST` | Stream identifier to analyze |
+| `--stream` | *(interactive)* | Stream identifier to analyze (prompts if not specified) |
 
 ### BOOTLOADER_reset_tool.py -- Remote Bootloader Trigger
 

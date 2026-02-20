@@ -70,26 +70,21 @@ The Modify screen menu adapts based on the current state. When files have been g
 | **Select / deselect panels** | Opens the toggle-list panel selector. Shows the current count (e.g., "3 selected"). After changing panels, regeneration runs automatically. |
 | **Generate & Set as Default** | Regenerates all files and sets this label set as the active one for compilation. Shows "(active)" or "(not active)" status. |
 
-#### LEDs & Controls (Wiring)
+#### LEDs & Controls
 
 | Option | Description |
 |--------|-------------|
 | **Edit Inputs** | Opens the Input Editor for `InputMapping.h`. Shows wiring progress (e.g., "12/45 wired"). |
 | **Edit Outputs (LEDs)** | Opens the LED Editor for `LEDMapping.h`. Shows wiring progress. |
+| **Latched Buttons** | Opens the Latched Buttons Editor. Configure which buttons use toggle (latched) behavior instead of momentary. Managed per-label-set in `LatchedButtons.h`. |
+| **Cover Gates** | Opens the CoverGate Editor. Configure guarded switch covers with timing and sequencing. Managed per-label-set in `CoverGates.h`. |
 
 #### Displays
 
 | Option | Description |
 |--------|-------------|
-| **Segment Maps** | Manages `*_SegmentMap.h` files for your display devices. Shows device count. |
+| **Display Configuration** | Manages `*_SegmentMap.h` files for your display devices. Shows device count. |
 | **Edit Displays** | Opens the Display Editor for `DisplayMapping.cpp`. Only shown when display entries exist. Shows configuration progress. |
-
-#### Panel Behavior
-
-| Option | Description |
-|--------|-------------|
-| **Edit Latched Buttons** | Opens the Latched Buttons Editor. Configure which buttons use toggle (latched) behavior instead of momentary. Managed per-label-set in `LatchedButtons.h`. |
-| **Edit CoverGates** | Opens the CoverGate Editor. Configure guarded switch covers with timing and sequencing. Managed per-label-set in `CoverGates.h`. |
 
 #### Misc Options
 
@@ -122,7 +117,7 @@ Key features:
 - **Source picker** with descriptions of each input type
 - **Field validation** -- PCA addresses must be valid hex (e.g., `PCA_0x20`), bit ranges are checked against the device type
 - **Selector group awareness** -- Records in the same selector group are visually grouped
-- **Help system** -- Press `?` at any time for contextual help about the current field
+- **Help system** -- Press `h` at any time for contextual help about the current field
 - **Terminal-width-responsive columns** -- The display adapts to your terminal width
 
 ## LED Editor

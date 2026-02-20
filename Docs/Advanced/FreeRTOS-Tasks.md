@@ -291,7 +291,7 @@ On ESP32-S3 (dual-core), tasks are distributed across cores:
 | Arduino `loop()` | 1 | 1 | Default Arduino core |
 | TFT Gauge tasks | 0 | 2 | Keep rendering off the main loop core |
 | IFEI Display | any | 1 | Low priority, SPI-bound |
-| RS485 Master | 1 | 24 | Must match WiFi priority for round-robin |
+| RS485 Master | 0 | 24 | Must match WiFi priority for round-robin |
 | RS485 Slave | 0 | 5 | Export data processing |
 | WiFi | 0/1 | 23 | System task |
 | USB/tinyUSB | 0 | 18 | System task |

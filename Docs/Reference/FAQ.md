@@ -85,6 +85,9 @@ A label set is a folder inside `src/LABELS/` that contains all the configuration
 - `DCSBIOSBridgeData.h` -- DCS-BIOS address subscriptions (auto-generated)
 - `LabelSetConfig.h` -- Label set metadata (name, aircraft, USB PID)
 - `CustomPins.h` -- Board-level pin assignments and feature enables
+- `LatchedButtons.h` -- Latched button declarations
+- `CoverGates.h` -- Cover gate definitions
+- `selected_panels.txt` -- Which aircraft panels are included
 - `METADATA/` -- JSON overlays for custom control definitions
 
 You can have multiple label sets (one per panel/board) and switch between them before compiling.

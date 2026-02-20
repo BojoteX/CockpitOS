@@ -35,7 +35,7 @@ CockpitOS supports four transport modes for communicating with DCS-BIOS, plus RS
 | **Reliability** | Highest | Good | Good | Fair |
 | **PC Software** | HID Manager | None | socat / connect-serial-port | None |
 | **Wireless** | No | Yes | No | Yes |
-| **ESP32 Variants** | S2, S3, P4 | All except H2 | All | Classic, S3, C2/C3/C5/C6, H2 |
+| **ESP32 Variants** | S2, S3, P4 | All except H2, P4 | All | Classic, S3, C2/C3/C5/C6, H2 |
 | **Max Panels** | 32 (via HID Manager) | Unlimited | 1 per COM port | 1 per connection |
 
 ---
