@@ -108,7 +108,7 @@ ESP32                          PC
 
 ### Setup Steps
 
-1. Set the transport flags in `Config.h` as shown above.
+1. In the Compiler Tool, select **Role / Transport** and choose **USB Native**. The tool writes all Config.h flags automatically.
 2. Compile and upload using the Compiler Tool.
 3. On the PC, start HID Manager. It auto-discovers devices with VID `0xCAFE`.
 4. Start DCS World and load a mission.
@@ -172,7 +172,7 @@ ESP32                                       PC
 
 ### Setup Steps
 
-1. Set the transport flags and WiFi credentials in `Config.h`.
+1. In the Compiler Tool, select **Role / Transport** and choose **WiFi**. Then set your WiFi credentials in **Misc Options** > **Wi-Fi Credentials**. The tool writes all Config.h flags and `.credentials/wifi.h` automatically.
 2. Compile and upload.
 3. Ensure your PC and ESP32 are on the same 2.4 GHz network.
 4. Start DCS World and load a mission. The panel connects automatically.
@@ -235,7 +235,7 @@ ESP32                           PC
 
 ### Setup Steps
 
-1. Set the transport flag in `Config.h`.
+1. In the Compiler Tool, select **Role / Transport** and choose **Serial (CDC/Socat)**. The tool writes all Config.h flags automatically.
 2. Compile and upload.
 3. Note the COM port assigned to the ESP32.
 4. Run the serial bridge:
@@ -377,15 +377,16 @@ For detailed RS-485 wiring instructions, see the How-To guide (when available).
 
 ## Debug Tips
 
-| Tool | Purpose |
-|------|---------|
-| `VERBOSE_MODE_SERIAL_ONLY=1` | Log all activity to Serial (use with USB transport) |
-| `VERBOSE_MODE_WIFI_ONLY=1` | Log all activity to WiFi debug console (use with WiFi transport) |
-| `CONSOLE_UDP_debug.py` | Monitor UDP traffic between ESP32 and DCS-BIOS |
-| `LOG_DCS_commands.py` | Log all DCS-BIOS commands being sent |
-| `SEND_CommandTester.py` | Send test commands to DCS-BIOS manually |
-| `SCAN_WIFI_NETWORKS=1` | List WiFi networks visible to the ESP32 (Serial output) |
-| `RS485_DEBUG_VERBOSE=1` | Log every RS-485 poll/response (very verbose) |
+| Tool | Purpose | How to Enable |
+|------|---------|---------------|
+| Verbose Serial | Log all activity to Serial (use with USB transport) | Compiler Tool > Misc Options > Debug Toggles |
+| Verbose WiFi | Log all activity to WiFi debug console (use with WiFi transport) | Compiler Tool > Misc Options > Debug Toggles |
+| Performance profiling | Show CPU load and memory usage | Compiler Tool > Misc Options > Debug Toggles |
+| `CONSOLE_UDP_debug.py` | Monitor UDP traffic between ESP32 and DCS-BIOS | Run from `Debug Tools/` |
+| `LOG_DCS_commands.py` | Log all DCS-BIOS commands being sent | Run from `Debug Tools/` |
+| `SEND_CommandTester.py` | Send test commands to DCS-BIOS manually | Run from `Debug Tools/` |
+| `SCAN_WIFI_NETWORKS=1` | List WiFi networks visible to the ESP32 (Serial output) | Manual in `Config.h` |
+| `RS485_DEBUG_VERBOSE=1` | Log every RS-485 poll/response (very verbose) | Manual in `Config.h` |
 
 ---
 

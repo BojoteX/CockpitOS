@@ -217,7 +217,7 @@ If your encoder has a different PPR (pulses per revolution), you may need to adj
 
 1. Verify the common pin is connected to GND
 2. Check that the GPIO pins are not on the "avoid" list for your board variant
-3. Enable `DEBUG_ENABLED` in Config.h and check Serial output for input activity
+3. Enable debug output in the Compiler Tool (**Misc Options** > **Debug / Verbose Toggles** > **Extended debug info**) and check Serial output for input activity
 
 ---
 

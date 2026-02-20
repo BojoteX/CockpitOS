@@ -14,7 +14,7 @@ Any aircraft that DCS-BIOS supports. CockpitOS ships with aircraft JSON definiti
 
 ### Is this only for DCS World?
 
-Yes. CockpitOS is built around the DCS-BIOS protocol, which is a LUA export script that runs inside DCS World. It does not work with other simulators natively. However, the firmware also supports a **HID gamepad mode** (set `MODE_DEFAULT_IS_HID=1` in `Config.h`) that presents inputs as a standard USB gamepad to the operating system, which any simulator or application can read.
+Yes. CockpitOS is built around the DCS-BIOS protocol, which is a LUA export script that runs inside DCS World. It does not work with other simulators natively. However, the firmware also supports a **HID gamepad mode** that presents inputs as a standard USB gamepad to the operating system, which any simulator or application can read. Enable this in the Compiler Tool under **Misc Options** > **Advanced Settings** > **HID Mode as Default**.
 
 ### What is the difference between CockpitOS and DCS-BIOS?
 
@@ -140,7 +140,7 @@ For hardwired multi-panel setups, consider RS-485 networking: one master ESP32 c
 
 Common causes, in order of likelihood:
 
-1. **Wrong transport mode** -- Check `Config.h` to confirm exactly one transport is set to `1`
+1. **Wrong transport mode** -- Use the Compiler Tool's **Role / Transport** menu to verify the correct transport is selected
 2. **DCS-BIOS not running** -- Make sure the DCS-BIOS mod is installed and a mission is loaded
 3. **USB cable** -- Many USB cables are charge-only with no data lines. Try a different cable.
 4. **HID Manager not running** (USB mode) -- The HID Manager must be running on the PC
