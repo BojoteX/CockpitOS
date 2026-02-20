@@ -255,7 +255,7 @@
             color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            padding: 0.5rem 10x;
+            padding: 0.5rem 10px;
             position: relative;
         }
 
@@ -1326,7 +1326,7 @@
                 <span></span>
                 Open Source • MIT License
             </div>
-            --!>
+            -->
 
             <h1>
                 <span>CockpitOS</span>
@@ -1493,7 +1493,7 @@
                     <ul class="feature-list">
                         <li>Label Set architecture</li>
                         <li>Auto-generated mappings</li>
-                        <li>Python generator scripts</li>
+                        <li>Label Creator guided editors</li>
                         <li>Preserves user edits</li>
                         <li>METADATA overlays</li>
                         <li>Multi-aircraft support</li>
@@ -1505,7 +1505,7 @@
                     <h3>Developer Friendly</h3>
                     <p>Comprehensive tooling and documentation.</p>
                     <ul class="feature-list">
-                        <li>Arduino IDE 2.x environment</li>
+                        <li>Automated Python TUI tools</li>
                         <li>AI Assistant for help</li>
                         <li>RAM Walker for displays</li>
                         <li>WiFi debug console</li>
@@ -1631,28 +1631,28 @@
 
             <div class="quickstart-steps">
                 <div class="quickstart-step">
-                    <h4>Install Arduino IDE</h4>
-                    <p>Download <a href="https://www.arduino.cc/en/software" target="_blank">Arduino IDE 2.x</a> and install the <code>ESP32 Arduino Core 3.3+</code> via Boards Manager.</p>
-                </div>
-
-                <div class="quickstart-step">
                     <h4>Download CockpitOS</h4>
                     <p>Clone or download from <a href="https://github.com/BojoteX/CockpitOS" target="_blank">GitHub</a>. Extract to your Arduino folder.</p>
                 </div>
 
                 <div class="quickstart-step">
-                    <h4>Select a Label Set</h4>
-                    <p>Navigate to <code>src/LABELS/</code> directory and run <code>python generate_data.py</code></p>
+                    <h4>Run the Setup Tool</h4>
+                    <p>Run <code>Setup-START.py</code> to install the ESP32 core and libraries automatically. No Arduino IDE required.</p>
                 </div>
 
                 <div class="quickstart-step">
-                    <h4>Configure Transport</h4>
-                    <p>Edit <code>Config.h</code> to select USB, WiFi, or Serial mode for your setup.</p>
+                    <h4>Create a Label Set</h4>
+                    <p>Run <code>LabelCreator-START.py</code> to pick your aircraft, select panels, and map your hardware through guided editors.</p>
                 </div>
 
                 <div class="quickstart-step">
-                    <h4>Upload Firmware</h4>
-                    <p>Use the <a href="https://cockpitos.bojote.com/upload/?v=1" target="_blank">Web Flasher</a> to upload directly from your browser, or compile and upload via Arduino IDE.</p>
+                    <h4>Configure &amp; Compile</h4>
+                    <p>Run <code>CockpitOS-START.py</code> to select your transport (USB, WiFi, or Serial), compile, and upload firmware to your ESP32.</p>
+                </div>
+
+                <div class="quickstart-step">
+                    <h4>Fly</h4>
+                    <p>Start DCS World, load a mission, and your physical panel responds to the cockpit in real time.</p>
                 </div>
             </div>
         </div>
@@ -1873,7 +1873,7 @@
             </div>
 
             <div class="footer-bottom">
-                <p>© 2025 CockpitOS Project. Released under MIT License.</p>
+                <p>© 2026 CockpitOS Project. Released under MIT License.</p>
                 <div class="footer-social">
                     <a href="https://github.com/BojoteX/CockpitOS" target="_blank" title="GitHub">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">

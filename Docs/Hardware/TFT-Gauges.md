@@ -41,8 +41,8 @@ Each TFT gauge is a small round or rectangular LCD display mounted behind a phys
 | Battery Voltage     | GC9A01     | 240x240    | Round |
 | Brake Pressure      | GC9A01     | 240x240    | Round |
 | Hydraulic Pressure  | GC9A01     | 240x240    | Round |
-| Cabin Pressure      | ST77961    | 360x360    | Round |
-| Radar Altimeter     | ST77961    | 360x360    | Round |
+| Cabin Pressure      | ST77916    | 360x360    | Round |
+| Radar Altimeter     | ST77916    | 360x360    | Round |
 
 ---
 
@@ -53,8 +53,7 @@ CockpitOS TFT gauges support multiple display controllers through the LovyanGFX 
 | Display Controller | Resolution | Shape      | Bus  | Notes                           |
 |--------------------|------------|------------|------|---------------------------------|
 | GC9A01             | 240x240    | Round      | SPI  | Common, affordable round displays |
-| ST77916            | 360x360    | Round      | QSPI | Waveshare boards                |
-| ST77961            | 360x360    | Round      | SPI  | IdeasPark 1.14" and similar     |
+| ST77916            | 360x360    | Round      | SPI / QSPI | Waveshare, IdeasPark boards. LovyanGFX uses class `Panel_ST77961` for SPI mode. |
 | ST7789             | 240x320    | Rectangular| SPI  | Very common rectangular displays |
 | ILI9341            | 240x320    | Rectangular| SPI  | CYD (Cheap Yellow Display) boards |
 

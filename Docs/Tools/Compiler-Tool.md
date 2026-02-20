@@ -66,7 +66,7 @@ The tool writes all transport flags to `Config.h` automatically, performs cross-
 
 ### Misc Options
 
-A sub-menu with three sections:
+A sub-menu with four items:
 
 **Wi-Fi Credentials** -- Set the SSID and password for WiFi transport. Saved to `.credentials/wifi.h`. Supports 2.4 GHz WPA2-PSK only.
 
@@ -78,9 +78,7 @@ A sub-menu with three sections:
 
 **Advanced Settings** -- Toggle HID mode as default, show detailed compiler warnings.
 
-### Clear Cache/Build
-
-Wipes the build directory to force a full recompile on the next build. Useful when switching boards or after changing `Config.h` settings that the incremental build might not pick up.
+**Clear cache/build** -- Wipes the build directory to force a full recompile on the next build. Useful when switching boards or after changing `Config.h` settings that the incremental build might not pick up.
 
 ## Action Bar
 
@@ -135,9 +133,10 @@ compiler/arduino-cli/arduino-cli.exe
 
 On first run, the tool automatically searches for `arduino-cli` in several locations:
 1. The bundled path above
-2. Windows registry (Arduino IDE install)
-3. Common install directories
-4. System PATH
+2. Cached path from a previous session
+3. Windows registry (Arduino IDE install)
+4. Common install directories
+5. System PATH
 
 If none are found, it prompts you to enter the Arduino IDE folder path manually.
 
