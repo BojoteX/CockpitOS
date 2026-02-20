@@ -7,11 +7,7 @@
 
 // --- Feature Enables --------------------------------------
 #define ENABLE_TFT_GAUGES                        0              // Enable TFT gauge rendering (only if TFT displays are present)
-#define ENABLE_PCA9555                           1              // Enable PCA9555 I/O expander logic (only if PCA chips are present)
-
-// --- I2C Bus ----------------------------------------------
-#define SDA_PIN                                  PIN(8)         // I2C data line for PCA9555 expanders
-#define SCL_PIN                                  PIN(9)         // I2C clock line for PCA9555 expanders
+#define ENABLE_PCA9555                           0              // Enable PCA9555 I/O expander logic (only if PCA chips are present)
 
 // --- Preserved (not managed by editor) --------------------
 // Used by PCA9555 expanders, OLED displays, or any I2C peripherals.

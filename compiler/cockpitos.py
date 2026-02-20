@@ -511,26 +511,46 @@ def main():
     global _lock_path
     lock_path = Path(__file__).parent / ".cockpitos.lock"
     _lock_path = lock_path
+    def _is_cockpitos_process(pid):
+        """Check if a PID belongs to a running Python process (not a recycled PID)."""
+        try:
+            kernel32 = ctypes.windll.kernel32
+            psapi = ctypes.windll.psapi
+            handle = kernel32.OpenProcess(0x0400 | 0x0010, False, pid)  # PROCESS_QUERY_INFORMATION | PROCESS_VM_READ
+            if not handle:
+                return False
+            try:
+                buf = ctypes.create_unicode_buffer(260)
+                if psapi.GetModuleFileNameExW(handle, None, buf, 260):
+                    return "python" in buf.value.lower()
+                return False
+            finally:
+                kernel32.CloseHandle(handle)
+        except Exception:
+            return False
+
     try:
         # Exclusive create — fails if file already exists
         lock_fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         os.write(lock_fd, str(os.getpid()).encode())
         os.close(lock_fd)
     except FileExistsError:
-        # Check if the existing process is still alive
+        # Check if the existing process is actually CockpitOS (not a recycled PID)
+        still_running = False
         try:
             old_pid = int(lock_path.read_text().strip())
-            kernel32 = ctypes.windll.kernel32
-            handle = kernel32.OpenProcess(0x1000, False, old_pid)  # PROCESS_QUERY_LIMITED_INFORMATION
-            if handle:
-                kernel32.CloseHandle(handle)
-                # Process alive — bring its window forward and exit
-                _bring_existing_to_front()
-                print("\n  CockpitOS tool is already running. Switching to existing window.")
-                sys.exit(0)
+            if _is_cockpitos_process(old_pid):
+                # Confirmed Python process — check if it has our window title
+                if _bring_existing_to_front():
+                    still_running = True
         except (ValueError, OSError):
             pass
-        # Stale lock — reclaim it
+
+        if still_running:
+            print("\n  CockpitOS tool is already running. Switching to existing window.")
+            sys.exit(0)
+
+        # Stale lock (crash, recycled PID, or no window found) — reclaim it
         lock_path.unlink(missing_ok=True)
         lock_fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         os.write(lock_fd, str(os.getpid()).encode())
