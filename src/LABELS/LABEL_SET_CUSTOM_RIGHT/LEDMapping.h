@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
-  DEVICE_GN1640T,
-  DEVICE_TM1637,
-  DEVICE_GAUGE,
-  DEVICE_NONE,
-  DEVICE_PCA9555,
   DEVICE_GPIO,
+  DEVICE_GAUGE,
+  DEVICE_PCA9555,
+  DEVICE_TM1637,
+  DEVICE_GN1640T,
   DEVICE_WS2812,
+  DEVICE_NONE,
 };
 
 struct LEDMapping {
@@ -30,7 +30,7 @@ struct LEDMapping {
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
   { "ARRESTING_HOOK_LT"     , DEVICE_GPIO    , {.gpioInfo = {PIN(2)}}, false, true }, // GPIO PIN(2),
-  { "HOOK_LEVER"            , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "HOOK_LEVER"            , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CLIP_APU_ACC_LT"       , DEVICE_GN1640T , {.gn1640Info = {0, 1, 0}}, false, false }, // GN1640 Addr 0 Col 1 Row 0,
   { "CLIP_BATT_SW_LT"       , DEVICE_GN1640T , {.gn1640Info = {0, 2, 0}}, false, false }, // GN1640 Addr 0 Col 2 Row 0,
   { "CLIP_CK_SEAT_LT"       , DEVICE_GN1640T , {.gn1640Info = {0, 0, 0}}, false, false }, // GN1640 Addr 0 Col 0 Row 0,
@@ -43,15 +43,15 @@ static const LEDMapping panelLEDs[] = {
   { "CLIP_SPARE_CTN1_LT"    , DEVICE_GN1640T , {.gn1640Info = {0, 2, 1}}, false, false }, // GN1640 Addr 0 Col 2 Row 1,
   { "CLIP_SPARE_CTN2_LT"    , DEVICE_GN1640T , {.gn1640Info = {0, 2, 2}}, false, false }, // GN1640 Addr 0 Col 2 Row 2,
   { "CLIP_SPARE_CTN3_LT"    , DEVICE_GN1640T , {.gn1640Info = {0, 2, 3}}, false, false }, // GN1640 Addr 0 Col 2 Row 3,
-  { "AV_COOL_SW"            , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "AV_COOL_SW"            , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "HYD_IND_LEFT"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "HYD_IND_RIGHT"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CHART_DIMMER"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "COCKKPIT_LIGHT_MODE_SW", DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "COCKKPIT_LIGHT_MODE_SW", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CONSOLES_DIMMER"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "FLOOD_DIMMER"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "INST_PNL_DIMMER"       , DEVICE_GPIO    , {.gpioInfo = {PIN(6)}}, true, false }, // GPIO PIN(6),
-  { "LIGHTS_TEST_SW"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "LIGHTS_TEST_SW"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "WARN_CAUTION_DIMMER"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "LOW_ALT_WARN_LT"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "RADALT_ALT_PTR"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
@@ -59,10 +59,10 @@ static const LEDMapping panelLEDs[] = {
   { "RADALT_HEIGHT"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "RADALT_MIN_HEIGHT_PTR" , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "RADALT_OFF_FLAG"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "RADALT_TEST_SW"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "WING_FOLD_PULL"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "WING_FOLD_ROTATE"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "WING_FOLD_PULL"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }
+  { "RADALT_TEST_SW"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "WING_FOLD_PULL"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "WING_FOLD_ROTATE"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "WING_FOLD_PULL"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);
