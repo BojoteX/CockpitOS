@@ -60,7 +60,11 @@ jobs:
       - name: Generate label set data
         run: |
           cd src/LABELS/LABEL_SET_${{ matrix.label_set }}
-          COCKPITOS_BATCH=1 python generate_data.py
+          COCKPITOS_BATCH=1 python generate_data.py || true
+          if [ ! -f .last_run ]; then
+            echo "::error::generate_data.py did not complete successfully"
+            exit 1
+          fi
 
       - name: Compile
         id: compile
