@@ -178,13 +178,13 @@ This approach provides reliable, bounce-free decoding without external hardware 
 
 ### Encoder Sensitivity
 
-By default, CockpitOS requires 4 transitions per detent. This is defined by:
+By default, CockpitOS requires 4 transitions per detent. This is defined internally in the firmware source (`src/Core/InputControl.cpp`), not in Config.h:
 
 ```cpp
 #define ENCODER_TICKS_PER_NOTCH  4
 ```
 
-If your encoder has a different PPR (pulses per revolution), you may need to adjust this value in the firmware source.
+Most users should not need to change this value. If your encoder has a different PPR (pulses per revolution), the firmware source would need to be modified directly.
 
 ---
 

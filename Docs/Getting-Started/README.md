@@ -148,18 +148,16 @@ python Setup-START.py
 **Step 3.2** -- The Setup Tool opens a terminal menu:
 
 ```
-+-----------------------------------------------------------------------+
-|                                                                       |
-|  CockpitOS Setup Tool                                                 |
-|                                                                       |
-|  [1] Install / Update                                                 |
-|  [2] Reset to Manifest Versions                                       |
-|  [Q] Quit                                                             |
-|                                                                       |
-+-----------------------------------------------------------------------+
+  CockpitOS Setup Tool
+
+  > Setup / Update environment
+    Reset to recommended versions
+    Compile Tool
+    Label Creator
+    Exit
 ```
 
-**Step 3.3** -- Select option **1** (Install / Update)
+**Step 3.3** -- Select **Setup / Update environment**
 
 The tool will:
 - Download and configure the bundled `arduino-cli`
@@ -345,7 +343,7 @@ Only **one** transport can be active at a time.
 Open the Compiler Tool (`CockpitOS-START.py`) and select **Role / Transport** from the menu. The tool walks you through:
 
 1. Whether this is an RS485 Master (select No for most setups)
-2. Which transport to use (WiFi, USB, Serial, BLE, or RS485 Slave)
+2. Which transport to use (WiFi, USB, Serial, RS485 Slave, or BLE)
 
 The tool writes all the necessary Config.h flags automatically and performs cross-validation to catch incompatible combinations.
 

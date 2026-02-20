@@ -28,7 +28,7 @@ struct InputMapping {
     int8_t      bit;          // Bit position (PCA/HC165) or -1 for GPIO selectors
     int8_t      hidId;        // HID gamepad button number (-1 = none)
     const char* oride_label;  // DCS-BIOS command name
-    uint16_t    oride_value;  // Value to send (sendValue)
+    uint16_t    oride_value;  // Override command value
     const char* controlType;  // "momentary", "selector", "analog", "variable_step", "fixed_step"
     uint16_t    group;        // Selector group number (0 = not grouped)
 };
@@ -185,8 +185,10 @@ A **variable_step** control is used for rotary encoders that send relative incre
 ### Behavior
 
 1. CockpitOS detects the encoder rotation direction.
-2. For clockwise rotation: sends the DCS-BIOS command with value `1` (increment).
-3. For counter-clockwise rotation: sends the DCS-BIOS command with value `0` (decrement).
+2. For clockwise rotation: sends the DCS-BIOS command with argument `+3200` (increment).
+3. For counter-clockwise rotation: sends the DCS-BIOS command with argument `-3200` (decrement).
+
+The `oride_value` field (0 for the decrement row, 1 for the increment row) identifies the rotation direction internally; CockpitOS translates this to the actual step argument.
 
 ### Example
 

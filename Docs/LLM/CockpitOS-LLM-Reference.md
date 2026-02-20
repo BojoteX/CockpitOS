@@ -90,7 +90,7 @@ The Label Creator contains seven built-in editors:
 
 **Deep dive:** [Tools/Label-Creator.md](../Tools/Label-Creator.md)
 
-For Label Creator internals (LLM-specific): see `label_creator/LLM/LLM_GUIDE.md`, `label_creator/LLM/ARCHITECTURE.md`, `label_creator/LLM/EDITOR_FEATURES.md`
+For Label Creator internals, see the source modules in `label_creator/` and [Tools/Label-Creator.md](../Tools/Label-Creator.md).
 
 ---
 
@@ -128,10 +128,11 @@ CockpitOS/
 │   │   └── TFT_Gauges_*.cpp  ← TFT gauge tasks
 │   │
 │   ├── Core/              ← Core firmware modules
-│   │   ├── InputControl.cpp/h  ← Input scanning (GPIO, PCA, HC165, TM1637, MATRIX)
-│   │   ├── LEDControl.cpp/h    ← Output driving (GPIO, PCA, WS2812, TM1637, GN1640T, GAUGE)
-│   │   ├── PanelRegistry.cpp   ← Panel registration and lifecycle management
-│   │   └── CoverGate.cpp/h     ← Guarded switch cover state machine
+│   │   ├── InputControl.cpp     ← Input scanning (GPIO, PCA, HC165, TM1637, MATRIX)
+│   │   ├── LEDControl.cpp       ← Output driving (GPIO, PCA, WS2812, TM1637, GN1640T, GAUGE)
+│   │   ├── PanelRegistry.cpp    ← Panel registration and lifecycle management
+│   │   ├── CoverGate.cpp        ← Guarded switch cover logic
+│   │   └── CoverGateDef.h       ← Cover gate type definitions
 │   ├── DCSBIOSBridge.h     ← Subscription API and limits
 │   ├── HIDManager.h        ← USB HID report generation interface
 │   ├── PanelRegistry.h     ← PanelHooks struct, REGISTER_PANEL macro
@@ -150,8 +151,7 @@ CockpitOS/
 │   ├── segment_map_editor.py ← SegmentMap.h editor
 │   ├── custompins_editor.py ← CustomPins.h editor
 │   ├── latched_editor.py    ← LatchedButtons.h editor
-│   ├── covergate_editor.py  ← CoverGates.h editor
-│   └── LLM/               ← LLM-specific reference docs
+│   └── covergate_editor.py  ← CoverGates.h editor
 │
 ├── lib/
 │   └── CUtils/            ← Hardware abstraction library (PCA9555, TM1637, GN1640, WS2812, GPIO, HT1622, HC165, etc.)
@@ -214,17 +214,17 @@ A **Label Set** is a folder in `src/LABELS/` containing all configuration files 
 ### LEDMapping.h Record Format
 
 ```cpp
-{ "LABEL", DEVICE_TYPE, {.deviceInfo = {...}}, dim, activeLow }
+{ "LABEL", DEVICE_TYPE, {.info = {...}}, dimmable, activeLow }
 ```
 
-| Device Type | Info Union | Description |
-|-------------|-----------|-------------|
-| `DEVICE_GPIO` | `{pin}` | Direct GPIO LED |
-| `DEVICE_PCA9555` | `{address, port, bit}` | PCA9555 I2C expander |
-| `DEVICE_WS2812` | `{ledIndex}` | Addressable RGB LED |
-| `DEVICE_TM1637` | `{moduleIndex, segmentIndex, bit}` | 7-segment display segment |
-| `DEVICE_GN1640T` | `{column, row}` | LED matrix position |
-| `DEVICE_GAUGE` | `{gpio, minPulse, maxPulse, period}` | Servo motor gauge |
+| Device Type | Info Union Fields | Description |
+|-------------|-------------------|-------------|
+| `DEVICE_GPIO` | `.gpioInfo = {gpio}` | Direct GPIO LED |
+| `DEVICE_PCA9555` | `.pcaInfo = {address, port, bit}` | PCA9555 I2C expander |
+| `DEVICE_WS2812` | `.ws2812Info = {index, pin, defR, defG, defB, defBright}` | Addressable RGB LED |
+| `DEVICE_TM1637` | `.tm1637Info = {clkPin, dioPin, segment, bit}` | 7-segment display segment |
+| `DEVICE_GN1640T` | `.gn1640Info = {address, column, row}` | LED matrix position |
+| `DEVICE_GAUGE` | `.gaugeInfo = {gpio, minPulse, maxPulse, period}` | Servo motor gauge |
 
 ---
 
@@ -260,9 +260,9 @@ A **Label Set** is a folder in `src/LABELS/` containing all configuration files 
 | Mode | Config Flag | Requirements | Latency | Best For |
 |------|------------|--------------|---------|----------|
 | **USB HID** | `USE_DCSBIOS_USB=1` | ESP32-S2/S3/P4 + HID Manager on PC | Lowest (~1ms) | Production, most reliable |
-| **WiFi UDP** | `USE_DCSBIOS_WIFI=1` | Any ESP32 (except H2), same 2.4GHz network | Medium (~5-10ms) | Wireless panels, quick testing |
+| **WiFi UDP** | `USE_DCSBIOS_WIFI=1` | Any ESP32 (except H2, P4), same 2.4GHz network | Medium (~5-10ms) | Wireless panels, quick testing |
 | **Serial/CDC** | `USE_DCSBIOS_SERIAL=1` | Any ESP32, socat bridge on PC | Low (~2ms) | Legacy setups |
-| **BLE** | `USE_DCSBIOS_BLUETOOTH=1` | ESP32-S3, Classic, C3/C5/C6, H2 | Variable | Internal/experimental |
+| **BLE** | `USE_DCSBIOS_BLUETOOTH=1` | ESP32-S3, Classic, C2/C3/C5/C6, H2 | Variable | Internal/experimental |
 
 Only ONE transport mode can be active. The compiler enforces this.
 
@@ -331,7 +331,7 @@ CockpitOS uses compile-time hash tables (in `DCSBIOSBridgeData.h`) for O(1) look
 ### Adding Hardware
 1. Wire component to ESP32 (see Hardware guides)
 2. Open Label Creator → Modify label set
-3. Edit Inputs or Edit LEDs → find the DCS-BIOS control → configure Source/Device + Port/Bit
+3. Edit Inputs or Edit Outputs (LEDs) → find the DCS-BIOS control → configure Source/Device + Port/Bit
 4. Recompile and upload via Compiler Tool
 
 **Deep dive:** [Hardware/README.md](../Hardware/README.md)
@@ -390,9 +390,8 @@ Question about...
 │   → Reference/FAQ.md
 │
 ├── Label Creator internals?
-│   → label_creator/LLM/LLM_GUIDE.md
-│   → label_creator/LLM/ARCHITECTURE.md
-│   → label_creator/LLM/EDITOR_FEATURES.md
+│   → Tools/Label-Creator.md
+│   → label_creator/ source modules
 │
 └── Firmware internals (CUtils, HIDManager, DCSBIOSBridge APIs)?
     → Advanced/Custom-Panels.md (API reference, panel lifecycle, subscriptions)
@@ -491,12 +490,12 @@ When working with CockpitOS code or configuration:
 | [Advanced/RS485-Deep-Dive.md](../Advanced/RS485-Deep-Dive.md) | RS485 protocol internals |
 | [Advanced/FreeRTOS-Tasks.md](../Advanced/FreeRTOS-Tasks.md) | Task management for TFT gauges |
 
-### Additional LLM Resources
+### Additional Resources
 | Document | Description |
 |----------|-------------|
-| `label_creator/LLM/LLM_GUIDE.md` | Label Creator complete reference |
-| `label_creator/LLM/ARCHITECTURE.md` | Label Creator implementation guide |
-| `label_creator/LLM/EDITOR_FEATURES.md` | Editor features and UX patterns |
+| [Advanced/SegmentMap-Authoring.md](../Advanced/SegmentMap-Authoring.md) | SegmentMap file authoring guide |
+| [Advanced/ST77916-QSPI-Integration.md](../Advanced/ST77916-QSPI-Integration.md) | ST77916 QSPI integration plan |
+| [Reference/GPIO-Mapping.md](../Reference/GPIO-Mapping.md) | PIN() macro and S2/S3 GPIO conversion |
 
 ---
 

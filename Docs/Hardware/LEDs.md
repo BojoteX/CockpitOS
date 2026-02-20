@@ -205,7 +205,7 @@ WS2812 (NeoPixel) LEDs are individually addressable RGB LEDs on a single data li
 
 ### Multiple Strips
 
-CockpitOS supports up to **8 independent WS2812 strips**, each on a different GPIO pin. LED indices are per-strip (each strip starts at index 0).
+CockpitOS supports multiple independent WS2812 strips, each on a different GPIO pin. The maximum depends on your chip's RMT channels: 8 on ESP32 Classic, 4 on S2/S3, 2 on C3/C6/H2. LED indices are per-strip (each strip starts at index 0).
 
 ```cpp
 // Strip 1 on GPIO 15

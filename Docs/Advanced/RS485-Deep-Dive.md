@@ -564,7 +564,7 @@ xTaskCreatePinnedToCore(rs485Task, "RS485M",
     nullptr,
     RS485_TASK_PRIORITY,      // 24
     &rs485TaskHandle,
-    RS485_TASK_CORE);         // 1 (default)
+    RS485_TASK_CORE);         // 0 (default)
 
 // Single-core (S2, C3, C6): use xTaskCreate (no affinity)
 xTaskCreate(rs485Task, "RS485M", ...);
@@ -579,7 +579,7 @@ xTaskCreate(rs485Task, "RS485M", ...);
 | Define | Default | Description |
 |--------|---------|-------------|
 | `RS485_MASTER_ENABLED` | 0 | Enable master mode |
-| `RS485_SMART_MODE` | 1 | 1=Smart (filtered), 0=Relay (raw bytes) |
+| `RS485_SMART_MODE` | 0 | 1=Smart (filtered), 0=Relay (raw bytes) |
 | `RS485_CHANGE_DETECT` | 0 | Enable delta compression (Smart Mode only) |
 | `RS485_BAUD` | 250000 | Bus baud rate |
 | `RS485_UART_NUM` | 1 | UART peripheral number |
@@ -592,12 +592,12 @@ xTaskCreate(rs485Task, "RS485M", ...);
 | `RS485_RAW_BUFFER_SIZE` | 512 | Raw buffer size (Relay Mode) |
 | `RS485_RELAY_CHUNK_SIZE` | 124 | Max bytes per relay broadcast |
 | `RS485_INPUT_BUFFER_SIZE` | 256 | Slave command input buffer |
-| `RS485_TX_WARMUP_DELAY_US` | 50 | DE pin warmup delay |
+| `RS485_TX_WARMUP_DELAY_US` | 0 | DE pin warmup delay |
 | `RS485_MSG_DRAIN_TIMEOUT_US` | 5000 | Force-clear stalled messages |
 | `RS485_USE_TASK` | 1 | Run in FreeRTOS task |
 | `RS485_TASK_PRIORITY` | 24 | Task priority |
 | `RS485_TASK_STACK_SIZE` | 4096 | Task stack bytes |
-| `RS485_TASK_CORE` | 1 | Core affinity (dual-core only) |
+| `RS485_TASK_CORE` | 0 | Core affinity (dual-core only) |
 
 ### Slave Configuration (RS485SlaveConfig.h)
 
@@ -611,7 +611,7 @@ xTaskCreate(rs485Task, "RS485M", ...);
 | `RS485_TX_BUFFER_SIZE` | 128 | Outgoing command buffer |
 | `RS485_EXPORT_BUFFER_SIZE` | 512 | Incoming export data buffer |
 | `RS485_SYNC_TIMEOUT_US` | 500 | Bus silence gap for sync detection |
-| `RS485_TX_PRE_DE_DELAY_US` | 0 | Pre-DE silent gap (AVR compat) |
+| `RS485_TX_PRE_DE_DELAY_US` | 40 | Pre-DE silent gap (AVR compat) |
 | `RS485_USE_TASK` | 1 | Run in FreeRTOS task |
 | `RS485_TASK_PRIORITY` | 5 | Task priority |
 | `RS485_TASK_STACK_SIZE` | 4096 | Task stack bytes |
@@ -637,7 +637,7 @@ The master tracks several counters:
 | `statBytesOut` | Total bytes transmitted |
 | `messageBuffer.dropCount` | Bytes dropped due to buffer overflow |
 
-Enable periodic logging with `RS485_STATUS_INTERVAL_MS` (5000ms default):
+Enable periodic logging with `RS485_STATUS_INTERVAL_MS` (60000ms default):
 
 ```
 [RS485M] Polls=1250(1200) Resp=99.2% Bcasts=450 Cmds=23 Slaves=2 Queue=0 Drops=0 MidT=0 Drain=0
