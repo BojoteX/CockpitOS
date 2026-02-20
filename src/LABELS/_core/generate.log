@@ -1,3 +1,4 @@
+⚠️ WARNING: Duplicate labels detected in DCS table!
 Generated DisplayMapping.cpp and DisplayMapping.h for devices: HUD, IFEI, UFC
 ============================================================
 CockpitOS PanelKind Generator
@@ -6,10 +7,7 @@ Root:   C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS
 Panels: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Panels
 Output: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Generated\PanelKind.h
 
-Permanent PCA entries (4):
-  Brain                    — Auto-detected PCA at 0x26 (runtime)
-  ECM                      — Auto-detected PCA at 0x22 (runtime)
-  MasterARM                — Auto-detected PCA at 0x5B (runtime)
+Permanent PCA entries (1):
   AnalogGauge              — Auto-detected when DEVICE_GAUGE in LEDMapping
 
 Scanning 11 panel files...
@@ -26,28 +24,35 @@ Scanning 11 panel files...
   WingFold.cpp                             → WingFold             (from filename)
 
 Generated: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Generated\PanelKind.h
-  → 4 permanent PCA entries
+  → 1 permanent PCA entries
   → 11 compiled panel entries
-  → 15 total + COUNT
+  → 12 total + COUNT
 
 Done!
-Current LABEL SET: LABEL_SET_TEST_ONLY
+Current LABEL SET: LABEL_SET_CUSTOM_RIGHT
 
 [INFO] The current target_objects (panel(s) to be processed) are:
-  - Master Arm Panel
+  - Arresting Hook Handle and Light
+  - Caution Light Panel
+  - Custom
+  - Flight Computer Cool Switch
+  - HYD 1 and HYD Pressure Indicator
+  - Interior Lights Panel
+  - Radar Altimeter
+  - Wing Fold Switch
 
-[✓] Generated DCSBIOSBridgeData.h with 7 outputs,  4 selectors.
-[✓] Generated InputMapping.h with 4 entries.
-✅ Found 7 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
-🔢 Using TABLE_SIZE = 53 (next prime ≥ 14)
+[✓] Generated DCSBIOSBridgeData.h with 34 outputs,  34 selectors.
+[✓] Generated InputMapping.h with 34 entries.
+✅ Found 34 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
+🔢 Using TABLE_SIZE = 71 (next prime ≥ 68)
 ✅ LEDMapping.h fully regenerated with dynamic enum from KNOWN_DEVICES.
 
 [INFO] Generating DisplayMapping.cpp/h using display_gen.py ...
 ✅ Renamed .cpp files to cpp.DISABLE in the inactive LABEL SETS to avoid linker conflicts
-[✓] Created LabelSetConfig.h with AUTOGEN_USB_PID=0x7B90 (from 'CockpitOS Panel TEST_ONLY')
-[=] LatchedButtons.h exists, preserving
-[=] CoverGates.h exists, preserving
-[✓] Created ../active_set.h with LABEL_SET TEST_ONLY
+[✓] Created LabelSetConfig.h with AUTOGEN_USB_PID=0x522B (from 'CockpitOS *Custom Right* v1 Panel')
+[+] Created LatchedButtons.h (empty)
+[+] Created CoverGates.h (empty)
+[✓] Created ../active_set.h with LABEL_SET CUSTOM_RIGHT
 
 ============================================================
 Running generate_panelkind.py to update PanelKind.h...
