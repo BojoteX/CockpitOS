@@ -1,4 +1,5 @@
 .claude
+.vs
 nul
 __pycache__
 .credentials
@@ -8,3 +9,8 @@ Debug Tools/logs
 src/Core/Private
 HID Manager/hid_manager.lock
 Disabled Panels
+Binaries/Unclassified
+compiler/backups
+compiler/__pycache__
+HID Manager/__pycache__
+label_creator/__pycache__

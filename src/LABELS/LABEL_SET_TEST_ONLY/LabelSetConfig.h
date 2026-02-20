@@ -4,6 +4,6 @@
 
 #define LABEL_SET_NAME        "TEST_ONLY"
 #define HAS_HID_MODE_SELECTOR 0
-#define LABEL_SET_FULLNAME    "CockpitOS Panel TEST_ONLY" // You can safely change this
+#define LABEL_SET_FULLNAME    "Test Only Uff" // You can safely change this
 #define HAS_TEST_ONLY
-#define AUTOGEN_USB_PID       0x7B90 // DO NOT EDIT THIS
+#define AUTOGEN_USB_PID       0xEC87 // DO NOT EDIT THIS

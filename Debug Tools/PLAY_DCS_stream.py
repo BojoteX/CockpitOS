@@ -4,7 +4,7 @@ CockpitOS DCS-BIOS Stream Replay Tool
 =====================================
 
 Replays captured DCS-BIOS data streams for offline testing.
-Sends multicast on ALL network interfaces for universal compatibility.
+Sends multicast on a user-selected network interface (or all).
 
 By default, replays at a fixed 30 FPS — matching DCS-BIOS's internal tick
 rate — to produce a stable, realistic stream for HID Manager testing.
@@ -28,6 +28,8 @@ import time
 import binascii
 import os
 import sys
+import msvcrt
+import ctypes
 import argparse
 from datetime import datetime
 
@@ -35,28 +37,35 @@ from datetime import datetime
 # DEPENDENCY CHECK
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# TERMINAL SETUP
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _enable_ansi():
+    """Enable ANSI escape processing on Windows 10+."""
+    kernel32 = ctypes.windll.kernel32
+    h = kernel32.GetStdHandle(-11)
+    mode = ctypes.c_ulong()
+    kernel32.GetConsoleMode(h, ctypes.byref(mode))
+    kernel32.SetConsoleMode(h, mode.value | 0x0004)
+
+_enable_ansi()
+
 try:
     import ifaddr
 except ImportError:
     print()
-    print("╔════════════════════════════════════════════════════════════════╗")
-    print("║  ❌ Missing Required Module: ifaddr                            ║")
-    print("╠════════════════════════════════════════════════════════════════╣")
-    print("║                                                                ║")
-    print("║  This tool requires 'ifaddr' for network interface discovery. ║")
-    print("║                                                                ║")
-    print("║  Install it with:                                              ║")
-    print("║                                                                ║")
-    print("║      pip install ifaddr                                        ║")
-    print("║                                                                ║")
-    print("║  Then run this script again.                                   ║")
-    print("║                                                                ║")
-    print("╚════════════════════════════════════════════════════════════════╝")
+    print("+----------------------------------------------------------------+")
+    print("|  ERROR: Missing Required Module: ifaddr                        |")
+    print("+----------------------------------------------------------------+")
+    print("|                                                                |")
+    print("|  This tool requires 'ifaddr' for network interface discovery.  |")
+    print("|                                                                |")
+    print("|      pip install ifaddr                                        |")
+    print("|                                                                |")
+    print("+----------------------------------------------------------------+")
     print()
-
-    # Press ENTER to exit
     input("\nPress <ENTER> to exit...")
-
     sys.exit(1)
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -69,6 +78,97 @@ STREAMS_DIR = "streams"
 FILE_PREFIX = "dcsbios_data.json."
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# ANSI CONSTANTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+CYAN     = "\033[96m"
+GREEN    = "\033[92m"
+YELLOW   = "\033[93m"
+RED      = "\033[91m"
+BOLD     = "\033[1m"
+DIM      = "\033[2m"
+RESET    = "\033[0m"
+REV      = "\033[7m"
+HIDE_CUR = "\033[?25l"
+SHOW_CUR = "\033[?25h"
+ERASE_LN = "\033[2K"
+
+def _w(s):
+    sys.stdout.write(s)
+    sys.stdout.flush()
+
+import re as _re
+_ANSI_RE = _re.compile(r'\033\[[0-9;]*[A-Za-z]')
+
+def _box_line(text):
+    """Print a box line with perfect right-side alignment. Inner width = 64 visible chars."""
+    visible = _ANSI_RE.sub('', text)
+    pad = 64 - len(visible)
+    if pad < 0:
+        pad = 0
+    print(f"|{text}{' ' * pad}|")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ARROW-KEY PICKER (reusable)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def arrow_pick(prompt, options):
+    """Arrow-key picker. options = list of (label, value). Returns value."""
+    if not options:
+        return None
+
+    total = len(options)
+    idx = 0
+
+    print()
+    _w(f"  {BOLD}{prompt}{RESET}\n")
+    _w(f"  {DIM}(Up/Down to move, Enter to select){RESET}\n")
+
+    _w(HIDE_CUR)
+    for i, (label, _) in enumerate(options):
+        if i == idx:
+            _w(f"  {REV} > {label} {RESET}\n")
+        else:
+            _w(f"     {label}\n")
+
+    try:
+        while True:
+            ch = msvcrt.getwch()
+            if ch in ("\xe0", "\x00"):
+                ch2 = msvcrt.getwch()
+                old = idx
+                if ch2 == "H":          # Up
+                    idx = (idx - 1) % total
+                elif ch2 == "P":        # Down
+                    idx = (idx + 1) % total
+                else:
+                    continue
+                if old != idx:
+                    _w(f"\033[{total - old}A")
+                    _w(f"\r{ERASE_LN}     {options[old][0]}")
+                    if idx > old:
+                        _w(f"\033[{idx - old}B")
+                    else:
+                        _w(f"\033[{old - idx}A")
+                    _w(f"\r{ERASE_LN}  {REV} > {options[idx][0]} {RESET}")
+                    remaining = total - idx
+                    if remaining > 0:
+                        _w(f"\033[{remaining}B")
+                    _w("\r")
+
+            elif ch == "\r":        # Enter
+                _w(SHOW_CUR)
+                return options[idx][1]
+
+            elif ch == "\x1b":      # Esc — return first option as default
+                _w(SHOW_CUR)
+                return options[0][1]
+
+    except KeyboardInterrupt:
+        _w(SHOW_CUR)
+        sys.exit(0)
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # MULTI-INTERFACE NETWORK SUPPORT
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -76,32 +176,22 @@ def get_all_interface_ips():
     """
     Discover all usable IPv4 interface addresses on this machine.
     Returns list of (interface_name, ip_address) tuples.
-    
-    Filters out:
-      - Loopback (127.x.x.x)
-      - APIPA/link-local (169.254.x.x) - indicates no network config
-    
-    Uses ifaddr for bulletproof cross-platform interface enumeration.
     """
     interfaces = []
-    
+
     for adapter in ifaddr.get_adapters():
         for ip in adapter.ips:
-            # Only IPv4 addresses (ip.ip is a string for IPv4, tuple for IPv6)
             if isinstance(ip.ip, str):
-                # Skip loopback and APIPA (link-local) addresses
                 if ip.ip.startswith('127.') or ip.ip.startswith('169.254.'):
                     continue
-                # Shorten the adapter name for cleaner output
                 short_name = shorten_adapter_name(adapter.nice_name)
                 interfaces.append((short_name, ip.ip))
-    
+
     return interfaces
 
 
 def shorten_adapter_name(name):
     """Shorten long Windows adapter names to something readable."""
-    # Common substitutions
     replacements = [
         ("Network Adapter", ""),
         ("Dual Band Simultaneous (DBS)", ""),
@@ -114,14 +204,34 @@ def shorten_adapter_name(name):
         ("Virtual", "Virt"),
         ("Ethernet", "Eth"),
         ("Wireless", "WiFi"),
-        ("  ", " "),  # collapse double spaces
+        ("  ", " "),
     ]
-    
+
     result = name
     for old, new in replacements:
         result = result.replace(old, new)
-    
-    return result.strip()[:30]  # Max 30 chars
+
+    return result.strip()[:35]
+
+
+def pick_interface(interfaces):
+    """Arrow-key picker for network interfaces. Returns list of (name, ip) to use."""
+    options = [("All interfaces", "ALL"),
+               ("Localhost (127.0.0.1)", "127.0.0.1")]
+    for name, ip in interfaces:
+        options.append((f"{ip:<17} {DIM}({name}){RESET}", ip))
+
+    chosen = arrow_pick("Select network interface:", options)
+
+    if chosen == "ALL":
+        return interfaces  # all of them
+    elif chosen == "127.0.0.1":
+        return [("Localhost", "127.0.0.1")]
+    else:
+        for name, ip in interfaces:
+            if ip == chosen:
+                return [(name, ip)]
+        return interfaces  # fallback
 
 
 def create_multicast_socket(interface_ip, ttl=1):
@@ -143,7 +253,7 @@ def get_relative_age(file_path):
     """Calculate human-readable age string for a file."""
     mtime = os.path.getmtime(file_path)
     age_seconds = time.time() - mtime
-    
+
     if age_seconds < 60:
         return f"{int(age_seconds)} seconds old"
     elif age_seconds < 3600:
@@ -163,49 +273,42 @@ def get_relative_age(file_path):
 def discover_streams(streams_path):
     """Returns list of tuples: (identifier, full_path, display_name, age_string)"""
     streams = []
-    
+
     if not os.path.isdir(streams_path):
         return streams
-    
+
     for filename in os.listdir(streams_path):
         if filename.startswith(FILE_PREFIX):
             identifier = filename[len(FILE_PREFIX):]
             full_path = os.path.join(streams_path, filename)
-            
+
             if identifier == "LAST":
                 display_name = "LAST (Last captured stream)"
             else:
                 display_name = identifier
-            
+
             age_string = get_relative_age(full_path)
             streams.append((identifier, full_path, display_name, age_string))
-    
+
     # Sort: LAST first (if present), then alphabetically
     streams.sort(key=lambda x: (x[0] != "LAST", x[0]))
     return streams
 
 
 def select_stream(streams):
-    """Display interactive menu and get user selection."""
-    print("\n" + "=" * 50)
-    print("       DCS-BIOS Stream Selector")
-    print("=" * 50)
-    
-    for idx, (identifier, path, display_name, age) in enumerate(streams, start=1):
-        print(f"  [{idx}] {display_name:<30} ({age})")
-    
-    print("=" * 50)
-    
-    while True:
-        try:
-            choice = input("Select stream number: ").strip()
-            choice_num = int(choice)
-            if 1 <= choice_num <= len(streams):
-                return streams[choice_num - 1]
-            else:
-                print(f"⚠️  Enter a number between 1 and {len(streams)}")
-        except ValueError:
-            print("⚠️  Enter a valid number")
+    """Arrow-key picker for stream selection."""
+    options = []
+    for identifier, path, display_name, age in streams:
+        label = f"{display_name:<32} {DIM}({age}){RESET}"
+        options.append((label, identifier))
+
+    chosen = arrow_pick("Select stream:", options)
+
+    for s in streams:
+        if s[0] == chosen:
+            return s
+
+    return streams[0]  # fallback
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -228,16 +331,19 @@ def main():
     # Change to script directory
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
+    # === INTERFACE SELECTION ===
+    interfaces = get_all_interface_ips()
+    selected_interfaces = pick_interface(interfaces)
+
     # === STREAM SELECTION ===
     streams_path = os.path.join(os.getcwd(), STREAMS_DIR)
     available_streams = discover_streams(streams_path)
 
     if not available_streams:
-        print("\n❌ No stream files found!")
+        print("\nNo stream files found!")
         print(f"   Expected location: {streams_path}")
         print(f"   Expected pattern:  {FILE_PREFIX}<identifier>")
-        print("\n💡 Run RECORD_DCS_stream.py to capture a stream.")
-        print("   It will create: dcsbios_data.json.LAST")
+        print("\n   Run RECORD_DCS_stream.py to capture a stream.")
         sys.exit(1)
 
     # Determine which stream to use
@@ -248,21 +354,19 @@ def main():
                 match = stream
                 break
         if not match:
-            print(f"\n❌ Stream '{args.stream}' not found!")
+            print(f"\nStream '{args.stream}' not found!")
             print("   Available streams:", ", ".join(s[0] for s in available_streams))
             sys.exit(1)
         selected = match
-        print(f"\n🎯 Auto-selected stream: {selected[2]} ({selected[3]})")
     else:
         selected = select_stream(available_streams)
 
     identifier, INPUT_JSON_FILE, display_name, age = selected
 
-    # === SETUP SOCKETS FOR ALL INTERFACES ===
-    interfaces = get_all_interface_ips()
+    # === SETUP SOCKETS FOR SELECTED INTERFACES ===
     multicast_sockets = []
 
-    for iface_name, ip in interfaces:
+    for iface_name, ip in selected_interfaces:
         try:
             sock = create_multicast_socket(ip)
             multicast_sockets.append((ip, iface_name, sock))
@@ -276,7 +380,7 @@ def main():
             sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
             multicast_sockets.append(("default", "default route", sock))
         except Exception as e:
-            print(f"\n❌ No usable network interfaces found! ({e})")
+            print(f"\nNo usable network interfaces found! ({e})")
             sys.exit(1)
 
     # === LOAD DATA ===
@@ -284,23 +388,27 @@ def main():
         frames = json.load(f)
 
     # === STATUS OUTPUT ===
-    print(f"\n[INFO] Loaded {len(frames)} frames from {os.path.basename(INPUT_JSON_FILE)}")
-    
     iface_list = ", ".join(f"{ip} ({name})" for ip, name, _ in multicast_sockets)
-    print(f"[INFO] Multicast to {MULTICAST_IP}:{UDP_PORT} via: {iface_list}")
 
     if args.raw_timing:
-        print(f"🔁 Using recorded frame timing scaled by x{args.speed}")
+        timing_label = f"recorded x{args.speed}"
     else:
-        print(f"🔁 Fixed replay at {args.fps:.1f} FPS ({1000/args.fps:.2f}ms/frame)")
+        timing_label = f"{args.fps:.0f} FPS ({1000/args.fps:.1f}ms/frame)"
 
-    print("⏳ Press Ctrl+C to stop.\n")
+    print()
+    print("+----------------------------------------------------------------+")
+    _box_line(f"  {BOLD}CockpitOS DCS-BIOS Stream Replay{RESET}")
+    print("+----------------------------------------------------------------+")
+    _box_line(f"  Stream:    {CYAN}{display_name}{RESET}")
+    _box_line(f"  Frames:    {CYAN}{len(frames)}{RESET}")
+    _box_line(f"  Target:    {CYAN}{MULTICAST_IP}:{UDP_PORT}{RESET}")
+    _box_line(f"  Interface: {CYAN}{iface_list}{RESET}")
+    _box_line(f"  Timing:    {CYAN}{timing_label}{RESET}")
+    _box_line(f"  {DIM}Press Ctrl+C to stop{RESET}")
+    print("+----------------------------------------------------------------+")
+    print()
 
     # === REPLAY LOOP ===
-    # Pre-compute absolute timestamp for each frame relative to cycle start.
-    # In fixed-FPS mode (default), frames are uniformly spaced at 1/fps.
-    # In raw-timing mode, the recorded inter-frame delays are used (scaled
-    # by --speed), reproducing the exact captured DCS-BIOS timing jitter.
     frame_timestamps = []
     accum_time = 0.0
     for frame in frames:
@@ -332,13 +440,13 @@ def main():
                     for _, _, sock in multicast_sockets:
                         sock.sendto(binary_data, (MULTICAST_IP, UDP_PORT))
                 except Exception as e:
-                    print(f"⚠️ Error sending frame: {e}")
+                    print(f"  {RED}[ERROR]{RESET} {e}")
 
             cycle += 1
-            print(f"✅ Completed cycle {cycle}")
+            print(f"  {GREEN}Completed cycle {cycle}{RESET}")
 
     except KeyboardInterrupt:
-        print("\n\n🛑 Stopped by user")
+        print("\n\nStopped by user")
 
     finally:
         for _, _, sock in multicast_sockets:

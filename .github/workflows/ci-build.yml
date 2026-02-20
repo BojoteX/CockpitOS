@@ -1,0 +1,150 @@
+# CockpitOS CI — Compile all label sets
+# Triggers on every push/PR and daily at 06:00 UTC
+name: CI Build
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        label_set:
+          - ALR67
+          - ANALOG_CABINPRESS
+          - CABIN_PRESSURE_GAUGE
+          - CMWS_DISPLAY
+          - CUSTOM_LEFT
+          - CUSTOM_RIGHT
+          - FRONT_LEFT_PANEL
+          - IFEI
+          - KY58
+          - LEFT_PANEL_CONTROLLER
+          - MAIN
+          - RIGHT_CIRCUIT_BOARD
+          - RIGHT_PANEL_CONTROLLER
+          - RS485_LOLIN_AUTO
+          - RS485_WAVESHARE_MANUAL
+          - TEST_ONLY
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install arduino-cli
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh -s -- -b /usr/local/bin
+          arduino-cli version
+
+      - name: Install ESP32 core
+        run: |
+          arduino-cli config init --overwrite
+          arduino-cli config add board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32@3.3.6
+
+      - name: Install libraries
+        run: |
+          arduino-cli lib install LovyanGFX@1.2.19
+
+      - name: Set active label set
+        run: |
+          cat > src/LABELS/active_set.h << 'ACTIVESET'
+          #pragma once
+          #define LABEL_SET ${{ matrix.label_set }}
+          ACTIVESET
+          echo "Active label set: ${{ matrix.label_set }}"
+
+      - name: Compile
+        id: compile
+        run: |
+          set -o pipefail
+          FQBN="esp32:esp32:esp32s3:UploadSpeed=921600,CDCOnBoot=default,FlashSize=16M,PartitionScheme=noota_ffat,USBMode=default"
+
+          arduino-cli compile \
+            --fqbn "$FQBN" \
+            --warnings all \
+            --build-path ./build \
+            --build-cache-path ./cache \
+            . 2>&1 | tee build_output.txt
+
+          EXIT_CODE=${PIPESTATUS[0]}
+
+          # Classify warnings
+          CODE_WARNINGS=$(grep -i 'warning:' build_output.txt | grep -iv '/arduino15/\|/packages/esp32/\|/tinyusb/\|/hal/esp32\|/include/driver/\|/include/hal/\|/include/soc/\|/arduino/libraries/' || true)
+          FRAMEWORK_WARNINGS=$(grep -i 'warning:' build_output.txt | grep -i '/arduino15/\|/packages/esp32/\|/tinyusb/\|/hal/esp32\|/include/driver/\|/include/hal/\|/include/soc/\|/arduino/libraries/' || true)
+
+          CODE_COUNT=$(echo "$CODE_WARNINGS" | grep -c . 2>/dev/null || echo 0)
+          FRAMEWORK_COUNT=$(echo "$FRAMEWORK_WARNINGS" | grep -c . 2>/dev/null || echo 0)
+
+          # Extract size info
+          SKETCH_SIZE=$(grep "Sketch uses" build_output.txt || echo "N/A")
+          MEMORY_SIZE=$(grep "Global variables" build_output.txt || echo "N/A")
+
+          # Write warnings log
+          {
+            echo "# Compile warnings — LABEL_SET_${{ matrix.label_set }} — $(date '+%Y-%m-%d %H:%M:%S')"
+            echo "# Code warnings: $CODE_COUNT  |  Framework warnings: $FRAMEWORK_COUNT"
+            echo ""
+            if [ "$CODE_COUNT" -gt 0 ] 2>/dev/null; then
+              echo "# ── CockpitOS code warnings ──────────────────────────────────"
+              echo "$CODE_WARNINGS"
+              echo ""
+            fi
+            if [ "$FRAMEWORK_COUNT" -gt 0 ] 2>/dev/null; then
+              echo "# ── Framework / SDK warnings (ESP-IDF, TinyUSB, etc.) ────────"
+              echo "$FRAMEWORK_WARNINGS"
+              echo ""
+            fi
+            if [ "$CODE_COUNT" -eq 0 ] 2>/dev/null && [ "$FRAMEWORK_COUNT" -eq 0 ] 2>/dev/null; then
+              echo "# No warnings — clean build!"
+              echo ""
+            fi
+          } > warnings_${{ matrix.label_set }}.log
+
+          # Write errors log (if any)
+          ERRORS=$(grep -i 'error:' build_output.txt || true)
+          if [ -n "$ERRORS" ]; then
+            {
+              echo "# Compile errors — LABEL_SET_${{ matrix.label_set }} — $(date '+%Y-%m-%d %H:%M:%S')"
+              echo ""
+              echo "$ERRORS"
+            } > errors_${{ matrix.label_set }}.log
+          fi
+
+          # Summary
+          echo "## LABEL_SET_${{ matrix.label_set }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "- Build: PASS" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- Build: **FAIL**" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "- Code warnings: $CODE_COUNT" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Framework warnings: $FRAMEWORK_COUNT" >> "$GITHUB_STEP_SUMMARY"
+          echo "- $SKETCH_SIZE" >> "$GITHUB_STEP_SUMMARY"
+          echo "- $MEMORY_SIZE" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          exit $EXIT_CODE
+
+      - name: Upload warnings log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: warnings-${{ matrix.label_set }}
+          path: warnings_${{ matrix.label_set }}.log
+
+      - name: Upload errors log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: errors-${{ matrix.label_set }}
+          path: errors_${{ matrix.label_set }}.log

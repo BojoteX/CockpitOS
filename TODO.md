@@ -1,54 +1,36 @@
-# CockpitOS — Pending Implementation Items
-
-> Items identified during the Docs_v2 documentation restructure.
-> These are features that remain **manual** and should be automated.
+# CockpitOS — Pending Items
 
 ---
 
-## ~~HIGH PRIORITY — Per-Label-Set Configuration Gaps~~ DONE
+## VERY HIGH PRIORITY
 
-### 1. ~~Move Latched Buttons to Per-Label-Set~~ DONE
-Moved `kLatchedButtons[]` from `Mappings.cpp` into per-label-set `LatchedButtons.h`. Extracted `CoverGateDef` struct/enum to `src/Core/CoverGateDef.h`. `LabelSetSelect.h` uses `__has_include` with empty fallback for label sets that don't have the file. Generator creates empty defaults on first run. Label Creator has a "Latched Buttons" toggle-list editor (`latched_editor.py`).
-
----
-
-### 2. ~~Move CoverGate Definitions to Per-Label-Set~~ DONE
-Moved `kCoverGates[]` from `Mappings.cpp` into per-label-set `CoverGates.h`. Same `__has_include` fallback pattern. Label Creator has a "Cover Gates" list editor with add/edit/delete (`covergate_editor.py`). Reset tool wipes both files. LABEL_SET_MAIN populated with the original data from Mappings.cpp.
+### YouTube Video Tutorials
+- Short-form videos (YouTube Shorts)
+- Full walkthrough: zero to hero in 30 minutes
+- Complex panel build with custom front panel (long-form video)
 
 ---
 
-## MEDIUM PRIORITY — Setup Tool Additions
+## DONE — CI/CD Automated Build Testing
 
-### 3. DCS-BIOS Installer
-**Current state:** Users must manually download DCS-BIOS from GitHub and extract to `Saved Games\DCS\Scripts\DCS-BIOS\`.
-
-**Solution:** Add to Setup Tool — auto-detect DCS install path, download latest release, extract.
+GitHub Actions workflow (`.github/workflows/ci-build.yml`) compiles all 16 label sets against ESP32-S3 on every push, PR, and daily at 06:00 UTC. Produces per-label-set `warnings.log` and `errors.log` as downloadable artifacts. Warnings are classified into CockpitOS code vs. framework/SDK, matching the compiler tool's format.
 
 ---
 
-### 4. ~~HID Manager Dependency Installer~~ DONE
-Added as Step 4 in `Setup-START.py` `action_setup()` flow. Auto-detects missing pip packages and installs them. Also handled by "Reset to recommended versions".
+## Completed
 
----
+All previous engineering TODO items have been resolved:
 
-### 5. Expand Compiler Tool Misc Options
-**Current state:** Several commonly-tuned Config.h settings require manual editing.
+- Per-label-set Latched Buttons and CoverGates — done
+- CustomPins.h TUI editor — done
+- HID Manager dependency installer — done
+- RS485 (all items: core isolation, timing, slave performance, HID passthrough) — done
+- DCS-BIOS feature gap analysis — confirmed complete, no missing features
+- Performance optimization — at peak efficiency
+- Magnetic switch support — implemented from design document
+- SPI TFT regression (freq_read) — fixed
+- DCS-BIOS installer — not needed, DCS-specific task left to the user
+- Compiler Misc Options expansion — not needed, settings are stable defaults that don't need user-facing controls
+- Version/build/date tracking — dropped
 
-**Settings to add:**
-- `POLLING_RATE_HZ` (125 / 250 / 500)
-- `DISPLAY_REFRESH_RATE_HZ` (30 / 60)
-- `TEST_LEDS` (on/off)
-- `IS_REPLAY` (on/off)
-- Hardware debug flags (`DEBUG_ENABLED_FOR_PCA_ONLY`, `HC165`, `TM1637`)
-- Axis calibration thresholds (deadzone, min/max defaults)
-
----
-
-## ~~LABEL CREATOR — CustomPins.h Editor~~ DONE
-
-### 6. ~~Intelligent CustomPins.h Editor~~ DONE
-Replaced the "open in Notepad" approach with a TUI editor (`custompins_editor.py`). Scans InputMapping.h and LEDMapping.h to detect which hardware devices are in use (PCA9555, HC165, TM1637, WS2812, etc.), then presents a grouped pin configuration screen with contextual warnings when required pins are missing. Known groups: Feature Enables, I2C Bus, HC165, WS2812, TM1637, Mode Switch, RS485. Unknown defines preserved verbatim. Auto-suggests HC165_BITS from detected input count. Feature enables warn when detection mismatches setting. TFT gauge / IFEI / ALR-67 pin groups deferred to v2.
-
----
-
-*Last updated during CustomPins.h editor implementation.*
+*Last updated 2026-02-19.*
