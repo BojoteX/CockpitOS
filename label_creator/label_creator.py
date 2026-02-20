@@ -314,6 +314,12 @@ def do_create(prefs) -> str | None:
     prefs["last_label_set"] = ls_name
     save_prefs(prefs)
 
+    # Auto-generate immediately so the label set is ready when the user
+    # lands in the modify screen (InputMapping.h / LEDMapping.h must exist
+    # for the full menu to appear).
+    if selected:
+        step_generate(name, new_dir, same_window=True)
+
     # Always return the label set name — the directory and aircraft are
     # already set up, so the user should land in the modify screen even
     # if they skipped or cancelled panel selection.
@@ -642,7 +648,7 @@ def _show_label_set_info(ls_name: str, prefs) -> str | None:
                 ("Cover Gates",              "edit_covergate","normal", f"({covergate_cap})"),
                 ("",),
                 ("---", "Displays"),
-                ("Segment Maps",             "segment_maps","normal", f"({segmap_cap})"),
+                ("Display Configuration",    "segment_maps","normal", f"({segmap_cap})"),
             ]
 
             if has_display_entries:
