@@ -52,13 +52,15 @@ jobs:
         run: |
           arduino-cli lib install LovyanGFX@1.2.19
 
-      - name: Set active label set
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Generate label set data
         run: |
-          cat > src/LABELS/active_set.h << 'ACTIVESET'
-          #pragma once
-          #define LABEL_SET ${{ matrix.label_set }}
-          ACTIVESET
-          echo "Active label set: ${{ matrix.label_set }}"
+          cd src/LABELS/LABEL_SET_${{ matrix.label_set }}
+          COCKPITOS_BATCH=1 python generate_data.py
 
       - name: Compile
         id: compile
