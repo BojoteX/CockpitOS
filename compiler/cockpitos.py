@@ -17,6 +17,7 @@ Modules:
 
 import os
 import sys
+import re
 import json
 import msvcrt
 import ctypes
@@ -27,7 +28,7 @@ from pathlib import Path
 # Module imports
 # ---------------------------------------------------------------------------
 from ui import (
-    CYAN, BOLD, DIM, GREEN, RESET, HIDE_CUR, SHOW_CUR,
+    CYAN, BOLD, DIM, GREEN, YELLOW, RESET, HIDE_CUR, SHOW_CUR,
     cls, cprint, header, info, success, warn, error,
     menu_pick, pick, toggle_pick, confirm, text_input, _RESET_SENTINEL,
 )
@@ -251,6 +252,7 @@ def misc_options(prefs):
             ("Wi-Fi Credentials",       "wifi"),
             ("Debug / Verbose Toggles", "debug"),
             ("Advanced Settings",       "advanced"),
+            ("Clear cache/build",       "clean"),
             ("Back",                    "back"),
         ])
         if choice is None or choice == "back":
@@ -263,6 +265,9 @@ def misc_options(prefs):
             input(f"\n  {DIM}Press Enter to continue...{RESET}")
         elif choice == "advanced":
             configure_advanced_settings()
+            input(f"\n  {DIM}Press Enter to continue...{RESET}")
+        elif choice == "clean":
+            clean_build()
             input(f"\n  {DIM}Press Enter to continue...{RESET}")
 
 
@@ -506,26 +511,46 @@ def main():
     global _lock_path
     lock_path = Path(__file__).parent / ".cockpitos.lock"
     _lock_path = lock_path
+    def _is_cockpitos_process(pid):
+        """Check if a PID belongs to a running Python process (not a recycled PID)."""
+        try:
+            kernel32 = ctypes.windll.kernel32
+            psapi = ctypes.windll.psapi
+            handle = kernel32.OpenProcess(0x0400 | 0x0010, False, pid)  # PROCESS_QUERY_INFORMATION | PROCESS_VM_READ
+            if not handle:
+                return False
+            try:
+                buf = ctypes.create_unicode_buffer(260)
+                if psapi.GetModuleFileNameExW(handle, None, buf, 260):
+                    return "python" in buf.value.lower()
+                return False
+            finally:
+                kernel32.CloseHandle(handle)
+        except Exception:
+            return False
+
     try:
         # Exclusive create — fails if file already exists
         lock_fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         os.write(lock_fd, str(os.getpid()).encode())
         os.close(lock_fd)
     except FileExistsError:
-        # Check if the existing process is still alive
+        # Check if the existing process is actually CockpitOS (not a recycled PID)
+        still_running = False
         try:
             old_pid = int(lock_path.read_text().strip())
-            kernel32 = ctypes.windll.kernel32
-            handle = kernel32.OpenProcess(0x1000, False, old_pid)  # PROCESS_QUERY_LIMITED_INFORMATION
-            if handle:
-                kernel32.CloseHandle(handle)
-                # Process alive — bring its window forward and exit
-                _bring_existing_to_front()
-                print("\n  CockpitOS tool is already running. Switching to existing window.")
-                sys.exit(0)
+            if _is_cockpitos_process(old_pid):
+                # Confirmed Python process — check if it has our window title
+                if _bring_existing_to_front():
+                    still_running = True
         except (ValueError, OSError):
             pass
-        # Stale lock — reclaim it
+
+        if still_running:
+            print("\n  CockpitOS tool is already running. Switching to existing window.")
+            sys.exit(0)
+
+        # Stale lock (crash, recycled PID, or no window found) — reclaim it
         lock_path.unlink(missing_ok=True)
         lock_fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         os.write(lock_fd, str(os.getpid()).encode())
@@ -582,7 +607,8 @@ def main():
         sys.exit(1)
 
     while True:
-        # Read live state for display
+        # Reload prefs and live state every iteration to avoid stale data
+        prefs = load_prefs()
         active_ls = read_active_label_set() or "(none)"
         transport = read_current_transport()
         role = read_current_role()
@@ -601,16 +627,50 @@ def main():
         role_str = role_label(role)
         transport_str = transport_label(transport) if transport else "?"
         print()
-        print(f"     \U0001f5a5\ufe0f {CYAN}{friendly_board}{RESET}")
+
+        # -- Read Wi-Fi SSID once (used by transport and/or debug lines) --------
+        via_wifi   = config_get("VERBOSE_MODE_WIFI_ONLY") == "1"
+        via_serial = config_get("VERBOSE_MODE_SERIAL_ONLY") == "1"
+        needs_wifi = transport == "wifi" or via_wifi
+        wifi_ssid = None
+        if needs_wifi:
+            if WIFI_H.exists():
+                m = re.search(r'#define\s+WIFI_SSID\s+"([^"]*)"',
+                              WIFI_H.read_text(encoding="utf-8"))
+                if m:
+                    wifi_ssid = m.group(1)
+            if not wifi_ssid:
+                wifi_ssid = "TestNetwork"
+        ssid_shown = False   # only show SSID once
+
+        # -- Board line ----------------------------------------------------------
+        show_detail = prefs.get("show_detailed_warnings", False)
+        detail_str = f"  {YELLOW}(w/ verbose warnings){RESET}" if show_detail else ""
+        print(f"     \U0001f5a5\ufe0f {CYAN}{friendly_board}{RESET}{detail_str}")
+
+        # -- Role / Transport line -----------------------------------------------
         if role == "slave":
             addr = config_get("RS485_SLAVE_ADDRESS") or "?"
             print(f"     \U0001f517 {CYAN}RS485 Slave #{addr}{RESET}")
         else:
-            print(f"     \U0001f517 {CYAN}{role_str}{RESET}  {DIM}\u00b7{RESET}  {CYAN}{transport_str}{RESET}")
+            transport_parts = f"{CYAN}{role_str}{RESET}  {DIM}\u00b7{RESET}  {CYAN}{transport_str}{RESET}"
+            if transport == "wifi":
+                transport_parts += f"  {DIM}\u00b7  SSID:{RESET} {CYAN}{wifi_ssid}{RESET}"
+                ssid_shown = True
+            print(f"     \U0001f517 {transport_parts}")
+
+        # -- Label set line ------------------------------------------------------
+        if active_ls != "(none)":
+            print(f"     \U0001f3f7\ufe0f {CYAN}{active_ls}{RESET}")
+        else:
+            print(f"     \U0001f3f7\ufe0f {DIM}(no label set){RESET}")
+
+        # -- HID mode line -------------------------------------------------------
+        hid_on = config_get("MODE_DEFAULT_IS_HID") == "1"
+        if hid_on:
+            print(f"     \U0001f3ae\ufe0f {GREEN}HID Mode ON{RESET}  {DIM}(device acts as a gamepad in Windows){RESET}")
 
         # -- Debug status line ---------------------------------------------------
-        via_wifi   = config_get("VERBOSE_MODE_WIFI_ONLY") == "1"
-        via_serial = config_get("VERBOSE_MODE_SERIAL_ONLY") == "1"
         extended   = config_get("DEBUG_ENABLED") == "1"
         perf       = config_get("DEBUG_PERFORMANCE") == "1"
         debug_on   = via_wifi or via_serial
@@ -624,23 +684,26 @@ def main():
             else:
                 via = "Serial"
             perf_str = f"  {DIM}(w/ Performance Profiler){RESET}" if perf else ""
-            print(f"     \U0001f41b {GREEN}{label} ENABLED{RESET} via {CYAN}{via}{RESET}{perf_str}")
+            # Append SSID to debug line if WiFi debug is on but SSID wasn't shown on transport line
+            ssid_str = ""
+            if via_wifi and not ssid_shown:
+                ssid_str = f"  {DIM}\u00b7  SSID:{RESET} {CYAN}{wifi_ssid}{RESET}"
+            print(f"     \U0001f41b {GREEN}{label} ENABLED{RESET} via {CYAN}{via}{RESET}{ssid_str}{perf_str}")
         else:
             print(f"     \U0001f41b {DIM}Debug is DISABLED (see Misc Options to enable){RESET}")
 
         print()
 
         choice = menu_pick([
-            ("Board / Options",      "board",     "normal"),
-            ("Role / Transport",     "transport", "normal"),
-            ("Misc Options",         "misc",      "normal"),
-            ("Clear cache/build",    "clean",     "dim"),
-            ("",),
             ("action_bar", [
                 ("Compile", "compile"),
                 *([ ("Quick Compile", "qcompile") ] if active_ls != "(none)" else []),
                 ("Upload", "upload"),
             ]),
+            ("",),
+            ("Board / Options",      "board",     "normal"),
+            ("Role / Transport",     "transport", "normal"),
+            ("Misc Options",         "misc",      "normal"),
             ("",),
             ("---", "Switch Tool"),
             ("Label Creator",        "label",     "normal"),
@@ -747,10 +810,6 @@ def main():
 
         elif choice == "setup":
             _launch_tool("Setup-START.py")
-
-        elif choice == "clean":
-            clean_build()
-            input(f"\n  {DIM}Press Enter to continue...{RESET}")
 
 if __name__ == "__main__":
     try:

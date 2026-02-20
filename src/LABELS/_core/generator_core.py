@@ -40,7 +40,7 @@ def run():
     OUTPUT_HEADER   = "DCSBIOSBridgeData.h"
     INPUT_REFERENCE = "InputMapping.h"
     LED_REFERENCE   = "LEDMapping.h"
-    KNOWN_DEVICES   = {
+    KNOWN_DEVICES   = [
         "GPIO",
         "GAUGE",
         "PCA9555",
@@ -48,7 +48,7 @@ def run():
         "GN1640T",
         "WS2812",
         "NONE",
-    }
+    ]
 
     # Types that should behave like selectors in INPUTS
     NORMALIZE_TO_SELECTOR = {
@@ -146,7 +146,9 @@ def run():
         return panels
 
     # --- Load aircraft JSON (centralized in _core/aircraft/) ---
-    from aircraft_selector import select_aircraft, load_aircraft_json
+    # Import load_aircraft_json eagerly (pure I/O, cross-platform).
+    # Import select_aircraft lazily — it uses msvcrt (Windows-only TUI).
+    from aircraft_selector import load_aircraft_json
     core_dir = os.path.dirname(os.path.abspath(__file__))
     JSON_FILE = None
     data = None
@@ -179,6 +181,7 @@ def run():
     # 3. No aircraft.txt and no local JSON → interactive selector
     if data is None:
         print("No aircraft configured for this LABEL_SET.")
+        from aircraft_selector import select_aircraft
         selected = select_aircraft(core_dir)
         if selected:
             JSON_FILE, data = load_aircraft_json(core_dir, selected)
@@ -1453,6 +1456,36 @@ def run():
 
     print(f"[✓] Created {labelsetconfig_filename} with AUTOGEN_USB_PID=0x{_pid:04X} (from '{name_for_pid}')")
     # --- End of LabelSetConfig.h generation ---
+
+    # --- LatchedButtons.h (create if missing, never overwrite) ---
+    if not os.path.exists("LatchedButtons.h"):
+        with open("LatchedButtons.h", "w", encoding="utf-8") as _f:
+            _f.write("// LatchedButtons.h -- Per-label-set latched button configuration\n")
+            _f.write("// Buttons listed here toggle ON/OFF instead of acting as momentary press/release.\n")
+            _f.write("// Edit via the Label Creator tool or manually.\n\n")
+            _f.write("#pragma once\n\n")
+            _f.write("static const char* kLatchedButtons[] = {\n")
+            _f.write("    // ...add labels of buttons that should latch\n")
+            _f.write("};\n")
+            _f.write("static const unsigned kLatchedButtonCount = sizeof(kLatchedButtons)/sizeof(kLatchedButtons[0]);\n")
+        print("[+] Created LatchedButtons.h (empty)")
+    else:
+        print("[=] LatchedButtons.h exists, preserving")
+
+    # --- CoverGates.h (create if missing, never overwrite) ---
+    if not os.path.exists("CoverGates.h"):
+        with open("CoverGates.h", "w", encoding="utf-8") as _f:
+            _f.write("// CoverGates.h -- Per-label-set cover gate configuration\n")
+            _f.write("// Defines selectors/buttons that are physically guarded by a cover.\n")
+            _f.write("// Edit via the Label Creator tool or manually.\n\n")
+            _f.write("#pragma once\n\n")
+            _f.write("static const CoverGateDef kCoverGates[] = {\n")
+            _f.write('    // { "ACTION", "RELEASE_OR_nullptr", "COVER", CoverGateKind::Selector, delay_ms, close_delay_ms },\n')
+            _f.write("};\n")
+            _f.write("static const unsigned kCoverGateCount = sizeof(kCoverGates) / sizeof(kCoverGates[0]);\n")
+        print("[+] Created CoverGates.h (empty)")
+    else:
+        print("[=] CoverGates.h exists, preserving")
 
     # Set the active set
     # --- Emit active.set.h one directory up ---

@@ -248,16 +248,20 @@ def menu_pick(items, initial=None):
                 rows.append(None)   # plain separator
 
         elif item[0] == "action_bar":
-            # Horizontal action selector — one row, left/right to pick
+            # Horizontal action selector — three rows: top border, content, bottom border
             bar_opts = []   # [(label, value, caption), ...]
             for opt in item[1]:
                 lbl = opt[0]
                 val = opt[1]
                 cap = opt[2] if len(opt) >= 3 else ""
                 bar_opts.append((lbl, val, cap))
+            # Compute box width from content: each cell = len(label)+2, joined by 2-space gaps
+            content_w = sum(len(o[0]) + 2 for o in bar_opts) + 2 * (len(bar_opts) - 1)
+            rows.append(("action_bar_border", content_w, "top"))
             selectable.append(len(rows))
             # bar_sel stored as list so _render_row can mutate it
             rows.append(("action_bar", bar_opts, [0]))
+            rows.append(("action_bar_border", content_w, "bottom"))
 
         else:
             label, value, style = item[0], item[1], item[2]
@@ -298,11 +302,10 @@ def menu_pick(items, initial=None):
     total_rows = len(rows)
 
     def _render_action_bar(bar_opts, bar_sel_list, is_row_sel):
-        """Render the horizontal action bar as segmented buttons.
+        """Render the horizontal action bar as segmented buttons inside box borders.
 
         Each option occupies a fixed-width cell so labels never shift.
-        The cell width is: 2 (bracket+space) + label + 2 (space+bracket).
-        When brackets are absent, plain spaces fill those positions.
+        Cell: 1 (bracket/space) + label + 1 (bracket/space).
         """
         bs = bar_sel_list[0]
         parts = []
@@ -310,16 +313,13 @@ def menu_pick(items, initial=None):
             upper = lbl.upper()
             if is_row_sel:
                 if i == bs:
-                    # Active: green brackets around label
-                    parts.append(f"{GREEN}{BOLD}[ {upper} ]{RESET}")
+                    parts.append(f"{GREEN}{BOLD}[{upper}]{RESET}")
                 else:
-                    # Inactive: same width, spaces instead of brackets
-                    parts.append(f"  {DIM}{upper}{RESET}  ")
+                    parts.append(f" {DIM}{upper}{RESET} ")
             else:
-                # Row not focused: all green, padded to same cell width
-                parts.append(f"  {GREEN}{BOLD}{upper}{RESET}  ")
-        joined = "   ".join(parts)
-        return f"     {joined}"
+                parts.append(f" {DIM}{upper}{RESET} ")
+        joined = "  ".join(parts)
+        return f"     {_SEP_COLOR}\u2502{RESET} {joined} {_SEP_COLOR}\u2502{RESET}"
 
     def _render_row(ri, is_sel):
         entry = rows[ri]
@@ -336,6 +336,13 @@ def menu_pick(items, initial=None):
             right = pad - left
             dash = "\u2500"
             return f"     {_SEP_COLOR}{dash * left} {label} {dash * right}{RESET}"
+        if isinstance(entry, tuple) and entry[0] == "action_bar_border":
+            w = entry[1]
+            hline = "\u2500" * (w + 2)
+            if entry[2] == "top":
+                return f"     {_SEP_COLOR}\u250c{hline}\u2510{RESET}"
+            else:
+                return f"     {_SEP_COLOR}\u2514{hline}\u2518{RESET}"
         if isinstance(entry, tuple) and entry[0] == "action_bar":
             return _render_action_bar(entry[1], entry[2], is_sel)
         normal, hilite, _ = entry

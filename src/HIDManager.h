@@ -32,6 +32,11 @@ enum HIDAxis : uint8_t {
   HID_AXIS_COUNT
 };
 
+// Fallback if Mappings.h hasn't been included yet (include-order safe)
+#ifndef INVERTED_AXIS_LIST
+#define INVERTED_AXIS_LIST(X)
+#endif
+
 static constexpr uint16_t buildInvertMask() {
   uint16_t m = 0u;
   #define ADD(ax) m |= (uint16_t(1u) << (ax));

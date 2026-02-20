@@ -1,17 +1,21 @@
 {
-  "fqbn": "esp32:esp32:lolin_s2_mini",
+  "fqbn": "esp32:esp32:esp32h2",
   "options": {
-    "CDCOnBoot": "dis_cdc",
-    "MSCOnBoot": "default",
-    "DFUOnBoot": "default",
+    "UploadSpeed": "921600",
+    "CDCOnBoot": "default",
+    "FlashFreq": "64",
+    "FlashMode": "qio",
+    "FlashSize": "4M",
     "PartitionScheme": "no_ota",
     "DebugLevel": "none",
-    "EraseFlash": "none"
+    "EraseFlash": "none",
+    "JTAGAdapter": "default",
+    "ZigbeeMode": "default"
   },
-  "transport": "usb",
+  "transport": "serial",
   "role": "standalone",
   "usb_mode": null,
-  "board_name": "LOLIN S2 Mini",
+  "board_name": "ESP32H2 Dev Module",
   "arduino_cli_path": "C:\\Users\\jaltu\\OneDrive\\Documents\\Arduino\\CockpitOS\\compiler\\arduino-cli\\arduino-cli.exe",
   "show_detailed_warnings": false
 }

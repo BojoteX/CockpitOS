@@ -27,6 +27,8 @@ AUTOGEN_FILES = [
     "panels.txt",
     "selected_panels.txt",
     "LabelSetConfig.h",
+    "LatchedButtons.h",
+    "CoverGates.h",
 ]
 
 # Template for CustomPins.h (blanked or newly created)

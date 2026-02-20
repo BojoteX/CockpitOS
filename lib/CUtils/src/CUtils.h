@@ -129,7 +129,7 @@ void logPCA9555State(uint8_t addr, byte p0, byte p1);
 void PCA9555_initCache();
 void measureI2Cspeed(uint8_t deviceAddr);
 bool shouldLogChange(uint8_t address, byte port0, byte port1);
-void PCA9555_scanConnectedPanels();
+void PCA9555_scanConnectedPanels(const uint8_t* addrs, uint8_t count);
 
 // —— MatrixRotary Interface (shared across panels) ——
 uint8_t MatrixRotary_readPattern(const int* strobes, int count, int dataPin);

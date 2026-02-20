@@ -8,7 +8,12 @@ from _core/aircraft/. Used by reset_core.py and generator_core.py.
 Pattern borrowed from compiler/ui.py pick() but kept standalone
 so _core scripts have no external dependencies.
 """
-import os, sys, msvcrt, ctypes
+import os, sys
+try:
+    import msvcrt, ctypes       # Windows-only (TUI picker)
+except ImportError:
+    msvcrt = None               # Linux/CI — load_aircraft_json still works
+    ctypes = None
 
 # ── ANSI constants ──────────────────────────────────────────────────────────
 BOLD     = "\033[1m"
