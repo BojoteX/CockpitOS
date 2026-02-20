@@ -96,15 +96,16 @@ Every device on the bus connects A-to-A and B-to-B. The bus is a single twisted 
 
 The master is a normal CockpitOS panel that connects to DCS-BIOS via USB, WiFi, or Serial. It additionally forwards data to all slaves over RS485.
 
-### Config.h Settings (Master)
+### Compiler Tool Configuration (Master)
+
+In the Compiler Tool, select **Role / Transport** and choose **RS485 Master**. The tool walks you through a wizard: first select the PC-side transport (USB, WiFi, or Serial), then configure RS485 master settings. All Config.h flags are written automatically:
 
 ```cpp
-// Transport: pick one (USB, WiFi, or Serial) for the PC connection
-#define USE_DCSBIOS_USB             1
+// These are set by the Compiler Tool -- shown for reference only
+#define USE_DCSBIOS_USB             1   // (your chosen PC transport)
 #define USE_DCSBIOS_WIFI            0
 #define USE_DCSBIOS_SERIAL          0
 
-// RS485 Master
 #define RS485_MASTER_ENABLED        1
 #define RS485_SLAVE_ENABLED         0
 ```
@@ -119,14 +120,16 @@ The master is a normal CockpitOS panel that connects to DCS-BIOS via USB, WiFi, 
                                           // Set to -1 for auto-direction modules
 ```
 
-### Optional Master Settings in Config.h
+### Optional Master Settings
 
-| Setting | Default | Description |
-|---|---|---|
-| `RS485_SMART_MODE` | `0` | When `1`, master filters data and only forwards addresses that slaves need. Reduces bandwidth. |
-| `RS485_MAX_SLAVE_ADDRESS` | `127` | Highest slave address to poll. Lower this to reduce polling overhead. |
-| `RS485_USE_TASK` | `1` | `1` = dedicated FreeRTOS task (best for USB/Serial). `0` = run in main loop (best for WiFi). |
-| `RS485_TASK_CORE` | `0` | CPU core for the RS485 task on dual-core boards. |
+The Compiler Tool's RS485 master wizard configures Smart Mode and Max Slave Address. The remaining settings below are advanced and can be changed manually in `Config.h` if needed:
+
+| Setting | Default | Description | Configured By |
+|---|---|---|---|
+| `RS485_SMART_MODE` | `0` | When `1`, master filters data and only forwards addresses that slaves need. Reduces bandwidth. | Compiler Tool |
+| `RS485_MAX_SLAVE_ADDRESS` | `127` | Highest slave address to poll. Lower this to reduce polling overhead. | Compiler Tool |
+| `RS485_USE_TASK` | `1` | `1` = dedicated FreeRTOS task (best for USB/Serial). `0` = run in main loop (best for WiFi). | Manual (Config.h) |
+| `RS485_TASK_CORE` | `0` | CPU core for the RS485 task on dual-core boards. | Manual (Config.h) |
 
 ---
 
@@ -134,15 +137,16 @@ The master is a normal CockpitOS panel that connects to DCS-BIOS via USB, WiFi, 
 
 Slaves receive DCS-BIOS data from the master over RS485. They do not need USB, WiFi, or Serial to the PC.
 
-### Config.h Settings (Slave)
+### Compiler Tool Configuration (Slave)
+
+In the Compiler Tool, select **Role / Transport** and choose **RS485 Slave**. The tool prompts you for the slave address (1-126) and writes all Config.h flags automatically:
 
 ```cpp
-// No PC transport needed
+// These are set by the Compiler Tool -- shown for reference only
 #define USE_DCSBIOS_USB             0
 #define USE_DCSBIOS_WIFI            0
 #define USE_DCSBIOS_SERIAL          0
 
-// RS485 Slave
 #define RS485_MASTER_ENABLED        0
 #define RS485_SLAVE_ENABLED         1
 #define RS485_SLAVE_ADDRESS         1    // Unique per slave (1-126)

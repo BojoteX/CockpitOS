@@ -2,7 +2,7 @@
 
 Complete reference for every setting in `Config.h`. All values shown are the defaults. Settings are grouped by category with recommended values for production and development use.
 
-> **Rule of thumb:** For a working production panel, the only settings you typically need to change are the transport mode (Section 1) and WiFi credentials (Section 2). Everything else can stay at defaults.
+> **Rule of thumb:** The [Compiler Tool](../Tools/Compiler-Tool.md) manages the most commonly changed settings (transport, WiFi credentials, debug flags, HID mode) through its menus. You do not need to edit `Config.h` by hand for these. This reference documents all settings for advanced use cases.
 
 ---
 
