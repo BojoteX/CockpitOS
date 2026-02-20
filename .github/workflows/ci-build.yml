@@ -39,9 +39,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install arduino-cli
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh -s -- -b /usr/local/bin
-          arduino-cli version
+        uses: arduino/setup-arduino-cli@v2
 
       - name: Install ESP32 core
         run: |
