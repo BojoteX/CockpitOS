@@ -2,8 +2,7 @@
 
 // ==============================================================================================================
 // This file manages panel registration, dynamic presence detection, and initialization of all major cockpit panels.
-// - Add physical "cover gate" logic or custom guarded button/selector definitions here (see kCoverGates).
-// - All PCA9555 panel devices, annunciators, and custom LEDs/gauges should be configured/initialized here.
+// PCA9555 devices are auto-detected from InputMapping.h and LEDMapping.h — no manual table needed.
 // - Button and selector logic is mostly automated; only extend this file when adding new panels, covered controls,
 //   or custom panel hardware.
 // ==============================================================================================================
@@ -20,52 +19,44 @@
 #include "src/WiFiDebug.h"
 #endif
 
-// This table is where you add selectors or buttons that are physically guarded by a "cover"
-const CoverGateDef kCoverGates[] = {
-    // --- 2-Pos SELECTORS that are physically guarded --- ON_POSITION OFF_POSITION COVER_NAME ACTION_TYPE DELAY(OPEN) DELAY(CLOSE) 
-    { "GAIN_SWITCH_POS1",      "GAIN_SWITCH_POS0",     "GAIN_SWITCH_COVER",         CoverGateKind::Selector,        500,  500 },
-    { "GEN_TIE_SW_RESET",      "GEN_TIE_SW_NORM",      "GEN_TIE_COVER",             CoverGateKind::Selector,        500,  500 },
-    { "SPIN_RECOVERY_SW_RCVY", "SPIN_RECOVERY_SW_NORM","SPIN_RECOVERY_COVER",       CoverGateKind::Selector,        500,  500 },
-
-    // --- Momentary (latching) BUTTONS that are behind a cover --- TOGGLE N/A COVER_NAME ACTION_TYPE DELAY(OPEN) DELAY(CLOSE)
-    { "LEFT_FIRE_BTN",         nullptr,                "LEFT_FIRE_BTN_COVER",       CoverGateKind::ButtonMomentary, 350,  300 },
-    { "RIGHT_FIRE_BTN",        nullptr,                "RIGHT_FIRE_BTN_COVER",      CoverGateKind::ButtonMomentary, 350,  300 },
-    // --- Add other covered buttons as your cockpit expands ---
-    // { "SOME_OTHER_BTN",    nullptr, "SOME_COVER", CoverGateKind::ButtonMomentary, 400, 200 },
-
-    // TODO: Momentary (NON latching) BUTTONS behind a cover. Is it really required?
-};
-
-// This table is where you add LABELS for buttons that require "latching"
-const char* kLatchedButtons[] = {
-    "APU_FIRE_BTN",
-    "CMSD_JET_SEL_BTN",
-    "RWR_POWER_BTN",
-    "SJ_CTR",
-    "SJ_LI",
-    "SJ_LO",
-    "SJ_RI",
-    "SJ_RO",
-    // ...add more as needed
-};
-const unsigned kLatchedButtonCount = sizeof(kLatchedButtons)/sizeof(kLatchedButtons[0]);
-const unsigned kCoverGateCount = sizeof(kCoverGates) / sizeof(kCoverGates[0]);
-
-PanelID getPanelID(uint8_t address) {
-  for (auto &p : kPanels)
-    if (p.addr == address) return p.id;
-  return PanelID::UNKNOWN;
-}
-
-const char* panelIDToString(PanelID id) {
-  for (auto &p : kPanels)
-    if (p.id == id) return p.label;
-  return "Unknown Panel";
-}
+// kLatchedButtons[] and kCoverGates[] are now per-label-set.
+// See src/LABELS/LABEL_SET_*/LatchedButtons.h and CoverGates.h
+// Included automatically via LabelSetSelect.h
 
 const char* getPanelName(uint8_t addr) {
     const char* n = (addr < I2C_ADDR_SPACE) ? panelNameByAddr[addr] : nullptr;
-    return n ? n : panelIDToString(getPanelID(addr));
+    return n ? n : "Unknown";
+}
+
+// ================================================================
+// Collect unique PCA9555 addresses from InputMapping + LEDMapping
+// ================================================================
+static uint8_t _pcaAddrs[MAX_DEVICES];
+static uint8_t _pcaAddrCount = 0;
+
+static void _collectPcaAddresses() {
+    _pcaAddrCount = 0;
+
+    auto addUnique = [](uint8_t addr) {
+        if (addr == 0x00) return;  // skip PCA_0x00 placeholder
+        for (uint8_t j = 0; j < _pcaAddrCount; ++j)
+            if (_pcaAddrs[j] == addr) return;
+        if (_pcaAddrCount < MAX_DEVICES)
+            _pcaAddrs[_pcaAddrCount++] = addr;
+    };
+
+    // From InputMapping: source strings like "PCA_0x22"
+    for (size_t i = 0; i < InputMappingSize; ++i) {
+        const auto& m = InputMappings[i];
+        if (!m.source || !startsWith(m.source, "PCA_0x")) continue;
+        addUnique(parseHexByte(m.source + 4));
+    }
+
+    // From LEDMapping: DEVICE_PCA9555 entries
+    for (uint16_t i = 0; i < panelLEDsCount; ++i) {
+        if (panelLEDs[i].deviceType == DEVICE_PCA9555)
+            addUnique(panelLEDs[i].info.pcaInfo.address);
+    }
 }
 
 void initMappings() {
@@ -184,23 +175,14 @@ void initMappings() {
     }
 
 #if ENABLE_PCA9555
-    // Runs a discovery routine to check for PCA panels automatically, but they still need to be added manually in kPanels[] (see Mappings.h)
+    // Auto-detect PCA9555 addresses from InputMapping + LEDMapping
     debugPrintf("Using SDA %d and SCL %d for I2C\n", SDA_PIN, SCL_PIN);
 
-    PCA9555_scanConnectedPanels();
+    _collectPcaAddresses();
+    PCA9555_scanConnectedPanels(_pcaAddrs, _pcaAddrCount);
 
-    PanelRegistry_setActive(PanelKind::ECM, panelExists(0x22));
-    PanelRegistry_setActive(PanelKind::MasterARM, panelExists(0x5B));
-    PanelRegistry_setActive(PanelKind::Brain, panelExists(0x26));
-  
     // Show what PCA panels were discovered
     printDiscoveredPanels();
-
-#else   
-    // hard-off at runtime when PCA is disabled at compile time
-    PanelRegistry_setActive(PanelKind::ECM,       false);
-    PanelRegistry_setActive(PanelKind::MasterARM, false);
-    PanelRegistry_setActive(PanelKind::Brain,     false);    
 #endif
 
     // Print registered panels
@@ -236,12 +218,11 @@ void initializeLEDs() {
     scanOutputDevicePresence();    
 
     // ========================================================================
-    // STEP 2: Initialize PCA9555 devices (still uses I2C discovery)
+    // STEP 2: Initialize PCA9555 devices (data-driven from discovery)
     // ========================================================================
     #if ENABLE_PCA9555
-        if (PanelRegistry_has(PanelKind::MasterARM)) PCA9555_autoInitFromLEDMap(0x5B);
-        if (PanelRegistry_has(PanelKind::ECM)) PCA9555_autoInitFromLEDMap(0x22);
-        if (PanelRegistry_has(PanelKind::Brain)) PCA9555_autoInitFromLEDMap(0x26);
+        for (uint8_t i = 0; i < discoveredDeviceCount; ++i)
+            PCA9555_autoInitFromLEDMap(discoveredDevices[i].address);
     #endif
 
     // ========================================================================
@@ -297,10 +278,13 @@ void initializeLEDs() {
         WS2812_allOn(Green); delay(1000); WS2812_allOff();
     }
 
-    // PCA9555 devices
+    // PCA9555 devices — flash all discovered PCA LEDs
     #if ENABLE_PCA9555
-        if (PanelRegistry_has(PanelKind::MasterARM)) { PCA9555_allOn(0x5B); delay(1000); PCA9555_allOff(0x5B); }
-        if (PanelRegistry_has(PanelKind::ECM)) { PCA9555_allOn(0x22); delay(1000); PCA9555_allOff(0x22); }
+        for (uint8_t i = 0; i < discoveredDeviceCount; ++i) {
+            PCA9555_allOn(discoveredDevices[i].address);
+            delay(1000);
+            PCA9555_allOff(discoveredDevices[i].address);
+        }
     #endif
 
     // GPIO LEDs

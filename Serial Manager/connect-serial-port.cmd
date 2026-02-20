@@ -31,6 +31,6 @@ REM Different combinations of DTR/RTS={on|off} might be needed depending on the 
 mode COM%COMPORT% BAUD=250000 PARITY=N DATA=8 STOP=1 TO=off DTR=off %MODE_OUTPUT_REDIR%
 timeout 5
 if "%PROTOCOL%" == "UDP" socat\socat %VERBOSE% UDP4-RECV:5010,ip-add-membership=239.255.50.10:0.0.0.0,reuseaddr!!udp-sendto:localhost:7778 /dev/ttyS%TTYNUM%
-if "%PROTOCOL%" == "TCP" socat\socat %VERBOSE% TCP4-CONNECT:127.0.0.1:7778 /dev/ttyS%TTYNUM%
+if "%PROTOCOL%" == "TCP" socat\socat %VERBOSE% TCP4-CONNECT:0.0.0.0:7778 /dev/ttyS%TTYNUM%
 
 pause

@@ -33,6 +33,9 @@ import input_editor
 import led_editor
 import display_editor
 import segment_map_editor
+import latched_editor
+import covergate_editor
+import custompins_editor
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -511,6 +514,33 @@ def _segment_map_caption(ls_dir: Path, ac_name: str) -> str:
     return segment_map_editor.segment_map_caption(ls_dir, ac_name)
 
 
+def _latched_buttons_caption(ls_dir: Path) -> str:
+    """Return 'X latched' caption for LatchedButtons.h, or 'not configured'."""
+    fpath = ls_dir / "LatchedButtons.h"
+    if not fpath.exists():
+        return "not configured"
+    n = latched_editor.count_latched(str(fpath), str(ls_dir / "InputMapping.h"))
+    return f"{n} latched"
+
+
+def _covergates_caption(ls_dir: Path) -> str:
+    """Return 'X gates' caption for CoverGates.h, or 'not configured'."""
+    fpath = ls_dir / "CoverGates.h"
+    if not fpath.exists():
+        return "not configured"
+    n = covergate_editor.count_covergates(str(fpath), str(ls_dir / "InputMapping.h"))
+    return f"{n} gate{'s' if n != 1 else ''}"
+
+
+def _custom_pins_caption(ls_dir: Path) -> str:
+    """Return 'X pins' caption for CustomPins.h, or 'not configured'."""
+    fpath = ls_dir / "CustomPins.h"
+    if not fpath.exists():
+        return "not configured"
+    n = custompins_editor.count_pins(str(fpath))
+    return f"{n} pin{'s' if n != 1 else ''}"
+
+
 def _show_label_set_info(ls_name: str, prefs) -> str | None:
     """Display detailed info about a label set.
 
@@ -589,6 +619,9 @@ def _show_label_set_info(ls_name: str, prefs) -> str | None:
                     display_cap = _display_mapping_caption(ls_dir)
 
             segmap_cap = _segment_map_caption(ls_dir, ac_name)
+            latched_cap = _latched_buttons_caption(ls_dir)
+            covergate_cap = _covergates_caption(ls_dir)
+            pins_cap = _custom_pins_caption(ls_dir)
 
             # Check if this label set is the active (default) one
             active_ls = _read_active_label_set()
@@ -605,6 +638,8 @@ def _show_label_set_info(ls_name: str, prefs) -> str | None:
                 ("---", "LEDs & Controls"),
                 ("Edit Inputs",              "edit_input",  "normal", f"({input_cap} wired)"),
                 ("Edit Outputs (LEDs)",      "edit_led",    "normal", f"({led_cap} wired)"),
+                ("Latched Buttons",          "edit_latched","normal", f"({latched_cap})"),
+                ("Cover Gates",              "edit_covergate","normal", f"({covergate_cap})"),
                 ("",),
                 ("---", "Displays"),
                 ("Segment Maps",             "segment_maps","normal", f"({segmap_cap})"),
@@ -620,7 +655,7 @@ def _show_label_set_info(ls_name: str, prefs) -> str | None:
                 ("---", "Misc Options"),
                 ("Device Name",              "devname",     "normal", fullname_cap),
                 ("HID Mode Selector",        "hid",         "normal", hid_cap),
-                ("Edit Custom Pins",         "pins",        "normal"),
+                ("Edit Custom Pins",         "pins",        "normal", f"({pins_cap})"),
                 ("",),
                 ("RESET LABEL SET",          "reset",       "danger"),
                 ("Back",                     "back",        "dim"),
@@ -652,7 +687,7 @@ def _show_label_set_info(ls_name: str, prefs) -> str | None:
             label_set.write_hid_mode_selector(ls_dir, not hid_on)
             continue
         elif choice == "pins":
-            _edit_custom_pins(ls_dir)
+            _edit_custom_pins(ls_dir, ls_name, ac_name)
             continue
         elif choice == "edit_input":
             input_editor.edit_input_mapping(str(ls_dir / "InputMapping.h"),
@@ -661,6 +696,18 @@ def _show_label_set_info(ls_name: str, prefs) -> str | None:
         elif choice == "edit_led":
             led_editor.edit_led_mapping(str(ls_dir / "LEDMapping.h"),
                                         ls_name, ac_name)
+            continue
+        elif choice == "edit_latched":
+            latched_editor.edit_latched_buttons(
+                str(ls_dir / "LatchedButtons.h"),
+                str(ls_dir / "InputMapping.h"),
+                ls_name, ac_name)
+            continue
+        elif choice == "edit_covergate":
+            covergate_editor.edit_covergates(
+                str(ls_dir / "CoverGates.h"),
+                str(ls_dir / "InputMapping.h"),
+                ls_name, ac_name)
             continue
         elif choice == "edit_display":
             display_editor.edit_display_mapping(
@@ -731,15 +778,20 @@ def _edit_device_name(ls_dir: Path, current: str):
     time.sleep(0.6)
 
 
-def _edit_custom_pins(ls_dir: Path):
-    """Open CustomPins.h in the user's default editor."""
+def _edit_custom_pins(ls_dir: Path, ls_name: str = "", ac_name: str = ""):
+    """Launch the intelligent CustomPins.h TUI editor."""
     pins_file = ls_dir / "CustomPins.h"
     if not pins_file.exists():
         ui.warn("CustomPins.h not found in this label set.")
         input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
         return
-    ui.info(f"Opening {pins_file.name} ...")
-    os.startfile(str(pins_file))
+    custompins_editor.edit_custom_pins(
+        str(pins_file),
+        str(ls_dir / "InputMapping.h"),
+        str(ls_dir / "LEDMapping.h"),
+        str(ls_dir / "DisplayMapping.cpp"),
+        ls_name, ac_name,
+        config_filepath=str(SKETCH_DIR / "Config.h"))
 
 
 # ---------------------------------------------------------------------------
@@ -892,7 +944,8 @@ def main():
     prefs = load_prefs()
 
     while True:
-        # Gather status info on each loop iteration
+        # Reload prefs and live state every iteration to avoid stale data
+        prefs = load_prefs()
         existing = label_set.list_label_sets()
         active_ls = _read_active_label_set()
         active_ac = None

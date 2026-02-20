@@ -18,20 +18,35 @@ struct InputMapping {
 
 //  label                       source     port bit hidId  DCSCommand           value   Type        group
 static const InputMapping InputMappings[] = {
-    { "CANOPY_JETT_HANDLE_PULL"  , "GPIO" ,  5 ,  0 ,  -1 , "CANOPY_JETT_HANDLE_PULL"  ,     1 , "momentary",  0 },
-    { "CANOPY_JETT_HANDLE_UNLOCK", "PCA_0x20" ,  0 ,  7 ,  -1 , "CANOPY_JETT_HANDLE_UNLOCK",     1 , "momentary",  0 },
+    { "MASTER_ARM_SW_SAFE", "NONE" ,  0 ,  0 ,  -1 , "MASTER_ARM_SW" ,     0 , "selector" ,  1 },
+    { "MASTER_ARM_SW_ARM" , "NONE" ,  0 ,  0 ,  -1 , "MASTER_ARM_SW" ,     1 , "selector" ,  1 },
+    { "MASTER_MODE_AA"    , "GPIO" ,  0 ,  0 ,  -1 , "MASTER_MODE_AA",     1 , "momentary",  0 },
+    { "MASTER_MODE_AG"    , "GPIO" ,  8 ,  0 ,  -1 , "MASTER_MODE_AG",     1 , "momentary",  0 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);
 
-static const char* const TrackedSelectorLabels[] = {};
-static const size_t TrackedSelectorLabelsCount = 0;
+// Auto-generated: selector DCS labels with group > 0 (panel sync)
+static const char* const TrackedSelectorLabels[] = {
+    "MASTER_ARM_SW",
+};
+static const size_t TrackedSelectorLabelsCount = sizeof(TrackedSelectorLabels)/sizeof(TrackedSelectorLabels[0]);
 
 
 // Static hash lookup table for InputMappings[]
 struct InputHashEntry { const char* label; const InputMapping* mapping; };
 static const InputHashEntry inputHashTable[53] = {
   {nullptr, nullptr},
-  {"CANOPY_JETT_HANDLE_UNLOCK", &InputMappings[1]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"MASTER_MODE_AA", &InputMappings[2]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -48,6 +63,7 @@ static const InputHashEntry inputHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {"MASTER_ARM_SW_ARM", &InputMappings[1]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -60,6 +76,8 @@ static const InputHashEntry inputHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
+  {"MASTER_ARM_SW_SAFE", &InputMappings[0]},
+  {"MASTER_MODE_AG", &InputMappings[3]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -67,19 +85,6 @@ static const InputHashEntry inputHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"CANOPY_JETT_HANDLE_PULL", &InputMappings[0]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
