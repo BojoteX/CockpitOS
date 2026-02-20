@@ -3,10 +3,17 @@ CockpitOS Label Creator -- Segment Map Manager.
 
 Creates and manages {PREFIX}_SegmentMap.h files that define the physical
 mapping between logical display fields and hardware RAM addresses / bits /
-chip IDs for segmented-display driver chips (HT1622, etc.).
+chip IDs for HT1622 segment-display driver chips.
 
-A segment map is a PREREQUISITE for the display generator — without one,
-display fields for that device prefix are silently skipped.
+Segment maps are ONLY needed for HT1622-driven segment displays (7-seg,
+14-seg, bargraph).  For TFT/LCD/OLED text displays, this module also
+provides auto-generated subscribeToDisplayChange() code so users can
+receive display values directly in their Panel code without needing a
+segment map or DisplayMapping pipeline.
+
+A segment map is a prerequisite for the display generator — without one,
+display fields for that device prefix are silently skipped from
+DisplayMapping.cpp generation.
 """
 
 import os
@@ -1288,9 +1295,9 @@ def _create_new_segment_map(ls_dir, prefix, all_fields, ls_name="", ac_name=""):
 
     ui.header(f"Create {prefix}_SegmentMap.h")
     print()
-    ui.info(f"This will create a new segment map for the {CYAN}{prefix}{RESET} display device.")
-    ui.info(f"{DIM}The segment map defines how logical display fields map to{RESET}")
-    ui.info(f"{DIM}physical RAM addresses, bits, and chip IDs on your hardware.{RESET}")
+    ui.info(f"This will create a new HT1622 segment map for {CYAN}{prefix}{RESET}.")
+    ui.info(f"{DIM}Maps logical display fields to physical HT1622 RAM addresses,{RESET}")
+    ui.info(f"{DIM}bits, and chip IDs on your segment display hardware.{RESET}")
     print()
     ui.info(f"{YELLOW}{BOLD}Important:{RESET} {DIM}Segment order MUST match your font tables!{RESET}")
     ui.info(f"{DIM}See SegmentMap.txt in your label set for detailed instructions.{RESET}")
@@ -1312,6 +1319,128 @@ def _create_new_segment_map(ls_dir, prefix, all_fields, ls_name="", ac_name=""):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# TUI — No-segmap action picker  (HT1622 create vs subscription code)
+# ═══════════════════════════════════════════════════════════════════════════
+def _no_segmap_action(prefix, fields):
+    """When a device has no segment map, ask: create (HT1622) or show code?
+
+    Returns "create", "subscribe", or None (cancelled).
+    """
+    opts = [
+        (f"Create Segment Map  {DIM}(HT1622 segment display){RESET}",
+         "create"),
+        (f"Show Subscription Code  {DIM}(TFT / LCD / OLED){RESET}",
+         "subscribe"),
+    ]
+    descs = {
+        "create": [
+            f"{CYAN}{BOLD}HT1622 Segment Display{RESET}",
+            f"{DIM}Creates {prefix}_SegmentMap.h with RAM address-to-segment{RESET}",
+            f"{DIM}mappings for an HT1622-driven display (7-seg, 14-seg, bargraph).{RESET}",
+            f"{DIM}Required for the DisplayMapping pipeline to generate entries.{RESET}",
+        ],
+        "subscribe": [
+            f"{CYAN}{BOLD}Text / Graphical Display{RESET}",
+            f"{DIM}Shows ready-to-use C++ code you can paste into your Panel .cpp{RESET}",
+            f"{DIM}file. Uses subscribeToDisplayChange() to receive text values{RESET}",
+            f"{DIM}directly — no segment map, no DisplayMapping needed.{RESET}",
+            f"{DIM}Use for: TFT screens, OLED, LCD, or any programmable display.{RESET}",
+        ],
+    }
+    return ui.pick(
+        f"What kind of display is {prefix}?",
+        opts,
+        descriptions=descs,
+    )
+
+
+def _show_subscription_code(prefix, fields):
+    """Show copy-paste subscription code for all display fields of a prefix.
+
+    Generates subscribeToDisplayChange() calls and callback stubs for
+    text/TFT/LCD/OLED displays that bypass the HT1622 segment pipeline.
+    Scrollable full-screen view.
+    """
+    cols, term_rows = _get_terminal_size()
+
+    lines = []
+    lines.append(f"  {CYAN}{BOLD}Subscription Code for {prefix}{RESET}")
+    lines.append(f"  {DIM}Paste this into your Panel .cpp file to receive display values.{RESET}")
+    lines.append(f"  {DIM}No segment map or DisplayMapping needed.{RESET}")
+    lines.append("")
+    lines.append(f"  {DIM}// ---- Callback functions (place above your setup/postSetup) ----{RESET}")
+    lines.append("")
+
+    # Generate callback stubs
+    for label in fields:
+        # Build a short callback name from the label
+        cb_name = "on" + "".join(
+            part.capitalize() for part in label.split("_")
+        )
+        lines.append(f"  {GREEN}void {cb_name}(const char* label, const char* value) {{{RESET}")
+        lines.append(f"  {GREEN}    // value is the complete display string for {label}{RESET}")
+        lines.append(f"  {GREEN}    // Render it to your TFT/LCD/OLED here{RESET}")
+        lines.append(f"  {GREEN}}}{RESET}")
+        lines.append("")
+
+    lines.append(f"  {DIM}// ---- Subscribe calls (place inside your postSetup function) ----{RESET}")
+    lines.append("")
+
+    for label in fields:
+        cb_name = "on" + "".join(
+            part.capitalize() for part in label.split("_")
+        )
+        lines.append(f"  {GREEN}subscribeToDisplayChange(\"{label}\", {cb_name});{RESET}")
+
+    lines.append("")
+    lines.append(f"  {DIM}// ---- End of generated code ----{RESET}")
+    lines.append("")
+    lines.append(f"  {DIM}Each callback receives the full display string when DCS-BIOS{RESET}")
+    lines.append(f"  {DIM}sends an update. The string length matches the field definition{RESET}")
+    lines.append(f"  {DIM}in the aircraft JSON.{RESET}")
+    lines.append("")
+    lines.append(f"  {DIM}See TFT_Display_CMWS.cpp for a working example.{RESET}")
+    lines.append("")
+    lines.append(f"  {DIM}\u2191\u2193=scroll  Esc=back{RESET}")
+
+    # Scrollable display
+    view_height = term_rows - 4
+    scroll = 0
+    total = len(lines)
+
+    def _draw_code():
+        os.system("cls" if os.name == "nt" else "clear")
+        _w(HIDE_CUR)
+        header_w = cols - 4
+        _w(f"  {CYAN}{BOLD}{'=' * header_w}{RESET}\n")
+        _w(f"  {CYAN}{BOLD}  Display Subscription Code{RESET}\n")
+        _w(f"  {CYAN}{BOLD}{'=' * header_w}{RESET}\n")
+
+        end = min(scroll + view_height, total)
+        for i in range(scroll, end):
+            _w(lines[i] + "\n")
+        for _ in range(view_height - (end - scroll)):
+            _w("\n")
+
+    _draw_code()
+
+    while True:
+        ch = msvcrt.getwch()
+        if ch in ("\xe0", "\x00"):
+            ch2 = msvcrt.getwch()
+            if ch2 == "H" and scroll > 0:
+                scroll -= 1
+                _draw_code()
+            elif ch2 == "P" and scroll < total - view_height:
+                scroll += 1
+                _draw_code()
+            # else: ignore (boundary or other special key)
+        elif ch == "\x1b":          # Esc — back
+            _w(SHOW_CUR)
+            return
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # Main entry point
 # ═══════════════════════════════════════════════════════════════════════════
 def manage_segment_maps(ls_dir, ls_name, ac_name):
@@ -1326,14 +1455,14 @@ def manage_segment_maps(ls_dir, ls_name, ac_name):
         prefixes = scan_display_prefixes(ls_path, ac_name)
 
         if not prefixes:
-            ui.header(f"Segment Maps \u2014 {ls_name}")
+            ui.header(f"Display Configuration \u2014 {ls_name}")
             print()
             ui.warn("No display fields found for this aircraft.")
-            ui.info(f"{DIM}This aircraft has no CT_DISPLAY controls.{RESET}")
+            ui.info(f"{DIM}This aircraft has no CT_DISPLAY controls in the JSON.{RESET}")
             input(f"\n  {DIM}Press Enter to continue...{RESET}")
             return modified
 
-        ui.header(f"Segment Maps \u2014 {ls_name}")
+        ui.header(f"Display Configuration \u2014 {ls_name}")
         print()
         ui.info(f"  Aircraft: {CYAN}{ac_name}{RESET}")
         print()
@@ -1345,25 +1474,23 @@ def manage_segment_maps(ls_dir, ls_name, ac_name):
             prefix = p["prefix"]
             if p["has_segmap"]:
                 label = f"\u2713 {prefix}"
-                cap = f"({p['entry_count']} entries)"
+                cap = f"(HT1622 \u2014 {p['entry_count']} entries)"
                 desc_lines = [
-                    f"{GREEN}{BOLD}{prefix}_SegmentMap.h{RESET} {DIM}\u2014 exists{RESET}",
+                    f"{GREEN}{BOLD}{prefix}_SegmentMap.h{RESET} {DIM}\u2014 HT1622 segment map configured{RESET}",
                     f"{DIM}{p['entry_count']} segment map entries defined.{RESET}",
                     f"{DIM}{len(p['fields'])} display fields in aircraft JSON.{RESET}",
                 ]
             else:
                 label = f"  {prefix}"
-                cap = "(no segment map)"
+                cap = f"({len(p['fields'])} fields)"
                 desc_lines = [
-                    f"{YELLOW}{BOLD}{prefix}_SegmentMap.h{RESET} {DIM}\u2014 missing{RESET}",
-                    f"{DIM}No segment map file exists yet. Display fields{RESET}",
-                    f"{DIM}for this device will be skipped during generation.{RESET}",
-                    f"{DIM}{len(p['fields'])} display fields need mapping.{RESET}",
+                    f"{DIM}No configuration yet for this display device.{RESET}",
+                    f"{DIM}{len(p['fields'])} display fields available.{RESET}",
                 ]
             options.append((f"{label}  {DIM}{cap}{RESET}", prefix))
             descriptions[prefix] = desc_lines
 
-        # Ctrl+D delete handler — double confirmation
+        # Ctrl+D delete handler — renames to .bak for safety
         def _on_delete(prefix_val):
             # Find the prefix info
             info = None
@@ -1372,28 +1499,27 @@ def manage_segment_maps(ls_dir, ls_name, ac_name):
                     info = p
                     break
             if info is None or not info["has_segmap"]:
-                ui.warn("No segment map to delete for this device.")
+                ui.warn("No segment map to remove for this device.")
                 input(f"\n  {DIM}Press Enter to continue...{RESET}")
                 return False
             fname = f"{prefix_val}_SegmentMap.h"
             fpath = info["segmap_path"]
+            bak_path = Path(str(fpath) + ".bak")
             print()
-            ui.warn(f"Delete {BOLD}{fname}{RESET}?")
-            ui.info(f"{DIM}This will permanently remove the segment map file")
-            ui.info(f"and all {info['entry_count']} entries inside it.{RESET}")
+            ui.warn(f"Remove {BOLD}{fname}{RESET}?")
+            ui.info(f"{DIM}The file will be renamed to {fname}.bak (not deleted).{RESET}")
+            ui.info(f"{DIM}Contains {info['entry_count']} entries.{RESET}")
             print()
-            ok1 = ui.confirm(f"Delete {fname}?", default_yes=False)
-            if not ok1:
+            ok = ui.confirm(f"Remove {fname}?", default_yes=False)
+            if not ok:
                 ui.info("Cancelled.")
                 time.sleep(0.4)
                 return False
-            ok2 = ui.confirm("Are you absolutely sure?", default_yes=False)
-            if not ok2:
-                ui.info("Cancelled.")
-                time.sleep(0.4)
-                return False
-            os.remove(str(fpath))
-            ui.success(f"Deleted {fname}")
+            # If a .bak already exists, remove it first
+            if bak_path.exists():
+                os.remove(str(bak_path))
+            os.rename(str(fpath), str(bak_path))
+            ui.success(f"Renamed to {fname}.bak")
             time.sleep(0.6)
             return True
 
@@ -1424,9 +1550,15 @@ def manage_segment_maps(ls_dir, ls_name, ac_name):
             if result:
                 modified = True
         else:
-            result = _create_new_segment_map(
-                ls_path, sel["prefix"], sel["fields"],
-                ls_name, ac_name
-            )
-            if result:
-                modified = True
+            # No segment map — ask whether to create one (HT1622) or show
+            # subscription code (for TFT/LCD/OLED text displays).
+            action = _no_segmap_action(sel["prefix"], sel["fields"])
+            if action == "create":
+                result = _create_new_segment_map(
+                    ls_path, sel["prefix"], sel["fields"],
+                    ls_name, ac_name
+                )
+                if result:
+                    modified = True
+            elif action == "subscribe":
+                _show_subscription_code(sel["prefix"], sel["fields"])
