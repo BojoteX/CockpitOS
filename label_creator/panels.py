@@ -301,7 +301,8 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
             match_info = f"{ftotal}/{total} matches"
         else:
             match_info = f"{total} panels"
-        _w(f"\n  {DIM}{match_info}    type to filter  Enter=toggle  Esc=save & exit{RESET}")
+        filter_hint = f"  {DIM}\u2190=clear filter{RESET}" if filter_text else ""
+        _w(f"\n  {DIM}{match_info}    type to filter  Enter=toggle  Esc=save & exit{RESET}{filter_hint}")
 
     # Initial draw
     _clamp_scroll()
@@ -336,6 +337,13 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
                                  aircraft_name=aircraft_name)
                     _draw()
                     continue
+                elif ch2 == "K":        # Left — clear filter
+                    if filter_text:
+                        filter_text = ""
+                        _apply_filter()
+                        _clamp_scroll()
+                        _draw()
+                    continue
                 else:
                     continue
                 if old != idx:
@@ -348,17 +356,11 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
                     state[name] = not state[name]
                     _draw()
 
-            elif ch == "\x1b":          # Esc — clear filter or save & exit
-                if filter_text:
-                    filter_text = ""
-                    _apply_filter()
-                    _clamp_scroll()
-                    _draw()
-                else:
-                    if _flash_timer[0]:
-                        _flash_timer[0].cancel()
-                    _w(SHOW_CUR)
-                    return [name for name in all_panels if state[name]]
+            elif ch == "\x1b":          # Esc — always save & exit
+                if _flash_timer[0]:
+                    _flash_timer[0].cancel()
+                _w(SHOW_CUR)
+                return [name for name in all_panels if state[name]]
 
             elif ch == "\x08":          # Backspace — remove filter char
                 if filter_text:
