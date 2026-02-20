@@ -189,6 +189,7 @@ Power On
    |
    v
 [setup() -- HIDManager, DCSBIOSBridge, LEDs, etc.]
+   |-- PanelRegistry_forEachDisplayInit() --> all panel disp_init() hooks (runs ONCE at boot)
    |
    v
 [Main loop starts -- waiting for DCS mission]
@@ -196,13 +197,11 @@ Power On
    v
 [Aircraft name received from DCS-BIOS stream]
    |
-   +-- MISSION_START_DEBOUNCE timer (Config.h, default 2000ms)
+   +-- MISSION_START_DEBOUNCE timer (Config.h, default 500ms)
    |
    v
-[initPanels() called]
+[initializePanels() called]
    |-- PanelRegistry_forEachInit()      --> all panel init() hooks
-   |-- PanelRegistry_forEachDisplayInit() --> all panel disp_init() hooks
-   |-- flushBufferedDcsCommands()       --> commit queued selector values
    |
    v
 [panelLoop() called every main loop iteration]
@@ -274,12 +273,12 @@ void updateLEFTNozzle(const char* label, uint16_t value) {
 
 ### Subscription Limits
 
-| Type | Max Count | Config Define |
-|------|-----------|---------------|
-| LED/Gauge | `MAX_LED_SUBSCRIPTIONS` | Config.h |
-| Selector | `MAX_SELECTOR_SUBSCRIPTIONS` | Config.h |
-| Display | `MAX_DISPLAY_SUBSCRIPTIONS` | Config.h |
-| Metadata | `MAX_METADATA_SUBSCRIPTIONS` | Config.h |
+| Type | Max Count | Defined In |
+|------|-----------|------------|
+| LED/Gauge | `MAX_LED_SUBSCRIPTIONS` | DCSBIOSBridge.h |
+| Selector | `MAX_SELECTOR_SUBSCRIPTIONS` | DCSBIOSBridge.h |
+| Display | `MAX_DISPLAY_SUBSCRIPTIONS` | DCSBIOSBridge.h |
+| Metadata | `MAX_METADATA_SUBSCRIPTIONS` | DCSBIOSBridge.h |
 
 Subscribe in your `init()` or `disp_init()` function -- never in `loop()`.
 

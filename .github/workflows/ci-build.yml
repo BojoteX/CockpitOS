@@ -1,10 +1,10 @@
 # CockpitOS CI — Compile all label sets
-# Triggers on every push/PR and daily at 06:00 UTC
+# Triggers on dev push, PRs to main, and daily at 06:00 UTC
 name: CI Build
 
 on:
   push:
-    branches: [main, dev]
+    branches: [dev]
   pull_request:
     branches: [main]
   schedule:

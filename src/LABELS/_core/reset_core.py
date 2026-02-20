@@ -204,7 +204,7 @@ def run():
     if has_metadata:
         print(f"  NOTE: METADATA/ directory will be PRESERVED")
         print(f"        (CommonData.json, MetadataStart.json, MetadataEnd.json, etc.)")
-        print(f"        See Docs/CREATING_LABEL_SETS.md Section 9 for details.")
+        print(f"        See Docs/How-To/Use-Multiple-Aircraft.md for details.")
     else:
         print(f"  NOTE: No METADATA/ directory found in this label set.")
     print("-" * 50)
