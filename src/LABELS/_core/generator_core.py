@@ -146,7 +146,9 @@ def run():
         return panels
 
     # --- Load aircraft JSON (centralized in _core/aircraft/) ---
-    from aircraft_selector import select_aircraft, load_aircraft_json
+    # Import load_aircraft_json eagerly (pure I/O, cross-platform).
+    # Import select_aircraft lazily — it uses msvcrt (Windows-only TUI).
+    from aircraft_selector import load_aircraft_json
     core_dir = os.path.dirname(os.path.abspath(__file__))
     JSON_FILE = None
     data = None
@@ -179,6 +181,7 @@ def run():
     # 3. No aircraft.txt and no local JSON → interactive selector
     if data is None:
         print("No aircraft configured for this LABEL_SET.")
+        from aircraft_selector import select_aircraft
         selected = select_aircraft(core_dir)
         if selected:
             JSON_FILE, data = load_aircraft_json(core_dir, selected)
