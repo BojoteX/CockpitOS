@@ -438,7 +438,7 @@ Once your ESP32 is flashed and your transport is configured, it is time to fly.
 |  If things are not working, try these quick checks:                   |
 |                                                                       |
 |  - USB HID: Is the HID Manager running? Does it show your device?    |
-|  - WiFi: Is the ESP32 connected? Run the DEBUG_UDP_console.py tool   |
+|  - WiFi: Is the ESP32 connected? Run the CONSOLE_UDP_debug.py tool   |
 |    in "Debug Tools" to see WiFi status and DCS-BIOS data flow.       |
 |  - DCS-BIOS: Is it installed and running inside DCS? Check the       |
 |    DCS-BIOS control reference page in your browser.                  |

@@ -96,7 +96,7 @@ After you confirm your panel selection, the Label Creator automatically generate
 Your new label set is created at:
 
 ```
-CockpitOS\src\LABELS\MY_FIRST_PANEL\
+CockpitOS\src\LABELS\LABEL_SET_MY_FIRST_PANEL\
 ```
 
 ---
@@ -369,7 +369,7 @@ After compilation succeeds, select Upload. If the upload fails, put your board i
 If things are not working, run the WiFi debug console to see what your ESP32 is doing:
 
 ```
-python "Debug Tools\DEBUG_UDP_console.py"
+python "Debug Tools\CONSOLE_UDP_debug.py"
 ```
 
 This shows WiFi connection status, incoming DCS-BIOS data, and outgoing commands from your panel.
@@ -416,7 +416,7 @@ Run through this list to make sure you have not missed anything:
 |  - Double-check SSID and password (they are case-sensitive)           |
 |  - Make sure your network is 2.4 GHz, not 5 GHz only                 |
 |  - Verify WPA2-PSK (AES/CCMP) is supported by your router            |
-|  - Run DEBUG_UDP_console.py to see connection status                  |
+|  - Run CONSOLE_UDP_debug.py to see connection status                  |
 +-----------------------------------------------------------------------+
 
 +-----------------------------------------------------------------------+

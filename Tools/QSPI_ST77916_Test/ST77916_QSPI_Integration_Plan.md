@@ -193,7 +193,7 @@ ST77916_CabPress_Test/
 
 12. **Apply the same pattern to all 360×360 gauges** (Radar Altimeter, Brake Pressure, Battery, Hydraulic Pressure) since they all share the identical flush function signature.
 
-13. **Document the hybrid architecture** in `ADVANCED_DISPLAYS.md` so community contributors can target new QSPI displays (ST77922, ST77903, etc.) by providing only the esp_lcd driver component — the rendering side needs zero changes.
+13. **Document the hybrid architecture** in `Docs/Advanced/Display-Pipeline.md` so community contributors can target new QSPI displays (ST77922, ST77903, etc.) by providing only the esp_lcd driver component — the rendering side needs zero changes.
 
 ---
 

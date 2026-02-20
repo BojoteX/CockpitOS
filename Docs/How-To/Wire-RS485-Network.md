@@ -232,7 +232,7 @@ Enable RS485 debug output on the master:
 #define RS485_STATUS_INTERVAL_MS    10000 // Status banner every 10 seconds
 ```
 
-Use the WiFi debug console (`DEBUG_UDP_console.py`) on the master to monitor bus activity.
+Use the WiFi debug console (`CONSOLE_UDP_debug.py`) on the master to monitor bus activity.
 
 ---
 

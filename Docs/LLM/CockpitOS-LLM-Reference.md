@@ -132,8 +132,8 @@ CockpitOS/
 │   │   ├── LEDControl.cpp/h    ← Output driving (GPIO, PCA, WS2812, TM1637, GN1640T, GAUGE)
 │   │   ├── PanelRegistry.cpp   ← Panel registration and lifecycle management
 │   │   └── CoverGate.cpp/h     ← Guarded switch cover state machine
-│   ├── DCSBIOSBridge.cpp/h ← DCS-BIOS protocol parser + subscription system
-│   ├── HIDManager.cpp/h    ← USB HID report generation + input logic
+│   ├── DCSBIOSBridge.h     ← Subscription API and limits
+│   ├── HIDManager.h        ← USB HID report generation interface
 │   ├── PanelRegistry.h     ← PanelHooks struct, REGISTER_PANEL macro
 │   └── Globals.h           ← Shared includes and forward declarations
 │
@@ -151,7 +151,6 @@ CockpitOS/
 │   ├── custompins_editor.py ← CustomPins.h editor
 │   ├── latched_editor.py    ← LatchedButtons.h editor
 │   ├── covergate_editor.py  ← CoverGates.h editor
-│   ├── _core/aircraft/    ← Aircraft JSON definitions
 │   └── LLM/               ← LLM-specific reference docs
 │
 ├── lib/
@@ -162,7 +161,7 @@ CockpitOS/
 │   └── settings.ini
 │
 ├── Debug Tools/           ← Debug utilities
-│   ├── DEBUG_UDP_console.py
+│   ├── CONSOLE_UDP_debug.py
 │   ├── PLAY_DCS_stream.py
 │   ├── RECORD_DCS_stream.py
 │   └── (other tools...)
@@ -221,11 +220,11 @@ A **Label Set** is a folder in `src/LABELS/` containing all configuration files 
 | Device Type | Info Union | Description |
 |-------------|-----------|-------------|
 | `DEVICE_GPIO` | `{pin}` | Direct GPIO LED |
-| `DEVICE_PCA9555` | `{address, bit}` | PCA9555 I2C expander |
+| `DEVICE_PCA9555` | `{address, port, bit}` | PCA9555 I2C expander |
 | `DEVICE_WS2812` | `{ledIndex}` | Addressable RGB LED |
 | `DEVICE_TM1637` | `{moduleIndex, segmentIndex, bit}` | 7-segment display segment |
 | `DEVICE_GN1640T` | `{column, row}` | LED matrix position |
-| `DEVICE_GAUGE` | `{pin, minPulse, maxPulse}` | Servo motor gauge |
+| `DEVICE_GAUGE` | `{gpio, minPulse, maxPulse, period}` | Servo motor gauge |
 
 ---
 
@@ -267,7 +266,7 @@ A **Label Set** is a folder in `src/LABELS/` containing all configuration files 
 
 Only ONE transport mode can be active. The compiler enforces this.
 
-**RS485 networking** is an overlay: one master (with any transport to PC) forwards data to slave panels over a 2-wire bus. Up to 31 slaves per master.
+**RS485 networking** is an overlay: one master (with any transport to PC) forwards data to slave panels over a 2-wire bus. Up to 126 slaves per master.
 
 **Deep dive:** [Reference/Transport-Modes.md](../Reference/Transport-Modes.md), [How-To/Wire-RS485-Network.md](../How-To/Wire-RS485-Network.md), [Advanced/RS485-Deep-Dive.md](../Advanced/RS485-Deep-Dive.md)
 
