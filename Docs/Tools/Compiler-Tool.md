@@ -58,9 +58,11 @@ After selecting a board, the tool presents configurable options like partition s
 Configure the device role and communication transport:
 
 - **Role:** Standalone, RS485 Master, or RS485 Slave
-- **Transport:** WiFi or USB (HID)
+- **Transport:** WiFi, USB Native, Serial (CDC/Socat), Bluetooth BLE, or RS485 Slave
 
-For RS485 configurations, additional settings like slave address and smart mode are available. The tool performs cross-validation to catch incompatible combinations (for example, HID mode requires USB transport).
+The tool walks you through a two-step wizard: first the role (master or not), then the transport. For RS485 slaves, it prompts for the slave address (1-126). For RS485 masters, smart mode and max slave address are configurable.
+
+The tool writes all transport flags to `Config.h` automatically, performs cross-validation against the selected board (for example, USB transport requires an S2/S3/P4 board), and auto-configures USB Mode on dual-USB boards.
 
 ### Misc Options
 
@@ -141,7 +143,14 @@ If none are found, it prompts you to enter the Arduino IDE folder path manually.
 
 ## Config.h
 
-The `Config.h` file in the CockpitOS root controls firmware behavior: transport mode, WiFi credentials reference, RS485 settings, debug flags, and more. The Compiler Tool reads and writes specific defines in this file but does not manage it holistically -- you may still need to edit `Config.h` directly for advanced configurations.
+The `Config.h` file in the CockpitOS root controls firmware behavior. The Compiler Tool manages the most commonly changed settings through its menus:
+
+- **Transport mode and RS485 settings** -- via Role / Transport
+- **WiFi credentials** -- via Misc Options > Wi-Fi Credentials
+- **Debug and verbose flags** -- via Misc Options > Debug / Verbose Toggles
+- **HID mode default** -- via Misc Options > Advanced Settings
+
+For rarely changed settings (timing parameters, buffer sizes, axis thresholds, hardware debug flags), see the [Config.h Reference](../Reference/Config.md).
 
 ## Single-Instance Guard
 

@@ -336,9 +336,18 @@ After a successful compile, select Upload. The tool transfers the firmware to yo
 
 ## 6. Configure Transport Mode
 
-The **transport mode** determines how your ESP32 panel communicates with DCS World on your PC. You configure this in `Config.h` (located in the CockpitOS root folder).
+The **transport mode** determines how your ESP32 panel communicates with DCS World on your PC. The Compiler Tool handles all transport configuration through its menus -- you do not need to edit `Config.h` manually.
 
 Only **one** transport can be active at a time.
+
+### How to Set Your Transport
+
+Open the Compiler Tool (`CockpitOS-START.py`) and select **Role / Transport** from the menu. The tool walks you through:
+
+1. Whether this is an RS485 Master (select No for most setups)
+2. Which transport to use (WiFi, USB, Serial, BLE, or RS485 Slave)
+
+The tool writes all the necessary Config.h flags automatically and performs cross-validation to catch incompatible combinations.
 
 ### Option A: USB HID (Recommended)
 
@@ -346,13 +355,7 @@ Best for: ESP32-S2, ESP32-S3, ESP32-P4
 
 This is the **recommended** transport for production panels. It is the fastest and most reliable connection method. Your ESP32 connects directly to your PC via USB.
 
-In `Config.h`, set:
-
-```cpp
-#define USE_DCSBIOS_USB     1
-#define USE_DCSBIOS_WIFI    0
-#define USE_DCSBIOS_SERIAL  0
-```
+Select **USB Native** in the Compiler Tool's transport picker. The tool also automatically sets USB Mode to USB-OTG (TinyUSB) on dual-USB boards.
 
 You also need to run the **HID Manager** on your PC. The HID Manager bridges USB HID data between your ESP32 and DCS-BIOS. It is included with CockpitOS in the `HID Manager` folder.
 
@@ -373,20 +376,12 @@ Best for: Any ESP32 with WiFi (all variants except H2 and some P4)
 
 WiFi requires no bridge software on your PC. Your ESP32 talks directly to DCS-BIOS over your local network. This is the easiest transport to get started with, but has slightly higher latency than USB.
 
-In `Config.h`, set:
+Select **WiFi** in the Compiler Tool's transport picker. Then configure your WiFi credentials:
 
-```cpp
-#define USE_DCSBIOS_WIFI    1
-#define USE_DCSBIOS_USB     0
-#define USE_DCSBIOS_SERIAL  0
-```
+1. Select **Misc Options** > **Wi-Fi Credentials**
+2. Enter your network SSID and password
 
-You also need to set your WiFi credentials. CockpitOS looks for a credentials file first, and falls back to the values in `Config.h`:
-
-```cpp
-#define WIFI_SSID   "YourNetworkName"
-#define WIFI_PASS   "YourPassword"
-```
+The tool saves credentials to `.credentials/wifi.h` so they persist across updates.
 
 ```
 +-----------------------------------------------------------------------+
@@ -404,15 +399,9 @@ Best for: Any ESP32 (all variants)
 
 Serial transport requires a `socat` bridge on your PC to relay data between the serial port and DCS-BIOS UDP.
 
-In `Config.h`, set:
+Select **Serial (CDC/Socat)** in the Compiler Tool's transport picker.
 
-```cpp
-#define USE_DCSBIOS_SERIAL  1
-#define USE_DCSBIOS_USB     0
-#define USE_DCSBIOS_WIFI    0
-```
-
-After changing `Config.h`, you must recompile and re-upload the firmware using the Compiler Tool.
+After changing the transport, recompile and re-upload the firmware.
 
 ---
 

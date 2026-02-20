@@ -27,7 +27,7 @@ The firmware enforces this with a compile-time check:
 
 **Fix:**
 - Select the correct board in the Compiler Tool or Arduino IDE (ESP32-S2, ESP32-S3, or ESP32-P4).
-- If your board does not support USB HID, switch to WiFi transport: set `USE_DCSBIOS_USB=0` and `USE_DCSBIOS_WIFI=1` in `Config.h`.
+- If your board does not support USB HID, switch to WiFi transport using the Compiler Tool's **Role / Transport** menu.
 
 ---
 
@@ -57,7 +57,9 @@ Select the option to install or update libraries. This installs LovyanGFX and al
 
 **Cause:** You have zero or more than one transport flag set to `1` in `Config.h`.
 
-**Fix:** Open `Config.h` and ensure exactly one of these is `1` and all others are `0`:
+**Fix:** Use the Compiler Tool's **Role / Transport** menu to select your transport mode. The tool ensures exactly one transport is enabled and sets all others to `0` automatically.
+
+If using Arduino IDE, verify in `Config.h` that exactly one of these is `1`:
 ```cpp
 #define USE_DCSBIOS_BLUETOOTH    0
 #define USE_DCSBIOS_WIFI         0
@@ -140,7 +142,7 @@ Select the option to install or update libraries. This installs LovyanGFX and al
 
 **Diagnostic steps:**
 
-1. **Check credentials.** SSID and password are case-sensitive. Open `Config.h` or `.credentials/wifi.h` and verify.
+1. **Check credentials.** SSID and password are case-sensitive. Use the Compiler Tool's **Misc Options** > **Wi-Fi Credentials** to review and update them.
 2. **2.4 GHz only.** ESP32 cannot connect to 5 GHz networks. If your router has a combined SSID for both bands, try creating a separate 2.4 GHz SSID.
 3. **WPA2-PSK (AES/CCMP) required.** Older WEP or WPA1 networks are not supported. Enterprise (802.1X) authentication is not supported.
 4. **Enable network scanning** to see what the ESP32 can detect:
@@ -206,7 +208,7 @@ Select the option to install or update libraries. This installs LovyanGFX and al
 1. **Check wiring.** Buttons connect between a GPIO pin and GND. CockpitOS enables internal pull-ups, so no external resistor is needed.
 2. **Verify InputMapping.** In the Label Creator, confirm that the button's Source is set to `GPIO` and the Port matches the physical pin.
 3. **Wrong control type.** Push buttons should be `"momentary"`. Toggle switches that need to track position should be `"selector"`.
-4. **Enable debug output.** Set `VERBOSE_MODE_SERIAL_ONLY=1` or `VERBOSE_MODE_WIFI_ONLY=1` in `Config.h`, recompile, and check the output for button state changes.
+4. **Enable debug output.** In the Compiler Tool, go to **Misc Options** > **Debug / Verbose Toggles** and enable the appropriate verbose mode (Serial or WiFi). Recompile and check the output for button state changes.
 
 ---
 
@@ -289,7 +291,7 @@ Recompile and re-upload.
 
 ### Slow response or input lag
 
-1. **Debug flags.** Make sure all debug flags are set to `0` in `Config.h` for production. Debug output significantly increases latency.
+1. **Debug flags.** Make sure all debug flags are disabled for production. Use the Compiler Tool's **Misc Options** > **Debug / Verbose Toggles** to turn them off. Debug output significantly increases latency.
 2. **Polling rate.** Check `POLLING_RATE_HZ` (default 250). Do not set it below 125.
 3. **Transport mode.** USB HID has the lowest latency. WiFi adds network latency. Serial depends on baud rate and bridge software.
 4. **Ring buffer tuning.** If using WiFi and experiencing lag, `DCS_UDP_RINGBUF_SIZE=32` is optimal. Larger values add latency.
@@ -300,7 +302,7 @@ Recompile and re-upload.
 
 1. **Refresh rate.** Check `DISPLAY_REFRESH_RATE_HZ` (default 60). Increasing it may reduce visible flicker but uses more CPU.
 2. **I2C speed.** If using PCA9555 or I2C displays, ensure `PCA_FAST_MODE=1` for 400kHz operation.
-3. **CPU load.** Enable `DEBUG_PERFORMANCE=1` temporarily to check if the CPU is overloaded. Look for high task utilization in the snapshots.
+3. **CPU load.** Enable **Performance profiling** in the Compiler Tool (**Misc Options** > **Debug / Verbose Toggles**) temporarily to check if the CPU is overloaded. Look for high task utilization in the snapshots.
 
 ---
 
@@ -320,8 +322,8 @@ When something is not working, run through this list:
 +-----------------------------------------------------------------------+
 |  DIAGNOSTIC CHECKLIST                                                  |
 +-----------------------------------------------------------------------+
-|  [ ] Only ONE transport flag is set to 1 in Config.h                  |
-|  [ ] All debug flags are 0 (unless actively debugging)                |
+|  [ ] Only ONE transport flag is set (via Compiler Tool Role/Transport)|
+|  [ ] All debug flags are off (Compiler Tool > Misc > Debug Toggles)  |
 |  [ ] Label set is generated and set as active (Label Creator)         |
 |  [ ] Board type matches physical hardware (S2, S3, Classic, etc.)     |
 |  [ ] USB cable is a data cable (not charge-only)                      |

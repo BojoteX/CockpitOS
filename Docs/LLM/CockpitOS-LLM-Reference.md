@@ -323,9 +323,8 @@ CockpitOS uses compile-time hash tables (in `DCSBIOSBridgeData.h`) for O(1) look
 2. Run `Setup-START.py` → installs ESP32 core + LovyanGFX
 3. Run `LabelCreator-START.py` → create label set → select aircraft → select panels → auto-generate
 4. Edit inputs/LEDs using built-in editors
-5. Run `CockpitOS-START.py` → select board → compile → upload
-6. Configure transport in `Config.h` (or via Compiler Tool misc options)
-7. Test in DCS
+5. Run `CockpitOS-START.py` → select board → configure transport via **Role / Transport** → compile → upload
+6. Test in DCS
 
 **Deep dive:** [Getting-Started/README.md](../Getting-Started/README.md), [Getting-Started/Quick-Start.md](../Getting-Started/Quick-Start.md)
 
