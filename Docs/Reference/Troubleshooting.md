@@ -233,7 +233,7 @@ If using Arduino IDE, verify in `Config.h` that exactly one of these is `1`:
 ### Selector switch sends wrong position
 
 1. **Check selector group.** All positions of the same physical switch must share the same non-zero `group` number in `InputMapping.h`.
-2. **Verify sendValue.** Each position must have a unique `oride_value` (0, 1, 2, etc.) matching the DCS-BIOS control's expected values.
+2. **Verify the send value.** Each position must have a unique `oride_value` (0, 1, 2, etc.) matching the DCS-BIOS control's expected values.
 3. **Wiring.** For GPIO-based selectors where each position has its own pin: each position pin connects to a separate GPIO, and the common terminal goes to GND.
 4. **Dwell time.** If the switch bounces between positions, increase `SELECTOR_DWELL_MS` in `Config.h` (default 250ms).
 

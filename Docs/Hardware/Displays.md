@@ -89,7 +89,7 @@ TM1637 supports 8 brightness levels (0-7). CockpitOS maps DCS-BIOS dimmer values
 
 ### Multi-Device Support
 
-CockpitOS supports up to **8 TM1637 devices** simultaneously. Each device is automatically registered when first referenced in LEDMapping.h or InputMapping.h. Devices are identified by their DIO pin.
+CockpitOS supports up to **8 TM1637 devices** for LED output and up to **4 devices** for key input scanning. Each device is automatically registered when first referenced in LEDMapping.h or InputMapping.h. Devices are identified by their DIO pin.
 
 ```cpp
 // Device 1: CLK=PIN(37), DIO=PIN(39) -- Left Advisory Panel
@@ -184,7 +184,7 @@ Unlike TM1637 (which drives individual LEDs), HT1622 drives LCD segments. Each c
 
 Each HT1622 display requires a **SegmentMap** file that maps the HT1622's display RAM addresses to visual character positions and segment patterns. This mapping is specific to the physical LCD panel being used.
 
-- SegmentMap files are stored as `SegmentMap.txt` in the Label Set directory
+- SegmentMap files are stored as `{PREFIX}_SegmentMap.h` in the Label Set directory (e.g., `IFEI_SegmentMap.h`)
 - The mapping defines how RAM bits correspond to visible LCD segments
 - Different LCD panels have different segment layouts, even with the same HT1622 driver
 

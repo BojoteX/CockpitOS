@@ -54,7 +54,7 @@ When CockpitOS updates its dependencies, this dictionary is the single place tha
 
 ## Menu Options
 
-### Install / Update Environment
+### Setup / Update Environment
 
 This is the main action. It walks through four steps:
 

@@ -176,16 +176,6 @@ The `minPulse` and `maxPulse` values determine the servo's travel range. Default
 - **Needle sits past zero mark**: Increase `minPulse`
 - **Gauge only uses 90 degrees of travel**: Set `minPulse` and `maxPulse` to span only the needed range (e.g., 1000 to 1500 for 90 degrees)
 
-### Startup Calibration Sweep
-
-At power-up, CockpitOS runs an automatic calibration sequence for each configured servo:
-
-1. Moves to minimum position (minPulse) -- holds 500ms
-2. Moves to maximum position (maxPulse) -- holds 500ms
-3. Returns to minimum position -- ready for DCS data
-
-This helps you verify the physical travel range matches your gauge face markings and identify if minPulse/maxPulse need adjustment.
-
 ---
 
 ## Update Rate
