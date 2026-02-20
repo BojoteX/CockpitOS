@@ -100,6 +100,12 @@ These are the remaining manual steps that should be automated:
 2. **HID Manager deps** — pip installs not automated
 3. **Compiler Misc Options** — some Config.h settings (polling rate, TEST_LEDS, IS_REPLAY, axis tuning) still require manual editing
 
+## Hard Rules — Do NOT
+
+- **NEVER run generators or scripts against live label sets** — `generate_data.py`, `reset_data.py`, `display_gen.py`, etc. modify files in place and can destroy hand-tuned configurations (e.g., `.DISABLED` files get consumed and renamed). If you need to inspect generator output, read the code and trace it mentally. Do not execute it.
+- **NEVER rename, move, or delete files in `src/LABELS/`** without explicit user instruction
+- **NEVER run destructive git commands** (`reset --hard`, `checkout .`, `clean -f`) without explicit user instruction
+
 ## User Preferences
 
 - Be direct and concise — no filler

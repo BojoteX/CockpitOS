@@ -350,7 +350,8 @@ def _pick_from_list(title, items, pre_select=None):
             counter = f"{total}/{len(items)} matches"
         else:
             counter = f"{len(items)} item{'s' if len(items) != 1 else ''}"
-        _w(f"\n  {DIM}{counter}    type to filter  Enter=select  Esc=back{RESET}")
+        filter_hint = f"  {DIM}\u2190=clear filter{RESET}" if filter_text else ""
+        _w(f"\n  {DIM}{counter}    type to filter  Enter=select  Esc=back{RESET}{filter_hint}")
 
     _clamp_scroll()
     _draw()
@@ -387,19 +388,19 @@ def _pick_from_list(title, items, pre_select=None):
                     idx = min(max(0, len(filtered) - 1), idx + list_height)
                     _clamp_scroll()
                     _draw()
+                elif ch2 == "K":        # Left — clear filter
+                    if filter_text:
+                        filter_text = ""
+                        _apply_filter()
+                        _clamp_scroll()
+                        _draw()
 
             elif ch == "\r":            # Enter = select
                 if filtered:
                     return filtered[idx]
 
-            elif ch == "\x1b":          # Esc = clear filter or cancel
-                if filter_text:
-                    filter_text = ""
-                    _apply_filter()
-                    _clamp_scroll()
-                    _draw()
-                else:
-                    return None
+            elif ch == "\x1b":          # Esc — always back/cancel
+                return None
 
             elif ch == "\x08":          # Backspace = remove filter char
                 if filter_text:
