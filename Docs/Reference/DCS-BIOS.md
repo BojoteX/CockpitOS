@@ -121,7 +121,7 @@ CockpitOS uses a compile-time hash function to map control labels (like `"MASTER
 
 ### How It Works
 
-1. During code generation, the Label Creator builds a **hash table** in `InputMapping.h` and `LEDMapping.h`.
+1. During code generation, the Label Creator builds a **hash table** in `InputMapping.h` and `DCSBIOSBridgeData.h`.
 2. Each label is hashed to a table index using a simple recursive hash function.
 3. At runtime, when DCS-BIOS data arrives for a specific address, CockpitOS looks up the corresponding control by its hashed label in O(1) time.
 
@@ -155,7 +155,7 @@ CockpitOS subscribes to specific DCS-BIOS addresses so it only processes data re
 
 ### How Subscriptions Work
 
-1. At startup, CockpitOS reads the `DCSBIOSBridgeData.h` file, which lists every DCS-BIOS address this panel cares about.
+1. At compile time, `DCSBIOSBridgeData.h` defines every DCS-BIOS address this panel cares about, compiled directly into the firmware.
 2. For each address, CockpitOS registers a **listener** callback.
 3. When a DCS-BIOS export frame arrives containing data at a subscribed address, the listener fires.
 4. The listener extracts the value (using address/mask/shift), looks up the corresponding LED or display mapping, and updates the hardware.
@@ -354,7 +354,9 @@ Here is the complete data flow from a physical button press to a cockpit change 
 | `SEND_CommandTester.py` | `Debug Tools/` | Manually send DCS-BIOS commands to test |
 | `SEND_bulk_CommandTester.py` | `Debug Tools/` | Send multiple commands in rapid succession |
 | `RECORD_DCS_stream.py` | `Debug Tools/` | Record DCS-BIOS export stream to file |
+| `PLAY_DCS_stream.py` | `Debug Tools/` | Replay a recorded DCS-BIOS stream |
 | `FRAME_avg_size.py` | `Debug Tools/` | Analyze average frame sizes |
+| `BOOTLOADER_reset_tool.py` | `Debug Tools/` | Reset ESP32 into bootloader mode |
 
 ### Testing Without DCS Running
 

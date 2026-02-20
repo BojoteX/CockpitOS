@@ -88,7 +88,7 @@ lib/
 Tools/RAM_Walker/               HT1622 segment discovery tool
 Debug Tools/                    UDP console, replay scripts
 HID Controller/                 Python USB HID bridge (HID_Manager.py)
-Docs/COCKPITOS_LLM_INSTRUCTION_SET.txt  FULL 3000-line technical reference (read for deep dives)
+Docs/LLM/CockpitOS-LLM-Reference.md    Master LLM reference (read for deep dives)
 ```
 
 ## USER-EDITABLE vs HANDS-OFF
@@ -250,8 +250,8 @@ Append new entries to the end of the file. Never delete or modify previous entri
 
 ## DEEP REFERENCE
 
-For full API signatures, all config defines, TFT display pipeline details, HT1622 segment mapping, CoverGate timing, FreeRTOS task patterns, and 50+ code templates:
-→ **`Docs/COCKPITOS_LLM_INSTRUCTION_SET.txt`** (3000+ lines, 27 sections)
+For full API signatures, all config defines, TFT display pipeline details, HT1622 segment mapping, CoverGate timing, FreeRTOS task patterns:
+→ **`Docs/LLM/CockpitOS-LLM-Reference.md`** (master LLM reference)
 
 For wiring guides, transport setup, label set creation walkthroughs:
-→ **`Docs/*.md`** files (GETTING_STARTED, HARDWARE_WIRING, TRANSPORT_MODES, etc.)
+→ **`Docs/`** structured subdirectories (Getting-Started, Hardware, How-To, Reference, Advanced, Tools)
