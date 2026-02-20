@@ -55,13 +55,12 @@ Popular boards: LOLIN S2 Mini, LOLIN S3 Mini (or any other Classic, S2 or S3 dev
 
 ## Quick Start
 
-1. **Install Arduino IDE 2.x** with ESP32 Arduino Core ≥ 3.3.0
-2. **Open CockpitOS** in the IDE
-3. **Select a label set** in `src/LABELS/` (start with `LABEL_SET_TEST_ONLY`)
-4. **Configure transport** in `Config.h` (USB, WiFi, or Serial)
-5. **Compile and upload** to your ESP32
+1. **Run `Setup-START.py`** to install ESP32 core, libraries, and arduino-cli
+2. **Run `LabelCreator-START.py`** to create a label set for your aircraft and panels
+3. **Run `CockpitOS-START.py`** to compile and upload firmware to your ESP32
+4. **For USB mode**, run `HID Manager/HID_Manager.py` on your PC to bridge to DCS-BIOS
 
-For USB mode, run `HID Manager/HID_Manager.py` on your PC to bridge to DCS-BIOS.
+No Arduino IDE required. All three Python tools guide you through the entire workflow.
 
 ---
 
@@ -69,18 +68,17 @@ For USB mode, run `HID Manager/HID_Manager.py` on your PC to bridge to DCS-BIOS.
 
 | Guide | Description |
 |-------|-------------|
-| [Getting Started](Docs/GETTING_STARTED.md) | First-time setup, compile, upload |
-| [Creating Label Sets](Docs/CREATING_LABEL_SETS.md) | Configure for your aircraft, METADATA system, LabelSetConfig |
-| [Hardware Wiring](Docs/HARDWARE_WIRING.md) | Wiring diagrams for all input/output types |
-| [Transport Modes](Docs/TRANSPORT_MODES.md) | USB, WiFi, Serial configuration |
-| [Advanced Displays](Docs/ADVANCED_DISPLAYS.md) | HT1622 segment displays, TFT gauges |
-| [Advanced Controls](Docs/ADVANCED_CONTROLS.md) | Custom panels, CoverGate, subscriptions, panel registration |
-| [Config Reference](Docs/CONFIG_REFERENCE.md) | Complete Config.h flag reference |
-| [Python Tools](Docs/PYTHON_TOOLS.md) | HID Manager, generators, debug tools CLI reference |
-| [FAQ](Docs/FAQ.md) | Common questions and answers |
-| [Your First Panel in 30 Minutes (WiFi)](Docs/CockpitOS_First_Panel_30_Minutes.md) | How to build your first Wi-Fi panel in 30 min |
+| [Getting Started](Docs/Getting-Started/README.md) | Environment setup guide |
+| [Quick Start Guide](Docs/Getting-Started/Quick-Start.md) | Build your first panel in 30 minutes |
+| [Tools Overview](Docs/Tools/README.md) | Setup Tool, Compiler, Label Creator |
+| [Hardware Guides](Docs/Hardware/README.md) | Wiring for all input/output types |
+| [How-To Guides](Docs/How-To/README.md) | Step-by-step tutorials |
+| [Config Reference](Docs/Reference/Config.md) | Complete Config.h flag reference |
+| [Transport Modes](Docs/Reference/Transport-Modes.md) | USB, WiFi, Serial, BLE configuration |
+| [DCS-BIOS Integration](Docs/Reference/DCS-BIOS.md) | Protocol details and debug tools |
+| [Advanced Topics](Docs/Advanced/Custom-Panels.md) | Custom panels, CoverGate, display pipeline |
+| [FAQ & Troubleshooting](Docs/Reference/FAQ.md) | Common questions and solutions |
 | [AI Assistant](https://go.bojote.com/CockpitOS) | Interactive help for any CockpitOS task |
-| [LLM Docs](https://raw.githubusercontent.com/BojoteX/CockpitOS/refs/heads/main/Docs/COCKPITOS_LLM_INSTRUCTION_SET.txt) | Raw documentation for AI tools |
 
 ---
 
@@ -112,15 +110,21 @@ Our AI assistant knows the entire CockpitOS codebase, all APIs, and common pitfa
 
 ```
 CockpitOS/
+├── CockpitOS.ino          # Entry point
+├── Config.h               # Master config (transport, debug, timing)
+├── Mappings.cpp/h         # Panel init/loop orchestration
 ├── src/
-│   ├── Core/              # Protocol handling, LED control, HID management
-│   ├── Panels/            # Panel implementations (IFEI, ECM, etc.)
-│   └── LABELS/            # Aircraft/panel configurations
-├── lib/
-│   └── CUtils/            # Hardware drivers (GPIO, I²C, displays)
-├── HID Manager/           # PC-side USB bridge application
-├── Tools/                 # RAM walker, test utilities
-└── Docs/                  # Documentation
+│   ├── Core/              # DCSBIOSBridge, HIDManager, LEDControl, InputControl
+│   ├── Panels/            # Panel implementations (IFEI, WingFold, TFT gauges, etc.)
+│   ├── Generated/         # Auto-generated PanelKind.h
+│   └── LABELS/            # Aircraft/panel configurations (one folder per label set)
+│       └── _core/         # Generator modules and aircraft JSON data
+├── compiler/              # Compiler tool (cockpitos.py)
+├── label_creator/         # Label Creator tool (label_creator.py)
+├── lib/CUtils/            # Hardware drivers (GPIO, I2C, displays)
+├── HID Manager/           # PC-side USB HID bridge
+├── Debug Tools/           # UDP console, stream recorder/player
+└── Docs/                  # Documentation (Getting-Started, Tools, Hardware, etc.)
 ```
 
 ---
@@ -141,28 +145,28 @@ DCS-BIOS exports cockpit state from the simulator. CockpitOS receives this data 
 
 ## Label Sets
 
-Label Sets define your panel's configuration:
+Label Sets define your panel's configuration. Each label set lives in `src/LABELS/LABEL_SET_<name>/` and contains:
 
 - **InputMapping.h** — Buttons, switches, encoders, their GPIO pins, and DCS-BIOS commands
 - **LEDMapping.h** — LEDs, their hardware type, and which DCS-BIOS indicators they represent
+- **DisplayMapping.cpp/h** — Display field definitions for segment LCDs and TFTs
+- **CustomPins.h** — Pin assignments and feature enables
+- **LabelSetConfig.h** — Device name, USB PID, panel metadata
 
-Run `python generate_data.py` in your label set folder to generate the runtime data files.
-
-Included label sets:
-- `LABEL_SET_TEST_ONLY` — Minimal test configuration
-- `LABEL_SET_IFEI` — F/A-18C IFEI display panel
+Label sets are created and edited using the **Label Creator** tool. Auto-generation handles all hash tables and runtime data.
 
 ---
 
 ## Requirements
 
-- Arduino IDE ≥ 2.3.6
-- ESP32 Arduino Core ≥ 3.3.0
-- Python 3.x (for generators and HID Manager)
+- Windows 10/11
+- Python 3.12+
 - DCS World with DCS-BIOS installed
 
-Optional:
-- LovyanGFX (for TFT displays)
+The Setup Tool (`Setup-START.py`) automatically installs:
+- ESP32 Arduino Core 3.3.6
+- LovyanGFX 1.2.19
+- arduino-cli 1.4.1
 
 ---
 
