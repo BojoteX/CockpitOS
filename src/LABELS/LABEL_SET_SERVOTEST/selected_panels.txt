@@ -11,11 +11,11 @@
 # Angle of Attack Indexer Lights
 # Antenna Select Panel
 # Arresting Hook Handle and Light
-# Auxiliary Power Unit Panel
+Auxiliary Power Unit Panel
 # Canopy Internal Jettison Handle
 # Caution Light Panel
 # Clock
-Cockpit Altimeter
+# Cockpit Altimeter
 # Comms frequency
 # Communication Panel
 # Defog Panel
@@ -56,12 +56,12 @@ Cockpit Altimeter
 # Left Essential Circuit Breakers
 # Lock Shoot Lights
 # Map Gain/Spin Recovery Panel
-Master Arm Panel
-Master Caution Light
+# Master Arm Panel
+# Master Caution Light
 # Mission Computer and Hydraulic Isolate Panel
 # RH Advisory Panel
 # RWR Control Indicator
-Radar Altimeter
+# Radar Altimeter
 # Radio Frequencies
 # Right DDI
 # Right Engine Fire Warning Extinguisher Light

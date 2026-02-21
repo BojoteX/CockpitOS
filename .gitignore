@@ -11,6 +11,7 @@ HID Manager/hid_manager.lock
 Disabled Panels
 Binaries/Unclassified
 compiler/backups
+compiler/cockpitos.lock
 compiler/__pycache__
 HID Manager/__pycache__
 label_creator/__pycache__
