@@ -729,7 +729,7 @@
                                                                              "api_variant": "momentary_last_position",
                                                                                 "category": "APU Fire Warning Extinguisher Light",
                                                                             "control_type": "selector",
-                                                                             "description": "APU Fire Warning/Extinguisher Light",
+                                                                             "description": "APU Fire Warning/Extinguisher Button",
                                                                               "identifier": "APU_FIRE_BTN",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -758,7 +758,7 @@
                                                          "FIRE_APU_LT": {
                                                                                 "category": "APU Fire Warning Extinguisher Light",
                                                                             "control_type": "led",
-                                                                             "description": "FIRE APU (red)",
+                                                                             "description": "FIRE APU Light (red)",
                                                                               "identifier": "FIRE_APU_LT",
                                                                                   "inputs": [  ],
                                                                                  "outputs": [ {
@@ -2864,14 +2864,32 @@
                                                                         "EXT_HOOK": {
                                                                                             "category": "External Aircraft Model",
                                                                                         "control_type": "metadata",
-                                                                                         "description": "Hook",
+                                                                                         "description": "Hook Position",
                                                                                           "identifier": "EXT_HOOK",
                                                                                               "inputs": [  ],
                                                                                              "outputs": [ {
                                                                                                                                   "address": 30086,
                                                                                                                        "address_identifier": "FA_18C_hornet_EXT_HOOK_A",
                                                                                                             "address_mask_shift_identifier": "FA_18C_hornet_EXT_HOOK",
-                                                                                                                              "description": "Hook",
+                                                                                                                              "description": "Hook Position",
+                                                                                                                                     "mask": 65535,
+                                                                                                                                "max_value": 65535,
+                                                                                                                                 "shift_by": 0,
+                                                                                                                                   "suffix": "",
+                                                                                                                                     "type": "integer"
+                                                                                                        } ]
+                                                                                    },
+                                                                  "EXT_LAUNCH_BAR": {
+                                                                                            "category": "External Aircraft Model",
+                                                                                        "control_type": "metadata",
+                                                                                         "description": "Launch Bar position",
+                                                                                          "identifier": "EXT_LAUNCH_BAR",
+                                                                                              "inputs": [  ],
+                                                                                             "outputs": [ {
+                                                                                                                                  "address": 30126,
+                                                                                                                       "address_identifier": "FA_18C_hornet_EXT_LAUNCH_BAR_A",
+                                                                                                            "address_mask_shift_identifier": "FA_18C_hornet_EXT_LAUNCH_BAR",
+                                                                                                                              "description": "Launch Bar position",
                                                                                                                                      "mask": 65535,
                                                                                                                                 "max_value": 65535,
                                                                                                                                  "shift_by": 0,
@@ -3744,21 +3762,36 @@
                                                                         }
                                                     },
                                              "HUD": {
-                                                        "HUD_LTDR": {
-                                                                            "category": "HUD",
-                                                                        "control_type": "display",
-                                                                         "description": "Laser Status",
-                                                                          "identifier": "HUD_LTDR",
-                                                                              "inputs": [  ],
-                                                                             "outputs": [ {
-                                                                                                       "address": 30114,
-                                                                                            "address_identifier": "FA_18C_hornet_HUD_LTDR_A",
-                                                                                                   "description": "Laser Status",
-                                                                                                    "max_length": 5,
-                                                                                                        "suffix": "",
-                                                                                                          "type": "string"
-                                                                                        } ]
-                                                                    }
+                                                        "HUD_ATC_NWS_ENGAGED": {
+                                                                                       "category": "HUD",
+                                                                                   "control_type": "display",
+                                                                                    "description": "ATC - NWS Engaged",
+                                                                                     "identifier": "HUD_ATC_NWS_ENGAGED",
+                                                                                         "inputs": [  ],
+                                                                                        "outputs": [ {
+                                                                                                                  "address": 30120,
+                                                                                                       "address_identifier": "FA_18C_hornet_HUD_ATC_NWS_ENGAGED_A",
+                                                                                                              "description": "ATC - NWS Engaged",
+                                                                                                               "max_length": 6,
+                                                                                                                   "suffix": "",
+                                                                                                                     "type": "string"
+                                                                                                   } ]
+                                                                               },
+                                                                   "HUD_LTDR": {
+                                                                                       "category": "HUD",
+                                                                                   "control_type": "display",
+                                                                                    "description": "Laser Status",
+                                                                                     "identifier": "HUD_LTDR",
+                                                                                         "inputs": [  ],
+                                                                                        "outputs": [ {
+                                                                                                                  "address": 30114,
+                                                                                                       "address_identifier": "FA_18C_hornet_HUD_LTDR_A",
+                                                                                                              "description": "Laser Status",
+                                                                                                               "max_length": 5,
+                                                                                                                   "suffix": "",
+                                                                                                                     "type": "string"
+                                                                                                   } ]
+                                                                               }
                                                     },
                                "HUD Control Panel": {
                                                                   "HUD_ALT_SW": {
@@ -9192,7 +9225,7 @@
                                                          "LAUNCH_BAR_SW": {
                                                                                   "category": "Select Jettison Button",
                                                                               "control_type": "action",
-                                                                               "description": "Launch Bar",
+                                                                               "description": "Launch Bar Switch",
                                                                                 "identifier": "LAUNCH_BAR_SW",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",

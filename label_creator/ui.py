@@ -515,6 +515,12 @@ def pick_filterable(prompt, options, default=None):
             ch = msvcrt.getwch()
             if ch in ("\xe0", "\x00"):
                 ch2 = msvcrt.getwch()
+                if ch2 == "K":        # Left — clear filter (always reachable)
+                    if filter_text:
+                        filter_text = ""
+                        _apply()
+                        _repaint()
+                    continue
                 if not filtered:
                     continue
                 old = idx
@@ -522,12 +528,6 @@ def pick_filterable(prompt, options, default=None):
                     idx = (idx - 1) % len(filtered)
                 elif ch2 == "P":        # Down
                     idx = (idx + 1) % len(filtered)
-                elif ch2 == "K":        # Left — clear filter
-                    if filter_text:
-                        filter_text = ""
-                        _apply()
-                        _repaint()
-                    continue
                 else:
                     continue
                 if old != idx:

@@ -314,6 +314,13 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
 
             if ch in ("\xe0", "\x00"):
                 ch2 = msvcrt.getwch()
+                if ch2 == "K":        # Left — clear filter (always reachable)
+                    if filter_text:
+                        filter_text = ""
+                        _apply_filter()
+                        _clamp_scroll()
+                        _draw()
+                    continue
                 if not filtered:
                     continue
                 old = idx
@@ -336,13 +343,6 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
                                  label_set_name=label_set_name,
                                  aircraft_name=aircraft_name)
                     _draw()
-                    continue
-                elif ch2 == "K":        # Left — clear filter
-                    if filter_text:
-                        filter_text = ""
-                        _apply_filter()
-                        _clamp_scroll()
-                        _draw()
                     continue
                 else:
                     continue
