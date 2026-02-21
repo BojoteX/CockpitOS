@@ -4,6 +4,12 @@
 #include "../../../lib/CUtils/src/CUtils.h"
 
 // Buffers and dirty flags for all display fields (global)
+extern char hud_atc_nws_engaged[7];
+extern bool hud_atc_nws_engaged_dirty;
+extern char last_hud_atc_nws_engaged[7];
+extern char hud_ltdr[6];
+extern bool hud_ltdr_dirty;
+extern char last_hud_ltdr[6];
 
 extern DisplayBufferEntry CT_DisplayBuffers[];
 extern const size_t numCTDisplayBuffers;

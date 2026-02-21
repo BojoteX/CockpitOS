@@ -29,6 +29,11 @@ static void onThrottleChanged(const char* /*label*/, uint16_t value, uint16_t /*
     Servo_write(servoId, value);
 }
 
+// Debug: monitor DCS output states
+static void onDebugOutput(const char* label, uint16_t value, uint16_t max_value) {
+    debugPrintf("[ServoTest] %s = %u (max=%u)\n", label, value, max_value);
+}
+
 // -- Lifecycle --
 
 // DINIT: runs once at boot (initializeDisplays) — hardware setup + subscriptions
@@ -50,6 +55,8 @@ static void ServoTest_setup() {
     thrValue = 0;
 
     subscribeToGaugeChange("INT_THROTTLE_LEFT", onThrottleChanged);
+    subscribeToLedChange("RWR_POWER_BTN", onDebugOutput);
+    subscribeToLedChange("THROTTLE_ATC_SW", onDebugOutput);
 
     debugPrintf("ServoTest: setup OK  servo=%u pin=%u range=%u-%u us\n",
         servoId, SERVO_PIN, SERVO_MIN_US, SERVO_MAX_US);

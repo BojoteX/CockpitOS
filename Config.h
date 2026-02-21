@@ -53,7 +53,7 @@
 // TinyUSB + Wi-Fi enabled at the same time consume a LOT of memory, so if you decide to enable debugging (below) on S2 devices keep that in mind as compiles will most likely fail if both the WiFi stack (for debug or normal operation) is enabled along USB-OTG (TinyUSB). To avoid, simply use an S3 device or stick to the stack capabilities (e.g) Debug via Serial if using USB or Debug via WiFi if using WiFi as transport.  
 
 // For production, ALL THESE should be set to 0. Use for debugging only.
-#define DEBUG_ENABLED                               1 // Use it ONLY when identifying issues or troubleshooting. Not required when using VERBOSE modes below
+#define DEBUG_ENABLED                               0 // Use it ONLY when identifying issues or troubleshooting. Not required when using VERBOSE modes below
 #define DEBUG_PERFORMANCE                           1 // Shows profiling for specific tasks and memory usage for debug and troubleshooting.
 #define VERBOSE_MODE                                0 // Verbose will output to both WiFi & Serial (Uses a LOT of Memory, might fail compile on S2 devices).
 #define VERBOSE_MODE_SERIAL_ONLY                    0 // Verbose will only output to Serial. 

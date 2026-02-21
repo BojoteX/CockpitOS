@@ -5,6 +5,5 @@
 #pragma once
 
 static const char* kLatchedButtons[] = {
-    "THROTTLE_ATC_SW",
 };
 static const unsigned kLatchedButtonCount = sizeof(kLatchedButtons)/sizeof(kLatchedButtons[0]);

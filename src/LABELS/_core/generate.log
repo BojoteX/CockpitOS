@@ -33,12 +33,14 @@ Current LABEL SET: LABEL_SET_SERVOTEST
 
 [INFO] The current target_objects (panel(s) to be processed) are:
   - Auxiliary Power Unit Panel
+  - HUD
+  - Sensor Panel
   - Throttle Quadrant
 
-[✓] Generated DCSBIOSBridgeData.h with 13 outputs,  22 selectors.
-[✓] Generated InputMapping.h with 22 entries.
-✅ Found 13 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
-🔢 Using TABLE_SIZE = 53 (next prime ≥ 26)
+[✓] Generated DCSBIOSBridgeData.h with 30 outputs,  46 selectors.
+[✓] Generated InputMapping.h with 46 entries.
+✅ Found 19 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
+🔢 Using TABLE_SIZE = 53 (next prime ≥ 38)
 ✅ LEDMapping.h fully regenerated with dynamic enum from KNOWN_DEVICES.
 
 [INFO] Generating DisplayMapping.cpp/h using display_gen.py ...

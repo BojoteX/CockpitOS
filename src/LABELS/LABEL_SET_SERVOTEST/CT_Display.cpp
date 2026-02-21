@@ -2,20 +2,31 @@
 #include "CT_Display.h"
 #include "DisplayMapping.h"
 
+char hud_atc_nws_engaged[7] = {};
+bool hud_atc_nws_engaged_dirty = false;
+char last_hud_atc_nws_engaged[7] = {};
+char hud_ltdr[6] = {};
+bool hud_ltdr_dirty = false;
+char last_hud_ltdr[6] = {};
 
 DisplayBufferEntry CT_DisplayBuffers[] = {
+    { "HUD_ATC_NWS_ENGAGED", hud_atc_nws_engaged, 6, &hud_atc_nws_engaged_dirty, last_hud_atc_nws_engaged },
+    { "HUD_LTDR", hud_ltdr, 5, &hud_ltdr_dirty, last_hud_ltdr },
 };
 const size_t numCTDisplayBuffers = sizeof(CT_DisplayBuffers)/sizeof(CT_DisplayBuffers[0]);
 
-const DisplayBufferHashEntry CT_DisplayBufferHash[2] = {
+const DisplayBufferHashEntry CT_DisplayBufferHash[5] = {
+    {"HUD_ATC_NWS_ENGAGED", &CT_DisplayBuffers[0]},
+    {"HUD_LTDR", &CT_DisplayBuffers[1]},
+    {nullptr, nullptr},
     {nullptr, nullptr},
     {nullptr, nullptr},
 };
 
 const DisplayBufferEntry* findDisplayBufferByLabel(const char* label) {
-    uint16_t startH = labelHash(label) % 2;
-    for (uint16_t i = 0; i < 2; ++i) {
-        uint16_t idx = (startH + i >= 2) ? (startH + i - 2) : (startH + i);
+    uint16_t startH = labelHash(label) % 5;
+    for (uint16_t i = 0; i < 5; ++i) {
+        uint16_t idx = (startH + i >= 5) ? (startH + i - 5) : (startH + i);
         const auto& entry = CT_DisplayBufferHash[idx];
         if (!entry.label) return nullptr;
         if (strcmp(entry.label, label) == 0) return entry.entry;

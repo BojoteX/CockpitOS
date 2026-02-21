@@ -37,7 +37,7 @@ Auxiliary Power Unit Panel
 # Fuel Panel
 # Generator Tie Control Switch
 # Ground Power Panel
-# HUD
+HUD
 # HUD Control Panel
 # HUD Video Bit Panel
 # HUD Video Record Panel
@@ -68,7 +68,7 @@ Auxiliary Power Unit Panel
 # Right Essential Circuit Breakers
 # Rudder Pedal Adjust Level
 # Select Jettison Button
-# Sensor Panel
+Sensor Panel
 # Standby Airspeed Indicator
 # Standby Altimeter
 # Standby Attitude Reference Indicator

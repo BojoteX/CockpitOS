@@ -8,6 +8,9 @@
 - Short-form videos (YouTube Shorts)
 - Full walkthrough: zero to hero in 30 minutes
 - Complex panel build with custom front panel (long-form video)
+- Download DCSBIOS so we can compile luas into JSONs (Logic to download LATEST version)
+- Change the aircraft choose logic to allow filtering (will be long after the above change)
+- Allow METADATA/Custom editing for Custom Labels, see / search docs to understand this functionality prior to implement
 
 ---
 

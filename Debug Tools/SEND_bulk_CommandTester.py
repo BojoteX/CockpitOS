@@ -137,7 +137,7 @@ def get_all_interface_ips():
     for adapter in ifaddr.get_adapters():
         for ip in adapter.ips:
             if isinstance(ip.ip, str):
-                if ip.ip.startswith('127.') or ip.ip.startswith('169.254.'):
+                if ip.ip.startswith('127.') or ip.ip.startswith('169.254.') or ip.ip.startswith('192.168.137.'):
                     continue
                 short_name = shorten_adapter_name(adapter.nice_name)
                 interfaces.append((short_name, ip.ip))
@@ -205,12 +205,13 @@ def arrow_pick(prompt, options):
 
 
 def pick_interface(interfaces):
-    """Arrow-key picker for network interfaces. Returns bind IP string."""
-    options = [("Localhost (127.0.0.1)", "127.0.0.1")]
+    """Arrow-key picker for network interfaces. First real NIC is default."""
+    options = []
     for name, ip in interfaces:
         options.append((f"{ip:<17} {DIM}({name}){RESET}", ip))
+    options.append(("Localhost (127.0.0.1)", "127.0.0.1"))
 
-    return arrow_pick("Select network interface:", options)
+    return arrow_pick("Select network interface:", options) or (interfaces[0][1] if interfaces else "127.0.0.1")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # UDP SEND
@@ -219,6 +220,7 @@ def pick_interface(interfaces):
 def send_udp(cmd: str, bind_ip: str, dcs_ip: str) -> None:
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             sock.bind((bind_ip, 0))
             sock.sendto((cmd + "\n").encode("utf-8"), (dcs_ip, DCS_PORT))
         print(f"  {GREEN}[SENT]{RESET} {cmd}")
@@ -249,8 +251,8 @@ def main():
     interfaces = get_all_interface_ips()
     bind_ip = pick_interface(interfaces)
 
-    # DCS target defaults to the selected interface (same machine), or --ip override
-    dcs_ip = args.ip if args.ip else bind_ip
+    # DCS target defaults to broadcast, or --ip override
+    dcs_ip = args.ip if args.ip else "255.255.255.255"
 
     # Resolve display name
     if bind_ip == "127.0.0.1":
