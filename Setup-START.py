@@ -700,8 +700,8 @@ def main():
             ("Reset to recommended versions",      "reset"),
             ("",),
             ("---", "Switch Tool"),
-            ("Compile Tool",                       "compiler"),
             ("Label Creator",                      "label"),
+            ("Compile Tool",                       "compiler"),
             ("",),
             ("Exit",                               "exit",      "dim"),
         ])

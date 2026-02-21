@@ -154,6 +154,18 @@ void AnalogG_tick();                            // Call every 20ms, or from a ta
 extern GaugeState gaugeArray[MAX_GAUGES];
 extern uint8_t gaugeCount;
 
+// —— Servo Public API (LEDC hardware PWM) ——
+// For custom panels that need direct servo control without LEDMapping.
+// Shares the same MAX_GAUGES pool as AnalogG_* functions.
+uint8_t Servo_attach(uint8_t pin, uint16_t minPulseUs, uint16_t maxPulseUs);
+uint8_t Servo_attachEx(uint8_t pin, uint16_t minPulseUs, uint16_t maxPulseUs,
+                       uint16_t freqHz, uint8_t bits);
+void    Servo_write(uint8_t id, uint16_t value);                // 0-65535
+void    Servo_writeMicroseconds(uint8_t id, uint16_t pulseUs);  // direct microseconds
+void    Servo_enable(uint8_t id);    // re-attach LEDC, servo holds position
+void    Servo_disable(uint8_t id);   // detach LEDC, servo goes limp
+void    Servo_detach(uint8_t id);    // release LEDC channel permanently
+
 // —— Meta & Debug helpers —— 
 void setPanelAllLEDs(const char* panelPrefix, bool state);
 void setAllPanelsLEDs(bool state);

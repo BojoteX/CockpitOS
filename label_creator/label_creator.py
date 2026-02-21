@@ -582,7 +582,7 @@ def _show_label_set_info(ls_name: str, prefs) -> str | None:
         cfg = label_set.read_label_set_config(ls_dir)
         fullname = cfg["fullname"] or "(not set)"
         hid_on = cfg["hid_selector"]
-        hid_label = "ON" if hid_on else "OFF"
+        hid_label = "Yes, PCB has a switch" if hid_on else "No switch (most users)"
         hid_color = ui.GREEN if hid_on else ui.DIM
 
         # Detect whether generation has happened
@@ -639,11 +639,11 @@ def _show_label_set_info(ls_name: str, prefs) -> str | None:
 
             menu_items = [
                 (panels_label,               "select_panels", "action", panels_cap),
-                ("Generate & Set as Default", "set_default",  "warning", default_cap),
+                ("Auto-Generate Label Set",  "set_default",  "warning", default_cap),
                 ("",),
                 ("---", "LEDs & Controls"),
                 ("Edit Inputs",              "edit_input",  "normal", f"({input_cap} wired)"),
-                ("Edit Outputs (LEDs)",      "edit_led",    "normal", f"({led_cap} wired)"),
+                ("Edit Outputs",             "edit_led",    "normal", f"({led_cap} wired)"),
                 ("Latched Buttons",          "edit_latched","normal", f"({latched_cap})"),
                 ("Cover Gates",              "edit_covergate","normal", f"({covergate_cap})"),
                 ("",),
@@ -660,7 +660,7 @@ def _show_label_set_info(ls_name: str, prefs) -> str | None:
                 ("",),
                 ("---", "Misc Options"),
                 ("Device Name",              "devname",     "normal", fullname_cap),
-                ("HID Mode Selector",        "hid",         "normal", hid_cap),
+                ("HID Toggle Switch",        "hid",         "normal", hid_cap),
                 ("Edit Custom Pins",         "pins",        "normal", f"({pins_cap})"),
                 ("",),
                 ("RESET LABEL SET",          "reset",       "danger"),

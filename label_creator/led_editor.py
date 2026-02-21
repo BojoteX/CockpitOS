@@ -127,6 +127,32 @@ _DEVICE_DESCRIPTIONS = {
 }
 
 
+def _parse_max_values(led_mapping_path):
+    """Parse DCSBIOSBridgeData.h (same directory as LEDMapping.h)
+    to build a label -> max_value dict for GAUGE validation.
+
+    Returns {} if the file is missing or unparseable.
+    """
+    bridge_path = os.path.join(os.path.dirname(led_mapping_path),
+                               "DCSBIOSBridgeData.h")
+    result = {}
+    if not os.path.isfile(bridge_path):
+        return result
+    # Match lines like: {0x74C2,0x0100,8,1,"APU_CONTROL_SW",CT_SELECTOR},
+    pat = re.compile(
+        r'\{\s*0x[0-9A-Fa-f]+\s*,\s*0x[0-9A-Fa-f]+\s*,\s*\d+\s*,'
+        r'\s*(\d+)\s*,\s*"([^"]+)"\s*,\s*CT_\w+\s*\}')
+    try:
+        with open(bridge_path, "r", encoding="utf-8") as f:
+            for line in f:
+                m = pat.search(line)
+                if m:
+                    result[m.group(2)] = int(m.group(1))
+    except OSError:
+        pass
+    return result
+
+
 def _prompt_pca_hex_address(current="0x20"):
     """Prompt for a PCA9555 I2C address with strict validation.
 
@@ -338,13 +364,26 @@ def _info_summary(record):
 # ---------------------------------------------------------------------------
 # Edit flow
 # ---------------------------------------------------------------------------
-def _edit_record(record):
+def _edit_record(record, max_values=None):
     """Edit a single LED record.
 
     Prompts: device type -> device-specific fields -> dimmable -> activeLow.
+    max_values: label->max_value dict from DCSBIOSBridgeData.h (for GAUGE guard).
     Returns True if record was modified.
     """
     label = record["label"]
+
+    # Snapshot original state so we can restore on cancel/rejection
+    saved = {k: record[k] for k in record}
+
+    result = _edit_record_inner(record, label, max_values)
+    if not result:
+        record.update(saved)
+    return result
+
+
+def _edit_record_inner(record, label, max_values):
+    """Inner edit logic. Returns True on success, False to cancel (caller restores)."""
 
     ui.header(f"Edit LED: {label}")
     print()
@@ -462,18 +501,29 @@ def _edit_record(record):
 
     elif dev == "GAUGE":
         # ── GAUGE: analog servo gauge ────────────────────────────────
+        # Guard: only allow max_value=1 (binary solenoid) or 65535 (analog gauge).
+        # Anything else (e.g. 3-pos selector) requires a custom panel.
+        if max_values:
+            mv = max_values.get(label)
+            if mv is not None and mv not in (1, 65535):
+                print()
+                ui.warn(f"'{label}' has max_value={mv} -- GAUGE only supports "
+                        f"binary (max=1) or analog (max=65535) outputs.")
+                ui.warn("Multi-position selectors require a custom panel implementation.")
+                input(f"\n  {DIM}Press Enter to go back...{RESET}")
+                return False
         print(_SECTION_SEP)
         gpio = ui.text_input("Servo GPIO pin (PWM-capable)",
                              default=_extract_val(record["info_values"], 0, "0"))
         if gpio is None: return False
         print()
         ui.info(f"{DIM}Pulse range in microseconds \u2014 defines servo sweep.{RESET}")
-        ui.info(f"{DIM}Typical: min=544, max=2400. Adjust per your servo specs.{RESET}")
+        ui.info(f"{DIM}Default: min=800, max=2200. Adjust per your servo specs.{RESET}")
         minP = ui.text_input("Min pulse \u00b5s (servo at 0%)",
-                             default=_extract_val(record["info_values"], 1, "544"))
+                             default=_extract_val(record["info_values"], 1, "800"))
         if minP is None: return False
         maxP = ui.text_input("Max pulse \u00b5s (servo at 100%)",
-                             default=_extract_val(record["info_values"], 2, "2400"))
+                             default=_extract_val(record["info_values"], 2, "2200"))
         if maxP is None: return False
         print()
         ui.info(f"{DIM}Period in microseconds. 20000 = 50Hz (standard RC servo).{RESET}")
@@ -482,26 +532,31 @@ def _edit_record(record):
         if period is None: return False
         record["info_values"] = f"{gpio.strip()}, {minP.strip()}, {maxP.strip()}, {period.strip()}"
 
-    # Dimmable
-    print()
-    ui.info(f"{DIM}Dimmable: if true, LED intensity follows the panel dimmer (PWM).{RESET}")
-    ui.info(f"{DIM}If false, LED is fully ON or fully OFF.{RESET}")
-    dim_opts = [("true", "true"), ("false", "false")]
-    dim = ui.pick("Dimmable:", dim_opts, default=record["dimmable"])
-    if dim is None:
-        return False
-    record["dimmable"] = dim
+    # Dimmable & Active Low — skip for GAUGE (analog servo, not applicable)
+    if dev == "GAUGE":
+        record["dimmable"]  = "false"
+        record["activeLow"] = "false"
+    else:
+        # Dimmable
+        print()
+        ui.info(f"{DIM}Dimmable: if true, LED intensity follows the panel dimmer (PWM).{RESET}")
+        ui.info(f"{DIM}If false, LED is fully ON or fully OFF.{RESET}")
+        dim_opts = [("true", "true"), ("false", "false")]
+        dim = ui.pick("Dimmable:", dim_opts, default=record["dimmable"])
+        if dim is None:
+            return False
+        record["dimmable"] = dim
 
-    # Active Low (presented as "Reversed?" for beginners)
-    print()
-    ui.info(f"{DIM}Is this LED wired in reverse? (ON when signal is LOW){RESET}")
-    ui.info(f"{DIM}Most LEDs are {BOLD}not{RESET}{DIM} reversed — pick No unless you know otherwise.{RESET}")
-    alow_opts = [("No  (normal, most common)", "false"),
-                 ("Yes (reversed / active-low)", "true")]
-    alow = ui.pick("Reversed?", alow_opts, default=record["activeLow"])
-    if alow is None:
-        return False
-    record["activeLow"] = alow
+        # Active Low (presented as "Reversed?" for beginners)
+        print()
+        ui.info(f"{DIM}Is this LED wired in reverse? (ON when signal is LOW){RESET}")
+        ui.info(f"{DIM}Most LEDs are {BOLD}not{RESET}{DIM} reversed — pick No unless you know otherwise.{RESET}")
+        alow_opts = [("No  (normal, most common)", "false"),
+                     ("Yes (reversed / active-low)", "true")]
+        alow = ui.pick("Reversed?", alow_opts, default=record["activeLow"])
+        if alow is None:
+            return False
+        record["activeLow"] = alow
 
     return True
 
@@ -524,6 +579,7 @@ def edit_led_mapping(filepath, label_set_name="", aircraft_name=""):
     scroll bar, boundary flash.
     """
     records, raw_lines = parse_led_mapping(filepath)
+    max_values = _parse_max_values(filepath)
     if not records:
         ui.header("LED Mapping")
         print()
@@ -693,7 +749,7 @@ def edit_led_mapping(filepath, label_set_name="", aircraft_name=""):
                         _flash_row()
                 elif ch2 == "M":        # Right — edit
                     _w(SHOW_CUR)
-                    modified = _edit_record(records[idx])
+                    modified = _edit_record(records[idx], max_values)
                     if modified:
                         write_led_mapping(filepath, records, raw_lines)
                         # Re-parse to stay consistent
@@ -718,7 +774,7 @@ def edit_led_mapping(filepath, label_set_name="", aircraft_name=""):
 
             elif ch == "\r":            # Enter — edit
                 _w(SHOW_CUR)
-                modified = _edit_record(records[idx])
+                modified = _edit_record(records[idx], max_values)
                 if modified:
                     write_led_mapping(filepath, records, raw_lines)
                     records, raw_lines = parse_led_mapping(filepath)
