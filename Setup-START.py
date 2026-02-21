@@ -24,6 +24,7 @@ if platform.system() != "Windows":
 
 import os
 import json
+import time
 import shutil
 import subprocess
 import msvcrt
@@ -396,6 +397,35 @@ def run_pip(*args, timeout=120):
 
 
 # =============================================================================
+#  Retry wrapper for network operations
+# =============================================================================
+MAX_RETRIES = 3
+RETRY_DELAYS = [5, 15, 30]       # seconds between attempts
+
+def retry(label, fn, retries=MAX_RETRIES):
+    """Call fn() up to `retries` times, with delay between failures.
+
+    fn() must return (rc, stdout, stderr).
+    Shows a countdown between attempts so the user knows it's working.
+    Returns the final (rc, stdout, stderr).
+    """
+    for attempt in range(retries):
+        rc, out, err = fn()
+        if rc == 0:
+            return rc, out, err
+        if attempt < retries - 1:
+            delay = RETRY_DELAYS[min(attempt, len(RETRY_DELAYS) - 1)]
+            warn(f"{label} failed (attempt {attempt + 1}/{retries}): {err.strip()[:120]}")
+            info(f"Retrying in {delay}s...")
+            # Visible countdown
+            for remaining in range(delay, 0, -1):
+                _w(f"\r       {DIM}Waiting... {remaining}s{RESET}  ")
+                time.sleep(1)
+            _w(f"\r{ERASE_LN}")
+    return rc, out, err
+
+
+# =============================================================================
 #  Status display (shown on main screen, like compiler tool)
 # =============================================================================
 def show_status():
@@ -449,10 +479,20 @@ def show_status():
 def ensure_board_index():
     """Make sure Espressif board manager URL is configured and index is updated."""
     board_url = MANIFEST["esp32_core"]["board_manager_url"]
-    run_cli("config", "init", "--overwrite")
-    run_cli("config", "add", "board_manager.additional_urls", board_url)
+
+    rc, _, err = run_cli("config", "init", "--overwrite")
+    if rc != 0:
+        error(f"Failed to initialize arduino-cli config: {err.strip()}")
+        return False
+
+    rc, _, err = run_cli("config", "add", "board_manager.additional_urls", board_url)
+    if rc != 0:
+        error(f"Failed to add board manager URL: {err.strip()}")
+        return False
+
     info("Updating board index...")
-    rc, _, err = run_cli("core", "update-index")
+    rc, _, err = retry("Board index update",
+                       lambda: run_cli("core", "update-index"))
     if rc != 0:
         error(f"Failed to update board index: {err.strip()}")
         return False
@@ -493,7 +533,8 @@ def action_setup():
         if confirm(f"Install {CYAN}{m['platform']}@{recommended}{RESET}?"):
             info(f"Installing {CYAN}{m['platform']}@{recommended}{RESET}...")
             info(f"{DIM}This downloads ~350 MB of toolchains. Please be patient.{RESET}")
-            rc, _, err = run_cli("core", "install", f"{m['platform']}@{recommended}", timeout=1200)
+            rc, _, err = retry("ESP32 core install",
+                               lambda: run_cli("core", "install", f"{m['platform']}@{recommended}", timeout=1200))
             if rc != 0:
                 error(f"Install failed: {err.strip()}")
                 ok = False
@@ -504,15 +545,15 @@ def action_setup():
             ok = False
     elif version_tuple(installed) < version_tuple(recommended):
         warn(f"{m['platform']}@{installed} is older than recommended {recommended}.")
-        if confirm("Update to latest available version?"):
-            info(f"Upgrading {CYAN}{m['platform']}{RESET}...")
-            rc, _, err = run_cli("core", "upgrade", m["platform"], timeout=1200)
+        if confirm(f"Update to {CYAN}{m['platform']}@{recommended}{RESET}?"):
+            info(f"Installing {CYAN}{m['platform']}@{recommended}{RESET}...")
+            rc, _, err = retry("ESP32 core update",
+                               lambda: run_cli("core", "install", f"{m['platform']}@{recommended}", timeout=1200))
             if rc != 0:
-                error(f"Upgrade failed: {err.strip()}")
+                error(f"Update failed: {err.strip()}")
                 ok = False
             else:
-                new_ver = get_installed_core_version(m["platform"]) or "?"
-                success(f"{m['platform']} upgraded to {new_ver}")
+                success(f"{m['platform']}@{recommended} installed")
         else:
             info(f"Keeping {m['platform']}@{installed}.")
     else:
@@ -528,7 +569,8 @@ def action_setup():
         info(f"{m['library']} is {BOLD}not installed{RESET}.")
         if confirm(f"Install {CYAN}{m['library']}@{recommended}{RESET}?"):
             info(f"Installing {CYAN}{m['library']}@{recommended}{RESET}...")
-            rc, _, err = run_cli("lib", "install", f"{m['library']}@{recommended}")
+            rc, _, err = retry("LovyanGFX install",
+                               lambda: run_cli("lib", "install", f"{m['library']}@{recommended}"))
             if rc != 0:
                 error(f"Install failed: {err.strip()}")
                 ok = False
@@ -539,15 +581,15 @@ def action_setup():
             ok = False
     elif version_tuple(installed) < version_tuple(recommended):
         warn(f"{m['library']}@{installed} is older than recommended {recommended}.")
-        if confirm("Update to latest available version?"):
-            info(f"Upgrading {CYAN}{m['library']}{RESET}...")
-            rc, _, err = run_cli("lib", "upgrade", m["library"])
+        if confirm(f"Update to {CYAN}{m['library']}@{recommended}{RESET}?"):
+            info(f"Installing {CYAN}{m['library']}@{recommended}{RESET}...")
+            rc, _, err = retry("LovyanGFX update",
+                               lambda: run_cli("lib", "install", f"{m['library']}@{recommended}"))
             if rc != 0:
-                error(f"Upgrade failed: {err.strip()}")
+                error(f"Update failed: {err.strip()}")
                 ok = False
             else:
-                new_ver = get_installed_lib_version(m["library"]) or "?"
-                success(f"{m['library']} upgraded to {new_ver}")
+                success(f"{m['library']}@{recommended} installed")
         else:
             info(f"Keeping {m['library']}@{installed}.")
     else:
@@ -565,7 +607,8 @@ def action_setup():
         if confirm(f"Install missing HID Manager dependencies via pip?"):
             pip_names = [pip for _, pip in missing_deps]
             info(f"Installing {CYAN}{' '.join(pip_names)}{RESET}...")
-            rc, _, err = run_pip("install", *pip_names)
+            rc, _, err = retry("pip install",
+                               lambda: run_pip("install", *pip_names))
             if rc != 0:
                 error(f"pip install failed: {err.strip()[:200]}")
                 ok = False
@@ -615,16 +658,36 @@ def action_reset_to_manifest():
     missing_deps = get_missing_hid_deps()
     dep_status = f"{len(missing_deps)} missing" if missing_deps else "all installed"
 
+    # Detect downgrades
+    downgrades = []
+    if cur_core != "none" and version_tuple(cur_core) > version_tuple(m_core["version"]):
+        downgrades.append(f"ESP32 Core {cur_core} -> {m_core['version']}")
+    if cur_lib != "none" and version_tuple(cur_lib) > version_tuple(m_lib["version"]):
+        downgrades.append(f"LovyanGFX {cur_lib} -> {m_lib['version']}")
+
     info(f"  {CYAN}ESP32 Core{RESET}   {cur_core} {DIM}->{RESET} {BOLD}{m_core['version']}{RESET}")
     info(f"  {CYAN}LovyanGFX{RESET}    {cur_lib} {DIM}->{RESET} {BOLD}{m_lib['version']}{RESET}")
     info(f"  {CYAN}HID Deps{RESET}     {dep_status} {DIM}-> reinstall all{RESET}")
     _w("\n")
 
-    if not confirm(f"{YELLOW}This may downgrade components. Proceed?{RESET}"):
+    if not confirm("Proceed with reset?"):
         info("Cancelled.")
         _w(f"\n  {DIM}Press any key to return to menu...{RESET}")
         msvcrt.getwch()
         return
+
+    if downgrades:
+        _w("\n")
+        warn(f"{YELLOW}This will DOWNGRADE the following components:{RESET}")
+        for d in downgrades:
+            warn(f"  {d}")
+        warn("This may break other Arduino projects that depend on newer versions.")
+        _w("\n")
+        if not confirm(f"{RED}Are you sure you want to downgrade?{RESET}"):
+            info("Cancelled.")
+            _w(f"\n  {DIM}Press any key to return to menu...{RESET}")
+            msvcrt.getwch()
+            return
 
     if not ensure_board_index():
         _w(f"\n  {DIM}Press any key to return to menu...{RESET}")
@@ -634,7 +697,8 @@ def action_reset_to_manifest():
     # Core
     _w("\n")
     info(f"Installing {CYAN}{m_core['platform']}@{m_core['version']}{RESET}...")
-    rc, _, err = run_cli("core", "install", f"{m_core['platform']}@{m_core['version']}", timeout=1200)
+    rc, _, err = retry("ESP32 core install",
+                       lambda: run_cli("core", "install", f"{m_core['platform']}@{m_core['version']}", timeout=1200))
     if rc != 0:
         error(f"Failed: {err.strip()}")
     else:
@@ -642,7 +706,8 @@ def action_reset_to_manifest():
 
     # Library
     info(f"Installing {CYAN}{m_lib['library']}@{m_lib['version']}{RESET}...")
-    rc, _, err = run_cli("lib", "install", f"{m_lib['library']}@{m_lib['version']}")
+    rc, _, err = retry("LovyanGFX install",
+                       lambda: run_cli("lib", "install", f"{m_lib['library']}@{m_lib['version']}"))
     if rc != 0:
         error(f"Failed: {err.strip()}")
     else:
@@ -651,7 +716,8 @@ def action_reset_to_manifest():
     # HID Manager deps
     pip_names = list(MANIFEST["hid_manager_deps"]["packages"].values())
     info(f"Installing {CYAN}{' '.join(pip_names)}{RESET}...")
-    rc, _, err = run_pip("install", "--force-reinstall", *pip_names)
+    rc, _, err = retry("pip install",
+                       lambda: run_pip("install", "--force-reinstall", *pip_names))
     if rc != 0:
         error(f"pip install failed: {err.strip()[:200]}")
     else:

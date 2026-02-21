@@ -17,6 +17,6 @@
   "role": "standalone",
   "usb_mode": null,
   "board_name": "ESP32C6 Dev Module",
-  "arduino_cli_path": "C:\\Users\\jaltu\\OneDrive\\Documents\\Arduino\\CockpitOS\\compiler\\arduino-cli\\arduino-cli.exe",
+  "arduino_cli_path": "C:\\Users\\jaltu\\Documents\\Arduino\\CockpitOS\\compiler\\arduino-cli\\arduino-cli.exe",
   "show_detailed_warnings": false
 }
