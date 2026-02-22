@@ -107,7 +107,13 @@ void setLED(const char* label, bool state, uint8_t intensity, uint16_t rawValue,
             beginProfiling(PERF_LED_GAUGE);
             #endif
 
-            AnalogG_set(led->info.gaugeInfo.gpio, rawValue); // this uses a task to update the servo every 20 ms (50Hz)
+            // DEVICE_GAUGE supports two modes:
+            //   Analog (rawValue has full 0-65535 range): pass rawValue through
+            //   Binary (called with just state, rawValue=0): use state to drive 0 or 65535
+            {
+                uint16_t gaugeValue = (maxValue >= 65535) ? rawValue : (state ? 65535 : 0);
+                AnalogG_set(led->info.gaugeInfo.gpio, gaugeValue);
+            }
             
             #if DEBUG_PERFORMANCE
             endProfiling(PERF_LED_GAUGE);

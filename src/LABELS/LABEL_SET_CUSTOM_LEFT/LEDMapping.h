@@ -3,13 +3,13 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
-  DEVICE_NONE,
+  DEVICE_GPIO,
+  DEVICE_GAUGE,
+  DEVICE_PCA9555,
   DEVICE_TM1637,
   DEVICE_GN1640T,
-  DEVICE_PCA9555,
-  DEVICE_GAUGE,
   DEVICE_WS2812,
-  DEVICE_GPIO,
+  DEVICE_NONE,
 };
 
 struct LEDMapping {
@@ -29,26 +29,26 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
-  { "FIRE_TEST_SW"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "GEN_TIE_COVER"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "GEN_TIE_SW"             , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "FIRE_TEST_SW"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "GEN_TIE_COVER"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "GEN_TIE_SW"             , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CHART_DIMMER"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "COCKKPIT_LIGHT_MODE_SW" , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "COCKKPIT_LIGHT_MODE_SW" , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CONSOLES_DIMMER"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "FLOOD_DIMMER"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "INST_PNL_DIMMER"        , DEVICE_GPIO    , {.gpioInfo = {6}}, true, false }, // GPIO 6,
-  { "LIGHTS_TEST_SW"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "LIGHTS_TEST_SW"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "WARN_CAUTION_DIMMER"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "HYD_ISOLATE_OVERRIDE_SW", DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "MC_SW"                  , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "ANTI_SKID_SW"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "FLAP_SW"                , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "HOOK_BYPASS_SW"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "HYD_ISOLATE_OVERRIDE_SW", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "MC_SW"                  , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "ANTI_SKID_SW"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "FLAP_SW"                , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "HOOK_BYPASS_SW"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "HYD_IND_BRAKE"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "LAUNCH_BAR_SW"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "LDG_TAXI_SW"            , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "SEL_JETT_BTN"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "SEL_JETT_KNOB"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }
+  { "LAUNCH_BAR_SW"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "LDG_TAXI_SW"            , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "SEL_JETT_BTN"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "SEL_JETT_KNOB"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);

@@ -5,6 +5,7 @@ Handles copying a template label set, validating names, running
 reset_data.py and generate_data.py in separate console windows.
 """
 
+import json
 import os
 import re
 import subprocess
@@ -97,7 +98,31 @@ def get_label_set_dir(name: str) -> Path:
     return LABELS_DIR / f"LABEL_SET_{name}"
 
 
-_TEMPLATE_DIR = CORE_DIR / "template"
+_TEMPLATE_DIR  = CORE_DIR / "template"
+_METADATA_CORE = CORE_DIR / "metadata"
+
+
+def _seed_metadata_dir(target: Path):
+    """Create METADATA/ inside a new label set and populate it.
+
+    Copies metadata JSONs (CommonData, MetadataStart, MetadataEnd) from
+    _core/metadata/ and writes an empty Custom.json.
+    """
+    meta_dir = target / "METADATA"
+    meta_dir.mkdir(exist_ok=True)
+
+    # Copy metadata JSONs from _core/metadata/ (if available)
+    if _METADATA_CORE.is_dir():
+        for jf in sorted(_METADATA_CORE.glob("*.json")):
+            shutil.copy2(jf, meta_dir / jf.name)
+
+    # Always ensure an empty Custom.json exists
+    custom_path = meta_dir / "Custom.json"
+    if not custom_path.exists():
+        custom_path.write_text(
+            json.dumps({"Custom": {}}, indent=4) + "\n",
+            encoding="utf-8",
+        )
 
 
 def create_label_set(new_name: str) -> Path:
@@ -105,7 +130,8 @@ def create_label_set(new_name: str) -> Path:
 
     Copies the 3 boilerplate wrappers (reset_data.py, generate_data.py,
     display_gen.py) from _core/template/ into a fresh LABEL_SET_{new_name}
-    directory.
+    directory, then seeds the METADATA/ subdirectory with metadata JSONs
+    and an empty Custom.json.
 
     Returns the path to the new directory.
     """
@@ -114,6 +140,7 @@ def create_label_set(new_name: str) -> Path:
     for script in ("reset_data.py", "generate_data.py", "display_gen.py"):
         src = _TEMPLATE_DIR / script
         shutil.copy2(src, target / script)
+    _seed_metadata_dir(target)
     return target
 
 

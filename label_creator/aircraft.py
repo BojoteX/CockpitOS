@@ -62,6 +62,32 @@ def read_aircraft_txt(label_set_dir: Path) -> str | None:
     return None
 
 
+def merge_metadata(data: dict, label_set_dir: Path) -> None:
+    """Merge METADATA/*.json from a label set directory into aircraft data.
+
+    Mirrors the generator's merge_metadata_jsons() logic: each JSON in
+    METADATA/ adds categories/controls that don't already exist.
+    Modifies *data* in place.
+    """
+    meta_dir = label_set_dir / "METADATA"
+    if not meta_dir.is_dir():
+        return
+    for jf in sorted(meta_dir.iterdir()):
+        if jf.suffix.lower() != ".json" or not jf.is_file():
+            continue
+        try:
+            with open(jf, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+            for category, controls in meta.items():
+                if category not in data:
+                    data[category] = {}
+                for label, item in controls.items():
+                    if label not in data[category]:
+                        data[category][label] = item
+        except Exception:
+            pass
+
+
 def get_categories(data: dict) -> list[str]:
     """Return sorted list of panel/category names from aircraft JSON."""
     return sorted(data.keys())

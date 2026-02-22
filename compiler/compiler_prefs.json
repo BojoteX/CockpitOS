@@ -12,6 +12,5 @@
   "role": "standalone",
   "usb_mode": null,
   "board_name": "LOLIN S2 Mini",
-  "arduino_cli_path": "C:\\Users\\jaltu\\OneDrive\\Documents\\Arduino\\CockpitOS\\compiler\\arduino-cli\\arduino-cli.exe",
   "show_detailed_warnings": false
 }
