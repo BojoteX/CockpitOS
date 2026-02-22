@@ -8,9 +8,6 @@
 - Short-form videos (YouTube Shorts)
 - Full walkthrough: zero to hero in 30 minutes
 - Complex panel build with custom front panel (long-form video)
-- Download DCSBIOS so we can compile luas into JSONs (Logic to download LATEST version)
-- Change the aircraft choose logic to allow filtering (will be long after the above change)
-- Allow METADATA/Custom editing for Custom Labels, see / search docs to understand this functionality prior to implement
 
 ---
 
@@ -32,8 +29,13 @@ All previous engineering TODO items have been resolved:
 - Performance optimization — at peak efficiency
 - Magnetic switch support — implemented from design document
 - SPI TFT regression (freq_read) — fixed
-- DCS-BIOS installer — not needed, DCS-specific task left to the user
+- DCS-BIOS installer — done (Setup tool downloads, installs, patches Export.lua, compiles LUAs to JSONs)
+- DCS-BIOS aircraft selector filtering — done (filterable picker with type-to-filter, viewport scrolling)
 - Compiler Misc Options expansion — not needed, settings are stable defaults that don't need user-facing controls
 - Version/build/date tracking — dropped
+- Custom.json TUI editor — done (custom_editor.py: create/edit/delete custom controls, type-to-filter control browser, Tab toggle selected/all panels, full input/output editing)
+- METADATA seeding — done (Setup copies metadata JSONs to _core/metadata/, label_set.create_label_set() seeds METADATA/ dir with metadata JSONs + empty Custom.json, wipe cleans metadata)
+- Generator group ID fix for Custom controls — done (selector_entries 7th field carries JSON key; PATCH block and alloc_group key on ident so custom copies get separate group IDs)
+- Generator output/LED dedup for Custom controls — done (custom copies skipped from output_entries since they share the same DCS-BIOS address; output editing removed from custom_editor.py)
 
-*Last updated 2026-02-19.*
+*Last updated 2026-02-21.*

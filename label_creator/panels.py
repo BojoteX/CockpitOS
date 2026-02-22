@@ -114,6 +114,14 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
     if not all_panels:
         return []
 
+    # Partition: regular panels sorted, "Custom" at end with separator
+    _SPECIAL = {"Custom"}
+    regular = [p for p in all_panels if p not in _SPECIAL]
+    special = [p for p in all_panels if p in _SPECIAL]
+    ordered = regular + special   # selectable items in display order
+    # has_special: whether to show separator (only if special panels exist)
+    has_special = bool(special)
+
     # Build state: {panel_name: bool}
     pre = set(pre_selected) if pre_selected else set()
     state = {name: (name in pre) for name in all_panels}
@@ -128,7 +136,7 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
 
     total = len(all_panels)
     filter_text = ""
-    filtered = list(all_panels)
+    filtered = list(ordered)
     idx = 0
     scroll = 0
 
@@ -146,29 +154,55 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
         nonlocal filtered, idx
         if filter_text:
             ft = filter_text.lower()
-            filtered = [name for name in all_panels if ft in name.lower()]
+            filtered = [name for name in ordered if ft in name.lower()]
         else:
-            filtered = list(all_panels)
+            filtered = list(ordered)
         if not filtered:
             idx = 0
         elif idx >= len(filtered):
             idx = len(filtered) - 1
 
+    def _show_separator():
+        """Whether to show the separator (only when unfiltered and special panels exist)."""
+        return has_special and not filter_text
+
+    def _display_total():
+        """Total display rows including separator."""
+        return len(filtered) + (1 if _show_separator() else 0)
+
+    def _sel_to_display(sel_idx):
+        """Map selectable index to display row."""
+        if _show_separator() and sel_idx >= len(regular):
+            return sel_idx + 1  # shift past separator
+        return sel_idx
+
+    def _display_is_separator(disp_row):
+        """Check if a display row is the separator."""
+        return _show_separator() and disp_row == len(regular)
+
+    def _display_to_sel(disp_row):
+        """Map display row to selectable index, or -1 for separator."""
+        if _display_is_separator(disp_row):
+            return -1
+        if _show_separator() and disp_row > len(regular):
+            return disp_row - 1
+        return disp_row
+
     def _needs_scroll():
-        return len(filtered) > list_height
+        return _display_total() > list_height
 
     def _selected_count():
         return sum(1 for v in state.values() if v)
 
     def _scroll_bar_positions():
         """Return (start_row, end_row) for the scroll thumb within list_height."""
-        ftotal = len(filtered)
-        if ftotal <= list_height:
+        dtotal = _display_total()
+        if dtotal <= list_height:
             return (0, list_height)
         # Thumb size: proportional to visible / total, minimum 1
-        thumb = max(1, round(list_height * list_height / ftotal))
+        thumb = max(1, round(list_height * list_height / dtotal))
         # Thumb position: proportional to scroll / max_scroll
-        max_scroll = ftotal - list_height
+        max_scroll = dtotal - list_height
         if max_scroll <= 0:
             top = 0
         else:
@@ -217,10 +251,11 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
         if not filtered:
             scroll = 0
             return
-        if idx < scroll:
-            scroll = idx
-        if idx >= scroll + list_height:
-            scroll = idx - list_height + 1
+        disp_idx = _sel_to_display(idx)
+        if disp_idx < scroll:
+            scroll = disp_idx
+        if disp_idx >= scroll + list_height:
+            scroll = disp_idx - list_height + 1
 
     # ── Boundary flash ─────────────────────────────────────────────────
     _flash_timer = [None]   # mutable container for timer reference
@@ -254,7 +289,7 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
         os.system("cls" if os.name == "nt" else "clear")
         _w(HIDE_CUR)
 
-        ftotal = len(filtered)
+        dtotal = _display_total()
 
         # Header with optional filter display
         sel_count = _selected_count()
@@ -278,25 +313,38 @@ def select_panels(all_panels: list[str], aircraft_data: dict,
         thumb_start, thumb_end = _scroll_bar_positions()
 
         # Panel rows
-        if ftotal == 0:
+        if dtotal == 0:
             _w(f"\n  {DIM}No matches.{RESET}\n")
             for _ in range(list_height - 2):
                 _w("\n")
         else:
             for row in range(list_height):
-                ri = scroll + row
+                disp_ri = scroll + row
                 # Scroll indicator character for this row
                 if _needs_scroll():
                     scroll_char = _SCROLL_BLOCK if thumb_start <= row < thumb_end else _SCROLL_LIGHT
                 else:
                     scroll_char = " "
 
-                if ri < ftotal:
-                    _w(_render_row(ri, ri == idx, scroll_char) + "\n")
+                if disp_ri < dtotal:
+                    if _display_is_separator(disp_ri):
+                        # Separator row
+                        dash = "\u2500"
+                        sep_label = "Custom Controls"
+                        line_w = cols - 12
+                        left = 3
+                        right = max(line_w - left - len(sep_label) - 2, 3)
+                        _w(f"     {DIM}{dash * left} {sep_label} {dash * right}{RESET}"
+                           f" {DIM}{scroll_char}{RESET}\n")
+                    else:
+                        sel_i = _display_to_sel(disp_ri)
+                        is_hi = (sel_i == idx)
+                        _w(_render_row(sel_i, is_hi, scroll_char) + "\n")
                 else:
                     _w(ERASE_LN + "\n")
 
         # Footer
+        ftotal = len(filtered)
         if filter_text:
             match_info = f"{ftotal}/{total} matches"
         else:

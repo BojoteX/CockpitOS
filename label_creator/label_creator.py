@@ -36,6 +36,7 @@ import segment_map_editor
 import latched_editor
 import covergate_editor
 import custompins_editor
+import custom_editor
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -174,8 +175,11 @@ def step_name_label_set(prefs) -> str | None:
 def step_select_panels(aircraft_data: dict,
                        pre_selected: list[str] | None = None,
                        aircraft_name: str = "",
-                       label_set_name: str = "") -> list[str] | None:
+                       label_set_name: str = "",
+                       label_set_dir: Path | None = None) -> list[str] | None:
     """Interactive toggle-list panel selection."""
+    if label_set_dir is not None:
+        aircraft.merge_metadata(aircraft_data, label_set_dir)
     all_panels = aircraft.get_categories(aircraft_data)
     return panels_mod.select_panels(all_panels, aircraft_data, pre_selected,
                                     aircraft_name=aircraft_name,
@@ -304,7 +308,8 @@ def do_create(prefs) -> str | None:
     ls_name = f"LABEL_SET_{name}"
 
     selected = step_select_panels(aircraft_data, aircraft_name=ac_name,
-                                   label_set_name=ls_name)
+                                   label_set_name=ls_name,
+                                   label_set_dir=new_dir)
 
     # Write selected panels if any were chosen
     if selected:
@@ -401,7 +406,8 @@ def _regenerate(ls_name: str, prefs):
     aircraft_data = aircraft.load_aircraft_json(ac_name)
     selected = step_select_panels(aircraft_data, pre_selected=existing_panels,
                                    aircraft_name=ac_name,
-                                   label_set_name=ls_name)
+                                   label_set_name=ls_name,
+                                   label_set_dir=ls_dir)
     if selected is None:
         ui.warn("Panel selection cancelled.")
         input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
@@ -547,6 +553,15 @@ def _custom_pins_caption(ls_dir: Path) -> str:
     return f"{n} pin{'s' if n != 1 else ''}"
 
 
+def _custom_controls_caption(ls_dir: Path) -> str:
+    """Return 'X custom' caption for Custom.json, or 'none'."""
+    fpath = ls_dir / "METADATA" / "Custom.json"
+    if not fpath.exists():
+        return "none"
+    n = custom_editor.count_custom(str(fpath))
+    return f"{n} custom" if n > 0 else "none"
+
+
 def _show_label_set_info(ls_name: str, prefs) -> str | None:
     """Display detailed info about a label set.
 
@@ -627,6 +642,7 @@ def _show_label_set_info(ls_name: str, prefs) -> str | None:
             segmap_cap = _segment_map_caption(ls_dir, ac_name)
             latched_cap = _latched_buttons_caption(ls_dir)
             covergate_cap = _covergates_caption(ls_dir)
+            custom_cap = _custom_controls_caption(ls_dir)
             pins_cap = _custom_pins_caption(ls_dir)
 
             # Check if this label set is the active (default) one
@@ -646,6 +662,7 @@ def _show_label_set_info(ls_name: str, prefs) -> str | None:
                 ("Edit Outputs",             "edit_led",    "normal", f"({led_cap} wired)"),
                 ("Latched Buttons",          "edit_latched","normal", f"({latched_cap})"),
                 ("Cover Gates",              "edit_covergate","normal", f"({covergate_cap})"),
+                ("Custom Controls",          "edit_custom",  "normal", f"({custom_cap})"),
                 ("",),
                 ("---", "Displays"),
                 ("Display Configuration",    "segment_maps","normal", f"({segmap_cap})"),
@@ -715,6 +732,9 @@ def _show_label_set_info(ls_name: str, prefs) -> str | None:
                 str(ls_dir / "InputMapping.h"),
                 ls_name, ac_name)
             continue
+        elif choice == "edit_custom":
+            _edit_custom_controls(ls_dir, ls_name, ac_name)
+            continue
         elif choice == "edit_display":
             display_editor.edit_display_mapping(
                 str(ls_dir / "DisplayMapping.cpp"), ls_name, ac_name)
@@ -782,6 +802,24 @@ def _edit_device_name(ls_dir: Path, current: str):
     label_set.write_label_set_fullname(ls_dir, new_name)
     ui.success(f"Device name set to: {new_name}")
     time.sleep(0.6)
+
+
+def _edit_custom_controls(ls_dir: Path, ls_name: str = "", ac_name: str = ""):
+    """Launch the Custom.json TUI editor."""
+    if not ac_name:
+        ac_name = aircraft.read_aircraft_txt(ls_dir) or ""
+    if not ac_name:
+        ui.warn("No aircraft assigned. Cannot edit custom controls.")
+        input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
+        return
+    aircraft_data = aircraft.load_aircraft_json(ac_name)
+    aircraft.merge_metadata(aircraft_data, ls_dir)
+    sel_panels = _read_selected_panels(ls_dir)
+    custom_json_path = ls_dir / "METADATA" / "Custom.json"
+    custom_editor.edit_custom_controls(
+        str(custom_json_path), aircraft_data,
+        ls_name, ac_name,
+        selected_panels=sel_panels or None)
 
 
 def _edit_custom_pins(ls_dir: Path, ls_name: str = "", ac_name: str = ""):
