@@ -19,7 +19,9 @@ jobs:
         id: cache
         uses: actions/cache/restore@v4
         with:
-          path: ~/.arduino15
+          path: |
+            ~/.arduino15
+            ~/Arduino/libraries
           key: arduino-esp32-3.3.6-lovyangfx-1.2.19
 
       - name: Install arduino-cli
@@ -39,7 +41,9 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: ~/.arduino15
+          path: |
+            ~/.arduino15
+            ~/Arduino/libraries
           key: arduino-esp32-3.3.6-lovyangfx-1.2.19
 
   build:
@@ -76,7 +80,9 @@ jobs:
       - name: Restore Arduino cache
         uses: actions/cache/restore@v4
         with:
-          path: ~/.arduino15
+          path: |
+            ~/.arduino15
+            ~/Arduino/libraries
           key: arduino-esp32-3.3.6-lovyangfx-1.2.19
           fail-on-cache-miss: true
 
