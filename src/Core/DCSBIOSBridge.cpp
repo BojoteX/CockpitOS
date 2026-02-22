@@ -1605,6 +1605,16 @@ void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
         if (g < MAX_GROUPS) lastGroupSendUs[g] = micros(); // spacing hygiene
     }
 
+    // Self-aligned sync: for 2-pos selector switches, suppress sending a value DCS
+    // already reports. Emulates magnetic switch behavior in software — when DCS
+    // auto-releases a switch, CockpitOS acknowledges the new state without sending
+    // a redundant command. Only applies to grouped selectors (isSelector + group > 0),
+    // never momentary buttons. Skipped during force sync and unknown state.
+    if (!force && e->isSelector && value <= 1 && e->lastValue != 0xFFFF && e->lastValue == value) {
+        debugPrintf("⚠️ [DCS] SUPPRESSED redundant: %s = %u (DCS already at %u)\n", label, value, e->lastValue);
+        return;
+    }
+
     if (!applyThrottle(*e, label, value, force)) return;
 
     sendCommand(label, buf, false); // still gated

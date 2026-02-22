@@ -19,6 +19,7 @@ enum class PanelKind : uint8_t {
     // ===== Compiled panels (auto-generated from src/Panels/*.cpp) =====
     Generic,                 // from Generic.cpp
     IFEI,                    // PANEL_KIND in IFEIPanel.cpp
+    ServoTest,               // from ServoTest.cpp
     TFTBatt,                 // PANEL_KIND in TFT_Gauges_Battery.cpp
     TFTBrake,                // PANEL_KIND in TFT_Gauges_BrakePress.cpp
     TFTCabPress,             // PANEL_KIND in TFT_Gauges_CabinPressure.cpp

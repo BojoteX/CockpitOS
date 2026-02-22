@@ -8,6 +8,7 @@
 
 # AMPCD
 # APU Fire Warning Extinguisher Light
+# Altitude
 # Angle of Attack Indexer Lights
 # Antenna Select Panel
 # Arresting Hook Handle and Light
@@ -15,9 +16,10 @@
 # Canopy Internal Jettison Handle
 # Caution Light Panel
 # Clock
-# Cockpit Altimeter
+Cockpit Altimeter
 # Comms frequency
 # Communication Panel
+# Custom
 # Defog Panel
 # Dispenser/EMC Panel
 # ECM Dispenser Button
@@ -42,6 +44,7 @@
 # HUD Video Bit Panel
 # HUD Video Record Panel
 # HYD 1 and HYD Pressure Indicator
+# Heading
 # Heading and Course Set Switches
 # Integrated Fuel/Engine Indicator (IFEI)
 # Interior Lights Panel
@@ -58,7 +61,9 @@
 # Map Gain/Spin Recovery Panel
 Master Arm Panel
 Master Caution Light
+# Metadata
 # Mission Computer and Hydraulic Isolate Panel
+# Position
 # RH Advisory Panel
 # RWR Control Indicator
 Radar Altimeter
@@ -69,6 +74,7 @@ Radar Altimeter
 # Rudder Pedal Adjust Level
 # Select Jettison Button
 # Sensor Panel
+# Speed
 # Standby Airspeed Indicator
 # Standby Altimeter
 # Standby Attitude Reference Indicator
@@ -77,6 +83,7 @@ Radar Altimeter
 # Station Jettison Select
 # Stick
 # TODO
-# Throttle Quadrant
+Throttle Quadrant
+# Time
 # Up Front Controller (UFC)
 # Wing Fold Switch

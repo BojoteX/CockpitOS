@@ -8,8 +8,8 @@ enum LEDDeviceType {
   DEVICE_PCA9555,
   DEVICE_TM1637,
   DEVICE_GN1640T,
-  DEVICE_NONE,
   DEVICE_WS2812,
+  DEVICE_NONE,
 };
 
 struct LEDMapping {
@@ -29,22 +29,22 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
-  { "MASTER_ARM_SW"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "MASTER_MODE_AA"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "MASTER_ARM_SW"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "MASTER_MODE_AA"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MASTER_MODE_AA_LT"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "MASTER_MODE_AG"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "MASTER_MODE_AG"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MASTER_MODE_AG_LT"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MC_DISCH"               , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MC_READY"               , DEVICE_GPIO    , {.gpioInfo = {RS485_TEST_LED_GPIO}}, false, false }, // GPIO RS485_TEST_LED_GPIO,
   { "MASTER_CAUTION_LT"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "MASTER_CAUTION_RESET_SW", DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "MASTER_CAUTION_RESET_SW", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "LOW_ALT_WARN_LT"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "RADALT_ALT_PTR"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "RADALT_GREEN_LAMP"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "RADALT_HEIGHT"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "RADALT_MIN_HEIGHT_PTR"  , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "RADALT_OFF_FLAG"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "RADALT_TEST_SW"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }
+  { "RADALT_TEST_SW"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);

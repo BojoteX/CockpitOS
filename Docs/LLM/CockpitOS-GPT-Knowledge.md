@@ -378,84 +378,261 @@ Only ONE transport can be active at a time. Set via Compiler Tool > Role / Trans
 
 ## PART 9: ADVANCED FEATURES
 
-### Custom Panels (REGISTER_PANEL macro)
-For complex behavior that goes beyond simple input/output mapping, users can write custom panel code in src/Panels/.
+### Custom Panels — Complete Guide
 
+For complex behavior beyond simple input/output mapping, write a custom panel in `src/Panels/`.
+
+**Before writing a new panel, check if an existing one already does what you need:**
+
+| Existing File | What It Does |
+|--------------|--------------|
+| `Generic.cpp` | Handles ALL InputMapping.h and LEDMapping.h entries automatically — covers GPIO, PCA9555, HC165, TM1637, MATRIX, analog axes, all LED types |
+| `WingFold.cpp` | State machine + PCA9555 raw reads + command ring buffer with 500ms pacing + mechanical invariant enforcement. Guard: `HAS_CUSTOM_RIGHT` |
+| `IFEIPanel.cpp` | HT1622 segment LCD with shadow RAM, overlay system, dual chips, day/NVG backlight. Guard: `HAS_IFEI` |
+| `TFT_Gauges_Battery.cpp` | GC9A01 240x240 TFT gauge with dirty-rect DMA, PSRAM, FreeRTOS task, day/NVG. Guard: `HAS_RIGHT_PANEL_CONTROLLER` |
+| `TFT_Gauges_CabPress.cpp` | ST77961 360x360 TFT gauge, multiple subscriptions, two needles. Guard: `HAS_ALR67` |
+| `TFT_Display_CMWS.cpp` | Multi-subscription text-based tactical TFT display. Guard: `HAS_CMWS_DISPLAY` |
+| `TestPanel.cpp` | Minimal template. Guard: `HAS_TEST_ONLY` |
+
+**Required elements for every custom panel:**
+
+1. **Compile guard** wrapping the entire file:
 ```cpp
-#include "PanelRegistry.h"
-
-static void myPanelInit()     { /* subscribe to DCS-BIOS addresses */ }
-static void myPanelLoop()     { /* non-blocking state machine logic */ }
-static void myPanelDispInit() { /* display init */ }
-static void myPanelDispLoop() { /* display loop */ }
-static void myPanelTick()     { /* high-frequency tick */ }
-REGISTER_PANEL(KIND, myPanelInit, myPanelLoop, myPanelDispInit, myPanelDispLoop, myPanelTick, PRIO);
+#if defined(HAS_YOUR_LABEL_SET)
+// ... all panel code ...
+#endif
 ```
 
-PanelHooks struct fields: label (const char*), kind (PanelKind), prio (uint8_t), init (PanelFn), loop (PanelFn), disp_init (PanelFn), disp_loop (PanelFn), tick (PanelFn).
+2. **PANEL_KIND comment** near the top (used by generate_panelkind.py to create PanelKind enum):
+```cpp
+// PANEL_KIND: YourPanelName
+```
 
-Rules:
-- Never use delay() or blocking calls in loop
-- Use CUtils API (CUtils::digitalWrite, CUtils::analogRead, etc.), not raw Arduino functions
-- Static memory only — no new/malloc in loop paths
-- #if defined(HAS_*) guards for conditional compilation
+3. **Include Globals.h** (provides access to HIDManager, DCSBIOSBridge, CUtils):
+```cpp
+#include "../Globals.h"
+```
+
+4. **REGISTER_PANEL with nullptr for unused hooks** (never pass empty stub functions):
+```cpp
+// Standard input panel:
+REGISTER_PANEL(WingFold, WingFold_init, WingFold_loop, nullptr, nullptr, nullptr, 100);
+
+// Display panel:
+REGISTER_PANEL(IFEI, IFEI_init, nullptr, IFEIDisplay_init, IFEIDisplay_loop, nullptr, 100);
+
+// TFT gauge (display-only):
+REGISTER_PANEL(TFTBatt, nullptr, nullptr, BatteryGauge_init, BatteryGauge_loop, nullptr, 100);
+```
+
+5. **Non-blocking loop** — Never use `delay()`. Use `millis()` comparisons. Watchdog resets at ~3s.
+6. **Static memory only** — No `new`/`malloc` in loop paths. Allocate in init.
+7. **Subscribe in init, not loop** — DCS-BIOS subscriptions are one-time registrations.
+8. **Check `isMissionRunning()`** — Data is undefined between missions.
+
+**Panel lifecycle:**
+- `init()` is called when a DCS mission starts (NOT at power-on). Called every time you enter a new mission.
+- `loop()` is called every poll cycle at POLLING_RATE_HZ (250Hz default).
+- `disp_init()` and `disp_loop()` are the display equivalents.
+- `tick()` is for optional per-frame work (rarely needed — output flushing is automatic).
+
+### Custom Panel API — Exact Function Signatures
+
+**Sending commands to DCS:**
+```cpp
+void sendDCSBIOSCommand(const char* label, uint16_t value, bool force = false);
+void sendCommand(const char* label, const char* value, bool silent = false);
+```
+
+**HID button/axis control:**
+```cpp
+void HIDManager_setNamedButton(const char* name, bool deferSend, bool pressed);
+void HIDManager_setToggleNamedButton(const char* name, bool deferSend = false);
+void HIDManager_toggleIfPressed(bool isPressed, const char* label, bool deferSend = false);
+void HIDManager_moveAxis(const char* dcsIdentifier, uint8_t pin, HIDAxis axis,
+                         bool forceSend = false, bool deferredSend = false);
+void HIDManager_dispatchReport(bool force = false);
+void HIDManager_commitDeferredReport(const char* deviceName);
+```
+
+**DCS-BIOS subscriptions (register in init, NEVER in loop):**
+```cpp
+bool subscribeToLedChange(const char* label,
+    void (*callback)(const char* label, uint16_t value, uint16_t max_value));
+
+bool subscribeToSelectorChange(const char* label,
+    void (*callback)(const char* label, uint16_t value));
+
+bool subscribeToDisplayChange(const char* label,
+    void (*callback)(const char* label, const char* value));
+
+bool subscribeToMetadataChange(const char* label,
+    void (*callback)(const char* label, uint16_t value));
+```
+
+**Hardware read functions:**
+```cpp
+bool readPCA9555(uint8_t addr, byte &p0, byte &p1);  // Read both ports in one call
+uint64_t HC165_read();                                 // Read entire shift register chain
+bool isMissionRunning();                               // Is a DCS mission active?
+bool shouldPollMs(unsigned long &lastPoll);             // Rate limiter (250Hz)
+void debugPrintf(const char* format, ...);              // Debug output (WiFi or Serial)
+```
+
+**State query macros:**
+```cpp
+#define isCoverOpen(label)      (findCmdEntry(label) ? (findCmdEntry(label)->lastValue > 0) : false)
+#define isToggleOn(label)       isCoverOpen(label)
+```
+
+### MATRIX Scanning — How It Actually Works
+
+CockpitOS MATRIX is designed for **multi-position rotary selector switches** (NOT keypads). It uses GPIO pins directly — strobe pins as outputs, data pin as input with pull-up.
+
+**Scan algorithm (runs at 250Hz):**
+1. Each strobe pin is driven LOW one at a time (1 microsecond settle delay)
+2. The data pin (connected to rotary wiper) is read after each strobe
+3. If data reads LOW, the switch wiper is on that strobe's contact
+4. The resulting bit pattern (which strobes saw data LOW) identifies the position
+5. If no strobe reads LOW, the fallback position fires
+
+**Anchor vs Position rows in InputMapping.h:**
+
+| Row Type | `port` field | `bit` field | How firmware identifies it |
+|----------|-------------|-------------|--------------------------|
+| **Anchor** | Data pin GPIO number | Multi-bit mask (e.g., `15` = 0b1111 for 4 strobes) | `popcount(bit) > 1` |
+| **Position** | Strobe pin GPIO number | One-hot index (`1`, `2`, `4`, `8`, ...) | Exactly one bit set |
+| **Fallback** | Data pin GPIO number | `-1` | Negative bit value |
+
+**One-hot bit encoding:** bit=1 means strobe[0], bit=2 means strobe[1], bit=4 means strobe[2], bit=8 means strobe[3], etc.
+
+**Complete worked example (ALR67 RWR display type selector, 5 positions, 4 strobes):**
+
+CustomPins.h:
+```cpp
+#define ALR67_STROBE_1  PIN(16)   // Strobe index 0
+#define ALR67_STROBE_2  PIN(17)   // Strobe index 1
+#define ALR67_STROBE_3  PIN(21)   // Strobe index 2
+#define ALR67_STROBE_4  PIN(37)   // Strobe index 3
+#define ALR67_DataPin   PIN(38)   // Common data pin (wiper)
+```
+
+InputMapping.h:
+```cpp
+// ANCHOR: port=DataPin GPIO, bit=15 (0b1111 = 4 strobes). Also the fallback position.
+{ "RWR_DIS_TYPE_SW_F", "MATRIX", ALR67_DataPin,   15, -1, "RWR_DIS_TYPE_SW", 4, "selector", 6 },
+// POSITIONS: port=strobe GPIO, bit=one-hot strobe index
+{ "RWR_DIS_TYPE_SW_U", "MATRIX", ALR67_STROBE_1,   1, -1, "RWR_DIS_TYPE_SW", 3, "selector", 6 },
+{ "RWR_DIS_TYPE_SW_A", "MATRIX", ALR67_STROBE_2,   2, -1, "RWR_DIS_TYPE_SW", 2, "selector", 6 },
+{ "RWR_DIS_TYPE_SW_I", "MATRIX", ALR67_STROBE_3,   4, -1, "RWR_DIS_TYPE_SW", 1, "selector", 6 },
+{ "RWR_DIS_TYPE_SW_N", "MATRIX", ALR67_STROBE_4,   8, -1, "RWR_DIS_TYPE_SW", 0, "selector", 6 },
+```
+
+All rows share the same dcsCommand and group. The anchor row (bit=15) is the fallback — fires when no strobe is active.
+
+**12-position scaling (4 strobes x 3 data lines):** Use 3 separate rotary groups (one per data line), each with 4 positions + 1 anchor. That's 12 positions from 7 GPIO pins.
+
+**Limits:** MAX_MATRIX_ROTARIES=8, MAX_MATRIX_STROBES=8 per rotary, MAX_MATRIX_POS=16 per rotary.
 
 ### CoverGate System
-Physical switch covers that guard important switches. The cover must be opened before the guarded switch can operate.
+
+Physical switch covers that guard important switches. Single button press: opens virtual cover, waits, fires switch, waits, closes cover.
 
 Defined in CoverGates.h via Label Creator CoverGate Editor:
 ```cpp
 static const CoverGateDef kCoverGates[] = {
-  { "action_label", "release_label", "cover_label", CoverGateKind::Kind, delay_ms, close_delay_ms },
-  // ...
+  { "action_label", "release_label", "cover_label", CoverGateKind::Selector, 200, 300 },
 };
 ```
 
-Uses a pending-action model with states: P_NONE (idle), P_SEND_ON (action pending with timed delay), P_CLOSE_COVER (cover close pending with timed delay). Delays are configurable per gate.
+**CoverGateKind values:** `Selector` (2-pos arm/safe), `ButtonMomentary` (latched momentary under cover), `ButtonLatched` (reserved).
+
+**State machine:** P_NONE (idle) -> P_SEND_ON (action pending with delay_ms timer) -> P_CLOSE_COVER (cover close pending with close_delay_ms timer) -> P_NONE.
+
+**CoverGate + Latched Button interaction:** When a latched button is also CoverGate-guarded, CoverGate handles the entire sequence. It calls `HIDManager_setToggleNamedButton()` directly with a reentry flag to prevent infinite recursion. The `cg_isLatchedOn()` function checks command history to prevent double-fire on rapid presses.
+
+**Timing guidelines:** Fast switch (Master Arm): delay_ms=100-200, close_delay_ms=200-300. Safety-critical: 200-300/400-500. Animation-heavy: 300-500/500-800.
+
+**Limit:** MAX_COVER_GATES = 16.
 
 ### Latched Buttons
-Makes a momentary push button behave as a toggle. First press sends ON, second press sends OFF. State persists until next press.
+
+Makes a momentary push button behave as a toggle. First press sends ON, second press sends OFF. Rising-edge only — release is ignored.
 
 Defined in LatchedButtons.h via Label Creator Latched Buttons Editor:
 ```cpp
-static const char* kLatchedButtons[] = {
-  "BUTTON_LABEL",
-  // ...
-};
+static const char* kLatchedButtons[] = { "FIRE_EXT_BTN", "MASTER_ARM_SW" };
 ```
 
-isLatchedButton() in Mappings.cpp checks this list at runtime.
+`isLatchedButton()` in Mappings.cpp checks this list. `HIDManager_toggleIfPressed()` detects rising edge and calls `HIDManager_setToggleNamedButton()` to flip state. Command history (`CommandHistoryEntry.lastValue`) tracks ON/OFF: 0xFFFF or 0 = OFF, >0 = ON.
+
+**Limit:** MAX_LATCHED_BUTTONS = 16.
 
 ### Display Pipeline (HT1622 Segment LCD)
-For large segment LCD displays (like F/A-18 IFEI, F-16 DED):
 
-1. DCS-BIOS sends display string data
-2. DisplayMapping.cpp maps string fields to segment map entries
-3. SegmentMap.h defines which HT1622 RAM bits control which LCD segments
-4. The firmware writes the RAM bytes to the HT1622 chip via SPI
+For large segment LCD displays (like F/A-18 IFEI):
 
-The Segment Map Editor in Label Creator provides a visual RAM Walker for mapping segments.
+1. DCS-BIOS sends display string data at ~30Hz
+2. `onConsistentData()` fires at end-of-frame, compares buffers, calls `onDisplayChange(label, value)` for changed fields
+3. DisplayMapping.cpp maps string fields to SegmentMap entries via `fieldDefs[]` array
+4. Render function writes segment patterns into shadow RAM (`ramShadow[chip][64]`)
+5. `commit()` compares shadow vs last-committed state, writes only changed bytes to HT1622 via SPI
+
+The Segment Map Editor in Label Creator provides a RAM Walker for discovering which HT1622 RAM bits control which physical LCD segments.
+
+**HT1622 class API:**
+```cpp
+HT1622 chip(CS_PIN, WR_PIN, DATA_PIN);
+chip.init();
+chip.commit(ramShadow, lastShadow, 64);
+chip.commitPartial(ramShadow, lastShadow, addrStart, addrEnd);
+```
 
 ### TFT Gauges
-Round TFT displays (GC9A01) for analog gauge faces:
-- Enable ENABLE_TFT_GAUGES=1 in CustomPins.h
-- Uses LovyanGFX library for rendering
-- Runs on FreeRTOS task on Core 0 (separate from main loop on Core 1)
-- Implements TFT_Gauges_* panels in src/Panels/
 
-### RS485 Deep Dive
-- Physical layer: MAX485 or equivalent transceiver, half-duplex
-- Master polls slaves in round-robin
-- RS485_SMART_MODE: master tracks which DCS-BIOS addresses each slave subscribes to, only forwards relevant data
-- Each slave has unique address (1-126)
-- Recommended: twisted pair for A/B, 120-ohm termination at both ends
-- Pin configuration: DE (driver enable), RE (receiver enable), RX, TX — set via Compiler Tool
+Round TFT displays for analog gauge faces:
+- Enable ENABLE_TFT_GAUGES=1 in CustomPins.h (via Label Creator > Edit Custom Pins)
+- Requires ESP32-S3 or S2 with PSRAM
+- Uses LovyanGFX library for rendering
+- Each gauge runs in its own FreeRTOS task on Core 0 (separate from main loop on Core 1)
+- Dirty-rect DMA rendering: only redraws the region where the needle moved
+- Day/NVG lighting modes switch automatically based on CONSOLES_DIMMER DCS-BIOS value
+
+**Supported TFT controllers:** GC9A01 (240x240 round), ST77916 (360x360 QSPI), ST77961 (360x360 SPI), ST7789 (240x320 rect), ILI9341 (240x320 rect/CYD)
+
+**Performance:** 30-60 FPS, 5-15ms render per frame, 200-500KB PSRAM per gauge
+
+### RS485 Networking — Deep Dive
+
+**Architecture:** One master (connects to DCS-BIOS via USB/WiFi/Serial) forwards data to slaves over half-duplex RS485 bus. Master polls slaves round-robin for input commands.
+
+**Smart Mode vs Relay Mode:**
+- `RS485_SMART_MODE=0` (Relay): Master forwards entire DCS-BIOS stream. Simple, more bandwidth.
+- `RS485_SMART_MODE=1` (Smart): Master filters stream, only forwards addresses slaves subscribe to. 100-1000x bandwidth reduction.
+
+**Key optimization: RS485_MAX_SLAVE_ADDRESS** — Default 127. If you have 3 slaves with addresses 1-3, set this to 3. Eliminates 124 wasted poll cycles per round.
+
+**RS485_USE_TASK** — Must be 1 (dedicated FreeRTOS task) for USB/Serial/BLE transport on master. Set to 0 only for WiFi transport.
+
+**FreeRTOS task priorities (dual-core):**
+| Task | Core | Priority |
+|------|------|----------|
+| Arduino loop() | 1 | 1 |
+| TFT Gauge tasks | 0 | 2 |
+| RS485 Slave | 0 | 5 |
+| RS485 Master | 1 | 24 |
+
+**Slave discovery:** Master periodically probes unknown addresses. New slaves discovered within seconds. When a poll times out (1ms), slave is marked offline.
+
+**Wiring:** Twisted pair for A/B, 120-ohm termination at both physical ends only, common ground between all nodes. Do NOT swap A and B — nothing works if one device is swapped.
 
 ### DCS-BIOS Protocol
-- **Export (DCS -> Panel):** Binary frames on UDP multicast 239.255.50.10:5010. Address/value pairs representing cockpit state.
-- **Import (Panel -> DCS):** Text commands on UDP port 7778. Format: "CONTROL_NAME VALUE\n"
+
+- **Export (DCS -> Panel):** Binary frames on UDP multicast 239.255.50.10:5010. Address/value pairs representing cockpit state. ~30Hz frame rate.
+- **Import (Panel -> DCS):** Text commands on UDP port 7778. Format: `"CONTROL_NAME VALUE\n"`
 - Subscription system: panels subscribe to specific addresses, callbacks fire on change
 - Hash tables in DCSBIOSBridgeData.h provide O(1) control name lookup
+- Subscription limits: MAX_LED_SUBSCRIPTIONS=32, MAX_SELECTOR_SUBSCRIPTIONS=32, MAX_DISPLAY_SUBSCRIPTIONS=32, MAX_METADATA_SUBSCRIPTIONS=32
 
 ---
 

@@ -28,6 +28,7 @@ const char* getPanelName(uint8_t addr) {
     return n ? n : "Unknown";
 }
 
+#if ENABLE_PCA9555
 // ================================================================
 // Collect unique PCA9555 addresses from InputMapping + LEDMapping
 // ================================================================
@@ -58,6 +59,7 @@ static void _collectPcaAddresses() {
             addUnique(panelLEDs[i].info.pcaInfo.address);
     }
 }
+#endif
 
 void initMappings() {
     // ================================================================

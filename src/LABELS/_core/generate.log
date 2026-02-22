@@ -9,9 +9,10 @@ Output: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Generated\PanelK
 Permanent PCA entries (1):
   AnalogGauge              — Auto-detected when DEVICE_GAUGE in LEDMapping
 
-Scanning 11 panel files...
+Scanning 12 panel files...
   Generic.cpp                              → Generic              (from filename)
   IFEIPanel.cpp                            → IFEI                 (from PANEL_KIND)
+  ServoTest.cpp                            → ServoTest            (from filename)
   TestPanel.cpp                            → TestPanel            (from filename)
   TFT_Display_CMWS.cpp                     → TFTCmws              (from PANEL_KIND)
   TFT_Gauges_Battery.cpp                   → TFTBatt              (from PANEL_KIND)
@@ -24,27 +25,39 @@ Scanning 11 panel files...
 
 Generated: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Generated\PanelKind.h
   → 1 permanent PCA entries
-  → 11 compiled panel entries
-  → 12 total + COUNT
+  → 12 compiled panel entries
+  → 13 total + COUNT
 
 Done!
-Current LABEL SET: LABEL_SET_TEST_ONLY
+Current LABEL SET: LABEL_SET_MAIN
 
 [INFO] The current target_objects (panel(s) to be processed) are:
+  - APU Fire Warning Extinguisher Light
+  - Angle of Attack Indexer Lights
+  - Emergency Jettison Button
+  - Fire Systems
+  - Interior Lights Panel
+  - LH Advisory Panel
+  - Left Engine Fire Warning Extinguisher Light
+  - Lock Shoot Lights
+  - Map Gain/Spin Recovery Panel
   - Master Arm Panel
+  - Master Caution Light
+  - RH Advisory Panel
+  - Right Engine Fire Warning Extinguisher Light
 
-[✓] Generated DCSBIOSBridgeData.h with 7 outputs,  4 selectors.
-[✓] Generated InputMapping.h with 4 entries.
-✅ Found 7 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
-🔢 Using TABLE_SIZE = 53 (next prime ≥ 14)
+[✓] Generated DCSBIOSBridgeData.h with 62 outputs,  41 selectors.
+[✓] Generated InputMapping.h with 41 entries.
+✅ Found 62 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
+🔢 Using TABLE_SIZE = 127 (next prime ≥ 124)
 ✅ LEDMapping.h fully regenerated with dynamic enum from KNOWN_DEVICES.
 
 [INFO] Generating DisplayMapping.cpp/h using display_gen.py ...
 ✅ Renamed .cpp files to cpp.DISABLE in the inactive LABEL SETS to avoid linker conflicts
-[✓] Created LabelSetConfig.h with AUTOGEN_USB_PID=0xEC87 (from 'Test Only Uff')
+[✓] Created LabelSetConfig.h with AUTOGEN_USB_PID=0x9C84 (from 'CockpitBIOS Main Panel')
 [=] LatchedButtons.h exists, preserving
 [=] CoverGates.h exists, preserving
-[✓] Created ../active_set.h with LABEL_SET TEST_ONLY
+[✓] Created ../active_set.h with LABEL_SET MAIN
 
 ============================================================
 Running generate_panelkind.py to update PanelKind.h...

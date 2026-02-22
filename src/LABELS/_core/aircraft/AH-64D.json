@@ -750,250 +750,196 @@
                                                                }
                                      },
                       "CPG Cockpit": {
-                                               "CPG_CANOPY": {
-                                                                     "category": "CPG Cockpit",
-                                                                 "control_type": "selector",
-                                                                  "description": "Gunner Canopy, OPEN/CLOSE",
-                                                                   "identifier": "CPG_CANOPY",
-                                                                       "inputs": [ {
-                                                                                     "description": "switch to previous or next state",
-                                                                                       "interface": "fixed_step"
-                                                                                 }, {
-                                                                                     "description": "set position",
-                                                                                       "interface": "set_state",
-                                                                                       "max_value": 1
-                                                                                 }, {
-                                                                                        "argument": "TOGGLE",
-                                                                                     "description": "Toggle switch state",
-                                                                                       "interface": "action"
-                                                                                 } ],
-                                                                      "outputs": [ {
-                                                                                                           "address": 34568,
-                                                                                           "address_mask_identifier": "AH_64D_CPG_CANOPY_AM",
-                                                                                     "address_mask_shift_identifier": "AH_64D_CPG_CANOPY",
-                                                                                                       "description": "selector position",
-                                                                                                              "mask": 512,
-                                                                                                         "max_value": 1,
-                                                                                                          "shift_by": 9,
-                                                                                                            "suffix": "",
-                                                                                                              "type": "integer"
-                                                                                 } ]
-                                                             },
-                                            "CPG_DEFOG_BTN": {
-                                                                  "api_variant": "momentary_last_position",
-                                                                     "category": "CPG Cockpit",
-                                                                 "control_type": "selector",
-                                                                  "description": "Gunner Defog Button",
-                                                                   "identifier": "CPG_DEFOG_BTN",
-                                                                       "inputs": [ {
-                                                                                     "description": "switch to previous or next state",
-                                                                                       "interface": "fixed_step"
-                                                                                 }, {
-                                                                                     "description": "set position",
-                                                                                       "interface": "set_state",
-                                                                                       "max_value": 1
-                                                                                 }, {
-                                                                                        "argument": "TOGGLE",
-                                                                                     "description": "Toggle switch state",
-                                                                                       "interface": "action"
-                                                                                 } ],
-                                                                      "outputs": [ {
-                                                                                                           "address": 34568,
-                                                                                           "address_mask_identifier": "AH_64D_CPG_DEFOG_BTN_AM",
-                                                                                     "address_mask_shift_identifier": "AH_64D_CPG_DEFOG_BTN",
-                                                                                                       "description": "selector position",
-                                                                                                              "mask": 8192,
-                                                                                                         "max_value": 1,
-                                                                                                          "shift_by": 13,
-                                                                                                            "suffix": "",
-                                                                                                              "type": "integer"
-                                                                                 } ]
-                                                             },
-                                         "CPG_ENG_L_PW_LVR": {
-                                                                     "category": "CPG Cockpit",
-                                                                 "control_type": "limited_dial",
-                                                                  "description": "Gunner Power Lever Smoothly (Left)",
-                                                                   "identifier": "CPG_ENG_L_PW_LVR",
-                                                                       "inputs": [ {
-                                                                                     "description": "set the position of the dial",
-                                                                                       "interface": "set_state",
-                                                                                       "max_value": 65535
-                                                                                 }, {
-                                                                                        "description": "turn the dial left or right",
-                                                                                          "interface": "variable_step",
-                                                                                          "max_value": 65535,
-                                                                                     "suggested_step": 3200
-                                                                                 } ],
-                                                                      "outputs": [ {
-                                                                                                           "address": 34574,
-                                                                                                "address_identifier": "AH_64D_CPG_ENG_L_PW_LVR_A",
-                                                                                     "address_mask_shift_identifier": "AH_64D_CPG_ENG_L_PW_LVR",
-                                                                                                       "description": "position of the potentiometer",
-                                                                                                              "mask": 65535,
-                                                                                                         "max_value": 65535,
-                                                                                                          "shift_by": 0,
-                                                                                                            "suffix": "",
-                                                                                                              "type": "integer"
-                                                                                 } ]
-                                                             },
-                                         "CPG_ENG_R_PW_LVR": {
-                                                                     "category": "CPG Cockpit",
-                                                                 "control_type": "limited_dial",
-                                                                  "description": "Gunner Power Lever Smoothly (Right)",
-                                                                   "identifier": "CPG_ENG_R_PW_LVR",
-                                                                       "inputs": [ {
-                                                                                     "description": "set the position of the dial",
-                                                                                       "interface": "set_state",
-                                                                                       "max_value": 65535
-                                                                                 }, {
-                                                                                        "description": "turn the dial left or right",
-                                                                                          "interface": "variable_step",
-                                                                                          "max_value": 65535,
-                                                                                     "suggested_step": 3200
-                                                                                 } ],
-                                                                      "outputs": [ {
-                                                                                                           "address": 34576,
-                                                                                                "address_identifier": "AH_64D_CPG_ENG_R_PW_LVR_A",
-                                                                                     "address_mask_shift_identifier": "AH_64D_CPG_ENG_R_PW_LVR",
-                                                                                                       "description": "position of the potentiometer",
-                                                                                                              "mask": 65535,
-                                                                                                         "max_value": 65535,
-                                                                                                          "shift_by": 0,
-                                                                                                            "suffix": "",
-                                                                                                              "type": "integer"
-                                                                                 } ]
-                                                             },
-                                              "CPG_M4_SAVE": {
-                                                                     "category": "CPG Cockpit",
-                                                                 "control_type": "selector",
-                                                                  "description": "Gunner M4 Safety",
-                                                                   "identifier": "CPG_M4_SAVE",
-                                                                       "inputs": [ {
-                                                                                     "description": "switch to previous or next state",
-                                                                                       "interface": "fixed_step"
-                                                                                 }, {
-                                                                                     "description": "set position",
-                                                                                       "interface": "set_state",
-                                                                                       "max_value": 2
-                                                                                 } ],
-                                                                      "outputs": [ {
-                                                                                                           "address": 34568,
-                                                                                     "address_mask_shift_identifier": "AH_64D_CPG_M4_SAVE",
-                                                                                                       "description": "selector position",
-                                                                                                              "mask": 6144,
-                                                                                                         "max_value": 2,
-                                                                                                          "shift_by": 11,
-                                                                                                            "suffix": "",
-                                                                                                              "type": "integer"
-                                                                                 } ]
-                                                             },
-                                           "CPG_M4_TRIGGER": {
-                                                                  "api_variant": "momentary_last_position",
-                                                                     "category": "CPG Cockpit",
-                                                                 "control_type": "selector",
-                                                                  "description": "Gunner M4 Trigger",
-                                                                   "identifier": "CPG_M4_TRIGGER",
-                                                                       "inputs": [ {
-                                                                                     "description": "switch to previous or next state",
-                                                                                       "interface": "fixed_step"
-                                                                                 }, {
-                                                                                     "description": "set position",
-                                                                                       "interface": "set_state",
-                                                                                       "max_value": 1
-                                                                                 }, {
-                                                                                        "argument": "TOGGLE",
-                                                                                     "description": "Toggle switch state",
-                                                                                       "interface": "action"
-                                                                                 } ],
-                                                                      "outputs": [ {
-                                                                                                           "address": 34568,
-                                                                                           "address_mask_identifier": "AH_64D_CPG_M4_TRIGGER_AM",
-                                                                                     "address_mask_shift_identifier": "AH_64D_CPG_M4_TRIGGER",
-                                                                                                       "description": "selector position",
-                                                                                                              "mask": 1024,
-                                                                                                         "max_value": 1,
-                                                                                                          "shift_by": 10,
-                                                                                                            "suffix": "",
-                                                                                                              "type": "integer"
-                                                                                 } ]
-                                                             },
-                                          "CPG_PROC_SEL_SW": {
-                                                                     "category": "CPG Cockpit",
-                                                                 "control_type": "selector",
-                                                                  "description": "Gunner Processor Select Switch, SP 1/AUTO/SP 2",
-                                                                   "identifier": "CPG_PROC_SEL_SW",
-                                                                       "inputs": [ {
-                                                                                     "description": "switch to previous or next state",
-                                                                                       "interface": "fixed_step"
-                                                                                 }, {
-                                                                                     "description": "set position",
-                                                                                       "interface": "set_state",
-                                                                                       "max_value": 2
-                                                                                 } ],
-                                                                      "outputs": [ {
-                                                                                                           "address": 34578,
-                                                                                     "address_mask_shift_identifier": "AH_64D_CPG_PROC_SEL_SW",
-                                                                                                       "description": "selector position",
-                                                                                                              "mask": 6,
-                                                                                                         "max_value": 2,
-                                                                                                          "shift_by": 1,
-                                                                                                            "suffix": "",
-                                                                                                              "type": "integer"
-                                                                                 } ]
-                                                             },
-                                           "CPG_STICK_FOLD": {
-                                                                     "category": "CPG Cockpit",
-                                                                 "control_type": "selector",
-                                                                  "description": "Gunner Stick Folding, UP/DOWN",
-                                                                   "identifier": "CPG_STICK_FOLD",
-                                                                       "inputs": [ {
-                                                                                     "description": "switch to previous or next state",
-                                                                                       "interface": "fixed_step"
-                                                                                 }, {
-                                                                                     "description": "set position",
-                                                                                       "interface": "set_state",
-                                                                                       "max_value": 1
-                                                                                 }, {
-                                                                                        "argument": "TOGGLE",
-                                                                                     "description": "Toggle switch state",
-                                                                                       "interface": "action"
-                                                                                 } ],
-                                                                      "outputs": [ {
-                                                                                                           "address": 34578,
-                                                                                           "address_mask_identifier": "AH_64D_CPG_STICK_FOLD_AM",
-                                                                                     "address_mask_shift_identifier": "AH_64D_CPG_STICK_FOLD",
-                                                                                                       "description": "selector position",
-                                                                                                              "mask": 1,
-                                                                                                         "max_value": 1,
-                                                                                                          "shift_by": 0,
-                                                                                                            "suffix": "",
-                                                                                                              "type": "integer"
-                                                                                 } ]
-                                                             },
-                                             "CPG_WIPER_SW": {
-                                                                     "category": "CPG Cockpit",
-                                                                 "control_type": "selector",
-                                                                  "description": "Gunner Wiper Control Switch, PARK/OFF/LO/HI",
-                                                                   "identifier": "CPG_WIPER_SW",
-                                                                       "inputs": [ {
-                                                                                     "description": "switch to previous or next state",
-                                                                                       "interface": "fixed_step"
-                                                                                 }, {
-                                                                                     "description": "set position",
-                                                                                       "interface": "set_state",
-                                                                                       "max_value": 3
-                                                                                 } ],
-                                                                      "outputs": [ {
-                                                                                                           "address": 34568,
-                                                                                     "address_mask_shift_identifier": "AH_64D_CPG_WIPER_SW",
-                                                                                                       "description": "selector position",
-                                                                                                              "mask": 49152,
-                                                                                                         "max_value": 3,
-                                                                                                          "shift_by": 14,
-                                                                                                            "suffix": "",
-                                                                                                              "type": "integer"
-                                                                                 } ]
-                                                             }
+                                              "CPG_CANOPY": {
+                                                                    "category": "CPG Cockpit",
+                                                                "control_type": "selector",
+                                                                 "description": "Gunner Canopy, OPEN/CLOSE",
+                                                                  "identifier": "CPG_CANOPY",
+                                                                      "inputs": [ {
+                                                                                    "description": "switch to previous or next state",
+                                                                                      "interface": "fixed_step"
+                                                                                }, {
+                                                                                    "description": "set position",
+                                                                                      "interface": "set_state",
+                                                                                      "max_value": 1
+                                                                                }, {
+                                                                                       "argument": "TOGGLE",
+                                                                                    "description": "Toggle switch state",
+                                                                                      "interface": "action"
+                                                                                } ],
+                                                                     "outputs": [ {
+                                                                                                          "address": 34568,
+                                                                                          "address_mask_identifier": "AH_64D_CPG_CANOPY_AM",
+                                                                                    "address_mask_shift_identifier": "AH_64D_CPG_CANOPY",
+                                                                                                      "description": "selector position",
+                                                                                                             "mask": 512,
+                                                                                                        "max_value": 1,
+                                                                                                         "shift_by": 9,
+                                                                                                           "suffix": "",
+                                                                                                             "type": "integer"
+                                                                                } ]
+                                                            },
+                                           "CPG_DEFOG_BTN": {
+                                                                 "api_variant": "momentary_last_position",
+                                                                    "category": "CPG Cockpit",
+                                                                "control_type": "selector",
+                                                                 "description": "Gunner Defog Button",
+                                                                  "identifier": "CPG_DEFOG_BTN",
+                                                                      "inputs": [ {
+                                                                                    "description": "switch to previous or next state",
+                                                                                      "interface": "fixed_step"
+                                                                                }, {
+                                                                                    "description": "set position",
+                                                                                      "interface": "set_state",
+                                                                                      "max_value": 1
+                                                                                }, {
+                                                                                       "argument": "TOGGLE",
+                                                                                    "description": "Toggle switch state",
+                                                                                      "interface": "action"
+                                                                                } ],
+                                                                     "outputs": [ {
+                                                                                                          "address": 34568,
+                                                                                          "address_mask_identifier": "AH_64D_CPG_DEFOG_BTN_AM",
+                                                                                    "address_mask_shift_identifier": "AH_64D_CPG_DEFOG_BTN",
+                                                                                                      "description": "selector position",
+                                                                                                             "mask": 8192,
+                                                                                                        "max_value": 1,
+                                                                                                         "shift_by": 13,
+                                                                                                           "suffix": "",
+                                                                                                             "type": "integer"
+                                                                                } ]
+                                                            },
+                                             "CPG_M4_SAVE": {
+                                                                    "category": "CPG Cockpit",
+                                                                "control_type": "selector",
+                                                                 "description": "Gunner M4 Safety",
+                                                                  "identifier": "CPG_M4_SAVE",
+                                                                      "inputs": [ {
+                                                                                    "description": "switch to previous or next state",
+                                                                                      "interface": "fixed_step"
+                                                                                }, {
+                                                                                    "description": "set position",
+                                                                                      "interface": "set_state",
+                                                                                      "max_value": 2
+                                                                                } ],
+                                                                     "outputs": [ {
+                                                                                                          "address": 34568,
+                                                                                    "address_mask_shift_identifier": "AH_64D_CPG_M4_SAVE",
+                                                                                                      "description": "selector position",
+                                                                                                             "mask": 6144,
+                                                                                                        "max_value": 2,
+                                                                                                         "shift_by": 11,
+                                                                                                           "suffix": "",
+                                                                                                             "type": "integer"
+                                                                                } ]
+                                                            },
+                                          "CPG_M4_TRIGGER": {
+                                                                 "api_variant": "momentary_last_position",
+                                                                    "category": "CPG Cockpit",
+                                                                "control_type": "selector",
+                                                                 "description": "Gunner M4 Trigger",
+                                                                  "identifier": "CPG_M4_TRIGGER",
+                                                                      "inputs": [ {
+                                                                                    "description": "switch to previous or next state",
+                                                                                      "interface": "fixed_step"
+                                                                                }, {
+                                                                                    "description": "set position",
+                                                                                      "interface": "set_state",
+                                                                                      "max_value": 1
+                                                                                }, {
+                                                                                       "argument": "TOGGLE",
+                                                                                    "description": "Toggle switch state",
+                                                                                      "interface": "action"
+                                                                                } ],
+                                                                     "outputs": [ {
+                                                                                                          "address": 34568,
+                                                                                          "address_mask_identifier": "AH_64D_CPG_M4_TRIGGER_AM",
+                                                                                    "address_mask_shift_identifier": "AH_64D_CPG_M4_TRIGGER",
+                                                                                                      "description": "selector position",
+                                                                                                             "mask": 1024,
+                                                                                                        "max_value": 1,
+                                                                                                         "shift_by": 10,
+                                                                                                           "suffix": "",
+                                                                                                             "type": "integer"
+                                                                                } ]
+                                                            },
+                                         "CPG_PROC_SEL_SW": {
+                                                                    "category": "CPG Cockpit",
+                                                                "control_type": "selector",
+                                                                 "description": "Gunner Processor Select Switch, SP 1/AUTO/SP 2",
+                                                                  "identifier": "CPG_PROC_SEL_SW",
+                                                                      "inputs": [ {
+                                                                                    "description": "switch to previous or next state",
+                                                                                      "interface": "fixed_step"
+                                                                                }, {
+                                                                                    "description": "set position",
+                                                                                      "interface": "set_state",
+                                                                                      "max_value": 2
+                                                                                } ],
+                                                                     "outputs": [ {
+                                                                                                          "address": 34578,
+                                                                                    "address_mask_shift_identifier": "AH_64D_CPG_PROC_SEL_SW",
+                                                                                                      "description": "selector position",
+                                                                                                             "mask": 6,
+                                                                                                        "max_value": 2,
+                                                                                                         "shift_by": 1,
+                                                                                                           "suffix": "",
+                                                                                                             "type": "integer"
+                                                                                } ]
+                                                            },
+                                          "CPG_STICK_FOLD": {
+                                                                    "category": "CPG Cockpit",
+                                                                "control_type": "selector",
+                                                                 "description": "Gunner Stick Folding, UP/DOWN",
+                                                                  "identifier": "CPG_STICK_FOLD",
+                                                                      "inputs": [ {
+                                                                                    "description": "switch to previous or next state",
+                                                                                      "interface": "fixed_step"
+                                                                                }, {
+                                                                                    "description": "set position",
+                                                                                      "interface": "set_state",
+                                                                                      "max_value": 1
+                                                                                }, {
+                                                                                       "argument": "TOGGLE",
+                                                                                    "description": "Toggle switch state",
+                                                                                      "interface": "action"
+                                                                                } ],
+                                                                     "outputs": [ {
+                                                                                                          "address": 34578,
+                                                                                          "address_mask_identifier": "AH_64D_CPG_STICK_FOLD_AM",
+                                                                                    "address_mask_shift_identifier": "AH_64D_CPG_STICK_FOLD",
+                                                                                                      "description": "selector position",
+                                                                                                             "mask": 1,
+                                                                                                        "max_value": 1,
+                                                                                                         "shift_by": 0,
+                                                                                                           "suffix": "",
+                                                                                                             "type": "integer"
+                                                                                } ]
+                                                            },
+                                            "CPG_WIPER_SW": {
+                                                                    "category": "CPG Cockpit",
+                                                                "control_type": "selector",
+                                                                 "description": "Gunner Wiper Control Switch, PARK/OFF/LO/HI",
+                                                                  "identifier": "CPG_WIPER_SW",
+                                                                      "inputs": [ {
+                                                                                    "description": "switch to previous or next state",
+                                                                                      "interface": "fixed_step"
+                                                                                }, {
+                                                                                    "description": "set position",
+                                                                                      "interface": "set_state",
+                                                                                      "max_value": 3
+                                                                                } ],
+                                                                     "outputs": [ {
+                                                                                                          "address": 34568,
+                                                                                    "address_mask_shift_identifier": "AH_64D_CPG_WIPER_SW",
+                                                                                                      "description": "selector position",
+                                                                                                             "mask": 49152,
+                                                                                                        "max_value": 3,
+                                                                                                         "shift_by": 14,
+                                                                                                           "suffix": "",
+                                                                                                             "type": "integer"
+                                                                                } ]
+                                                            }
                                      },
      "CPG Collective (Flight Grip)": {
                                                 "CPG_COLLECTIVE_BS_PLRT": {
@@ -4682,6 +4628,60 @@
                                                                                                                     "mask": 512,
                                                                                                                "max_value": 1,
                                                                                                                 "shift_by": 9,
+                                                                                                                  "suffix": "",
+                                                                                                                    "type": "integer"
+                                                                                       } ]
+                                                                   },
+                                               "CPG_ENG_L_PW_LVR": {
+                                                                           "category": "CPG Left Console",
+                                                                       "control_type": "limited_dial",
+                                                                        "description": "Gunner Power Lever Smoothly (Left)",
+                                                                         "identifier": "CPG_ENG_L_PW_LVR",
+                                                                             "inputs": [ {
+                                                                                           "description": "set the position of the dial",
+                                                                                             "interface": "set_state",
+                                                                                             "max_value": 65535
+                                                                                       }, {
+                                                                                              "description": "turn the dial left or right",
+                                                                                                "interface": "variable_step",
+                                                                                                "max_value": 65535,
+                                                                                           "suggested_step": 3200
+                                                                                       } ],
+                                                                            "outputs": [ {
+                                                                                                                 "address": 34574,
+                                                                                                      "address_identifier": "AH_64D_CPG_ENG_L_PW_LVR_A",
+                                                                                           "address_mask_shift_identifier": "AH_64D_CPG_ENG_L_PW_LVR",
+                                                                                                             "description": "position of the potentiometer",
+                                                                                                                    "mask": 65535,
+                                                                                                               "max_value": 65535,
+                                                                                                                "shift_by": 0,
+                                                                                                                  "suffix": "",
+                                                                                                                    "type": "integer"
+                                                                                       } ]
+                                                                   },
+                                               "CPG_ENG_R_PW_LVR": {
+                                                                           "category": "CPG Left Console",
+                                                                       "control_type": "limited_dial",
+                                                                        "description": "Gunner Power Lever Smoothly (Right)",
+                                                                         "identifier": "CPG_ENG_R_PW_LVR",
+                                                                             "inputs": [ {
+                                                                                           "description": "set the position of the dial",
+                                                                                             "interface": "set_state",
+                                                                                             "max_value": 65535
+                                                                                       }, {
+                                                                                              "description": "turn the dial left or right",
+                                                                                                "interface": "variable_step",
+                                                                                                "max_value": 65535,
+                                                                                           "suggested_step": 3200
+                                                                                       } ],
+                                                                            "outputs": [ {
+                                                                                                                 "address": 34576,
+                                                                                                      "address_identifier": "AH_64D_CPG_ENG_R_PW_LVR_A",
+                                                                                           "address_mask_shift_identifier": "AH_64D_CPG_ENG_R_PW_LVR",
+                                                                                                             "description": "position of the potentiometer",
+                                                                                                                    "mask": 65535,
+                                                                                                               "max_value": 65535,
+                                                                                                                "shift_by": 0,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
                                                                                        } ]
@@ -8605,18 +8605,18 @@
                                                                },
                                                "CPG_EUFD_WCA": {
                                                                        "category": "CPG Up-Front Display",
-                                                                   "control_type": "3Pos_2Command_Switch_OpenClose",
+                                                                   "control_type": "selector",
                                                                     "description": "Gunner Up-Front Display WCA Rocker Switch",
                                                                      "identifier": "CPG_EUFD_WCA",
                                                                          "inputs": [ {
-                                                                                       "description": "set the switch position",
+                                                                                       "description": "set the switch position -- 0 = held left/down, 1 = centered, 2 = held right/up",
                                                                                          "interface": "set_state",
                                                                                          "max_value": 2
                                                                                    } ],
                                                                         "outputs": [ {
                                                                                                              "address": 32936,
                                                                                        "address_mask_shift_identifier": "AH_64D_CPG_EUFD_WCA",
-                                                                                                         "description": "switch position -- 0 = Down, 1 = Mid,  2 = Up",
+                                                                                                         "description": "selector position",
                                                                                                                 "mask": 24576,
                                                                                                            "max_value": 2,
                                                                                                             "shift_by": 13,
@@ -8808,6 +8808,78 @@
                                                                                                                       "type": "integer"
                                                                                          } ]
                                                                      },
+                                            "EXT_GUN_POS_BELT_FEED": {
+                                                                             "category": "External Aircraft Model",
+                                                                         "control_type": "metadata",
+                                                                          "description": "Gun Belt Feed",
+                                                                           "identifier": "EXT_GUN_POS_BELT_FEED",
+                                                                               "inputs": [  ],
+                                                                              "outputs": [ {
+                                                                                                                   "address": 34718,
+                                                                                                        "address_identifier": "AH_64D_EXT_GUN_POS_BELT_FEED_A",
+                                                                                             "address_mask_shift_identifier": "AH_64D_EXT_GUN_POS_BELT_FEED",
+                                                                                                               "description": "Gun Belt Feed",
+                                                                                                                      "mask": 65535,
+                                                                                                                 "max_value": 65535,
+                                                                                                                  "shift_by": 0,
+                                                                                                                    "suffix": "",
+                                                                                                                      "type": "integer"
+                                                                                         } ]
+                                                                     },
+                                                "EXT_GUN_POS_PITCH": {
+                                                                             "category": "External Aircraft Model",
+                                                                         "control_type": "metadata",
+                                                                          "description": "Gun Pitch",
+                                                                           "identifier": "EXT_GUN_POS_PITCH",
+                                                                               "inputs": [  ],
+                                                                              "outputs": [ {
+                                                                                                                   "address": 34716,
+                                                                                                        "address_identifier": "AH_64D_EXT_GUN_POS_PITCH_A",
+                                                                                             "address_mask_shift_identifier": "AH_64D_EXT_GUN_POS_PITCH",
+                                                                                                               "description": "Gun Pitch",
+                                                                                                                      "mask": 65535,
+                                                                                                                 "max_value": 65535,
+                                                                                                                  "shift_by": 0,
+                                                                                                                    "suffix": "",
+                                                                                                                      "type": "integer"
+                                                                                         } ]
+                                                                     },
+                                               "EXT_GUN_POS_RECOIL": {
+                                                                             "category": "External Aircraft Model",
+                                                                         "control_type": "metadata",
+                                                                          "description": "Gun Recoil",
+                                                                           "identifier": "EXT_GUN_POS_RECOIL",
+                                                                               "inputs": [  ],
+                                                                              "outputs": [ {
+                                                                                                                   "address": 34720,
+                                                                                                        "address_identifier": "AH_64D_EXT_GUN_POS_RECOIL_A",
+                                                                                             "address_mask_shift_identifier": "AH_64D_EXT_GUN_POS_RECOIL",
+                                                                                                               "description": "Gun Recoil",
+                                                                                                                      "mask": 65535,
+                                                                                                                 "max_value": 65535,
+                                                                                                                  "shift_by": 0,
+                                                                                                                    "suffix": "",
+                                                                                                                      "type": "integer"
+                                                                                         } ]
+                                                                     },
+                                                  "EXT_GUN_POS_YAW": {
+                                                                             "category": "External Aircraft Model",
+                                                                         "control_type": "metadata",
+                                                                          "description": "Gun Yaw",
+                                                                           "identifier": "EXT_GUN_POS_YAW",
+                                                                               "inputs": [  ],
+                                                                              "outputs": [ {
+                                                                                                                   "address": 34714,
+                                                                                                        "address_identifier": "AH_64D_EXT_GUN_POS_YAW_A",
+                                                                                             "address_mask_shift_identifier": "AH_64D_EXT_GUN_POS_YAW",
+                                                                                                               "description": "Gun Yaw",
+                                                                                                                      "mask": 65535,
+                                                                                                                 "max_value": 65535,
+                                                                                                                  "shift_by": 0,
+                                                                                                                    "suffix": "",
+                                                                                                                      "type": "integer"
+                                                                                         } ]
+                                                                     },
                                                    "EXT_LAND_LIGHT": {
                                                                              "category": "External Aircraft Model",
                                                                          "control_type": "metadata",
@@ -8876,6 +8948,24 @@
                                                                                                                       "mask": 8192,
                                                                                                                  "max_value": 1,
                                                                                                                   "shift_by": 13,
+                                                                                                                    "suffix": "",
+                                                                                                                      "type": "integer"
+                                                                                         } ]
+                                                                     },
+                                                 "EXT_PNVS_POS_YAW": {
+                                                                             "category": "External Aircraft Model",
+                                                                         "control_type": "metadata",
+                                                                          "description": "PNVS Yaw",
+                                                                           "identifier": "EXT_PNVS_POS_YAW",
+                                                                               "inputs": [  ],
+                                                                              "outputs": [ {
+                                                                                                                   "address": 34726,
+                                                                                                        "address_identifier": "AH_64D_EXT_PNVS_POS_YAW_A",
+                                                                                             "address_mask_shift_identifier": "AH_64D_EXT_PNVS_POS_YAW",
+                                                                                                               "description": "PNVS Yaw",
+                                                                                                                      "mask": 65535,
+                                                                                                                 "max_value": 65535,
+                                                                                                                  "shift_by": 0,
                                                                                                                     "suffix": "",
                                                                                                                       "type": "integer"
                                                                                          } ]
@@ -8966,6 +9056,42 @@
                                                                                                                       "mask": 32768,
                                                                                                                  "max_value": 1,
                                                                                                                   "shift_by": 15,
+                                                                                                                    "suffix": "",
+                                                                                                                      "type": "integer"
+                                                                                         } ]
+                                                                     },
+                                               "EXT_TADS_POS_PITCH": {
+                                                                             "category": "External Aircraft Model",
+                                                                         "control_type": "metadata",
+                                                                          "description": "TADS Pitch",
+                                                                           "identifier": "EXT_TADS_POS_PITCH",
+                                                                               "inputs": [  ],
+                                                                              "outputs": [ {
+                                                                                                                   "address": 34724,
+                                                                                                        "address_identifier": "AH_64D_EXT_TADS_POS_PITCH_A",
+                                                                                             "address_mask_shift_identifier": "AH_64D_EXT_TADS_POS_PITCH",
+                                                                                                               "description": "TADS Pitch",
+                                                                                                                      "mask": 65535,
+                                                                                                                 "max_value": 65535,
+                                                                                                                  "shift_by": 0,
+                                                                                                                    "suffix": "",
+                                                                                                                      "type": "integer"
+                                                                                         } ]
+                                                                     },
+                                                 "EXT_TADS_POS_YAW": {
+                                                                             "category": "External Aircraft Model",
+                                                                         "control_type": "metadata",
+                                                                          "description": "TADS Yaw",
+                                                                           "identifier": "EXT_TADS_POS_YAW",
+                                                                               "inputs": [  ],
+                                                                              "outputs": [ {
+                                                                                                                   "address": 34722,
+                                                                                                        "address_identifier": "AH_64D_EXT_TADS_POS_YAW_A",
+                                                                                             "address_mask_shift_identifier": "AH_64D_EXT_TADS_POS_YAW",
+                                                                                                               "description": "TADS Yaw",
+                                                                                                                      "mask": 65535,
+                                                                                                                 "max_value": 65535,
+                                                                                                                  "shift_by": 0,
                                                                                                                     "suffix": "",
                                                                                                                       "type": "integer"
                                                                                          } ]
@@ -9063,12 +9189,15 @@
                                      },
                     "PLT Altimeter": {
                                          "PLT_ALT_SET_KNB": {
-                                                                 "api_variant": "multiturn",
                                                                     "category": "PLT Altimeter",
-                                                                "control_type": "analog_dial",
+                                                                "control_type": "limited_dial",
                                                                  "description": "Pilot Altimeter Barometric Setting Knob",
                                                                   "identifier": "PLT_ALT_SET_KNB",
                                                                       "inputs": [ {
+                                                                                    "description": "set the position of the dial",
+                                                                                      "interface": "set_state",
+                                                                                      "max_value": 65535
+                                                                                }, {
                                                                                        "description": "turn the dial left or right",
                                                                                          "interface": "variable_step",
                                                                                          "max_value": 65535,
@@ -9078,11 +9207,11 @@
                                                                                                           "address": 32832,
                                                                                                "address_identifier": "AH_64D_PLT_ALT_SET_KNB_A",
                                                                                     "address_mask_shift_identifier": "AH_64D_PLT_ALT_SET_KNB",
-                                                                                                      "description": "the rotation of the knob in the cockpit (not the value that is controlled by this knob!)",
+                                                                                                      "description": "position of the potentiometer",
                                                                                                              "mask": 65535,
                                                                                                         "max_value": 65535,
                                                                                                          "shift_by": 0,
-                                                                                                           "suffix": "_KNOB_POS",
+                                                                                                           "suffix": "",
                                                                                                              "type": "integer"
                                                                                 } ]
                                                             }
@@ -10546,60 +10675,6 @@
                                                                                                                "mask": 16,
                                                                                                           "max_value": 1,
                                                                                                            "shift_by": 4,
-                                                                                                             "suffix": "",
-                                                                                                               "type": "integer"
-                                                                                  } ]
-                                                              },
-                                          "PLT_ENG_L_PW_LVR": {
-                                                                      "category": "PLT Cockpit",
-                                                                  "control_type": "limited_dial",
-                                                                   "description": "Pilot Power Lever Smoothly (Left)",
-                                                                    "identifier": "PLT_ENG_L_PW_LVR",
-                                                                        "inputs": [ {
-                                                                                      "description": "set the position of the dial",
-                                                                                        "interface": "set_state",
-                                                                                        "max_value": 65535
-                                                                                  }, {
-                                                                                         "description": "turn the dial left or right",
-                                                                                           "interface": "variable_step",
-                                                                                           "max_value": 65535,
-                                                                                      "suggested_step": 3200
-                                                                                  } ],
-                                                                       "outputs": [ {
-                                                                                                            "address": 34570,
-                                                                                                 "address_identifier": "AH_64D_PLT_ENG_L_PW_LVR_A",
-                                                                                      "address_mask_shift_identifier": "AH_64D_PLT_ENG_L_PW_LVR",
-                                                                                                        "description": "position of the potentiometer",
-                                                                                                               "mask": 65535,
-                                                                                                          "max_value": 65535,
-                                                                                                           "shift_by": 0,
-                                                                                                             "suffix": "",
-                                                                                                               "type": "integer"
-                                                                                  } ]
-                                                              },
-                                          "PLT_ENG_R_PW_LVR": {
-                                                                      "category": "PLT Cockpit",
-                                                                  "control_type": "limited_dial",
-                                                                   "description": "Pilot Power Lever Smoothly (Right)",
-                                                                    "identifier": "PLT_ENG_R_PW_LVR",
-                                                                        "inputs": [ {
-                                                                                      "description": "set the position of the dial",
-                                                                                        "interface": "set_state",
-                                                                                        "max_value": 65535
-                                                                                  }, {
-                                                                                         "description": "turn the dial left or right",
-                                                                                           "interface": "variable_step",
-                                                                                           "max_value": 65535,
-                                                                                      "suggested_step": 3200
-                                                                                  } ],
-                                                                       "outputs": [ {
-                                                                                                            "address": 34572,
-                                                                                                 "address_identifier": "AH_64D_PLT_ENG_R_PW_LVR_A",
-                                                                                      "address_mask_shift_identifier": "AH_64D_PLT_ENG_R_PW_LVR",
-                                                                                                        "description": "position of the potentiometer",
-                                                                                                               "mask": 65535,
-                                                                                                          "max_value": 65535,
-                                                                                                           "shift_by": 0,
                                                                                                              "suffix": "",
                                                                                                                "type": "integer"
                                                                                   } ]
@@ -14755,6 +14830,114 @@
                                                                                                                     "type": "integer"
                                                                                        } ]
                                                                    },
+                                               "PLT_ENG_L_PW_LVR": {
+                                                                           "category": "PLT Left Console",
+                                                                       "control_type": "limited_dial",
+                                                                        "description": "Pilot Power Lever Smoothly (Left)",
+                                                                         "identifier": "PLT_ENG_L_PW_LVR",
+                                                                             "inputs": [ {
+                                                                                           "description": "set the position of the dial",
+                                                                                             "interface": "set_state",
+                                                                                             "max_value": 65535
+                                                                                       }, {
+                                                                                              "description": "turn the dial left or right",
+                                                                                                "interface": "variable_step",
+                                                                                                "max_value": 65535,
+                                                                                           "suggested_step": 3200
+                                                                                       } ],
+                                                                            "outputs": [ {
+                                                                                                                 "address": 34570,
+                                                                                                      "address_identifier": "AH_64D_PLT_ENG_L_PW_LVR_A",
+                                                                                           "address_mask_shift_identifier": "AH_64D_PLT_ENG_L_PW_LVR",
+                                                                                                             "description": "position of the potentiometer",
+                                                                                                                    "mask": 65535,
+                                                                                                               "max_value": 65535,
+                                                                                                                "shift_by": 0,
+                                                                                                                  "suffix": "",
+                                                                                                                    "type": "integer"
+                                                                                       } ]
+                                                                   },
+                                          "PLT_ENG_L_PW_LVR_IDLE": {
+                                                                           "category": "PLT Left Console",
+                                                                       "control_type": "action",
+                                                                        "description": "Power Lever Idle/Off (Left)",
+                                                                         "identifier": "PLT_ENG_L_PW_LVR_IDLE",
+                                                                             "inputs": [ {
+                                                                                           "description": "switch to previous or next state",
+                                                                                             "interface": "fixed_step"
+                                                                                       }, {
+                                                                                           "description": "set the switch position -- 0 = off, 1 = on",
+                                                                                             "interface": "set_state",
+                                                                                             "max_value": 1
+                                                                                       } ],
+                                                                            "outputs": [  ]
+                                                                   },
+                                          "PLT_ENG_L_PW_LVR_LIFT": {
+                                                                           "category": "PLT Left Console",
+                                                                       "control_type": "action",
+                                                                        "description": "Power Lever Finger Lift (Left)",
+                                                                         "identifier": "PLT_ENG_L_PW_LVR_LIFT",
+                                                                             "inputs": [ {
+                                                                                           "description": "Sends the command",
+                                                                                             "interface": "set_state",
+                                                                                             "max_value": 1
+                                                                                       } ],
+                                                                            "outputs": [  ]
+                                                                   },
+                                               "PLT_ENG_R_PW_LVR": {
+                                                                           "category": "PLT Left Console",
+                                                                       "control_type": "limited_dial",
+                                                                        "description": "Pilot Power Lever Smoothly (Right)",
+                                                                         "identifier": "PLT_ENG_R_PW_LVR",
+                                                                             "inputs": [ {
+                                                                                           "description": "set the position of the dial",
+                                                                                             "interface": "set_state",
+                                                                                             "max_value": 65535
+                                                                                       }, {
+                                                                                              "description": "turn the dial left or right",
+                                                                                                "interface": "variable_step",
+                                                                                                "max_value": 65535,
+                                                                                           "suggested_step": 3200
+                                                                                       } ],
+                                                                            "outputs": [ {
+                                                                                                                 "address": 34572,
+                                                                                                      "address_identifier": "AH_64D_PLT_ENG_R_PW_LVR_A",
+                                                                                           "address_mask_shift_identifier": "AH_64D_PLT_ENG_R_PW_LVR",
+                                                                                                             "description": "position of the potentiometer",
+                                                                                                                    "mask": 65535,
+                                                                                                               "max_value": 65535,
+                                                                                                                "shift_by": 0,
+                                                                                                                  "suffix": "",
+                                                                                                                    "type": "integer"
+                                                                                       } ]
+                                                                   },
+                                          "PLT_ENG_R_PW_LVR_IDLE": {
+                                                                           "category": "PLT Left Console",
+                                                                       "control_type": "action",
+                                                                        "description": "Power Lever Idle/Off (Right)",
+                                                                         "identifier": "PLT_ENG_R_PW_LVR_IDLE",
+                                                                             "inputs": [ {
+                                                                                           "description": "switch to previous or next state",
+                                                                                             "interface": "fixed_step"
+                                                                                       }, {
+                                                                                           "description": "set the switch position -- 0 = off, 1 = on",
+                                                                                             "interface": "set_state",
+                                                                                             "max_value": 1
+                                                                                       } ],
+                                                                            "outputs": [  ]
+                                                                   },
+                                          "PLT_ENG_R_PW_LVR_LIFT": {
+                                                                           "category": "PLT Left Console",
+                                                                       "control_type": "action",
+                                                                        "description": "Power Lever Finger Lift (Right)",
+                                                                         "identifier": "PLT_ENG_R_PW_LVR_LIFT",
+                                                                             "inputs": [ {
+                                                                                           "description": "Sends the command",
+                                                                                             "interface": "set_state",
+                                                                                             "max_value": 1
+                                                                                       } ],
+                                                                            "outputs": [  ]
+                                                                   },
                                                    "PLT_JETT_BTN": {
                                                                         "api_variant": "momentary_last_position",
                                                                            "category": "PLT Left Console",
@@ -17259,6 +17442,62 @@
                                                                                 } ]
                                                             }
                                      },
+              "PLT Standby Compass": {
+                                          "PLT_STANDBY_COMPASS_BANK": {
+                                                                              "category": "PLT Standby Compass",
+                                                                          "control_type": "analog_gauge",
+                                                                           "description": "Standby Compass Bank",
+                                                                            "identifier": "PLT_STANDBY_COMPASS_BANK",
+                                                                                "inputs": [  ],
+                                                                               "outputs": [ {
+                                                                                                                    "address": 34712,
+                                                                                                         "address_identifier": "AH_64D_PLT_STANDBY_COMPASS_BANK_A",
+                                                                                              "address_mask_shift_identifier": "AH_64D_PLT_STANDBY_COMPASS_BANK",
+                                                                                                                "description": "gauge position",
+                                                                                                                       "mask": 65535,
+                                                                                                                  "max_value": 65535,
+                                                                                                                   "shift_by": 0,
+                                                                                                                     "suffix": "",
+                                                                                                                       "type": "integer"
+                                                                                          } ]
+                                                                      },
+                                           "PLT_STANDBY_COMPASS_HDG": {
+                                                                              "category": "PLT Standby Compass",
+                                                                          "control_type": "analog_gauge",
+                                                                           "description": "Standby Compass Heading",
+                                                                            "identifier": "PLT_STANDBY_COMPASS_HDG",
+                                                                                "inputs": [  ],
+                                                                               "outputs": [ {
+                                                                                                                    "address": 34708,
+                                                                                                         "address_identifier": "AH_64D_PLT_STANDBY_COMPASS_HDG_A",
+                                                                                              "address_mask_shift_identifier": "AH_64D_PLT_STANDBY_COMPASS_HDG",
+                                                                                                                "description": "gauge position",
+                                                                                                                       "mask": 65535,
+                                                                                                                  "max_value": 65535,
+                                                                                                                   "shift_by": 0,
+                                                                                                                     "suffix": "",
+                                                                                                                       "type": "integer"
+                                                                                          } ]
+                                                                      },
+                                         "PLT_STANDBY_COMPASS_PITCH": {
+                                                                              "category": "PLT Standby Compass",
+                                                                          "control_type": "analog_gauge",
+                                                                           "description": "Standby Compass Pitch",
+                                                                            "identifier": "PLT_STANDBY_COMPASS_PITCH",
+                                                                                "inputs": [  ],
+                                                                               "outputs": [ {
+                                                                                                                    "address": 34710,
+                                                                                                         "address_identifier": "AH_64D_PLT_STANDBY_COMPASS_PITCH_A",
+                                                                                              "address_mask_shift_identifier": "AH_64D_PLT_STANDBY_COMPASS_PITCH",
+                                                                                                                "description": "gauge position",
+                                                                                                                       "mask": 65535,
+                                                                                                                  "max_value": 65535,
+                                                                                                                   "shift_by": 0,
+                                                                                                                     "suffix": "",
+                                                                                                                       "type": "integer"
+                                                                                          } ]
+                                                                      }
+                                     },
              "PLT Up-Front Display": {
                                                "PLT_EUFD_BRT": {
                                                                        "category": "PLT Up-Front Display",
@@ -17661,18 +17900,18 @@
                                                                },
                                                "PLT_EUFD_WCA": {
                                                                        "category": "PLT Up-Front Display",
-                                                                   "control_type": "3Pos_2Command_Switch_OpenClose",
+                                                                   "control_type": "selector",
                                                                     "description": "Pilot Up-Front Display WCA Rocker Switch",
                                                                      "identifier": "PLT_EUFD_WCA",
                                                                          "inputs": [ {
-                                                                                       "description": "set the switch position",
+                                                                                       "description": "set the switch position -- 0 = held left/down, 1 = centered, 2 = held right/up",
                                                                                          "interface": "set_state",
                                                                                          "max_value": 2
                                                                                    } ],
                                                                         "outputs": [ {
                                                                                                              "address": 32936,
                                                                                        "address_mask_shift_identifier": "AH_64D_PLT_EUFD_WCA",
-                                                                                                         "description": "switch position -- 0 = Down, 1 = Mid,  2 = Up",
+                                                                                                         "description": "selector position",
                                                                                                                 "mask": 24,
                                                                                                            "max_value": 2,
                                                                                                             "shift_by": 3,
