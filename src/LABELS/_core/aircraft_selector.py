@@ -45,7 +45,10 @@ def _w(text):
 
 
 def select_aircraft(core_dir, current=None):
-    """Interactive arrow-key picker for aircraft JSONs.
+    """Interactive filterable picker for aircraft JSONs.
+
+    Type to filter the list, arrows to navigate, Enter to select, Esc to cancel.
+    Left arrow clears the filter, Backspace removes last character.
 
     Args:
         core_dir:  Path to _core/ directory (contains aircraft/ subdir).
@@ -60,79 +63,124 @@ def select_aircraft(core_dir, current=None):
         return None
 
     # Discover available aircraft JSONs
-    options = []
+    all_options = []
     for fname in sorted(os.listdir(aircraft_dir)):
         if fname.lower().endswith(".json"):
             name = os.path.splitext(fname)[0]
-            options.append(name)
+            all_options.append(name)
 
-    if not options:
+    if not all_options:
         print(f"ERROR: No aircraft JSON files found in {aircraft_dir}")
         return None
 
-    if len(options) == 1:
-        # Only one aircraft available — auto-select
-        print(f"\n  Only one aircraft available: {CYAN}{options[0]}{RESET}")
-        return options[0]
+    if len(all_options) == 1:
+        print(f"\n  Only one aircraft available: {CYAN}{all_options[0]}{RESET}")
+        return all_options[0]
 
-    # Find default index
+    # State
+    filter_text = ""
+    filtered = list(all_options)
     idx = 0
+    total_slots = min(len(all_options), 20)  # max visible rows
+
+    # Pre-highlight current aircraft
     if current:
-        for i, name in enumerate(options):
+        for i, name in enumerate(filtered):
             if name == current:
                 idx = i
                 break
 
-    total = len(options)
+    def _apply():
+        nonlocal filtered, idx
+        if filter_text:
+            ft = filter_text.lower()
+            filtered = [n for n in all_options if ft in n.lower()]
+        else:
+            filtered = list(all_options)
+        if idx >= len(filtered):
+            idx = max(0, len(filtered) - 1)
+
+    def _viewport():
+        if not filtered:
+            return 0
+        if idx < total_slots:
+            return 0
+        return idx - total_slots + 1
+
+    def _draw_full():
+        _w(HIDE_CUR)
+        fdisp = f"  filter: {filter_text}" if filter_text else ""
+        _w(f"{ERASE_LN}  {BOLD}Select the aircraft for this LABEL_SET:{RESET}{fdisp}\n")
+        filt_hint = f"  {DIM}\u2190=clear filter{RESET}" if filter_text else ""
+        _w(f"{ERASE_LN}  {DIM}(type to filter, arrows to move, Enter to select, Esc to cancel){RESET}{filt_hint}\n")
+        vp = _viewport()
+        for slot in range(total_slots):
+            _w(ERASE_LN)
+            ri = vp + slot
+            if ri < len(filtered):
+                name = filtered[ri]
+                if ri == idx:
+                    _w(f"  {REV} > {name} {RESET}\n")
+                else:
+                    _w(f"     {name}\n")
+            else:
+                _w("\n")
+        count_str = f"  {DIM}{len(filtered)}/{len(all_options)} matches{RESET}"
+        if len(filtered) > total_slots:
+            count_str += f"  {DIM}(scroll with arrows){RESET}"
+        _w(f"{ERASE_LN}{count_str}\n")
+
+    def _repaint():
+        # Move cursor back to top of block: 2 header + total_slots + 1 count
+        _w(f"\033[{total_slots + 3}A")
+        _draw_full()
 
     print()
-    _w(f"  {BOLD}Select the aircraft for this LABEL_SET:{RESET}\n")
-    _w(f"  {DIM}(arrows to move, Enter to select, Esc to cancel){RESET}\n")
-
-    # Draw all rows
-    _w(HIDE_CUR)
-    for i, name in enumerate(options):
-        if i == idx:
-            _w(f"  {REV} > {name} {RESET}\n")
-        else:
-            _w(f"     {name}\n")
+    _draw_full()
 
     try:
         while True:
             ch = msvcrt.getwch()
             if ch in ("\xe0", "\x00"):
                 ch2 = msvcrt.getwch()
+                if ch2 == "K":        # Left — clear filter
+                    if filter_text:
+                        filter_text = ""
+                        _apply()
+                        _repaint()
+                    continue
+                if not filtered:
+                    continue
                 old = idx
-                if ch2 == "H":        # Up
-                    idx = (idx - 1) % total
-                elif ch2 == "P":      # Down
-                    idx = (idx + 1) % total
+                if ch2 == "H":          # Up
+                    idx = (idx - 1) % len(filtered)
+                elif ch2 == "P":        # Down
+                    idx = (idx + 1) % len(filtered)
                 else:
                     continue
                 if old != idx:
-                    # Redraw old row
-                    _w(f"\033[{total - old}A")
-                    _w(f"\r{ERASE_LN}     {options[old]}")
-                    # Redraw new row
-                    if idx > old:
-                        _w(f"\033[{idx - old}B")
-                    else:
-                        _w(f"\033[{old - idx}A")
-                    _w(f"\r{ERASE_LN}  {REV} > {options[idx]} {RESET}")
-                    # Return cursor to bottom
-                    remaining = total - idx
-                    if remaining > 0:
-                        _w(f"\033[{remaining}B")
-                    _w("\r")
+                    _repaint()
 
-            elif ch == "\x1b":    # Esc
+            elif ch == "\r":        # Enter
+                _w(SHOW_CUR)
+                if filtered:
+                    print(f"\n  {GREEN}Selected: {filtered[idx]}{RESET}")
+                    return filtered[idx]
+
+            elif ch == "\x1b":      # Esc
                 _w(SHOW_CUR)
                 return None
 
-            elif ch == "\r":      # Enter
-                _w(SHOW_CUR)
-                print(f"\n  {GREEN}Selected: {options[idx]}{RESET}")
-                return options[idx]
+            elif ch == "\x08":      # Backspace
+                if filter_text:
+                    filter_text = filter_text[:-1]
+                    _apply()
+                    _repaint()
+
+            elif ch.isprintable() and ch != "\t":
+                filter_text += ch
+                _apply()
+                _repaint()
     except KeyboardInterrupt:
         _w(SHOW_CUR)
         raise

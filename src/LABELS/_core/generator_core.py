@@ -291,6 +291,13 @@ def run():
         if not PROCESS_ALL and panel not in target_objects:
             continue
         for key, item in controls.items():
+            # Custom copies share the same output address/mask as the original.
+            # Skip them here — their output is already covered by the original
+            # control; only the input/selector side needs a custom entry.
+            orig_ident = item.get('identifier', key)
+            if key != orig_ident:
+                continue
+
             ctype_raw = item.get('control_type','').lower().strip()
             if ctype_raw not in control_type_map:
                 continue
@@ -378,15 +385,15 @@ def run():
                 continue
 
             if 'button' in desc_lower:
-                selector_entries.append((ident, ident, 1, 'momentary', 0, "PRESS"))
+                selector_entries.append((ident, ident, 1, 'momentary', 0, "PRESS", ident))
                 continue
 
             if lid.endswith('_cover') or lid.startswith('cover_') or '_cover_' in lid:
-                selector_entries.append((ident, ident, 1, 'momentary', 0, "OPEN"))
+                selector_entries.append((ident, ident, 1, 'momentary', 0, "OPEN", ident))
                 continue
 
             if api_variant == 'momentary_last_position':
-                selector_entries.append((ident, ident, 1, 'momentary', 0, "PRESS"))
+                selector_entries.append((ident, ident, 1, 'momentary', 0, "PRESS", ident))
                 continue
 
             # 4) discrete selectors: split labels
@@ -425,10 +432,10 @@ def run():
 
             if ctype in ('limited_dial', 'analog_dial'):
                 # Potentiometer path
-                selector_entries.append((ident, orig_ident, max_val, 'analog', 0, "LEVEL"))
+                selector_entries.append((ident, orig_ident, max_val, 'analog', 0, "LEVEL", ident))
                 # Always expose encoder-friendly -3200 / + 3200 pair
-                selector_entries.append((f"{ident}_DEC", orig_ident, 0, 'variable_step', 0, "DEC"))
-                selector_entries.append((f"{ident}_INC", orig_ident, 1, 'variable_step', 0, "INC"))
+                selector_entries.append((f"{ident}_DEC", orig_ident, 0, 'variable_step', 0, "DEC", ident))
+                selector_entries.append((f"{ident}_INC", orig_ident, 1, 'variable_step', 0, "INC", ident))
 
             else:
                 # 5) append as discrete selector/momentary
@@ -436,24 +443,26 @@ def run():
                     clean = lab.upper().replace(' ','_')
                     if useSlash:
                         val = i  # ascending, same as POS0..POSN
-                        selector_entries.append((f"{ident}_{clean}", orig_ident, val, ctype, currentGroup, clean))
+                        selector_entries.append((f"{ident}_{clean}", orig_ident, val, ctype, currentGroup, clean, ident))
                     else:
-                        selector_entries.append((f"{ident}_{clean}", orig_ident, i, ctype, 0, clean))
+                        selector_entries.append((f"{ident}_{clean}", orig_ident, i, ctype, 0, clean, ident))
 
                 # --- Extra: add INC/DEC aliases for large selectors with fixed_step ---
                 if needs_fixed_step_incdec(item, FIXED_STEP_INCDEC_THRESHOLD):
-                    selector_entries.append((f"{ident}_DEC", orig_ident, 0, 'fixed_step', 0, "DEC"))
-                    selector_entries.append((f"{ident}_INC", orig_ident, 1,  'fixed_step', 0, "INC"))
+                    selector_entries.append((f"{ident}_DEC", orig_ident, 0, 'fixed_step', 0, "DEC", ident))
+                    selector_entries.append((f"{ident}_INC", orig_ident, 1,  'fixed_step', 0, "INC", ident))
 
     # -------- PATCH: Assign missing group IDs for exclusive selectors --------
+    # Group by json_key (ident, field [6]) so that Custom copies of a control
+    # get their own group instead of merging with the original.
     from collections import defaultdict
-    label_to_indices = defaultdict(list)
-    for idx, (full, cmd, val, ct, grp, lab) in enumerate(selector_entries):
+    ident_to_indices = defaultdict(list)
+    for idx, (full, cmd, val, ct, grp, lab, json_key) in enumerate(selector_entries):
         if ct == 'selector':
-            label_to_indices[cmd].append(idx)
+            ident_to_indices[json_key].append(idx)
 
     next_group_id = groupCounter + 1
-    for cmd, indices in label_to_indices.items():
+    for key, indices in ident_to_indices.items():
         # If more than one entry and all groups are 0, assign a new unique group
         if len(indices) > 1 and all(selector_entries[i][4] == 0 for i in indices):
             for i in indices:
@@ -573,7 +582,7 @@ def run():
         # Selectors: add group field
         f.write("struct SelectorEntry { const char* label; const char* dcsCommand; uint16_t value; const char* controlType; uint16_t group; const char* posLabel; };\n")
         f.write("static const SelectorEntry SelectorMap[] = {\n")
-        for full, cmd, val, ct, grp, lab in selector_entries:
+        for full, cmd, val, ct, grp, lab, _ in selector_entries:
             f.write(f'    {{ "{full}","{cmd}",{val},"{ct}",{grp},"{lab}" }},\n')
 
         f.write("};\nstatic const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);\n")
@@ -582,7 +591,7 @@ def run():
         # This replaces the O(n) linear scan in onSelectorChange() with O(1) lookup.
         # Composite key: labelHash(dcsCommand) ^ (value * 7919), same pattern as hidDcsHashTable.
         selector_hash_keys = []  # list of (dcsCommand, value, index_into_SelectorMap)
-        for idx, (full, cmd, val, ct, grp, lab) in enumerate(selector_entries):
+        for idx, (full, cmd, val, ct, grp, lab, _) in enumerate(selector_entries):
             selector_hash_keys.append((cmd, val, idx))
 
         desired_sel_hash = len(selector_hash_keys) * 2
@@ -633,7 +642,7 @@ def run():
             # if cmd not in command_tracking:
                 # command_tracking[cmd] = (grp > 0, grp)
 
-        for full, cmd, val, ct, grp, lab in selector_entries:
+        for full, cmd, val, ct, grp, lab, _ in selector_entries:
             if cmd in command_tracking:
                 is_sel, old_grp = command_tracking[cmd]
                 command_tracking[cmd] = ((is_sel or grp > 0), max(old_grp, grp))
@@ -1000,43 +1009,44 @@ def run():
                     "group":       int(d["group"])
                 }
 
-    # --- TEMP: Strip lab for InputMapping merge ---
+    # --- Strip lab + json_key for InputMapping merge, keep json_key for grouping ---
     selector_entries_inputmap = [
-        (full, cmd, val, ct, grp) for (full, cmd, val, ct, grp, lab) in selector_entries
+        (full, cmd, val, ct, grp, json_key) for (full, cmd, val, ct, grp, lab, json_key) in selector_entries
     ]
 
     # --- GROUP PRESERVATION/ALLOCATION (no collisions) ---
+    # Key on json_key (ident) so Custom copies get their own group
     existing_max_group = 0
-    existing_group_by_cmd = {}
+    existing_group_by_ident = {}
     for e in existing_map.values():
         g = int(e["group"])
         if g > 0:
             existing_max_group = max(existing_max_group, g)
-            # lock group id for this DCS command label
-            existing_group_by_cmd[e["oride_label"]] = g
+            # lock group id for this label (full label, preserves custom distinction)
+            existing_group_by_ident[e["label"]] = g
 
     next_group_box = [existing_max_group + 1]   # mutable counter
-    new_group_by_cmd = {}                       # for new commands this run
+    new_group_by_ident = {}                     # for new idents this run
 
-    def alloc_group(cmd: str, proposed_grp: int) -> int:
+    def alloc_group(json_key: str, proposed_grp: int, full_label: str) -> int:
         # keep analog / momentary ungrouped
         if proposed_grp <= 0:
             return 0
-        # if this command already has a group in the preserved file, reuse it
-        if cmd in existing_group_by_cmd:
-            return existing_group_by_cmd[cmd]
-        # if we already allocated a new id for this command in this run, reuse it
-        if cmd in new_group_by_cmd:
-            return new_group_by_cmd[cmd]
-        # brand‑new grouped command → allocate next unique id
+        # if this full label already has a group in the preserved file, reuse it
+        if full_label in existing_group_by_ident:
+            return existing_group_by_ident[full_label]
+        # if we already allocated a new id for this json_key in this run, reuse it
+        if json_key in new_group_by_ident:
+            return new_group_by_ident[json_key]
+        # brand‑new grouped ident → allocate next unique id
         g = next_group_box[0]
-        new_group_by_cmd[cmd] = g
+        new_group_by_ident[json_key] = g
         next_group_box[0] += 1
         return g
 
     # 2) merge into a new list, preserving any user edits by label
     merged = []
-    for full, cmd, val, ct, grp in selector_entries_inputmap:
+    for full, cmd, val, ct, grp, json_key in selector_entries_inputmap:
         if full in existing_map:
             e = existing_map[full]
             merged.append((
@@ -1045,7 +1055,7 @@ def run():
                 e["controlType"], e["group"]
             ))
         else:
-            final_grp = alloc_group(cmd, grp)  # <- ensure unique, stable group id
+            final_grp = alloc_group(json_key, grp, full)  # <- key on ident, not cmd
             merged.append((full, "NONE", 0, 0, -1, cmd, val, ct, final_grp))
 
     # 3) write out merged list

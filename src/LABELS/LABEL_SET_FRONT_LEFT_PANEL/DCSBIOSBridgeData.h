@@ -199,6 +199,121 @@ static const SelectorEntry SelectorMap[] = {
 };
 static const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);
 
+// O(1) hash lookup for SelectorMap[] by (dcsCommand, value)
+struct SelectorHashEntry { const char* dcsCommand; uint16_t value; const SelectorEntry* entry; };
+static const SelectorHashEntry selectorHashTable[97] = {
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"EXT_PWR_SW", 0, &SelectorMap[11]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"EXT_PWR_SW", 2, &SelectorMap[13]},
+  {"CHART_DIMMER", 1, &SelectorMap[28]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"STROBE_SW", 1, &SelectorMap[9]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"CONSOLES_DIMMER", 1, &SelectorMap[34]},
+  {nullptr, 0, nullptr},
+  {"GND_PWR_2_SW", 0, &SelectorMap[17]},
+  {"COCKKPIT_LIGHT_MODE_SW", 1, &SelectorMap[30]},
+  {"COCKKPIT_LIGHT_MODE_SW", 2, &SelectorMap[31]},
+  {"FLOOD_DIMMER", 65535, &SelectorMap[35]},
+  {"GND_PWR_1_SW", 0, &SelectorMap[14]},
+  {"GND_PWR_4_SW", 1, &SelectorMap[24]},
+  {"POSITION_DIMMER", 0, &SelectorMap[6]},
+  {nullptr, 0, nullptr},
+  {"LIGHTS_TEST_SW", 1, &SelectorMap[42]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"INST_PNL_DIMMER", 1, &SelectorMap[40]},
+  {nullptr, 0, nullptr},
+  {"POSITION_DIMMER", 1, &SelectorMap[7]},
+  {"INST_PNL_DIMMER", 0, &SelectorMap[39]},
+  {"GND_PWR_2_SW", 1, &SelectorMap[18]},
+  {"EXT_PWR_SW", 1, &SelectorMap[12]},
+  {"WARN_CAUTION_DIMMER", 1, &SelectorMap[45]},
+  {nullptr, 0, nullptr},
+  {"COCKKPIT_LIGHT_MODE_SW", 0, &SelectorMap[29]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"GND_PWR_2_SW", 2, &SelectorMap[19]},
+  {nullptr, 0, nullptr},
+  {"WARN_CAUTION_DIMMER", 0, &SelectorMap[44]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"GND_PWR_4_SW", 0, &SelectorMap[23]},
+  {nullptr, 0, nullptr},
+  {"FORMATION_DIMMER", 65535, &SelectorMap[0]},
+  {nullptr, 0, nullptr},
+  {"FORMATION_DIMMER", 1, &SelectorMap[2]},
+  {"GND_PWR_3_SW", 0, &SelectorMap[20]},
+  {"LIGHTS_TEST_SW", 0, &SelectorMap[41]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"CHART_DIMMER", 0, &SelectorMap[27]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"FLOOD_DIMMER", 0, &SelectorMap[36]},
+  {nullptr, 0, nullptr},
+  {"WARN_CAUTION_DIMMER", 65535, &SelectorMap[43]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"POSITION_DIMMER", 65535, &SelectorMap[5]},
+  {nullptr, 0, nullptr},
+  {"INST_PNL_DIMMER", 65535, &SelectorMap[38]},
+  {nullptr, 0, nullptr},
+  {"GND_PWR_1_SW", 2, &SelectorMap[16]},
+  {nullptr, 0, nullptr},
+  {"GND_PWR_3_SW", 1, &SelectorMap[21]},
+  {nullptr, 0, nullptr},
+  {"STROBE_SW", 2, &SelectorMap[10]},
+  {"FLOOD_DIMMER", 1, &SelectorMap[37]},
+  {nullptr, 0, nullptr},
+  {"INT_WNG_TANK_SW", 1, &SelectorMap[4]},
+  {nullptr, 0, nullptr},
+  {"CONSOLES_DIMMER", 65535, &SelectorMap[32]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"FORMATION_DIMMER", 0, &SelectorMap[1]},
+  {"GND_PWR_4_SW", 2, &SelectorMap[25]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"INT_WNG_TANK_SW", 0, &SelectorMap[3]},
+  {"CHART_DIMMER", 65535, &SelectorMap[26]},
+  {"CONSOLES_DIMMER", 0, &SelectorMap[33]},
+  {nullptr, 0, nullptr},
+  {"GND_PWR_1_SW", 1, &SelectorMap[15]},
+  {nullptr, 0, nullptr},
+  {"STROBE_SW", 0, &SelectorMap[8]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"GND_PWR_3_SW", 2, &SelectorMap[22]},
+};
+
+// Composite hash: labelHash(dcsCommand) ^ (value * 7919)
+inline const SelectorEntry* findSelectorByDcsAndValue(const char* dcsCommand, uint16_t value) {
+  uint16_t startH = (labelHash(dcsCommand) ^ (value * 7919u)) % 97;
+  for (uint16_t i = 0; i < 97; ++i) {
+    uint16_t idx = (startH + i >= 97) ? (startH + i - 97) : (startH + i);
+    const auto& entry = selectorHashTable[idx];
+    if (!entry.dcsCommand) return nullptr;
+    if (entry.value == value && strcmp(entry.dcsCommand, dcsCommand) == 0) return entry.entry;
+  }
+  return nullptr;
+}
+
+
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
     { "CHART_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },

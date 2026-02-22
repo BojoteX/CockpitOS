@@ -9,6 +9,20 @@ import os, sys, json, re, hashlib
 import subprocess
 from collections import defaultdict
 
+# Ensure stdout/stderr can handle Unicode (✓, ✅, 🔢, etc.) even when
+# piped or redirected on Windows (where the default codec may be cp1252).
+if sys.stdout.encoding and sys.stdout.encoding.lower().replace("-", "") != "utf8":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+
+# When launched from the compiler tool, skip all interactive pauses.
+_BATCH = os.environ.get("COCKPITOS_BATCH") == "1"
+
+def _pause(msg="\nPress <ENTER> to exit..."):
+    if not _BATCH:
+        input(msg)
+
 def run():
 
     # Get our current working LABEL SET directory
@@ -26,7 +40,7 @@ def run():
     OUTPUT_HEADER   = "DCSBIOSBridgeData.h"
     INPUT_REFERENCE = "InputMapping.h"
     LED_REFERENCE   = "LEDMapping.h"
-    KNOWN_DEVICES   = {
+    KNOWN_DEVICES   = [
         "GPIO",
         "GAUGE",
         "PCA9555",
@@ -34,7 +48,7 @@ def run():
         "GN1640T",
         "WS2812",
         "NONE",
-    }
+    ]
 
     # Types that should behave like selectors in INPUTS
     NORMALIZE_TO_SELECTOR = {
@@ -131,33 +145,57 @@ def run():
                     panels.add(name)
         return panels
 
-    # --- Auto-detect valid panel JSON file ---
-    json_files = [f for f in os.listdir() if f.lower().endswith('.json')]
-    valid_jsons = []
-    for fname in json_files:
-        try:
-            with open(fname, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            if is_valid_panel_json(data):
-                valid_jsons.append((fname, data))
-        except Exception:
-            continue  # skip bad files
+    # --- Load aircraft JSON (centralized in _core/aircraft/) ---
+    # Import load_aircraft_json eagerly (pure I/O, cross-platform).
+    # Import select_aircraft lazily — it uses msvcrt (Windows-only TUI).
+    from aircraft_selector import load_aircraft_json
+    core_dir = os.path.dirname(os.path.abspath(__file__))
+    JSON_FILE = None
+    data = None
+    ACFT_NAME = None
 
-    if len(valid_jsons) == 0:
-        print("ERROR: No valid panel-style JSON file found in current directory.")
-        input("\nPress <ENTER> to exit...")
-        sys.exit(1)
-    if len(valid_jsons) > 1:
-        print(f"ERROR: Multiple valid panel-style JSON files found: {[f[0] for f in valid_jsons]}")
-        input("\nPress <ENTER> to exit...")
-        sys.exit(1)
+    # 1. Try aircraft.txt → load from _core/aircraft/
+    if os.path.isfile("aircraft.txt"):
+        acft_name = open("aircraft.txt", "r", encoding="utf-8").read().strip()
+        JSON_FILE, data = load_aircraft_json(core_dir, acft_name)
+        if data:
+            ACFT_NAME = acft_name
+        else:
+            print(f"WARNING: aircraft.txt references '{acft_name}' but JSON not found in _core/aircraft/")
 
-    JSON_FILE, data = valid_jsons[0]
+    # 2. Fallback: check for legacy local JSON (backward compat during migration)
+    if data is None:
+        json_files = [f for f in os.listdir() if f.lower().endswith('.json') and "METADATA" not in f]
+        for fname in json_files:
+            try:
+                with open(fname, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if is_valid_panel_json(data):
+                    JSON_FILE = fname
+                    ACFT_NAME = os.path.splitext(fname)[0]
+                    print(f"NOTE: Using legacy local JSON '{fname}'. Run reset_data.py to migrate to centralized aircraft selection.")
+                    break
+            except Exception:
+                continue
+
+    # 3. No aircraft.txt and no local JSON → interactive selector
+    if data is None:
+        print("No aircraft configured for this LABEL_SET.")
+        from aircraft_selector import select_aircraft
+        selected = select_aircraft(core_dir)
+        if selected:
+            JSON_FILE, data = load_aircraft_json(core_dir, selected)
+            if data:
+                ACFT_NAME = selected
+                with open("aircraft.txt", "w", encoding="utf-8") as f:
+                    f.write(selected + "\n")
+                print(f"aircraft.txt written: {selected}")
+        if data is None:
+            print("ERROR: No aircraft selected. Cannot proceed.")
+            _pause()
+            sys.exit(1)
+
     merge_metadata_jsons(data)
-
-    # At the top, after valid_jsons[0] is set
-    JSON_FILE, data = valid_jsons[0]
-    ACFT_NAME = os.path.splitext(os.path.basename(JSON_FILE))[0]
 
     # Always (re-)generate panels.txt from current data
     with open("panels.txt", "w", encoding="utf-8") as f:
@@ -185,7 +223,7 @@ def run():
                 for panel in data.keys():
                     sf.write(f"# {panel}\n")
             print(f"\nNow open '{PANELS_SELECTED_FILE}', uncomment the panels you want, and re-run this script.")
-            input("\nPress <ENTER> to exit...")
+            _pause()
             sys.exit(0)
 
         # Always reload the reference (panels.txt just regenerated)
@@ -193,14 +231,14 @@ def run():
         selected_panels = load_panel_list(PANELS_SELECTED_FILE)
         if not selected_panels:
             print("ERROR: No panels selected in selected_panels.txt.")
-            input("\nPress <ENTER> to exit...")
+            _pause()
             sys.exit(1)
         invalid_panels = selected_panels - all_panels
         if invalid_panels:
             print("\nERROR: The following panels in 'selected_panels.txt' are NOT present in 'panels.txt':")
             for panel in sorted(invalid_panels):
                 print(f"  - {panel}")
-            input("\nPress <ENTER> to exit...")
+            _pause()
             sys.exit(1)
         target_objects = selected_panels
 
@@ -213,7 +251,7 @@ def run():
         for panel in sorted(target_objects):
             print(f"  - {panel}")
         print("")
-    input("\nPress <ENTER> to continue and generate the files...")
+    _pause("\nPress <ENTER> to continue and generate the files...")
 
     # ——— HELPERS ———
     def is_prime(n):
@@ -232,6 +270,14 @@ def run():
         h = 5381
         for c in s:
             h = ((h << 5) + h) + ord(c)
+        return h % mod
+
+    # Python equivalent of the C++ constexpr labelHash() in CUtils.h
+    # Must produce identical values for hash table placement to match runtime probing
+    def label_hash(s, mod):
+        h = 0
+        for c in reversed(s):
+            h = (ord(c) + 31 * h) & 0xFFFF  # uint16_t truncation at each step
         return h % mod
 
     # -------- LOAD JSON -------- You need to load the Hornet Json file in order to generate the file.
@@ -532,6 +578,54 @@ def run():
 
         f.write("};\nstatic const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);\n")
 
+        # --- Generate hash table for SelectorMap[] keyed by (dcsCommand, value) ---
+        # This replaces the O(n) linear scan in onSelectorChange() with O(1) lookup.
+        # Composite key: labelHash(dcsCommand) ^ (value * 7919), same pattern as hidDcsHashTable.
+        selector_hash_keys = []  # list of (dcsCommand, value, index_into_SelectorMap)
+        for idx, (full, cmd, val, ct, grp, lab) in enumerate(selector_entries):
+            selector_hash_keys.append((cmd, val, idx))
+
+        desired_sel_hash = len(selector_hash_keys) * 2
+        SEL_HASH_SIZE = next_prime(max(desired_sel_hash, 53))
+
+        def label_hash_raw(s):
+            """Raw labelHash matching C++ uint16_t — no modulo applied."""
+            h = 0
+            for c in reversed(s):
+                h = (ord(c) + 31 * h) & 0xFFFF
+            return h
+
+        sel_hash_table = ["{nullptr, 0, nullptr}"] * SEL_HASH_SIZE
+        for cmd, val, idx in selector_hash_keys:
+            h = (label_hash_raw(cmd) ^ (val * 7919)) % SEL_HASH_SIZE
+            for probe in range(SEL_HASH_SIZE):
+                if sel_hash_table[h] == "{nullptr, 0, nullptr}":
+                    sel_hash_table[h] = f'{{"{cmd}", {val}, &SelectorMap[{idx}]}}'
+                    break
+                h = (h + 1) % SEL_HASH_SIZE
+            else:
+                print(f"❌ Selector hash table full! SEL_HASH_SIZE={SEL_HASH_SIZE} too small", file=sys.stderr)
+                sys.exit(1)
+
+        f.write("\n// O(1) hash lookup for SelectorMap[] by (dcsCommand, value)\n")
+        f.write("struct SelectorHashEntry { const char* dcsCommand; uint16_t value; const SelectorEntry* entry; };\n")
+        f.write(f"static const SelectorHashEntry selectorHashTable[{SEL_HASH_SIZE}] = {{\n")
+        for entry in sel_hash_table:
+            f.write(f"  {entry},\n")
+        f.write("};\n\n")
+
+        f.write("// Composite hash: labelHash(dcsCommand) ^ (value * 7919)\n")
+        f.write("inline const SelectorEntry* findSelectorByDcsAndValue(const char* dcsCommand, uint16_t value) {\n")
+        f.write(f"  uint16_t startH = (labelHash(dcsCommand) ^ (value * 7919u)) % {SEL_HASH_SIZE};\n")
+        f.write(f"  for (uint16_t i = 0; i < {SEL_HASH_SIZE}; ++i) {{\n")
+        f.write(f"    uint16_t idx = (startH + i >= {SEL_HASH_SIZE}) ? (startH + i - {SEL_HASH_SIZE}) : (startH + i);\n")
+        f.write("    const auto& entry = selectorHashTable[idx];\n")
+        f.write("    if (!entry.dcsCommand) return nullptr;\n")
+        f.write("    if (entry.value == value && strcmp(entry.dcsCommand, dcsCommand) == 0) return entry.entry;\n")
+        f.write("  }\n")
+        f.write("  return nullptr;\n")
+        f.write("}\n\n")
+
         # Build a flat list of all unique oride_labels and mark selectors with group > 0
         command_tracking = {}
 
@@ -565,6 +659,10 @@ def run():
             )
         f.write("};\n")
         f.write("static const size_t commandHistorySize = sizeof(commandHistory)/sizeof(CommandHistoryEntry);\n")
+
+        # --- findCmdEntry() is built at runtime in DCSBIOSBridge.cpp (same TU as commandHistory[]) ---
+        # We only emit commandHistorySize above; the hash table lives in DCSBIOSBridge.cpp to avoid
+        # static-in-header split-brain across translation units.
 
         # --- START PATCH for displayFields[] ---
 
@@ -612,7 +710,7 @@ def run():
         label_hash_table = ["{nullptr, nullptr}"] * desired_size
 
         for idx, label in enumerate(labels):
-            h = djb2_hash(label, desired_size)
+            h = label_hash(label, desired_size)
             for probe in range(desired_size):
                 if label_hash_table[h] == "{nullptr, nullptr}":
                     label_hash_table[h] = f'{{"{label}", &displayFields[{idx}]}}'
@@ -636,7 +734,7 @@ def run():
         f.write(f"  for (uint16_t i = 0; i < {desired_size}; ++i) {{\n")
         f.write(f"    uint16_t idx = (startH + i >= {desired_size}) ? (startH + i - {desired_size}) : (startH + i);\n")
         f.write("    const auto& entry = displayFieldsByLabel[idx];\n")
-        f.write("    if (!entry.label) continue;\n")
+        f.write("    if (!entry.label) return nullptr;\n")
         f.write("    if (strcmp(entry.label, label) == 0) return entry.def;\n")
         f.write("  }\n")
         f.write("  return nullptr;\n")
@@ -670,18 +768,12 @@ def run():
             f.write("static const size_t numMetadataStates = sizeof(metadataStates)/sizeof(metadataStates[0]);\n\n")
 
             # --- Hash table for instant lookup ---
-            def djb2_hash(s, mod):
-                h = 5381
-                for c in s:
-                    h = ((h << 5) + h) + ord(c)
-                return h % mod
-
             desired_size = next_prime(len(metadata_entries) * 2)
             hash_table = ["{nullptr, nullptr}"] * desired_size
 
             for idx, entry in enumerate(metadata_entries):
                 label = entry['label']
-                h = djb2_hash(label, desired_size)
+                h = label_hash(label, desired_size)
                 for probe in range(desired_size):
                     if hash_table[h] == "{nullptr, nullptr}":
                         hash_table[h] = f'{{"{label}", &metadataStates[{idx}]}}'
@@ -702,7 +794,7 @@ def run():
             f.write(f"    for (uint16_t i = 0; i < {desired_size}; ++i) {{\n")
             f.write(f"        uint16_t idx = (startH + i >= {desired_size}) ? (startH + i - {desired_size}) : (startH + i);\n")
             f.write( "        const auto& entry = metadataHashTable[idx];\n")
-            f.write( "        if (!entry.label) continue;\n")
+            f.write( "        if (!entry.label) return nullptr;\n")
             f.write( "        if (strcmp(entry.label, label) == 0) return entry.state;\n")
             f.write( "    }\n")
             f.write( "    return nullptr;\n")
@@ -710,8 +802,8 @@ def run():
         else:
             f.write("// No tracked metadata fields found\n")
             f.write("struct MetadataState { const char* label; uint16_t value; };\n")
-            f.write("static MetadataState metadataStates[] = {};\n")
-            f.write("static const size_t numMetadataStates = 0;\n")
+            f.write("static MetadataState metadataStates[] __attribute__((unused)) = {};\n")
+            f.write("static const size_t numMetadataStates __attribute__((unused)) = 0;\n")
             f.write("inline MetadataState* findMetadataState(const char*) { return nullptr; }\n")
 
     print(f"[✓] Generated {OUTPUT_HEADER} with "
@@ -822,7 +914,7 @@ def run():
         desired_size = next_prime(len(all_display_labels) * 2)
         hash_table = ["{nullptr, nullptr}"] * desired_size
         for idx, (label, _) in enumerate(all_display_labels):
-            h = djb2_hash(label, desired_size)
+            h = label_hash(label, desired_size)
             for probe in range(desired_size):
                 if hash_table[h] == "{nullptr, nullptr}":
                     hash_table[h] = f'{{"{label}", &CT_DisplayBuffers[{idx}]}}'
@@ -842,7 +934,7 @@ def run():
         fcpp.write(f"    for (uint16_t i = 0; i < {desired_size}; ++i) {{\n")
         fcpp.write(f"        uint16_t idx = (startH + i >= {desired_size}) ? (startH + i - {desired_size}) : (startH + i);\n")
         fcpp.write( "        const auto& entry = CT_DisplayBufferHash[idx];\n")
-        fcpp.write( "        if (!entry.label) continue;\n")
+        fcpp.write( "        if (!entry.label) return nullptr;\n")
         fcpp.write( "        if (strcmp(entry.label, label) == 0) return entry.entry;\n")
         fcpp.write( "    }\n")
         fcpp.write( "    return nullptr;\n")
@@ -1023,7 +1115,7 @@ def run():
         input_hash_table = ["{nullptr, nullptr}"] * INPUT_TABLE_SIZE
 
         for idx, label in enumerate(input_labels):
-            h = djb2_hash(label, INPUT_TABLE_SIZE)
+            h = label_hash(label, INPUT_TABLE_SIZE)
             for probe in range(INPUT_TABLE_SIZE):
                 if input_hash_table[h] == "{nullptr, nullptr}":
                     input_hash_table[h] = f'{{"{label}", &InputMappings[{idx}]}}'
@@ -1057,7 +1149,7 @@ def run():
         f2.write(f"  for (uint16_t i = 0; i < {INPUT_TABLE_SIZE}; ++i) {{\n")
         f2.write(f"    uint16_t idx = (startH + i >= {INPUT_TABLE_SIZE}) ? (startH + i - {INPUT_TABLE_SIZE}) : (startH + i);\n")
         f2.write("    const auto& entry = inputHashTable[idx];\n")
-        f2.write("    if (!entry.label) continue;\n")
+        f2.write("    if (!entry.label) return nullptr;\n")
         f2.write("    if (strcmp(entry.label, label) == 0) return entry.mapping;\n")
         f2.write("  }\n")
         f2.write("  return nullptr;\n")
@@ -1107,7 +1199,7 @@ def run():
             }
 
 
-    # ——— 2) PARSE DcsOutputTable for all labels (only CT_LED, CT_GAUGE) ———
+    # ——— 2) PARSE DcsOutputTable for all labels (CT_LED, CT_GAUGE, CT_ANALOG, CT_SELECTOR) ———
     if not os.path.exists(OUTPUT_HEADER):
         print(f"❌ Cannot find `{OUTPUT_HEADER}` – adjust OUTPUT_HEADER path.", file=sys.stderr)
         sys.exit(1)
@@ -1123,14 +1215,15 @@ def run():
     for m in dcs_re.finditer(dcs):
         label = m.group(1)
         control_type = m.group(2)
-        if control_type in ("CT_LED", "CT_GAUGE", "CT_ANALOG"):
+        # if control_type in ("CT_LED", "CT_GAUGE", "CT_ANALOG"):
+        if control_type in ("CT_LED", "CT_GAUGE", "CT_ANALOG", "CT_SELECTOR"):
             labels.append(label)
 
     # Duplicate label detection
     if len(labels) != len(set(labels)):
         print("⚠️ WARNING: Duplicate labels detected in DCS table!", file=sys.stderr)
 
-    print(f"✅ Found {len(labels)} LED/Analog labels in DcsOutputTable ({OUTPUT_HEADER})")
+    print(f"✅ Found {len(labels)} LED/Analog/Selector labels in DcsOutputTable ({OUTPUT_HEADER})")
 
     # ——— 3) Compute table size dynamically (load ≤ 50%) ———
     desired = len(labels) * 2
@@ -1164,7 +1257,7 @@ def run():
     # ——— 5) Build & probe the hash table ———
     hash_table = ["{nullptr, nullptr}"] * TABLE_SIZE
     for idx, label in enumerate(labels):
-        h = djb2_hash(label, TABLE_SIZE)
+        h = label_hash(label, TABLE_SIZE)
         for probe in range(TABLE_SIZE):
             if hash_table[h] == "{nullptr, nullptr}":
                 hash_table[h] = f'{{"{label}", &panelLEDs[{idx}]}}'
@@ -1189,7 +1282,7 @@ def run():
         out.write("  const char* label;\n")
         out.write("  LEDDeviceType deviceType;\n")
         out.write("  union {\n")
-        out.write("    struct { uint8_t gpio; } gpioInfo;\n")
+        out.write("    struct { int8_t gpio; } gpioInfo;\n")
         # out.write("    struct { uint8_t gauge; } gaugeInfo;\n")
         out.write("    struct { uint8_t gpio; uint16_t minPulse; uint16_t maxPulse; uint16_t period; } gaugeInfo;\n")
         out.write("    struct { uint8_t address; uint8_t port; uint8_t bit; } pcaInfo;\n")
@@ -1225,7 +1318,7 @@ def run():
         out.write(f"  for (uint16_t i = 0; i < {TABLE_SIZE}; ++i) {{\n")
         out.write(f"    uint16_t idx = (startH + i >= {TABLE_SIZE}) ? (startH + i - {TABLE_SIZE}) : (startH + i);\n")
         out.write("    const auto& entry = ledHashTable[idx];\n")
-        out.write("    if (!entry.label) continue;\n")
+        out.write("    if (!entry.label) return nullptr;\n")
         out.write("    if (strcmp(entry.label, label) == 0) return entry.led;\n")
         out.write("  }\n")
         out.write("  return nullptr;\n")
@@ -1255,7 +1348,7 @@ def run():
         # SAFETY CHECK: must be inside a LABELS directory
         if parent_dir_name != "LABELS":
             print("ERROR: This script must be run from a subdirectory of 'LABELS'!")
-            input("\nPress <ENTER> to exit...")
+            _pause()
             return
 
         for entry in os.listdir(parent_dir):
@@ -1290,7 +1383,7 @@ def run():
         subprocess.run([sys.executable, display_gen_path], cwd=script_dir, check=True)
     except Exception as e:
         print(f"❌ Error running display_gen.py: {e}")
-        input("\nPress <ENTER> to exit...")
+        _pause()
         sys.exit(1)
 
     print_and_disable_cpp_files()
@@ -1329,7 +1422,6 @@ def run():
 
     # Defaults
     _has_hid_mode_selector = 0
-    _mode_default_is_hid   = 0
 
     # Read existing file to preserve user edits
     existing_fullname = None
@@ -1338,7 +1430,6 @@ def run():
             _txt = _f.read()
         existing_fullname         = extract_define(_txt, "LABEL_SET_FULLNAME")
         _has_hid_mode_selector    = extract_define_int01(_txt, "HAS_HID_MODE_SELECTOR", _has_hid_mode_selector)
-        _mode_default_is_hid      = extract_define_int01(_txt, "MODE_DEFAULT_IS_HID",   _mode_default_is_hid)
 
     # Name used to derive PID
     name_for_pid = existing_fullname if existing_fullname else f"CockpitOS Panel {_ls_name}"
@@ -1354,7 +1445,6 @@ def run():
         '',
         f'#define LABEL_SET_NAME        "{_ls_name}"',
         f'#define HAS_HID_MODE_SELECTOR {_has_hid_mode_selector}',
-        f'#define MODE_DEFAULT_IS_HID   {_mode_default_is_hid}',
         f'#define LABEL_SET_FULLNAME    "{_label_set_fullname}" // You can safely change this',
         f'#define HAS_{_ls_name}',
         f'#define AUTOGEN_USB_PID       0x{_pid:04X} // DO NOT EDIT THIS',
@@ -1366,6 +1456,36 @@ def run():
 
     print(f"[✓] Created {labelsetconfig_filename} with AUTOGEN_USB_PID=0x{_pid:04X} (from '{name_for_pid}')")
     # --- End of LabelSetConfig.h generation ---
+
+    # --- LatchedButtons.h (create if missing, never overwrite) ---
+    if not os.path.exists("LatchedButtons.h"):
+        with open("LatchedButtons.h", "w", encoding="utf-8") as _f:
+            _f.write("// LatchedButtons.h -- Per-label-set latched button configuration\n")
+            _f.write("// Buttons listed here toggle ON/OFF instead of acting as momentary press/release.\n")
+            _f.write("// Edit via the Label Creator tool or manually.\n\n")
+            _f.write("#pragma once\n\n")
+            _f.write("static const char* kLatchedButtons[] = {\n")
+            _f.write("    // ...add labels of buttons that should latch\n")
+            _f.write("};\n")
+            _f.write("static const unsigned kLatchedButtonCount = sizeof(kLatchedButtons)/sizeof(kLatchedButtons[0]);\n")
+        print("[+] Created LatchedButtons.h (empty)")
+    else:
+        print("[=] LatchedButtons.h exists, preserving")
+
+    # --- CoverGates.h (create if missing, never overwrite) ---
+    if not os.path.exists("CoverGates.h"):
+        with open("CoverGates.h", "w", encoding="utf-8") as _f:
+            _f.write("// CoverGates.h -- Per-label-set cover gate configuration\n")
+            _f.write("// Defines selectors/buttons that are physically guarded by a cover.\n")
+            _f.write("// Edit via the Label Creator tool or manually.\n\n")
+            _f.write("#pragma once\n\n")
+            _f.write("static const CoverGateDef kCoverGates[] = {\n")
+            _f.write('    // { "ACTION", "RELEASE_OR_nullptr", "COVER", CoverGateKind::Selector, delay_ms, close_delay_ms },\n')
+            _f.write("};\n")
+            _f.write("static const unsigned kCoverGateCount = sizeof(kCoverGates) / sizeof(kCoverGates[0]);\n")
+        print("[+] Created CoverGates.h (empty)")
+    else:
+        print("[=] CoverGates.h exists, preserving")
 
     # Set the active set
     # --- Emit active.set.h one directory up ---
@@ -1391,8 +1511,14 @@ def run():
         print(f"⚠️ Warning: Could not find {panelkind_script}")
     # --- End generate_panelkind.py call ---
 
-    # Press ENTER to exit
-    input("\nPress <ENTER> to exit...")
+    # Write a completion timestamp so the compiler tool can verify
+    # that generate_data.py ran to the end without errors.
+    with open(".last_run", "w", encoding="utf-8") as _ts:
+        from datetime import datetime
+        _ts.write(datetime.now().isoformat())
+
+    # Press ENTER to exit (skipped in batch mode)
+    _pause()
     sys.exit(1)
 
 if __name__ == "__main__":

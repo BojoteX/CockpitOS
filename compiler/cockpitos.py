@@ -580,9 +580,8 @@ def main():
             candidate = Path(raw) / boards._CLI_RELATIVE
             if candidate.exists():
                 boards.ARDUINO_CLI = candidate
-                prefs["arduino_cli_path"] = str(candidate)
                 save_prefs(prefs)
-                success(f"Arduino CLI found and saved.")
+                success(f"Arduino CLI found.")
             else:
                 error(f"arduino-cli.exe not found at expected location.")
                 error("Make sure you entered the Arduino IDE root folder.")
