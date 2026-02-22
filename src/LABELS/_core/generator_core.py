@@ -519,7 +519,7 @@ def run():
         f.write("  uint16_t addr;\n")
 
         # dynamically determine max entry count per address
-        max_entries_per_addr = max(len(idxs) for idxs in addr_map.values())
+        max_entries_per_addr = max((len(idxs) for idxs in addr_map.values()), default=1)
         f.write(f"  const DcsOutputEntry* entries[{max_entries_per_addr}]; // max entries per address\n")
         f.write("  uint8_t count;\n")
         f.write("};\n\n")

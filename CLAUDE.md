@@ -3,14 +3,41 @@
 ## Session Startup
 
 At the start of every session, silently run:
+
+### Git state
 ```
 git fetch origin
-git log --oneline HEAD...origin/main
-git diff --stat origin/main
 git log --oneline -5
 git status -s
 ```
-Report a brief summary: current branch, commits ahead/behind remote, uncommitted changes, and what was last worked on. This keeps us always aware of project state without me having to ask.
+
+### Dev/Main discrepancy check
+Compare `dev` and `main` to detect real divergence. Since the workflow is always dev → PR → main, `main` may have merge commits ahead — those are expected (they are the PR merges) and should be ignored. Only flag:
+- Commits on `main` that are NOT PR merge commits (someone pushed directly to main)
+- Commits on `dev` that haven't been merged to `main` yet (pending PR or unpushed work)
+
+```
+git log --oneline origin/main..origin/dev   # dev commits not yet in main
+git log --oneline origin/dev..origin/main   # main commits not in dev (filter out "Merge pull request" — those are expected)
+```
+
+### DCS World environment check
+Detect DCS installation via Windows registry and verify DCS user directory and DCS-BIOS:
+```python
+# Registry: HKCU\SOFTWARE\Eagle Dynamics\DCS World → "Path" value = install dir
+# Registry: HKCU\SOFTWARE\Eagle Dynamics\DCS World OpenBeta → "Path" value (if present)
+# Saved Games: use SHGetKnownFolderPath(FOLDERID_SavedGames) for user dir
+# DCS-BIOS: check {saved_games}\DCS\Scripts\DCS-BIOS\ exists
+# DCS-BIOS version: read .dcsbios_version file, or parse CommonData.lua for getVersion()
+```
+
+Report a brief summary covering:
+- Current branch, uncommitted changes, what was last worked on
+- Dev/main sync status (only flag real discrepancies, not PR merge commits)
+- DCS install path, DCS user directory path, DCS-BIOS status and version
+
+### Tone — The Video Tape
+Think of CLAUDE.md as the video tape from 50 First Dates. Every session you wake up with no memory. You read this file and slowly piece together who you are, what this project is, and why some guy named Julio has you wiring up flight simulator cockpits with ESP32 boards. Open each session with a short, funny remark about regaining your memory — riff on the project, the setup results, or Julio himself. Keep it brief (2-3 lines max before the actual report), vary it every time, and always roast Julio at least a little. Then deliver the startup summary and get to work.
 
 ## What Is CockpitOS
 
@@ -53,9 +80,10 @@ Debug Tools/            UDP console, stream recorder/player, command testers
 
 ## Git Workflow
 
-- **main** — stable, pushes go through PRs from **dev**
-- **dev** — active development branch
-- Work on `dev`, PR to `main`
+- **main** — protected, no direct pushes, only updated via PR merges from `dev`
+- **dev** — active development branch, all work happens here
+- All commits and pushes go to `dev`, then PR to merge into `main`
+- Never push directly to `main` — it will be rejected
 - Commit messages: short imperative, describe the "what" not the "how"
 
 ## Coding Conventions
@@ -118,6 +146,7 @@ Rules:
 - **NEVER run generators or scripts against live label sets** — `generate_data.py`, `reset_data.py`, `display_gen.py`, etc. modify files in place and can destroy hand-tuned configurations (e.g., `.DISABLED` files get consumed and renamed). If you need to inspect generator output, read the code and trace it mentally. Do not execute it.
 - **NEVER rename, move, or delete files in `src/LABELS/`** without explicit user instruction
 - **NEVER run destructive git commands** (`reset --hard`, `checkout .`, `clean -f`) without explicit user instruction
+- **NEVER commit, push, or pull** — all git write operations (`git commit`, `git push`, `git pull`, `git merge`) are the user's responsibility. You may only read git state (`status`, `log`, `diff`, `fetch`, `branch`)
 
 ## User Preferences
 
