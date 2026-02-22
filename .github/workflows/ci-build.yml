@@ -9,7 +9,45 @@ on:
     - cron: '0 6 * * *'
 
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore Arduino cache
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.arduino15
+            ~/Arduino/libraries
+          key: arduino-esp32-3.3.6-lovyangfx-1.2.19
+
+      - name: Install arduino-cli
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Install ESP32 core & libraries
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          arduino-cli config init --overwrite
+          arduino-cli config add board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32@3.3.6
+          arduino-cli lib install LovyanGFX@1.2.19
+
+      - name: Save Arduino cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.arduino15
+            ~/Arduino/libraries
+          key: arduino-esp32-3.3.6-lovyangfx-1.2.19
+
   build:
+    needs: setup
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -39,16 +77,14 @@ jobs:
       - name: Install arduino-cli
         uses: arduino/setup-arduino-cli@v2
 
-      - name: Install ESP32 core
-        run: |
-          arduino-cli config init --overwrite
-          arduino-cli config add board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
-          arduino-cli core update-index
-          arduino-cli core install esp32:esp32@3.3.6
-
-      - name: Install libraries
-        run: |
-          arduino-cli lib install LovyanGFX@1.2.19
+      - name: Restore Arduino cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.arduino15
+            ~/Arduino/libraries
+          key: arduino-esp32-3.3.6-lovyangfx-1.2.19
+          fail-on-cache-miss: true
 
       - name: Setup Python
         uses: actions/setup-python@v5
