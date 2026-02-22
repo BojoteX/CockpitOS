@@ -9,6 +9,9 @@
 - Full walkthrough: zero to hero in 30 minutes
 - Complex panel build with custom front panel (long-form video)
 
+### Misc
+- Place holder, no idea whats NEXT
+
 ---
 
 ## DONE — CI/CD Automated Build Testing
