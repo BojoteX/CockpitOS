@@ -100,6 +100,19 @@ These are the remaining manual steps that should be automated:
 2. **HID Manager deps** — pip installs not automated
 3. **Compiler Misc Options** — some Config.h settings (polling rate, TEST_LEDS, IS_REPLAY, axis tuning) still require manual editing
 
+## Changelog
+
+Maintain `CHANGELOG.md` in the project root. This is a user-facing file — keep it brief, scannable, and only for significant changes. Do not log internal refactors, minor fixes, or CI tweaks.
+
+Rules:
+- Group entries under version headers (`## v1.1.5`, etc.) with a date
+- Use short bullet points — one line per item, plain language, no jargon
+- Categories: **Added**, **Improved**, **Fixed** (only include categories that have entries)
+- Only add an entry when a change is meaningful to end users: new features, new hardware support, notable UX improvements, or important bug fixes
+- Do not add entries for: code cleanup, doc edits, CI changes, internal restructuring
+- When committing a significant change, update the changelog in the same commit
+- Newest version goes at the top of the file
+
 ## Hard Rules — Do NOT
 
 - **NEVER run generators or scripts against live label sets** — `generate_data.py`, `reset_data.py`, `display_gen.py`, etc. modify files in place and can destroy hand-tuned configurations (e.g., `.DISABLED` files get consumed and renamed). If you need to inspect generator output, read the code and trace it mentally. Do not execute it.

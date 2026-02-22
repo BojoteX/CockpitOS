@@ -59,8 +59,8 @@ MANIFEST = {
         },
     },
     "dcsbios": {
-        # release: "latest"       — latest stable release (default)
-        #          "snapshot"     — most recent release (including pre-releases)
+        # release: "latest"       — latest official release (default)
+        #          "snapshot"     — development / test release (including pre-releases)
         #          "v0.8.4"      — exact version tag
         "release": "latest",
         # build_from_lua: when True, compiles JSONs from DCS-BIOS LUA modules
@@ -434,20 +434,49 @@ def _dcsbios_release_url():
     """Build the GitHub API URL based on the manifest release strategy.
 
     Returns (api_url, strategy_label):
-      "latest"    -> /releases/latest, "latest stable"
-      "snapshot"  -> /releases?per_page=1, "latest snapshot"
+      "latest"    -> /releases/latest, "latest official"
+      "snapshot"  -> /releases?per_page=1, "development / test"
       "v0.8.4"   -> /releases/tags/v0.8.4, "version v0.8.4"
     """
     strategy = MANIFEST["dcsbios"].get("release", "latest")
 
     if strategy == "latest":
-        return f"{DCSBIOS_API_BASE}/latest", "latest stable"
+        return f"{DCSBIOS_API_BASE}/latest", "latest official"
     elif strategy == "snapshot":
-        return f"{DCSBIOS_API_BASE}?per_page=1", "latest snapshot"
+        return f"{DCSBIOS_API_BASE}?per_page=1", "development / test"
     else:
         # Specific version tag
         tag = strategy if strategy.startswith("v") else f"v{strategy}"
         return f"{DCSBIOS_API_BASE}/tags/{tag}", f"version {tag}"
+
+
+def _get_saved_games_folder():
+    """Get the Windows Saved Games folder using the Shell API.
+
+    Uses SHGetKnownFolderPath with FOLDERID_SavedGames to handle cases
+    where the user has relocated their Saved Games folder to another drive.
+    Falls back to %USERPROFILE%\\Saved Games if the API call fails.
+    """
+    fallback = Path(os.environ.get("USERPROFILE", "")) / "Saved Games"
+    try:
+        import ctypes.wintypes
+        # FOLDERID_SavedGames = {4C5C32FF-BB9D-43B0-B5B4-2D72E54EAAA4}
+        guid_bytes = (ctypes.c_ubyte * 16)(
+            0xFF, 0x32, 0x5C, 0x4C, 0x9D, 0xBB, 0xB0, 0x43,
+            0xB5, 0xB4, 0x2D, 0x72, 0xE5, 0x4E, 0xAA, 0xA4,
+        )
+        buf = ctypes.c_wchar_p()
+        hr = ctypes.windll.shell32.SHGetKnownFolderPath(
+            ctypes.byref(guid_bytes), 0, None, ctypes.byref(buf)
+        )
+        if hr == 0 and buf.value:
+            result = Path(buf.value)
+            ctypes.windll.ole32.CoTaskMemFree(buf)
+            if result.is_dir():
+                return result
+    except Exception:
+        pass
+    return fallback
 
 
 def _find_dcs_from_registry():
@@ -457,6 +486,7 @@ def _find_dcs_from_registry():
     Returns list of (label, saved_games_path) tuples.
     """
     results = []
+    saved_games = _get_saved_games_folder()
     keys_to_check = [
         (r"SOFTWARE\Eagle Dynamics\DCS World", "DCS"),
         (r"SOFTWARE\Eagle Dynamics\DCS World OpenBeta", "DCS.openbeta"),
@@ -469,7 +499,7 @@ def _find_dcs_from_registry():
                 install_path, _ = winreg.QueryValueEx(key, "Path")
                 key.Close()
                 # Registry confirms DCS exists — check for Saved Games folder
-                saved = Path(os.environ.get("USERPROFILE", "")) / "Saved Games" / folder_name
+                saved = saved_games / folder_name
                 if saved.is_dir():
                     results.append((folder_name, saved))
             except OSError:
@@ -483,7 +513,7 @@ def _find_dcs_from_registry():
 def _find_dcs_from_saved_games():
     """Fallback: scan Saved Games for DCS directories."""
     results = []
-    saved_games = Path(os.environ.get("USERPROFILE", "")) / "Saved Games"
+    saved_games = _get_saved_games_folder()
     if not saved_games.is_dir():
         return results
 
@@ -1294,6 +1324,14 @@ def action_download_dcsbios():
             DCSBIOS_DEV_DIR.mkdir(parents=True, exist_ok=True)
 
         if dcsbios_dir.is_dir():
+            existing_ver = _read_dcsbios_version_from_dir(dcsbios_dir) or "unknown"
+            _w("\n")
+            warn(f"Existing DCS-BIOS {CYAN}{existing_ver}{RESET} found at {DIM}{dcsbios_dir}{RESET}")
+            if not confirm(f"Replace existing installation with {CYAN}{tag}{RESET}?"):
+                info("Cancelled — existing DCS-BIOS was not modified.")
+                _w(f"\n  {DIM}Press any key to return to menu...{RESET}")
+                msvcrt.getwch()
+                return
             info("Removing previous DCS-BIOS installation...")
             shutil.rmtree(dcsbios_dir)
 
@@ -1603,8 +1641,8 @@ def _edit_bios_release_strategy():
     _w(f"     Current: {BOLD}{cur}{RESET}\n")
 
     action = pick_action("Choose release strategy:", [
-        ("Latest stable release",          "latest"),
-        ("Latest snapshot (pre-releases)", "snapshot"),
+        ("Latest Official Release",          "latest"),
+        ("Development / Test Release", "snapshot"),
         ("Pin to a specific version",      "custom"),
     ])
 
@@ -1613,14 +1651,14 @@ def _edit_bios_release_strategy():
 
     if action == "latest":
         MANIFEST["dcsbios"]["release"] = "latest"
-        success(f"DCS-BIOS release set to {BOLD}latest stable{RESET}")
+        success(f"DCS-BIOS release set to {BOLD}Latest Official Release{RESET}")
         _w(f"\n  {DIM}Press any key...{RESET}")
         msvcrt.getwch()
         return
 
     if action == "snapshot":
         MANIFEST["dcsbios"]["release"] = "snapshot"
-        success(f"DCS-BIOS release set to {BOLD}latest snapshot{RESET}")
+        success(f"DCS-BIOS release set to {BOLD}Development / Test Release{RESET}")
         _w(f"\n  {DIM}Press any key...{RESET}")
         msvcrt.getwch()
         return
