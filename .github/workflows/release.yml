@@ -67,6 +67,9 @@ jobs:
             -x ".github/*" \
             -x ".claude/*" \
             -x ".vs/*" \
+            -x ".editorconfig" \
+            -x ".gitattributes" \
+            -x ".gitignore" \
             -x "__pycache__/*" \
             -x "build/*" \
             -x "Dev/*" \
