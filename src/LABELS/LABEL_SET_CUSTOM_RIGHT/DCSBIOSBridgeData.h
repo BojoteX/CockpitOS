@@ -23,6 +23,7 @@ struct CommandHistoryEntry {
     uint16_t        pendingValue;
     unsigned long   lastChangeTime;
     bool            hasPending;
+    uint16_t        maxPositions;
     uint8_t         lastReport[GAMEPAD_REPORT_SIZE];
     uint8_t         pendingReport[GAMEPAD_REPORT_SIZE];
     unsigned long   lastHidSendTime;
@@ -294,19 +295,19 @@ inline const SelectorEntry* findSelectorByDcsAndValue(const char* dcsCommand, ui
 
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
-    { "AV_COOL_SW", 0, 0, true, 1, 0,   0, false, {0}, {0}, 0 },
-    { "CHART_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "COCKKPIT_LIGHT_MODE_SW", 0, 0, true, 2, 0,   0, false, {0}, {0}, 0 },
-    { "CONSOLES_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "FLOOD_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "HOOK_LEVER", 0, 0, true, 5, 0,   0, false, {0}, {0}, 0 },
-    { "INST_PNL_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "LIGHTS_TEST_SW", 0, 0, true, 3, 0,   0, false, {0}, {0}, 0 },
-    { "RADALT_HEIGHT", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "RADALT_TEST_SW", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "WARN_CAUTION_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "WING_FOLD_PULL", 0, 0, true, 6, 0,   0, false, {0}, {0}, 0 },
-    { "WING_FOLD_ROTATE", 0, 0, true, 4, 0,   0, false, {0}, {0}, 0 },
+    { "AV_COOL_SW", 0, 0, true, 1, 0,   0, false, 0, {0}, {0}, 0 },
+    { "CHART_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "COCKKPIT_LIGHT_MODE_SW", 0, 0, true, 2, 0,   0, false, 0, {0}, {0}, 0 },
+    { "CONSOLES_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "FLOOD_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "HOOK_LEVER", 0, 0, true, 5, 0,   0, false, 0, {0}, {0}, 0 },
+    { "INST_PNL_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "LIGHTS_TEST_SW", 0, 0, true, 3, 0,   0, false, 0, {0}, {0}, 0 },
+    { "RADALT_HEIGHT", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "RADALT_TEST_SW", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "WARN_CAUTION_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "WING_FOLD_PULL", 0, 0, true, 6, 0,   0, false, 0, {0}, {0}, 0 },
+    { "WING_FOLD_ROTATE", 0, 0, true, 4, 0,   0, false, 0, {0}, {0}, 0 },
 };
 static const size_t commandHistorySize = sizeof(commandHistory)/sizeof(CommandHistoryEntry);
 

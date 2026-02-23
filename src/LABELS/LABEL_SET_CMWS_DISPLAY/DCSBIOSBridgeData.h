@@ -23,6 +23,7 @@ struct CommandHistoryEntry {
     uint16_t        pendingValue;
     unsigned long   lastChangeTime;
     bool            hasPending;
+    uint16_t        maxPositions;
     uint8_t         lastReport[GAMEPAD_REPORT_SIZE];
     uint8_t         pendingReport[GAMEPAD_REPORT_SIZE];
     unsigned long   lastHidSendTime;
@@ -279,14 +280,14 @@ inline const SelectorEntry* findSelectorByDcsAndValue(const char* dcsCommand, ui
 
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
-    { "PLT_CMWS_ARM", 0, 0, true, 1, 0,   0, false, {0}, {0}, 0 },
-    { "PLT_CMWS_BYPASS", 0, 0, true, 2, 0,   0, false, {0}, {0}, 0 },
-    { "PLT_CMWS_JETT", 0, 0, true, 6, 0,   0, false, {0}, {0}, 0 },
-    { "PLT_CMWS_JETT_CVR", 0, 0, true, 3, 0,   0, false, {0}, {0}, 0 },
-    { "PLT_CMWS_LAMP", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "PLT_CMWS_MODE", 0, 0, true, 4, 0,   0, false, {0}, {0}, 0 },
-    { "PLT_CMWS_PW", 0, 0, true, 5, 0,   0, false, {0}, {0}, 0 },
-    { "PLT_CMWS_VOL", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
+    { "PLT_CMWS_ARM", 0, 0, true, 1, 0,   0, false, 0, {0}, {0}, 0 },
+    { "PLT_CMWS_BYPASS", 0, 0, true, 2, 0,   0, false, 0, {0}, {0}, 0 },
+    { "PLT_CMWS_JETT", 0, 0, true, 6, 0,   0, false, 0, {0}, {0}, 0 },
+    { "PLT_CMWS_JETT_CVR", 0, 0, true, 3, 0,   0, false, 0, {0}, {0}, 0 },
+    { "PLT_CMWS_LAMP", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "PLT_CMWS_MODE", 0, 0, true, 4, 0,   0, false, 0, {0}, {0}, 0 },
+    { "PLT_CMWS_PW", 0, 0, true, 5, 0,   0, false, 0, {0}, {0}, 0 },
+    { "PLT_CMWS_VOL", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
 };
 static const size_t commandHistorySize = sizeof(commandHistory)/sizeof(CommandHistoryEntry);
 

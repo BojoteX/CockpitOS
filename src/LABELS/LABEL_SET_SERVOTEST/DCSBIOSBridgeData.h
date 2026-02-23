@@ -23,6 +23,7 @@ struct CommandHistoryEntry {
     uint16_t        pendingValue;
     unsigned long   lastChangeTime;
     bool            hasPending;
+    uint16_t        maxPositions;
     uint8_t         lastReport[GAMEPAD_REPORT_SIZE];
     uint8_t         pendingReport[GAMEPAD_REPORT_SIZE];
     unsigned long   lastHidSendTime;
@@ -339,22 +340,22 @@ inline const SelectorEntry* findSelectorByDcsAndValue(const char* dcsCommand, ui
 
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
-    { "APU_CONTROL_SW", 0, 0, true, 1, 0,   0, false, {0}, {0}, 0 },
-    { "ENGINE_CRANK_SW", 0, 0, true, 2, 0,   0, false, {0}, {0}, 0 },
-    { "FLIR_SW", 0, 0, true, 3, 0,   0, false, {0}, {0}, 0 },
-    { "INS_SW", 0, 0, true, 4, 0,   0, false, {0}, {0}, 0 },
-    { "LST_NFLR_SW", 0, 0, true, 5, 0,   0, false, {0}, {0}, 0 },
-    { "LTD_R_SW", 0, 0, true, 6, 0,   0, false, {0}, {0}, 0 },
-    { "RADAR_SW", 0, 0, true, 7, 0,   0, false, {0}, {0}, 0 },
-    { "RADAR_SW_PULL", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "THROTTLE_ATC_SW", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "THROTTLE_CAGE_BTN", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "THROTTLE_DISP_SW", 0, 0, true, 8, 0,   0, false, {0}, {0}, 0 },
-    { "THROTTLE_EXT_L_SW", 0, 0, true, 9, 0,   0, false, {0}, {0}, 0 },
-    { "THROTTLE_FOV_SEL_SW", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "THROTTLE_FRICTION", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "THROTTLE_RADAR_ELEV", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "THROTTLE_SPEED_BRK", 0, 0, true, 10, 0,   0, false, {0}, {0}, 0 },
+    { "APU_CONTROL_SW", 0, 0, true, 1, 0,   0, false, 0, {0}, {0}, 0 },
+    { "ENGINE_CRANK_SW", 0, 0, true, 2, 0,   0, false, 0, {0}, {0}, 0 },
+    { "FLIR_SW", 0, 0, true, 3, 0,   0, false, 0, {0}, {0}, 0 },
+    { "INS_SW", 0, 0, true, 4, 0,   0, false, 0, {0}, {0}, 0 },
+    { "LST_NFLR_SW", 0, 0, true, 5, 0,   0, false, 0, {0}, {0}, 0 },
+    { "LTD_R_SW", 0, 0, true, 6, 0,   0, false, 0, {0}, {0}, 0 },
+    { "RADAR_SW", 0, 0, true, 7, 0,   0, false, 0, {0}, {0}, 0 },
+    { "RADAR_SW_PULL", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "THROTTLE_ATC_SW", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "THROTTLE_CAGE_BTN", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "THROTTLE_DISP_SW", 0, 0, true, 8, 0,   0, false, 0, {0}, {0}, 0 },
+    { "THROTTLE_EXT_L_SW", 0, 0, true, 9, 0,   0, false, 0, {0}, {0}, 0 },
+    { "THROTTLE_FOV_SEL_SW", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "THROTTLE_FRICTION", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "THROTTLE_RADAR_ELEV", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "THROTTLE_SPEED_BRK", 0, 0, true, 10, 0,   0, false, 0, {0}, {0}, 0 },
 };
 static const size_t commandHistorySize = sizeof(commandHistory)/sizeof(CommandHistoryEntry);
 
