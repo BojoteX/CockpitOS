@@ -86,15 +86,13 @@ jobs:
             -x "TODO.md" \
             -x "TODO/*"
 
-      - name: Create tag and publish release
+      - name: Publish release
         run: |
           VERSION="${{ github.event.inputs.version }}"
           TAG="v${VERSION}"
 
-          git tag "$TAG"
-          git push origin "$TAG"
-
           gh release create "$TAG" \
+            --target main \
             --title "CockpitOS v${VERSION}" \
             --notes-file changelog.md \
             --latest \
