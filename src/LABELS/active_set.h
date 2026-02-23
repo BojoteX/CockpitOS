@@ -1,5 +1,5 @@
-// PID:0xA58B 
+// PID:0xEC87 
 
 #pragma once
 
-#define LABEL_SET F18_HUD_PANEL_LIGHT_CENCIO
+#define LABEL_SET TEST_ONLY

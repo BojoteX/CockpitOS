@@ -73,7 +73,9 @@ _LINE_RE = re.compile(
     r'"(?P<cmd>[^"]+)"\s*,\s*'
     r'(?P<value>-?\d+)\s*,\s*'
     r'"(?P<type>[^"]+)"\s*,\s*'
-    r'(?P<group>\d+)\s*\}\s*,'
+    r'(?P<group>\d+)\s*'
+    r'(?:,\s*(?P<releaseValue>\d+)\s*)?'
+    r'\}\s*,'
 )
 
 
@@ -82,7 +84,7 @@ def parse_input_mapping(filepath):
 
     Each record dict:
       label, source, port (str), bit (int), hidId (int),
-      cmd, value (int), controlType, group (int), line_index (int)
+      cmd, value (int), controlType, group (int), releaseValue (int), line_index (int)
     """
     with open(filepath, "r", encoding="utf-8") as f:
         raw_lines = f.readlines()
@@ -103,6 +105,7 @@ def parse_input_mapping(filepath):
             "value":       int(d["value"]),
             "controlType": d["type"],
             "group":       int(d["group"]),
+            "releaseValue": int(d["releaseValue"]) if d.get("releaseValue") else 0,
             "line_index":  i,
         })
     return records, raw_lines
@@ -150,7 +153,7 @@ def write_input_mapping(filepath, records, raw_lines):
         new_line = (
             f'    {{ {lblf}, "{r["source"]}" , {port_fmt} , '
             f'{r["bit"]:>2} , {r["hidId"]:>3} , '
-            f'{cmdf}, {val_str} , {ctf}, {r["group"]:>2} }},\n'
+            f'{cmdf}, {val_str} , {ctf}, {r["group"]:>2} , {r["releaseValue"]:>2} }},\n'
         )
         raw_lines[r["line_index"]] = new_line
 

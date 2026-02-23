@@ -124,7 +124,9 @@ _INPUT_FULL_RE = re.compile(
     r'"(?P<cmd>[^"]+)"\s*,\s*'
     r'(?P<value>-?\d+)\s*,\s*'
     r'"(?P<type>[^"]+)"\s*,\s*'
-    r'(?P<group>\d+)\s*\}\s*,'
+    r'(?P<group>\d+)\s*'
+    r'(?:,\s*(?P<releaseValue>\d+)\s*)?'
+    r'\}\s*,'
 )
 
 
