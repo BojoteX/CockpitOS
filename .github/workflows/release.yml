@@ -1,5 +1,5 @@
 # CockpitOS Release — Package and publish on version tag
-# Triggers when a tag like v1.2.3 is pushed (manually or via GitHub UI)
+# Trigger: push a tag like v1.2.3 (from terminal or GitHub UI)
 name: Release
 
 on:
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # full history needed for changelog generation
+          fetch-depth: 0
 
       - name: Get version from tag
         id: version
@@ -30,10 +30,7 @@ jobs:
         run: |
           CURRENT="${{ steps.version.outputs.tag }}"
           CURRENT_VER="${CURRENT#v}"
-          REPO_URL="https://github.com/${{ github.repository }}"
 
-          # Get ALL tags (with and without v prefix), normalize to version numbers,
-          # sort by version, find the one right before current
           PREV=$(git tag -l | while read t; do
             ver="${t#v}"
             echo "$ver $t"
@@ -52,20 +49,13 @@ jobs:
           CURRENT="${{ steps.version.outputs.tag }}"
           REPO_URL="https://github.com/${{ github.repository }}"
 
-          {
-            echo 'body<<CHANGELOG_EOF'
-            echo "## What's Changed"
-            echo ""
-            if [ -n "$PREV" ]; then
-              # List commits since previous tag, skip merge commits, include SHA links
-              git log "${PREV}..${CURRENT}" --no-merges --format="- %s ([%h](${REPO_URL}/commit/%H))" | head -100
-              echo ""
-              echo "**Full Changelog**: [${PREV}...${CURRENT}](${REPO_URL}/compare/${PREV}...${CURRENT})"
-            else
-              git log --no-merges --format="- %s ([%h](${REPO_URL}/commit/%H))" | head -50
-            fi
-            echo 'CHANGELOG_EOF'
-          } >> "$GITHUB_OUTPUT"
+          if [ -n "$PREV" ]; then
+            git log "${PREV}..${CURRENT}" --no-merges --format="- %s ([%h](${REPO_URL}/commit/%H))" | head -100 > changelog.md
+            echo "" >> changelog.md
+            echo "**Full Changelog**: [${PREV}...${CURRENT}](${REPO_URL}/compare/${PREV}...${CURRENT})" >> changelog.md
+          else
+            git log --no-merges --format="- %s ([%h](${REPO_URL}/commit/%H))" | head -50 > changelog.md
+          fi
 
       - name: Package CockpitOS.zip
         run: |
@@ -93,23 +83,19 @@ jobs:
             -x "TODO.md" \
             -x "TODO/*"
 
-      - name: Delete existing release if present
+      - name: Publish release
         run: |
           TAG="${{ steps.version.outputs.tag }}"
-          # Delete the release (but keep the tag) so we can recreate it with assets
-          if gh release view "$TAG" &>/dev/null; then
-            gh release delete "$TAG" --yes
-            echo "Deleted existing release, waiting for API to sync..."
-            sleep 5
-          fi
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Delete any existing release for this tag (e.g., created from GitHub UI)
+          gh release delete "$TAG" --yes 2>/dev/null || true
+          sleep 3
+
+          gh release create "$TAG" \
+            --title "CockpitOS v${VERSION}" \
+            --notes-file changelog.md \
+            --latest \
+            CockpitOS.zip
         env:
           GH_TOKEN: ${{ github.token }}
-
-      - name: Create release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: CockpitOS v${{ steps.version.outputs.version }}
-          body: ${{ steps.changelog.outputs.body }}
-          files: CockpitOS.zip
-          make_latest: true
