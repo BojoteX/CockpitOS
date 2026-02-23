@@ -1,4 +1,4 @@
-# Compile warnings — F18_HUD_PANEL_LIGHT_CENCIO_USB_VERBOSE_WIFI — 2026-02-22 17:42:12
+# Compile warnings — TEST_ONLY_USB_DEBUG_SERIAL — 2026-02-23 17:12:19
 # Code warnings: 0  |  Framework warnings: 4
 
 # ── Framework / SDK warnings (ESP-IDF, TinyUSB, etc.) ────────

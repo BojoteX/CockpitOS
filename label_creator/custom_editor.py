@@ -124,6 +124,8 @@ def _collect_all_controls(aircraft_data: dict,
     for panel, controls in sorted(aircraft_data.items()):
         if not isinstance(controls, dict):
             continue
+        if panel == "Custom":
+            continue
         if allowed and panel not in allowed:
             continue
         for ctrl_label, ctrl in sorted(controls.items()):
@@ -682,9 +684,75 @@ def _create_custom_entry(source: dict, aircraft_data: dict,
     if ctype is None:
         return None
 
-    # --- Inputs ---
-    _w(f"\n  {CYAN}{BOLD}--- Inputs ---{RESET}\n")
-    inputs = _edit_inputs(source.get("inputs", []))
+    # --- Type-aware inputs & override value ---
+    # Derive source max_value as default for types that need it
+    src_max = None
+    for inp in source.get("inputs", []):
+        if inp.get("interface") == "set_state" and "max_value" in inp:
+            src_max = inp["max_value"]
+            break
+
+    oride_value = None
+    oride_release = None
+    inputs = []
+
+    if ctype == "momentary":
+        # Momentary: ask press value and release value
+        print()
+        _w(f"  {DIM}Value sent when pressed (default: 1).{RESET}\n")
+        oride_val_str = ui.text_input("Press value", default="1")
+        if oride_val_str is None:
+            return None
+        try:
+            ov = int(oride_val_str.strip())
+            if ov != 1:
+                oride_value = ov
+        except ValueError:
+            pass
+        _w(f"  {DIM}Value sent when released (default: 0).{RESET}\n")
+        rel_str = ui.text_input("Release value", default="0")
+        if rel_str is None:
+            return None
+        try:
+            rv = int(rel_str.strip())
+            if rv != 0:
+                oride_release = rv
+        except ValueError:
+            pass
+        inputs = [{"interface": "fixed_step"}]
+
+    elif ctype == "fixed_step_dial":
+        # Fixed step: no user input needed, INC/DEC are structural
+        inputs = [{"interface": "fixed_step"}]
+
+    elif ctype in ("selector", "action", "toggle_switch"):
+        # Selector-like: ask max_value (number of positions - 1)
+        print()
+        default_max = str(src_max) if src_max is not None else "1"
+        _w(f"  {DIM}Number of positions = max_value + 1 (e.g. 1 = two positions).{RESET}\n")
+        mv_str = ui.text_input("max_value", default=default_max)
+        if mv_str is None:
+            return None
+        try:
+            mv = int(mv_str.strip())
+        except ValueError:
+            mv = int(default_max)
+        inputs = [
+            {"interface": "fixed_step"},
+            {"interface": "set_state", "max_value": mv},
+        ]
+
+    elif ctype in ("limited_dial", "analog_dial"):
+        # Analog: use source max or default, inputs are structural
+        mv = src_max if src_max is not None else 65535
+        inputs = [
+            {"interface": "variable_step", "max_value": mv, "suggested_step": 3200},
+            {"interface": "set_state", "max_value": mv},
+        ]
+
+    else:
+        # Fallback: copy source inputs
+        inputs = copy.deepcopy(source.get("inputs", []))
 
     # Outputs are copied as-is from the source control.
     # Custom controls only change input behaviour; the output
@@ -702,6 +770,10 @@ def _create_custom_entry(source: dict, aircraft_data: dict,
         "inputs": inputs,
         "outputs": outputs,
     }
+    if oride_value is not None:
+        entry["oride_value"] = oride_value
+    if oride_release is not None:
+        entry["oride_release"] = oride_release
 
     # --- Confirm ---
     print()
@@ -709,6 +781,10 @@ def _create_custom_entry(source: dict, aircraft_data: dict,
     _w(f"     Label:    {GREEN}{label}{RESET}\n")
     _w(f"     Type:     {ctype}\n")
     _w(f"     Source:   {source['identifier']} ({source['panel']})\n")
+    if oride_value is not None:
+        _w(f"     Press:    {oride_value}\n")
+    if oride_release is not None:
+        _w(f"     Release:  {oride_release}\n")
     for inp in inputs:
         iface = inp.get("interface", "?")
         mv = inp.get("max_value", "")
@@ -767,9 +843,76 @@ def _edit_custom_entry(entry: dict, aircraft_data: dict,
     if ctype is None:
         return None
 
-    # --- Inputs ---
-    _w(f"\n  {CYAN}{BOLD}--- Inputs ---{RESET}\n")
-    inputs = _edit_inputs(entry.get("inputs", []))
+    # --- Type-aware inputs & override value ---
+    # Derive existing max_value from current inputs as default
+    cur_max = None
+    for inp in entry.get("inputs", []):
+        if inp.get("interface") == "set_state" and "max_value" in inp:
+            cur_max = inp["max_value"]
+            break
+
+    cur_oride = entry.get("oride_value")
+    cur_release = entry.get("oride_release")
+    oride_value = None
+    oride_release = None
+    inputs = []
+
+    if ctype == "momentary":
+        print()
+        default_press = str(cur_oride) if cur_oride is not None else "1"
+        _w(f"  {DIM}Value sent when pressed (default: 1).{RESET}\n")
+        oride_val_str = ui.text_input("Press value", default=default_press)
+        if oride_val_str is None:
+            return None
+        try:
+            ov = int(oride_val_str.strip())
+            if ov != 1:
+                oride_value = ov
+        except ValueError:
+            if cur_oride is not None and cur_oride != 1:
+                oride_value = cur_oride
+        default_rel = str(cur_release) if cur_release is not None else "0"
+        _w(f"  {DIM}Value sent when released (default: 0).{RESET}\n")
+        rel_str = ui.text_input("Release value", default=default_rel)
+        if rel_str is None:
+            return None
+        try:
+            rv = int(rel_str.strip())
+            if rv != 0:
+                oride_release = rv
+        except ValueError:
+            if cur_release is not None and cur_release != 0:
+                oride_release = cur_release
+        inputs = [{"interface": "fixed_step"}]
+
+    elif ctype == "fixed_step_dial":
+        inputs = [{"interface": "fixed_step"}]
+
+    elif ctype in ("selector", "action", "toggle_switch"):
+        print()
+        default_max = str(cur_max) if cur_max is not None else "1"
+        _w(f"  {DIM}Number of positions = max_value + 1 (e.g. 1 = two positions).{RESET}\n")
+        mv_str = ui.text_input("max_value", default=default_max)
+        if mv_str is None:
+            return None
+        try:
+            mv = int(mv_str.strip())
+        except ValueError:
+            mv = int(default_max)
+        inputs = [
+            {"interface": "fixed_step"},
+            {"interface": "set_state", "max_value": mv},
+        ]
+
+    elif ctype in ("limited_dial", "analog_dial"):
+        mv = cur_max if cur_max is not None else 65535
+        inputs = [
+            {"interface": "variable_step", "max_value": mv, "suggested_step": 3200},
+            {"interface": "set_state", "max_value": mv},
+        ]
+
+    else:
+        inputs = copy.deepcopy(entry.get("inputs", []))
 
     # Outputs preserved as-is (custom controls only change inputs)
     # --- Build updated entry ---
@@ -777,6 +920,14 @@ def _edit_custom_entry(entry: dict, aircraft_data: dict,
     updated["_label"] = label
     updated["control_type"] = ctype
     updated["inputs"] = inputs
+    if oride_value is not None:
+        updated["oride_value"] = oride_value
+    elif "oride_value" in updated:
+        del updated["oride_value"]
+    if oride_release is not None:
+        updated["oride_release"] = oride_release
+    elif "oride_release" in updated:
+        del updated["oride_release"]
 
     # --- Confirm ---
     print()
@@ -784,6 +935,10 @@ def _edit_custom_entry(entry: dict, aircraft_data: dict,
     _w(f"     Label:    {GREEN}{label}{RESET}\n")
     _w(f"     Type:     {ctype}\n")
     _w(f"     Source:   {updated.get('identifier', '')} ({updated.get('category', '')})\n")
+    if oride_value is not None:
+        _w(f"     Press:    {oride_value}\n")
+    if oride_release is not None:
+        _w(f"     Release:  {oride_release}\n")
     for inp in inputs:
         iface = inp.get("interface", "?")
         mv = inp.get("max_value", "")

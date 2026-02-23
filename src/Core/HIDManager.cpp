@@ -335,6 +335,46 @@ size_t getMaxUsedGroup() {
 // MAX groups in bitmasks
 static uint32_t groupBitmask[MAX_GROUPS] = { 0 };
 
+// ── Deferred release for custom momentaries with releaseValue != 0 ──
+// Same pattern as CoverGate: queue the release, fire after CUSTOM_RESPONSE_THROTTLE_MS
+// so DCS-BIOS has time to register the press value before receiving the release.
+#define MAX_PENDING_RELEASES 4
+struct PendingRelease {
+    const char* label;      // oride_label to send
+    uint16_t    value;      // releaseValue
+    uint32_t    due_ms;     // millis() when we should fire
+    bool        active;
+};
+static PendingRelease s_pendingRelease[MAX_PENDING_RELEASES];
+
+static void queueDeferredRelease(const char* label, uint16_t value) {
+    const uint32_t due = millis() + CUSTOM_RESPONSE_THROTTLE_MS;
+    // Debug print removed — the "fired" message below is sufficient
+    // Overwrite any existing pending for the same label
+    for (uint8_t i = 0; i < MAX_PENDING_RELEASES; ++i) {
+        if (s_pendingRelease[i].active && s_pendingRelease[i].label == label) {
+            s_pendingRelease[i].value  = value;
+            s_pendingRelease[i].due_ms = due;
+            return;
+        }
+    }
+    // Find an empty slot
+    for (uint8_t i = 0; i < MAX_PENDING_RELEASES; ++i) {
+        if (!s_pendingRelease[i].active) {
+            s_pendingRelease[i].label  = label;
+            s_pendingRelease[i].value  = value;
+            s_pendingRelease[i].due_ms = due;
+            s_pendingRelease[i].active = true;
+            return;
+        }
+    }
+    // Buffer full — send directly as fallback (shouldn't happen with 4 slots)
+    debugPrintf("[DCS] ⚠️ Deferred release buffer full! Sending immediately: %s = %u\n", label, value);
+    static char fbuf[10];
+    snprintf(fbuf, sizeof(fbuf), "%u", value);
+    sendCommand(label, fbuf, false);
+}
+
 // Used for Axis stabilization and filtering (and reset for initialization)
 static int lastFiltered[40] = { 0 };
 static int lastOutput[40] = { -1 };
@@ -822,8 +862,31 @@ void HIDManager_setToggleNamedButton(const char* name, bool deferSend) {
     const bool hidAllowed = (!inDcs) || hybridEnabled;
 
     // DCS path
+    // Custom momentaries with releaseValue != 0 are fire-and-forget pulses:
+    //   On press: send oride_value directly (bypass dwell) + queue deferred release.
+    //   On release: do nothing (release was already scheduled at press time).
+    // Direct sendCommand is required because the CommandHistoryEntry for the DCS label
+    // (e.g. ENGINE_CRANK_SW) has group > 0 from the selector positions, and the dwell
+    // gate in sendDCSBIOSCommand would buffer the press indefinitely.
+    // Standard momentaries (releaseValue == 0): normal press/release behavior.
     if (dcsAllowed && m->oride_label) {
-        sendDCSBIOSCommand(m->oride_label, newOn ? m->oride_value : 0, forcePanelSyncThisMission);
+        if (newOn && m->releaseValue != 0) {
+            // Custom momentary press: bypass dwell, send directly
+            static char cbuf[10];
+            snprintf(cbuf, sizeof(cbuf), "%u", m->oride_value);
+            debugPrintf("[DCS] Custom momentary press: %s = %u\n", m->oride_label, m->oride_value);
+            sendCommand(m->oride_label, cbuf, false);
+            // Update command history for state tracking
+            CommandHistoryEntry* ce = findCmdEntry(m->oride_label);
+            if (ce) { ce->lastValue = m->oride_value; ce->lastSendTime = millis(); }
+            // Schedule deferred release
+            queueDeferredRelease(m->oride_label, m->releaseValue);
+        } else if (newOn) {
+            sendDCSBIOSCommand(m->oride_label, m->oride_value, forcePanelSyncThisMission);
+        } else if (m->releaseValue == 0) {
+            sendDCSBIOSCommand(m->oride_label, 0, forcePanelSyncThisMission);
+        }
+        // else: releaseValue != 0 and releasing — already handled by deferred queue at press time
     }
 
     // HID path
@@ -875,8 +938,21 @@ void HIDManager_setNamedButton(const char* name, bool deferSend, bool pressed) {
                 return;
             }
             else if (m->oride_label) {
-                const bool force = forcePanelSyncThisMission;
-                sendDCSBIOSCommand(m->oride_label, pressed ? m->oride_value : 0, force);
+                if (pressed && m->releaseValue != 0) {
+                    // Custom momentary press: bypass dwell, send directly
+                    static char cbuf[10];
+                    snprintf(cbuf, sizeof(cbuf), "%u", m->oride_value);
+                    debugPrintf("[DCS] Custom momentary press: %s = %u\n", m->oride_label, m->oride_value);
+                    sendCommand(m->oride_label, cbuf, false);
+                    CommandHistoryEntry* ce = findCmdEntry(m->oride_label);
+                    if (ce) { ce->lastValue = m->oride_value; ce->lastSendTime = millis(); }
+                    queueDeferredRelease(m->oride_label, m->releaseValue);
+                } else if (pressed) {
+                    sendDCSBIOSCommand(m->oride_label, m->oride_value, forcePanelSyncThisMission);
+                } else if (m->releaseValue == 0) {
+                    sendDCSBIOSCommand(m->oride_label, 0, forcePanelSyncThisMission);
+                }
+                // else: releaseValue != 0 and releasing — already handled by deferred queue at press time
             }
         }
         // else: cover handled DCS side; HID may still run below.
@@ -1043,6 +1119,40 @@ void HIDManager_setup() {
 #if defined(CLOSE_HWCDC_SERIAL)
     closeHWCDCserial = true;
 #endif
+}
+
+// ── Deferred release tick — called from panel loop (same cadence as CoverGate_loop) ──
+// Uses sendCommand() directly instead of sendDCSBIOSCommand() to bypass ALL gates:
+//   - Selector dwell gate (group > 0 with !force) would buffer indefinitely
+//   - Force+group logic would zero out real selector positions in the same group
+//   - applyThrottle is unnecessary — we already waited CUSTOM_RESPONSE_THROTTLE_MS
+//   - Redundancy suppression could block if lastValue matches
+// The deferred release has already been validated and delayed. Just send it.
+void HIDManager_releaseTick() {
+    const uint32_t now = millis();
+    for (uint8_t i = 0; i < MAX_PENDING_RELEASES; ++i) {
+        if (!s_pendingRelease[i].active) continue;
+        if ((int32_t)(now - s_pendingRelease[i].due_ms) < 0) continue;
+
+        const char* label = s_pendingRelease[i].label;
+        uint16_t    value = s_pendingRelease[i].value;
+
+        debugPrintf("[DCS] Custom momentary release: %s = %u (%ums after press)\n",
+                    label, value, (unsigned)CUSTOM_RESPONSE_THROTTLE_MS);
+
+        static char buf[10];
+        snprintf(buf, sizeof(buf), "%u", value);
+        sendCommand(label, buf, false);
+
+        // Update command history so throttle/state tracking stays consistent
+        CommandHistoryEntry* e = findCmdEntry(label);
+        if (e) {
+            e->lastValue    = value;
+            e->lastSendTime = now;
+        }
+
+        s_pendingRelease[i].active = false;
+    }
 }
 
 void HIDManager_loop() {

@@ -183,4 +183,7 @@ void Generic_loop() {
 
     // CoverGate Logic
     CoverGate_loop();
+
+    // Deferred release for custom momentaries with releaseValue != 0
+    HIDManager_releaseTick();
 }

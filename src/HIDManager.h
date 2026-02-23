@@ -8,6 +8,7 @@ void HIDManager_saveCalibration();
 void HIDManager_startUSB();
 void HIDManager_setup();
 void HIDManager_loop();
+void HIDManager_releaseTick();
 void HIDSenderTask(void* param);
 size_t getMaxUsedGroup();
 

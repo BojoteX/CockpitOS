@@ -3,9 +3,16 @@
 CockpitOS DCS Command Tester
 =============================
 
-Interactive arrow-key menu to send DCS-BIOS commands for testing.
-At startup, select a network interface, then navigate command categories
-and values with arrow keys.
+Interactive full-screen TUI to send ANY DCS-BIOS command for testing.
+Loads aircraft JSON data, presents a filterable control browser, and
+generates all valid commands from each control's inputs array.
+
+Flow:
+  1. Select network interface
+  2. Select aircraft (from _core/aircraft/*.json)
+  3. Browse/filter controls (full-screen, type-to-filter)
+  4. Pick a command action (all inputs from JSON)
+  5. Send via UDP, loop back to control browser
 
 Usage:
     python SEND_CommandTester.py                     # Interactive
@@ -14,13 +21,16 @@ Usage:
 Author: CockpitOS Project
 """
 
+import os
+import sys
+import json
 import time
 import socket
 import argparse
-import os
-import sys
 import msvcrt
 import ctypes
+import threading
+import re as _re
 
 # Change to script directory
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -66,6 +76,11 @@ except ImportError:
 
 DCS_PORT = 7778
 
+# Path to aircraft JSON directory (relative to script location)
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+SKETCH_DIR = os.path.dirname(SCRIPT_DIR)
+AIRCRAFT_DIR = os.path.join(SKETCH_DIR, "src", "LABELS", "_core", "aircraft")
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # ANSI CONSTANTS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -81,13 +96,29 @@ REV      = "\033[7m"
 HIDE_CUR = "\033[?25l"
 SHOW_CUR = "\033[?25h"
 ERASE_LN = "\033[2K"
+_SEL_BG  = "\033[48;5;236m"
+
+_SCROLL_BLOCK = "\u2588"
+_SCROLL_LIGHT = "\u2591"
+
+_ANSI_RE = _re.compile(r'\033\[[0-9;]*[A-Za-z]')
 
 def _w(s):
     sys.stdout.write(s)
     sys.stdout.flush()
 
-import re as _re
-_ANSI_RE = _re.compile(r'\033\[[0-9;]*[A-Za-z]')
+def _visible_len(text):
+    return len(_ANSI_RE.sub('', text))
+
+def _cls():
+    os.system("cls" if os.name == "nt" else "clear")
+
+def _get_terminal_size():
+    try:
+        size = os.get_terminal_size()
+        return size.columns, size.lines
+    except Exception:
+        return 120, 30
 
 def _box_line(text):
     """Print a box line with perfect right-side alignment. Inner width = 64 visible chars."""
@@ -136,7 +167,7 @@ def get_all_interface_ips():
     return interfaces
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ARROW-KEY PICKER
+# ARROW-KEY PICKER (simple, for interface/aircraft selection)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def arrow_pick(prompt, options):
@@ -207,31 +238,776 @@ def pick_interface(interfaces):
     return result if result else (interfaces[0][1] if interfaces else "127.0.0.1")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# COMMAND DEFINITIONS
+# AIRCRAFT DATA
 # ═══════════════════════════════════════════════════════════════════════════════
 
-COMMAND_GROUPS = [
-    ("BATTERY_SW", [
-        ("OFF",   "BATTERY_SW 1"),
-        ("ON",    "BATTERY_SW 2"),
-        ("ORIDE", "BATTERY_SW 0"),
-    ]),
-    ("LTD/R", [
-        ("SAFE",   "LTD_R_SW 0"),
-        ("ARM",    "LTD_R_SW 1"),
-        ("INC",    "LTD_R_SW INC"),
-        ("DEC",    "LTD_R_SW DEC"),
-        ("TOGGLE", "LTD_R_SW TOGGLE"),
-    ]),
-    ("GAIN_SWITCH", [
-        ("NORM",  "GAIN_NORM"),
-        ("ORIDE", "GAIN_ORIDE"),
-    ]),
-    ("HOOK_LEVER", [
-        ("DOWN", "HOOK_LEVER 0"),
-        ("UP",   "HOOK_LEVER 1"),
-    ]),
-]
+def list_aircraft():
+    """Return sorted list of (display_name, filepath) for all aircraft JSONs."""
+    results = []
+    if not os.path.isdir(AIRCRAFT_DIR):
+        return results
+    for fname in sorted(os.listdir(AIRCRAFT_DIR)):
+        if fname.endswith(".json"):
+            display = fname[:-5]  # strip .json
+            results.append((display, os.path.join(AIRCRAFT_DIR, fname)))
+    return results
+
+
+def load_aircraft_json(filepath):
+    """Load aircraft JSON, return the full dict."""
+    with open(filepath, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def collect_input_controls(aircraft_data):
+    """Flatten aircraft JSON into a list of controls that have inputs.
+
+    Each item: {panel, identifier, description, control_type, inputs}
+    Excludes controls with no inputs (LEDs, displays, gauges, metadata).
+    """
+    items = []
+    for panel, controls in sorted(aircraft_data.items()):
+        if not isinstance(controls, dict):
+            continue
+        for ctrl_label, ctrl in sorted(controls.items()):
+            if not isinstance(ctrl, dict):
+                continue
+            inputs = ctrl.get("inputs", [])
+            if not inputs:
+                continue
+            ct = ctrl.get("control_type", "")
+            if ct in ("metadata", "led", "display", "analog_gauge"):
+                continue
+            items.append({
+                "panel": panel,
+                "identifier": ctrl.get("identifier", ctrl_label),
+                "description": ctrl.get("description", ""),
+                "control_type": ct,
+                "inputs": inputs,
+            })
+    return items
+
+
+def pick_aircraft():
+    """Full-screen filterable picker for aircraft selection.
+
+    Shows: Aircraft Name | Panels | Input Controls
+    Type-to-filter, scrollbar, same quality as the control browser.
+    Returns filepath or None on Esc.
+    """
+    aircraft = list_aircraft()
+    if not aircraft:
+        _w(f"\n  {RED}No aircraft JSON files found in:{RESET}\n")
+        _w(f"  {DIM}{AIRCRAFT_DIR}{RESET}\n")
+        input(f"\n  Press Enter to exit...")
+        return None
+
+    # Pre-load summary stats for each aircraft
+    ac_stats = []
+    for display_name, filepath in aircraft:
+        try:
+            data = load_aircraft_json(filepath)
+            panels = sum(1 for v in data.values() if isinstance(v, dict))
+            inputs = 0
+            for panel_data in data.values():
+                if not isinstance(panel_data, dict):
+                    continue
+                for ctrl in panel_data.values():
+                    if not isinstance(ctrl, dict):
+                        continue
+                    if ctrl.get("inputs") and ctrl.get("control_type", "") not in ("metadata", "led", "display", "analog_gauge"):
+                        inputs += 1
+            ac_stats.append({"name": display_name, "path": filepath,
+                             "panels": panels, "inputs": inputs})
+        except Exception:
+            ac_stats.append({"name": display_name, "path": filepath,
+                             "panels": 0, "inputs": 0})
+
+    search_strs = [s["name"].lower() for s in ac_stats]
+
+    filter_text = ""
+    filtered_indices = list(range(len(ac_stats)))
+    idx = 0
+    scroll = 0
+
+    cols, rows = _get_terminal_size()
+    list_height = rows - 6
+    if list_height < 5:
+        list_height = 5
+
+    # Column widths — name gets all remaining space after fixed columns
+    stats_w = 28  # "  XX panels   XXXX controls"
+    prefix_len = 3  # " > " or "   "
+    suffix_len = 2  # scroll char + margin
+    name_w = max(cols - prefix_len - stats_w - suffix_len, 20)
+    _header_w = cols - 4
+
+    _flash_timer  = [None]
+    _flash_active = [False]
+
+    def _apply_filter():
+        nonlocal filtered_indices, idx
+        if filter_text:
+            ft = filter_text.lower()
+            filtered_indices = [i for i in range(len(ac_stats)) if ft in search_strs[i]]
+        else:
+            filtered_indices = list(range(len(ac_stats)))
+        if not filtered_indices:
+            idx = 0
+        elif idx >= len(filtered_indices):
+            idx = len(filtered_indices) - 1
+
+    def _needs_scroll():
+        return len(filtered_indices) > list_height
+
+    def _scroll_bar_positions():
+        ftotal = len(filtered_indices)
+        if ftotal <= list_height:
+            return (0, list_height)
+        thumb = max(1, round(list_height * list_height / ftotal))
+        max_scroll = ftotal - list_height
+        if max_scroll <= 0:
+            top = 0
+        else:
+            top = round(scroll * (list_height - thumb) / max_scroll)
+        return (top, top + thumb)
+
+    def _clamp_scroll():
+        nonlocal scroll
+        if not filtered_indices:
+            scroll = 0
+            return
+        if idx < scroll:
+            scroll = idx
+        if idx >= scroll + list_height:
+            scroll = idx - list_height + 1
+
+    def _flash_row():
+        if _flash_timer[0]:
+            _flash_timer[0].cancel()
+        _flash_active[0] = True
+        _draw()
+        def _restore():
+            _flash_active[0] = False
+            _draw()
+        _flash_timer[0] = threading.Timer(0.15, _restore)
+        _flash_timer[0].daemon = True
+        _flash_timer[0].start()
+
+    def _render_row(ri, is_highlighted, scroll_char):
+        item = ac_stats[filtered_indices[ri]]
+        name_t = item["name"][:name_w]
+        name_pad = name_w - len(name_t)
+        stats_t = f"{item['panels']:>3} panels   {item['inputs']:>4} controls"
+
+        if is_highlighted and _flash_active[0]:
+            return (f"{_SEL_BG}{YELLOW} > {name_t}"
+                    f"{' ' * name_pad}  {stats_t}"
+                    f" {scroll_char}{RESET}")
+        elif is_highlighted:
+            return (f"{_SEL_BG} {CYAN}>{RESET}{_SEL_BG} {GREEN}{name_t}{RESET}{_SEL_BG}"
+                    f"{' ' * name_pad}  {DIM}{stats_t}{RESET}{_SEL_BG}"
+                    f" {DIM}{scroll_char}{RESET}")
+
+        return (f"   {name_t}"
+                f"{' ' * name_pad}  {DIM}{stats_t}{RESET}"
+                f" {DIM}{scroll_char}{RESET}")
+
+    def _draw():
+        _cls()
+        _w(HIDE_CUR)
+
+        ftotal = len(filtered_indices)
+        total = len(ac_stats)
+
+        # Header
+        title = f"Select Aircraft"
+        if filter_text:
+            right_text = f"filter: {filter_text}"
+            right_ansi = f"{DIM}filter: {RESET}{YELLOW}{filter_text}"
+        else:
+            right_text = f"{ftotal} / {total} aircraft"
+            right_ansi = f"{GREEN}{ftotal} / {total} aircraft{RESET}"
+        spacing = _header_w - len(title) - len(right_text) - 4
+        if spacing < 1:
+            spacing = 1
+        _w(f"  {CYAN}{BOLD}{'=' * _header_w}{RESET}\n")
+        _w(f"  {CYAN}{BOLD}  {title}{RESET}{' ' * spacing}{right_ansi}{RESET}\n")
+        _w(f"  {CYAN}{BOLD}{'=' * _header_w}{RESET}\n")
+
+        thumb_start, thumb_end = _scroll_bar_positions()
+
+        if ftotal == 0:
+            _w(f"\n  {DIM}No matches.{RESET}\n")
+            for _ in range(list_height - 2):
+                _w("\n")
+        else:
+            for row in range(list_height):
+                ri = scroll + row
+                if _needs_scroll():
+                    scroll_char = _SCROLL_BLOCK if thumb_start <= row < thumb_end else _SCROLL_LIGHT
+                else:
+                    scroll_char = " "
+                if ri < ftotal:
+                    _w(_render_row(ri, ri == idx, scroll_char) + "\n")
+                else:
+                    _w(ERASE_LN + "\n")
+
+        # Footer
+        filter_hint = f"  {DIM}\u2190=clear filter{RESET}" if filter_text else ""
+        _w(f"\n  {DIM}type to filter  Enter=select  Esc=exit{RESET}{filter_hint}")
+
+    _clamp_scroll()
+    _draw()
+
+    try:
+        while True:
+            ch = msvcrt.getwch()
+
+            if ch in ("\xe0", "\x00"):
+                ch2 = msvcrt.getwch()
+                if ch2 == "K":        # Left -- clear filter
+                    if filter_text:
+                        filter_text = ""
+                        _apply_filter()
+                        _clamp_scroll()
+                        _draw()
+                    continue
+                if not filtered_indices:
+                    continue
+                old = idx
+                if ch2 == "H":          # Up
+                    if idx > 0:
+                        idx -= 1
+                    else:
+                        _flash_row()
+                        continue
+                elif ch2 == "P":        # Down
+                    if idx < len(filtered_indices) - 1:
+                        idx += 1
+                    else:
+                        _flash_row()
+                        continue
+                elif ch2 == "I":        # Page Up
+                    idx = max(0, idx - list_height)
+                elif ch2 == "Q":        # Page Down
+                    idx = min(max(0, len(filtered_indices) - 1), idx + list_height)
+                else:
+                    continue
+                if old != idx:
+                    _clamp_scroll()
+                    _draw()
+
+            elif ch == "\r":            # Enter -- select
+                if filtered_indices:
+                    if _flash_timer[0]:
+                        _flash_timer[0].cancel()
+                    _w(SHOW_CUR)
+                    return ac_stats[filtered_indices[idx]]["path"]
+                continue
+
+            elif ch == "\x1b":          # Esc -- exit
+                if _flash_timer[0]:
+                    _flash_timer[0].cancel()
+                _w(SHOW_CUR)
+                return None
+
+            elif ch == "\x08":          # Backspace
+                if filter_text:
+                    filter_text = filter_text[:-1]
+                    _apply_filter()
+                    _clamp_scroll()
+                    _draw()
+
+            elif ch.isprintable():
+                filter_text += ch
+                _apply_filter()
+                _clamp_scroll()
+                _draw()
+
+    except KeyboardInterrupt:
+        if _flash_timer[0]:
+            _flash_timer[0].cancel()
+        _w(SHOW_CUR)
+        raise
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FULL-SCREEN FILTERABLE CONTROL BROWSER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def pick_control(controls, aircraft_name):
+    """Full-screen filterable picker for controls with inputs.
+
+    Shows: Identifier | Panel | Type
+    Type-to-filter across identifier, panel, description, and type.
+    Returns the control dict or None on Esc.
+    """
+    if not controls:
+        _w(f"\n  {DIM}No controls with inputs found.{RESET}\n")
+        _w(f"\n  {DIM}Press any key...{RESET}")
+        msvcrt.getwch()
+        return None
+
+    # Pre-build lowercase search strings
+    search_strs = [
+        f"{c['identifier']} {c['panel']} {c['description']} {c['control_type']}".lower()
+        for c in controls
+    ]
+
+    filter_text = ""
+    filtered_indices = list(range(len(controls)))
+    idx = 0
+    scroll = 0
+
+    cols, rows = _get_terminal_size()
+    list_height = rows - 6
+    if list_height < 5:
+        list_height = 5
+
+    # Column widths
+    type_w = 14
+    prefix_len = 3
+    suffix_len = 3
+    available = cols - prefix_len - suffix_len - type_w - 4
+    ident_w = max(available * 3 // 5, 16)
+    panel_w = max(available - ident_w, 14)
+
+    _flash_timer  = [None]
+    _flash_active = [False]
+    _header_w = cols - 4
+
+    def _apply_filter():
+        nonlocal filtered_indices, idx
+        if filter_text:
+            ft = filter_text.lower()
+            filtered_indices = [i for i in range(len(controls)) if ft in search_strs[i]]
+        else:
+            filtered_indices = list(range(len(controls)))
+        if not filtered_indices:
+            idx = 0
+        elif idx >= len(filtered_indices):
+            idx = len(filtered_indices) - 1
+
+    def _needs_scroll():
+        return len(filtered_indices) > list_height
+
+    def _scroll_bar_positions():
+        ftotal = len(filtered_indices)
+        if ftotal <= list_height:
+            return (0, list_height)
+        thumb = max(1, round(list_height * list_height / ftotal))
+        max_scroll = ftotal - list_height
+        if max_scroll <= 0:
+            top = 0
+        else:
+            top = round(scroll * (list_height - thumb) / max_scroll)
+        return (top, top + thumb)
+
+    def _clamp_scroll():
+        nonlocal scroll
+        if not filtered_indices:
+            scroll = 0
+            return
+        if idx < scroll:
+            scroll = idx
+        if idx >= scroll + list_height:
+            scroll = idx - list_height + 1
+
+    def _flash_row():
+        if _flash_timer[0]:
+            _flash_timer[0].cancel()
+        _flash_active[0] = True
+        _draw()
+        def _restore():
+            _flash_active[0] = False
+            _draw()
+        _flash_timer[0] = threading.Timer(0.15, _restore)
+        _flash_timer[0].daemon = True
+        _flash_timer[0].start()
+
+    def _render_row(ri, is_highlighted, scroll_char):
+        item = controls[filtered_indices[ri]]
+        ident_t = item["identifier"][:ident_w]
+        panel_t = item["panel"][:panel_w]
+        type_t  = item["control_type"][:type_w]
+        ident_pad = ident_w - len(ident_t)
+
+        if is_highlighted and _flash_active[0]:
+            return (f"{_SEL_BG}{YELLOW} > {ident_t}"
+                    f"{' ' * ident_pad}  {panel_t:<{panel_w}}  {type_t:<{type_w}}"
+                    f" {scroll_char}{RESET}")
+        elif is_highlighted:
+            return (f"{_SEL_BG} {CYAN}>{RESET}{_SEL_BG} {GREEN}{ident_t}{RESET}{_SEL_BG}"
+                    f"{' ' * ident_pad}  {DIM}{panel_t:<{panel_w}}{RESET}{_SEL_BG}  "
+                    f"{DIM}{type_t:<{type_w}}{RESET}{_SEL_BG}"
+                    f" {DIM}{scroll_char}{RESET}")
+
+        return (f"   {ident_t}"
+                f"{' ' * ident_pad}  {DIM}{panel_t:<{panel_w}}{RESET}  "
+                f"{DIM}{type_t:<{type_w}}{RESET}"
+                f" {DIM}{scroll_char}{RESET}")
+
+    def _draw():
+        _cls()
+        _w(HIDE_CUR)
+
+        ftotal = len(filtered_indices)
+        total = len(controls)
+
+        # Header
+        title = f"DCS Command Tester  {DIM}({aircraft_name}){RESET}"
+        title_plain = f"DCS Command Tester  ({aircraft_name})"
+        if filter_text:
+            right_text = f"filter: {filter_text}"
+            right_ansi = f"{DIM}filter: {RESET}{YELLOW}{filter_text}"
+        else:
+            right_text = f"{ftotal} / {total} controls"
+            right_ansi = f"{GREEN}{ftotal} / {total} controls{RESET}"
+        spacing = _header_w - len(title_plain) - len(right_text) - 4
+        if spacing < 1:
+            spacing = 1
+        _w(f"  {CYAN}{BOLD}{'=' * _header_w}{RESET}\n")
+        _w(f"  {CYAN}{BOLD}  {title}{RESET}{' ' * spacing}{right_ansi}{RESET}\n")
+        _w(f"  {CYAN}{BOLD}{'=' * _header_w}{RESET}\n")
+
+        thumb_start, thumb_end = _scroll_bar_positions()
+
+        if ftotal == 0:
+            _w(f"\n  {DIM}No matches.{RESET}\n")
+            for _ in range(list_height - 2):
+                _w("\n")
+        else:
+            for row in range(list_height):
+                ri = scroll + row
+                if _needs_scroll():
+                    scroll_char = _SCROLL_BLOCK if thumb_start <= row < thumb_end else _SCROLL_LIGHT
+                else:
+                    scroll_char = " "
+                if ri < ftotal:
+                    _w(_render_row(ri, ri == idx, scroll_char) + "\n")
+                else:
+                    _w(ERASE_LN + "\n")
+
+        # Footer
+        filter_hint = f"  {DIM}\u2190=clear filter{RESET}" if filter_text else ""
+        _w(f"\n  {DIM}type to filter  Enter=select  Esc=back{RESET}{filter_hint}")
+
+    _clamp_scroll()
+    _draw()
+
+    try:
+        while True:
+            ch = msvcrt.getwch()
+
+            if ch in ("\xe0", "\x00"):
+                ch2 = msvcrt.getwch()
+                if ch2 == "K":        # Left -- clear filter
+                    if filter_text:
+                        filter_text = ""
+                        _apply_filter()
+                        _clamp_scroll()
+                        _draw()
+                    continue
+                if not filtered_indices:
+                    continue
+                old = idx
+                if ch2 == "H":          # Up
+                    if idx > 0:
+                        idx -= 1
+                    else:
+                        _flash_row()
+                        continue
+                elif ch2 == "P":        # Down
+                    if idx < len(filtered_indices) - 1:
+                        idx += 1
+                    else:
+                        _flash_row()
+                        continue
+                elif ch2 == "I":        # Page Up
+                    idx = max(0, idx - list_height)
+                elif ch2 == "Q":        # Page Down
+                    idx = min(max(0, len(filtered_indices) - 1), idx + list_height)
+                else:
+                    continue
+                if old != idx:
+                    _clamp_scroll()
+                    _draw()
+
+            elif ch == "\r":            # Enter -- select
+                if filtered_indices:
+                    if _flash_timer[0]:
+                        _flash_timer[0].cancel()
+                    _w(SHOW_CUR)
+                    return controls[filtered_indices[idx]]
+                continue
+
+            elif ch == "\x1b":          # Esc -- back
+                if _flash_timer[0]:
+                    _flash_timer[0].cancel()
+                _w(SHOW_CUR)
+                return None
+
+            elif ch == "\x08":          # Backspace
+                if filter_text:
+                    filter_text = filter_text[:-1]
+                    _apply_filter()
+                    _clamp_scroll()
+                    _draw()
+
+            elif ch.isprintable():
+                filter_text += ch
+                _apply_filter()
+                _clamp_scroll()
+                _draw()
+
+    except KeyboardInterrupt:
+        if _flash_timer[0]:
+            _flash_timer[0].cancel()
+        _w(SHOW_CUR)
+        raise
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMMAND ACTION BUILDER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Max positions to enumerate individually for set_state selectors.
+# Above this threshold we offer a text input instead.
+SET_STATE_ENUM_LIMIT = 20
+
+
+def build_actions(control):
+    """Build all sendable command actions from a control's inputs array.
+
+    Returns list of (label, command_string) tuples.
+    label: human-readable description shown in the picker
+    command_string: the exact "IDENTIFIER ARG" to send via UDP
+                    or None for actions that need a text prompt
+    """
+    identifier = control["identifier"]
+    inputs = control.get("inputs", [])
+    actions = []
+
+    for inp in inputs:
+        iface = inp.get("interface", "")
+
+        if iface == "action":
+            arg = inp.get("argument", "TOGGLE")
+            desc = inp.get("description", f"action: {arg}")
+            actions.append((
+                f"{YELLOW}{arg:<12}{RESET} {DIM}{desc}{RESET}",
+                f"{identifier} {arg}"
+            ))
+
+        elif iface == "fixed_step":
+            desc = inp.get("description", "switch to previous or next state")
+            actions.append((
+                f"{YELLOW}{'INC':<12}{RESET} {DIM}{desc} (increment){RESET}",
+                f"{identifier} INC"
+            ))
+            actions.append((
+                f"{YELLOW}{'DEC':<12}{RESET} {DIM}{desc} (decrement){RESET}",
+                f"{identifier} DEC"
+            ))
+
+        elif iface == "set_state":
+            max_val = inp.get("max_value", 1)
+            desc = inp.get("description", "set position")
+
+            if max_val <= SET_STATE_ENUM_LIMIT:
+                # Enumerate each position
+                for pos in range(max_val + 1):
+                    actions.append((
+                        f"{YELLOW}{str(pos):<12}{RESET} {DIM}{desc} ({pos}/{max_val}){RESET}",
+                        f"{identifier} {pos}"
+                    ))
+            else:
+                # Large range — offer key positions + custom input
+                actions.append((
+                    f"{YELLOW}{'0':<12}{RESET} {DIM}{desc} (MIN){RESET}",
+                    f"{identifier} 0"
+                ))
+                quarter = max_val // 4
+                half = max_val // 2
+                three_q = (max_val * 3) // 4
+                actions.append((
+                    f"{YELLOW}{str(quarter):<12}{RESET} {DIM}{desc} (25%){RESET}",
+                    f"{identifier} {quarter}"
+                ))
+                actions.append((
+                    f"{YELLOW}{str(half):<12}{RESET} {DIM}{desc} (50%){RESET}",
+                    f"{identifier} {half}"
+                ))
+                actions.append((
+                    f"{YELLOW}{str(three_q):<12}{RESET} {DIM}{desc} (75%){RESET}",
+                    f"{identifier} {three_q}"
+                ))
+                actions.append((
+                    f"{YELLOW}{str(max_val):<12}{RESET} {DIM}{desc} (MAX){RESET}",
+                    f"{identifier} {max_val}"
+                ))
+                # Custom value entry — sentinel None triggers text prompt
+                actions.append((
+                    f"{CYAN}{'custom...':<12}{RESET} {DIM}enter value 0-{max_val}{RESET}",
+                    None  # sentinel
+                ))
+
+        elif iface == "variable_step":
+            max_val = inp.get("max_value", 65535)
+            step = inp.get("suggested_step", 3200)
+            desc = inp.get("description", "turn the dial")
+            actions.append((
+                f"{YELLOW}{'+' + str(step):<12}{RESET} {DIM}{desc} (+step){RESET}",
+                f"{identifier} +{step}"
+            ))
+            actions.append((
+                f"{YELLOW}{'-' + str(step):<12}{RESET} {DIM}{desc} (-step){RESET}",
+                f"{identifier} -{step}"
+            ))
+            # Custom step entry
+            actions.append((
+                f"{CYAN}{'custom...':<12}{RESET} {DIM}enter +/- step value{RESET}",
+                None  # sentinel: variable_step custom
+            ))
+
+        elif iface == "set_string":
+            desc = inp.get("description", "set string value")
+            # Always custom input
+            actions.append((
+                f"{CYAN}{'string...':<12}{RESET} {DIM}{desc}{RESET}",
+                None  # sentinel: string input
+            ))
+
+    return actions
+
+
+def pick_action(control):
+    """Show all available commands for a control and let the user pick one.
+
+    Returns the command string to send, or None on Esc.
+    """
+    identifier = control["identifier"]
+    actions = build_actions(control)
+
+    if not actions:
+        _w(f"\n  {DIM}No sendable inputs for this control.{RESET}\n")
+        _w(f"\n  {DIM}Press any key...{RESET}")
+        msvcrt.getwch()
+        return None
+
+    # Header
+    _cls()
+    cols, _ = _get_terminal_size()
+    header_w = cols - 4
+    _w(f"  {CYAN}{BOLD}{'=' * header_w}{RESET}\n")
+    _w(f"  {CYAN}{BOLD}  {identifier}{RESET}\n")
+    _w(f"  {CYAN}{BOLD}{'=' * header_w}{RESET}\n")
+    _w(f"\n")
+    _w(f"     {DIM}Type:{RESET}         {control['control_type']}\n")
+    _w(f"     {DIM}Panel:{RESET}        {control['panel']}\n")
+    _w(f"     {DIM}Description:{RESET}  {control['description']}\n")
+
+    # Show input summary
+    ifaces = [inp.get("interface", "?") for inp in control.get("inputs", [])]
+    _w(f"     {DIM}Interfaces:{RESET}   {', '.join(ifaces)}\n")
+    _w(f"\n")
+
+    options = [(label, cmd) for label, cmd in actions]
+    options.append((f"{DIM}Back{RESET}", "__BACK__"))
+
+    result = arrow_pick("Select command to send:", options)
+
+    if result is None or result == "__BACK__":
+        return None
+
+    # Handle sentinel (custom input needed)
+    if result is None:
+        return _prompt_custom_value(identifier, control)
+
+    return result
+
+
+def _prompt_custom_value(identifier, control):
+    """Prompt for a custom value when action is None (custom input)."""
+    _w(SHOW_CUR)
+    _w(f"\n  {BOLD}Enter value for {GREEN}{identifier}{RESET}: ")
+    val = ""
+    while True:
+        ch = msvcrt.getwch()
+        if ch == "\r":      # Enter
+            break
+        elif ch == "\x1b":  # Esc
+            _w(f"\n  {DIM}Cancelled.{RESET}\n")
+            return None
+        elif ch == "\x08":  # Backspace
+            if val:
+                val = val[:-1]
+                _w("\b \b")
+        elif ch.isprintable():
+            val += ch
+            _w(ch)
+
+    val = val.strip()
+    if not val:
+        return None
+
+    _w("\n")
+    return f"{identifier} {val}"
+
+
+def pick_action_and_handle_custom(control):
+    """Pick action, handling the custom value sentinel properly.
+
+    The arrow_pick returns the value from options, but when that value
+    is None (custom input sentinel), we need to figure out WHICH custom
+    input it was and prompt appropriately. Since arrow_pick can't
+    distinguish None-from-Esc vs None-from-sentinel, we use a different
+    approach: build options with string sentinels instead.
+    """
+    identifier = control["identifier"]
+    actions = build_actions(control)
+
+    if not actions:
+        _w(f"\n  {DIM}No sendable inputs for this control.{RESET}\n")
+        _w(f"\n  {DIM}Press any key...{RESET}")
+        msvcrt.getwch()
+        return None
+
+    # Header
+    _cls()
+    cols, _ = _get_terminal_size()
+    header_w = cols - 4
+    _w(f"  {CYAN}{BOLD}{'=' * header_w}{RESET}\n")
+    _w(f"  {CYAN}{BOLD}  {identifier}{RESET}\n")
+    _w(f"  {CYAN}{BOLD}{'=' * header_w}{RESET}\n")
+    _w(f"\n")
+    _w(f"     {DIM}Type:{RESET}         {control['control_type']}\n")
+    _w(f"     {DIM}Panel:{RESET}        {control['panel']}\n")
+    _w(f"     {DIM}Description:{RESET}  {control['description']}\n")
+
+    ifaces = [inp.get("interface", "?") for inp in control.get("inputs", [])]
+    _w(f"     {DIM}Interfaces:{RESET}   {', '.join(ifaces)}\n")
+
+    # Replace None sentinels with unique string sentinels
+    custom_counter = 0
+    options = []
+    for label, cmd in actions:
+        if cmd is None:
+            custom_counter += 1
+            options.append((label, f"__CUSTOM_{custom_counter}__"))
+        else:
+            options.append((label, cmd))
+    options.append((f"{DIM}Back{RESET}", "__BACK__"))
+
+    result = arrow_pick("Select command to send:", options)
+
+    if result is None or result == "__BACK__":
+        return None
+
+    # Handle custom input sentinel
+    if result.startswith("__CUSTOM_"):
+        return _prompt_custom_value(identifier, control)
+
+    return result
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # UDP SEND
@@ -250,18 +1026,6 @@ def send_udp(cmd: str) -> None:
     except Exception as e:
         print(f"  {RED}[ERROR]{RESET} {cmd} -- {e}")
 
-
-def send_gain(position):
-    """Handle GAIN_SWITCH which requires cover open/close sequence."""
-    if position == "GAIN_ORIDE":
-        send_udp("GAIN_SWITCH_COVER 1")
-        time.sleep(0.100)
-        send_udp("GAIN_SWITCH 1")
-    elif position == "GAIN_NORM":
-        send_udp("GAIN_SWITCH 0")
-        time.sleep(0.100)
-        send_udp("GAIN_SWITCH_COVER 0")
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -270,7 +1034,7 @@ def main():
     global DCS_IP, BIND_IP
 
     parser = argparse.ArgumentParser(description="DCS-BIOS Command Tester")
-    parser.add_argument("--ip", default=None, help="DCS PC IP address (default: same as selected interface)")
+    parser.add_argument("--ip", default=None, help="DCS PC IP address (default: broadcast)")
     args = parser.parse_args()
 
     # Pick interface
@@ -290,6 +1054,24 @@ def main():
                 bind_label = f"{ip} ({name})"
                 break
 
+    # Pick aircraft
+    ac_path = pick_aircraft()
+    if ac_path is None:
+        return
+
+    aircraft_name = os.path.basename(ac_path)[:-5]  # strip .json
+
+    # Load and flatten controls
+    _w(f"\n  {DIM}Loading {aircraft_name}...{RESET}")
+    aircraft_data = load_aircraft_json(ac_path)
+    controls = collect_input_controls(aircraft_data)
+    _w(f"  {GREEN}{len(controls)} controls with inputs{RESET}\n")
+
+    if not controls:
+        _w(f"\n  {RED}No controls with inputs found.{RESET}\n")
+        input(f"\n  Press Enter to exit...")
+        return
+
     # Header
     print()
     print("+----------------------------------------------------------------+")
@@ -297,37 +1079,42 @@ def main():
     print("+----------------------------------------------------------------+")
     _box_line(f"  Interface: {CYAN}{bind_label}{RESET}")
     _box_line(f"  Target:    {CYAN}{DCS_IP}:{DCS_PORT}{RESET}")
+    _box_line(f"  Aircraft:  {CYAN}{aircraft_name}{RESET}")
+    _box_line(f"  Controls:  {CYAN}{len(controls)}{RESET}")
     print("+----------------------------------------------------------------+")
+    _w(f"\n  {DIM}Press Enter to continue to control browser...{RESET}")
+    msvcrt.getwch()
 
-    # Build top-level menu options
-    top_options = [(f"{CYAN}{name}{RESET}", name) for name, _ in COMMAND_GROUPS]
-    top_options.append((f"{DIM}Exit{RESET}", "EXIT"))
-
-    # Main loop
+    # Main loop: browse controls -> pick action -> send -> repeat
     while True:
-        choice = arrow_pick("Select command group:", top_options)
-
-        if choice is None or choice == "EXIT":
-            print(f"\n  {DIM}Goodbye!{RESET}")
+        control = pick_control(controls, aircraft_name)
+        if control is None:
+            # Esc from browser -> confirm exit
+            _cls()
+            _w(f"\n  {DIM}Exit command tester? (Y/n): {RESET}")
+            ch = msvcrt.getwch()
+            if ch in ("n", "N"):
+                continue
+            _w(f"\n  {DIM}Goodbye!{RESET}\n")
             break
 
-        # Find the group
-        for group_name, commands in COMMAND_GROUPS:
-            if group_name == choice:
-                # Build sub-menu
-                sub_options = [(f"{label:<10} {DIM}-> {cmd}{RESET}", cmd) for label, cmd in commands]
-                sub_choice = arrow_pick(f"{BOLD}{group_name}{RESET} -- select value:", sub_options)
-
-                if sub_choice is None:
-                    continue  # Esc -> back to top menu
-
-                # Handle GAIN special case
-                if sub_choice in ("GAIN_NORM", "GAIN_ORIDE"):
-                    send_gain(sub_choice)
-                else:
-                    send_udp(sub_choice)
+        # Action loop: pick and send commands for this control, loop until Esc
+        while True:
+            cmd = pick_action_and_handle_custom(control)
+            if cmd is None:
+                break  # Back to control browser
+            send_udp(cmd)
+            _w(f"\n  {DIM}Press any key to send another command for {CYAN}{control['identifier']}{RESET}")
+            _w(f"{DIM}, or Esc for control list...{RESET}")
+            ch = msvcrt.getwch()
+            if ch == "\x1b":
                 break
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        _w(SHOW_CUR)
+        print(f"\n  {DIM}Interrupted.{RESET}")
+        sys.exit(0)

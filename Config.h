@@ -53,8 +53,8 @@
 // TinyUSB + Wi-Fi enabled at the same time consume a LOT of memory, so if you decide to enable debugging (below) on S2 devices keep that in mind as compiles will most likely fail if both the WiFi stack (for debug or normal operation) is enabled along USB-OTG (TinyUSB). To avoid, simply use an S3 device or stick to the stack capabilities (e.g) Debug via Serial if using USB or Debug via WiFi if using WiFi as transport.  
 
 // For production, ALL THESE should be set to 0. Use for debugging only.
-#define DEBUG_ENABLED                               0 // Use it ONLY when identifying issues or troubleshooting. Not required when using VERBOSE modes below
-#define DEBUG_PERFORMANCE                           0 // Shows profiling for specific tasks and memory usage for debug and troubleshooting.
+#define DEBUG_ENABLED                               1 // Use it ONLY when identifying issues or troubleshooting. Not required when using VERBOSE modes below
+#define DEBUG_PERFORMANCE                           1 // Shows profiling for specific tasks and memory usage for debug and troubleshooting.
 #define VERBOSE_MODE                                0 // Verbose will output to both WiFi & Serial (Uses a LOT of Memory, might fail compile on S2 devices).
 #define VERBOSE_MODE_SERIAL_ONLY                    0 // Verbose will only output to Serial. 
 #define VERBOSE_MODE_WIFI_ONLY                      1 // Verbose will only output to WiFi.
@@ -100,6 +100,7 @@
 #define MAX_GROUPS                                128 // default safety cap, DO NOT change
 #define VALUE_THROTTLE_MS                          50 // How long (ms) to skip sending the same value again (debouncing)
 #define ANY_VALUE_THROTTLE_MS                      33 // How long (ms) to skip sending different values (prevents spamming the USB endpoint, while debouncing at the same time)
+#define CUSTOM_RESPONSE_THROTTLE_MS               100 // Min delay (ms) between press and deferred release for custom momentaries with releaseValue != 0
 #define SELECTOR_DWELL_MS                         100 // Wait time (in ms) for stable selector value. Used by our dwell-time fitering logic
 #define DCS_GROUP_MIN_INTERVAL_US                (1000000UL / DCS_UPDATE_RATE_HZ) // min spacing/separation between selector positions
 #define HID_REPORT_MIN_INTERVAL_US               (1000000UL / HID_REPORT_RATE_HZ) // min spacing/separation between reports
@@ -304,7 +305,7 @@
 #endif
 
 #if VERBOSE_PERFORMANCE_ONLY
-  #define DEBUG_PERFORMANCE 0
+  #define DEBUG_PERFORMANCE 1
 #endif
 
 #if USE_DCSBIOS_WIFI && !DEVICE_HAS_WIFI

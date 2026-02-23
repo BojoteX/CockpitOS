@@ -31,6 +31,9 @@ struct CommandHistoryEntry {
 
 struct DcsOutputEntry { uint16_t addr, mask; uint8_t shift; uint16_t max_value; const char* label; ControlType controlType; };
 static const DcsOutputEntry DcsOutputTable[] = {
+    {0x74C2,0x0100,8,1,"APU_CONTROL_SW",CT_SELECTOR},
+    {0x74C2,0x0800,11,1,"APU_READY_LT",CT_LED},
+    {0x74C2,0x0600,9,2,"ENGINE_CRANK_SW",CT_SELECTOR},
     {0x740C,0x2000,13,1,"MASTER_ARM_SW",CT_SELECTOR},
     {0x740C,0x0800,11,1,"MASTER_MODE_AA",CT_SELECTOR},
     {0x740C,0x0200,9,1,"MASTER_MODE_AA_LT",CT_LED},
@@ -49,7 +52,8 @@ struct AddressEntry {
 };
 
 static const AddressEntry dcsAddressTable[] = {
-  { 0x740C, { &DcsOutputTable[0], &DcsOutputTable[1], &DcsOutputTable[2], &DcsOutputTable[3], &DcsOutputTable[4], &DcsOutputTable[5], &DcsOutputTable[6] }, 7 },
+  { 0x74C2, { &DcsOutputTable[0], &DcsOutputTable[1], &DcsOutputTable[2] }, 3 },
+  { 0x740C, { &DcsOutputTable[3], &DcsOutputTable[4], &DcsOutputTable[5], &DcsOutputTable[6], &DcsOutputTable[7], &DcsOutputTable[8], &DcsOutputTable[9] }, 7 },
 };
 
 // Address hash entry
@@ -87,7 +91,7 @@ static const DcsAddressHashEntry dcsAddressHashTable[53] = {
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
-  { 0x740C, &dcsAddressTable[0] },
+  { 0x740C, &dcsAddressTable[1] },
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
@@ -110,7 +114,7 @@ static const DcsAddressHashEntry dcsAddressHashTable[53] = {
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
-  {0xFFFF, nullptr},
+  { 0x74C2, &dcsAddressTable[0] },
   {0xFFFF, nullptr},
 };
 
@@ -132,44 +136,44 @@ inline const AddressEntry* findDcsOutputEntries(uint16_t addr) {
 
 struct SelectorEntry { const char* label; const char* dcsCommand; uint16_t value; const char* controlType; uint16_t group; const char* posLabel; };
 static const SelectorEntry SelectorMap[] = {
-    { "MASTER_ARM_SW_SAFE","MASTER_ARM_SW",0,"selector",1,"SAFE" },
-    { "MASTER_ARM_SW_ARM","MASTER_ARM_SW",1,"selector",1,"ARM" },
+    { "APU_CONTROL_SW_OFF","APU_CONTROL_SW",0,"selector",1,"OFF" },
+    { "APU_CONTROL_SW_ON","APU_CONTROL_SW",1,"selector",1,"ON" },
+    { "ENGINE_CRANK_SW_RIGHT","ENGINE_CRANK_SW",0,"selector",2,"RIGHT" },
+    { "ENGINE_CRANK_SW_OFF","ENGINE_CRANK_SW",1,"selector",2,"OFF" },
+    { "ENGINE_CRANK_SW_LEFT","ENGINE_CRANK_SW",2,"selector",2,"LEFT" },
+    { "MASTER_ARM_SW_SAFE","MASTER_ARM_SW",0,"selector",3,"SAFE" },
+    { "MASTER_ARM_SW_ARM","MASTER_ARM_SW",1,"selector",3,"ARM" },
     { "MASTER_MODE_AA","MASTER_MODE_AA",1,"momentary",0,"PRESS" },
     { "MASTER_MODE_AG","MASTER_MODE_AG",1,"momentary",0,"PRESS" },
+    { "ENGINE_CRANK_SW_CUSTOM_PRESS","ENGINE_CRANK_SW",2,"momentary",0,"PRESS" },
+    { "ENGINE_CRANK_SW_CUSTOM_2_PRESS","ENGINE_CRANK_SW",0,"momentary",0,"PRESS" },
 };
 static const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);
 
 // O(1) hash lookup for SelectorMap[] by (dcsCommand, value)
 struct SelectorHashEntry { const char* dcsCommand; uint16_t value; const SelectorEntry* entry; };
 static const SelectorHashEntry selectorHashTable[53] = {
+  {"APU_CONTROL_SW", 1, &SelectorMap[1]},
+  {nullptr, 0, nullptr},
+  {"ENGINE_CRANK_SW", 2, &SelectorMap[4]},
+  {"ENGINE_CRANK_SW", 2, &SelectorMap[9]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"MASTER_ARM_SW", 1, &SelectorMap[6]},
+  {"MASTER_MODE_AA", 1, &SelectorMap[7]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"APU_CONTROL_SW", 0, &SelectorMap[0]},
+  {"MASTER_ARM_SW", 0, &SelectorMap[5]},
   {nullptr, 0, nullptr},
   {nullptr, 0, nullptr},
   {nullptr, 0, nullptr},
   {nullptr, 0, nullptr},
+  {"ENGINE_CRANK_SW", 1, &SelectorMap[3]},
   {nullptr, 0, nullptr},
-  {nullptr, 0, nullptr},
-  {"MASTER_ARM_SW", 1, &SelectorMap[1]},
-  {"MASTER_MODE_AA", 1, &SelectorMap[2]},
-  {nullptr, 0, nullptr},
-  {nullptr, 0, nullptr},
-  {nullptr, 0, nullptr},
-  {nullptr, 0, nullptr},
-  {"MASTER_ARM_SW", 0, &SelectorMap[0]},
-  {nullptr, 0, nullptr},
-  {nullptr, 0, nullptr},
-  {nullptr, 0, nullptr},
-  {nullptr, 0, nullptr},
-  {nullptr, 0, nullptr},
-  {nullptr, 0, nullptr},
-  {nullptr, 0, nullptr},
-  {nullptr, 0, nullptr},
-  {nullptr, 0, nullptr},
-  {nullptr, 0, nullptr},
-  {nullptr, 0, nullptr},
-  {nullptr, 0, nullptr},
-  {nullptr, 0, nullptr},
-  {nullptr, 0, nullptr},
-  {nullptr, 0, nullptr},
+  {"ENGINE_CRANK_SW", 0, &SelectorMap[2]},
+  {"ENGINE_CRANK_SW", 0, &SelectorMap[10]},
   {nullptr, 0, nullptr},
   {nullptr, 0, nullptr},
   {nullptr, 0, nullptr},
@@ -190,7 +194,14 @@ static const SelectorHashEntry selectorHashTable[53] = {
   {nullptr, 0, nullptr},
   {nullptr, 0, nullptr},
   {nullptr, 0, nullptr},
-  {"MASTER_MODE_AG", 1, &SelectorMap[3]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"MASTER_MODE_AG", 1, &SelectorMap[8]},
   {nullptr, 0, nullptr},
   {nullptr, 0, nullptr},
   {nullptr, 0, nullptr},
@@ -212,7 +223,9 @@ inline const SelectorEntry* findSelectorByDcsAndValue(const char* dcsCommand, ui
 
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
-    { "MASTER_ARM_SW", 0, 0, true, 1, 0,   0, false, 0, {0}, {0}, 0 },
+    { "APU_CONTROL_SW", 0, 0, true, 1, 0,   0, false, 0, {0}, {0}, 0 },
+    { "ENGINE_CRANK_SW", 0, 0, true, 2, 0,   0, false, 0, {0}, {0}, 0 },
+    { "MASTER_ARM_SW", 0, 0, true, 3, 0,   0, false, 0, {0}, {0}, 0 },
     { "MASTER_MODE_AA", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
     { "MASTER_MODE_AG", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
 };
