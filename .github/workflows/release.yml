@@ -29,13 +29,19 @@ jobs:
         id: prev
         run: |
           CURRENT="${{ steps.version.outputs.tag }}"
-          # List all v* tags sorted by version, find the one before current
-          PREV=$(git tag --list 'v*' --sort=-version:refname | grep -A1 "^${CURRENT}$" | tail -1)
-          # If grep only returned the current tag (no previous), fall back
-          if [ "$PREV" = "$CURRENT" ] || [ -z "$PREV" ]; then
-            # Also check tags without v prefix for older releases
-            PREV=$(git tag --sort=-creatordate | grep -v "^${CURRENT}$" | head -1)
-          fi
+          CURRENT_VER="${CURRENT#v}"
+          REPO_URL="https://github.com/${{ github.repository }}"
+
+          # Get ALL tags (with and without v prefix), normalize to version numbers,
+          # sort by version, find the one right before current
+          PREV=$(git tag -l | while read t; do
+            ver="${t#v}"
+            echo "$ver $t"
+          done | sort -t. -k1,1n -k2,2n -k3,3n | awk -v cur="$CURRENT_VER" '{
+            if ($1 == cur) { print prev; exit }
+            prev = $2
+          }')
+
           echo "tag=$PREV" >> "$GITHUB_OUTPUT"
           echo "Previous tag: $PREV"
 
@@ -44,18 +50,19 @@ jobs:
         run: |
           PREV="${{ steps.prev.outputs.tag }}"
           CURRENT="${{ steps.version.outputs.tag }}"
+          REPO_URL="https://github.com/${{ github.repository }}"
 
           {
             echo 'body<<CHANGELOG_EOF'
             echo "## What's Changed"
             echo ""
             if [ -n "$PREV" ]; then
-              # List commits since previous tag, skip merge commits
-              git log "${PREV}..${CURRENT}" --oneline --no-merges --format="- %s" | head -100
+              # List commits since previous tag, skip merge commits, include SHA links
+              git log "${PREV}..${CURRENT}" --no-merges --format="- %s ([%h](${REPO_URL}/commit/%H))" | head -100
               echo ""
-              echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV}...${CURRENT}"
+              echo "**Full Changelog**: [${PREV}...${CURRENT}](${REPO_URL}/compare/${PREV}...${CURRENT})"
             else
-              git log --oneline --no-merges --format="- %s" | head -50
+              git log --no-merges --format="- %s ([%h](${REPO_URL}/commit/%H))" | head -50
             fi
             echo 'CHANGELOG_EOF'
           } >> "$GITHUB_OUTPUT"
@@ -86,7 +93,15 @@ jobs:
             -x "TODO.md" \
             -x "TODO/*"
 
-      - name: Create or update release
+      - name: Delete existing release if present
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          # Delete the release (but keep the tag) so we can recreate it with assets
+          gh release delete "$TAG" --yes 2>/dev/null || true
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
