@@ -15,3 +15,4 @@ compiler/cockpitos.lock
 compiler/__pycache__
 HID Manager/__pycache__
 label_creator/__pycache__
+release.py
