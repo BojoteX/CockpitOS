@@ -1,5 +1,9 @@
 # CockpitOS Release — Package and publish on version tag
-# Trigger: push a tag like v1.2.3 (from terminal or GitHub UI)
+# To release: merge PR to main, then push a tag:
+#   git checkout main && git pull
+#   git tag v1.2.3
+#   git push origin v1.2.3
+# Do NOT create releases from the GitHub UI — this workflow handles everything.
 name: Release
 
 on:
@@ -43,7 +47,6 @@ jobs:
           echo "Previous tag: $PREV"
 
       - name: Generate changelog
-        id: changelog
         run: |
           PREV="${{ steps.prev.outputs.tag }}"
           CURRENT="${{ steps.version.outputs.tag }}"
@@ -85,15 +88,8 @@ jobs:
 
       - name: Publish release
         run: |
-          TAG="${{ steps.version.outputs.tag }}"
-          VERSION="${{ steps.version.outputs.version }}"
-
-          # Delete any existing release for this tag (e.g., created from GitHub UI)
-          gh release delete "$TAG" --yes 2>/dev/null || true
-          sleep 3
-
-          gh release create "$TAG" \
-            --title "CockpitOS v${VERSION}" \
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "CockpitOS v${{ steps.version.outputs.version }}" \
             --notes-file changelog.md \
             --latest \
             CockpitOS.zip
