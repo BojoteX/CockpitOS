@@ -34,7 +34,7 @@
 #define RS485_SLAVE_ENABLED                         0 // Set as RS-485 Slave, you need to also run a master RS485 on a separate device
 
 // RS485 *** [ Slave ] *** (Only if RS485_SLAVE_ENABLED is set to 1)
-#define RS485_SLAVE_ADDRESS                         1 // This is the Slave addres ID! Only use when RS485_SLAVE_ENABLED (above) is set to 1. Choose a device address between (1-126) each slave should have a unique address
+#define RS485_SLAVE_ADDRESS                         2 // This is the Slave addres ID! Only use when RS485_SLAVE_ENABLED (above) is set to 1. Choose a device address between (1-126) each slave should have a unique address
 #define RS485_TX_PRE_DE_DELAY_US                   40 // AVR slave sends a phantom 0x00 byte (~40us) with DE low before responding — without this delay the ESP32 responds before the AVR master exits its TXC ISR, causing UDR overrun
 
 // RS485 *** [ Master ] *** (Option only work when RS485_MASTER_ENABLED is set to 1)
@@ -57,7 +57,7 @@
 #define DEBUG_PERFORMANCE                           0 // Shows profiling for specific tasks and memory usage for debug and troubleshooting.
 #define VERBOSE_MODE                                0 // Verbose will output to both WiFi & Serial (Uses a LOT of Memory, might fail compile on S2 devices).
 #define VERBOSE_MODE_SERIAL_ONLY                    0 // Verbose will only output to Serial. 
-#define VERBOSE_MODE_WIFI_ONLY                      0 // Verbose will only output to WiFi.
+#define VERBOSE_MODE_WIFI_ONLY                      1 // Verbose will only output to WiFi.
 #define VERBOSE_PERFORMANCE_ONLY                    0 // This will output perf snapshots ONLY, make sure you pick VERBOSE_MODE_SERIAL_ONLY or VERBOSE_MODE_WIFI_ONLY so that we know where to output those snapshot ONLY messages.
 #define DEBUG_PERFORMANCE_SHOW_TASKS                0 // Includes the current task list with the snapshot. Not really needed.
 #define DEBUG_LISTENERS_AT_STARTUP                  0 // Debug Listeners for ADVANCED troubleshooting! usually not needed.
@@ -100,7 +100,7 @@
 #define MAX_GROUPS                                128 // default safety cap, DO NOT change
 #define VALUE_THROTTLE_MS                          50 // How long (ms) to skip sending the same value again (debouncing)
 #define ANY_VALUE_THROTTLE_MS                      33 // How long (ms) to skip sending different values (prevents spamming the USB endpoint, while debouncing at the same time)
-#define SELECTOR_DWELL_MS                         250 // Wait time (in ms) for stable selector value. Used by our dwell-time fitering logic
+#define SELECTOR_DWELL_MS                         100 // Wait time (in ms) for stable selector value. Used by our dwell-time fitering logic
 #define DCS_GROUP_MIN_INTERVAL_US                (1000000UL / DCS_UPDATE_RATE_HZ) // min spacing/separation between selector positions
 #define HID_REPORT_MIN_INTERVAL_US               (1000000UL / HID_REPORT_RATE_HZ) // min spacing/separation between reports
 #define DCS_KEEP_ALIVE_MS                        (1000 / DCS_UPDATE_RATE_HZ) // send PING 0 (ASCII command) every x ms (when using keep-alives)

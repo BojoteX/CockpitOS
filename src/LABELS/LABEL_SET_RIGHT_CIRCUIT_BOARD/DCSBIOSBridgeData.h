@@ -23,6 +23,7 @@ struct CommandHistoryEntry {
     uint16_t        pendingValue;
     unsigned long   lastChangeTime;
     bool            hasPending;
+    uint16_t        maxPositions;
     uint8_t         lastReport[GAMEPAD_REPORT_SIZE];
     uint8_t         pendingReport[GAMEPAD_REPORT_SIZE];
     unsigned long   lastHidSendTime;
@@ -160,11 +161,11 @@ static const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0])
 
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
-    { "CB_FCS_CHAN3", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "CB_FCS_CHAN4", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "CB_HOOOK", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "CB_LG", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "FCS_BIT_SW", 0, 0, true, 1, 0,   0, false, {0}, {0}, 0 },
+    { "CB_FCS_CHAN3", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "CB_FCS_CHAN4", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "CB_HOOOK", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "CB_LG", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "FCS_BIT_SW", 0, 0, true, 1, 0,   0, false, 0, {0}, {0}, 0 },
 };
 static const size_t commandHistorySize = sizeof(commandHistory)/sizeof(CommandHistoryEntry);
 

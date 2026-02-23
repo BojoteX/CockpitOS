@@ -23,6 +23,7 @@ struct CommandHistoryEntry {
     uint16_t        pendingValue;
     unsigned long   lastChangeTime;
     bool            hasPending;
+    uint16_t        maxPositions;
     uint8_t         lastReport[GAMEPAD_REPORT_SIZE];
     uint8_t         pendingReport[GAMEPAD_REPORT_SIZE];
     unsigned long   lastHidSendTime;
@@ -316,22 +317,22 @@ inline const SelectorEntry* findSelectorByDcsAndValue(const char* dcsCommand, ui
 
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
-    { "CHART_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "COCKKPIT_LIGHT_MODE_SW", 0, 0, true, 7, 0,   0, false, {0}, {0}, 0 },
-    { "CONSOLES_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "EXT_PWR_SW", 0, 0, true, 2, 0,   0, false, {0}, {0}, 0 },
-    { "FLOOD_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "FORMATION_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "GND_PWR_1_SW", 0, 0, true, 3, 0,   0, false, {0}, {0}, 0 },
-    { "GND_PWR_2_SW", 0, 0, true, 4, 0,   0, false, {0}, {0}, 0 },
-    { "GND_PWR_3_SW", 0, 0, true, 5, 0,   0, false, {0}, {0}, 0 },
-    { "GND_PWR_4_SW", 0, 0, true, 6, 0,   0, false, {0}, {0}, 0 },
-    { "INST_PNL_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "INT_WNG_TANK_SW", 0, 0, true, 1, 0,   0, false, {0}, {0}, 0 },
-    { "LIGHTS_TEST_SW", 0, 0, true, 8, 0,   0, false, {0}, {0}, 0 },
-    { "POSITION_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "STROBE_SW", 0, 0, true, 9, 0,   0, false, {0}, {0}, 0 },
-    { "WARN_CAUTION_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
+    { "CHART_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "COCKKPIT_LIGHT_MODE_SW", 0, 0, true, 7, 0,   0, false, 0, {0}, {0}, 0 },
+    { "CONSOLES_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "EXT_PWR_SW", 0, 0, true, 2, 0,   0, false, 0, {0}, {0}, 0 },
+    { "FLOOD_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "FORMATION_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "GND_PWR_1_SW", 0, 0, true, 3, 0,   0, false, 0, {0}, {0}, 0 },
+    { "GND_PWR_2_SW", 0, 0, true, 4, 0,   0, false, 0, {0}, {0}, 0 },
+    { "GND_PWR_3_SW", 0, 0, true, 5, 0,   0, false, 0, {0}, {0}, 0 },
+    { "GND_PWR_4_SW", 0, 0, true, 6, 0,   0, false, 0, {0}, {0}, 0 },
+    { "INST_PNL_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "INT_WNG_TANK_SW", 0, 0, true, 1, 0,   0, false, 0, {0}, {0}, 0 },
+    { "LIGHTS_TEST_SW", 0, 0, true, 8, 0,   0, false, 0, {0}, {0}, 0 },
+    { "POSITION_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "STROBE_SW", 0, 0, true, 9, 0,   0, false, 0, {0}, {0}, 0 },
+    { "WARN_CAUTION_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
 };
 static const size_t commandHistorySize = sizeof(commandHistory)/sizeof(CommandHistoryEntry);
 

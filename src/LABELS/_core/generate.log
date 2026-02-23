@@ -29,35 +29,26 @@ Generated: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Generated\Pan
   → 13 total + COUNT
 
 Done!
-Current LABEL SET: LABEL_SET_MAIN
+Current LABEL SET: LABEL_SET_F18_HUD_PANEL_LIGHT_CENCIO
 
 [INFO] The current target_objects (panel(s) to be processed) are:
-  - APU Fire Warning Extinguisher Light
-  - Angle of Attack Indexer Lights
-  - Emergency Jettison Button
-  - Fire Systems
-  - Interior Lights Panel
-  - LH Advisory Panel
-  - Left Engine Fire Warning Extinguisher Light
-  - Lock Shoot Lights
+  - Custom
+  - External Aircraft Model
   - Map Gain/Spin Recovery Panel
   - Master Arm Panel
-  - Master Caution Light
-  - RH Advisory Panel
-  - Right Engine Fire Warning Extinguisher Light
 
-[✓] Generated DCSBIOSBridgeData.h with 62 outputs,  41 selectors.
-[✓] Generated InputMapping.h with 41 entries.
-✅ Found 62 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
-🔢 Using TABLE_SIZE = 127 (next prime ≥ 124)
+[✓] Generated DCSBIOSBridgeData.h with 29 outputs,  13 selectors.
+[✓] Generated InputMapping.h with 13 entries.
+✅ Found 12 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
+🔢 Using TABLE_SIZE = 53 (next prime ≥ 24)
 ✅ LEDMapping.h fully regenerated with dynamic enum from KNOWN_DEVICES.
 
 [INFO] Generating DisplayMapping.cpp/h using display_gen.py ...
 ✅ Renamed .cpp files to cpp.DISABLE in the inactive LABEL SETS to avoid linker conflicts
-[✓] Created LabelSetConfig.h with AUTOGEN_USB_PID=0x9C84 (from 'CockpitBIOS Main Panel')
+[✓] Created LabelSetConfig.h with AUTOGEN_USB_PID=0xA58B (from 'CockpitOS Panel F18_HUD_PANEL_LIGHT_CENCIO')
 [=] LatchedButtons.h exists, preserving
 [=] CoverGates.h exists, preserving
-[✓] Created ../active_set.h with LABEL_SET MAIN
+[✓] Created ../active_set.h with LABEL_SET F18_HUD_PANEL_LIGHT_CENCIO
 
 ============================================================
 Running generate_panelkind.py to update PanelKind.h...

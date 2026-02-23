@@ -1,28 +1,32 @@
 /*
  * RS-485 Slave Test Sketch - INSTRUMENTED VERSION
  * 
- * Hardware: Arduino UNO R3 + MAX485 module + 2-pos switch + pushbutton + MC_READY LED
+ * Hardware: Arduino Mega 2560 + MAX485 module + 2-pos switch + pushbutton + MC_READY LED
  * Purpose:  Debug RS-485 communication with CockpitOS master
- * 
- * Wiring:
- *   UNO Pin 0 (RX)  <- MAX485 RO
- *   UNO Pin 1 (TX)  -> MAX485 DI
- *   UNO Pin 2       -> MAX485 DE + RE (tied together)
- *   UNO 5V          -> MAX485 VCC
- *   UNO GND         -> MAX485 GND
+ *
+ * Wiring (UART1 — same pins as master, no cable swapping needed):
+ *   Mega Pin 19 (RX1) <- MAX485 RO
+ *   Mega Pin 18 (TX1) -> MAX485 DI
+ *   Mega Pin 2        -> MAX485 DE + RE (tied together)
+ *   Mega 5V           -> MAX485 VCC
+ *   Mega GND          -> MAX485 GND
  *   
- *   UNO Pin 4       -> Switch terminal 1
- *   UNO GND         -> Switch terminal 2
- *   
- *   UNO Pin 5       -> Pushbutton terminal 1
- *   UNO GND         -> Pushbutton terminal 2
- *   
- *   UNO Pin 10      -> MC_READY LED+ (with 220Ω resistor to GND)
+ *   Mega Pin 4        -> Switch terminal 1
+ *   Mega GND          -> Switch terminal 2
+ *
+ *   Mega Pin 5        -> Pushbutton terminal 1
+ *   Mega GND          -> Pushbutton terminal 2
+ *
+ *   Mega Pin A0       -> Potentiometer wiper (center pin)
+ *   Mega 5V           -> Potentiometer one outer pin
+ *   Mega GND          -> Potentiometer other outer pin
+ *
+ *   Mega Pin 10       -> MC_READY LED+ (with 220Ω resistor to GND)
  *   
  *   (Built-in LED on pin 13 used for diagnostics)
  *   
  * OPTIONAL: Second LED on pin 12 for TX activity
- *   UNO Pin 12      -> LED+ (with 220Ω resistor to GND)
+ *   Mega Pin 12       -> LED+ (with 220Ω resistor to GND)
  * 
  * =============================================================================
  * USER CONFIGURATION
@@ -31,6 +35,7 @@
 
 #define SWITCH_PIN        4     // 2-position toggle switch
 #define BUTTON_PIN        5     // Momentary pushbutton
+#define POT_PIN           A0    // Potentiometer wiper (center pin)
 #define MC_READY_PIN      10    // Master Caution Ready LED from DCS
 
 /*
@@ -60,8 +65,9 @@
  * 
  */
 
-#define DCSBIOS_RS485_SLAVE 1
+#define DCSBIOS_RS485_SLAVE 2
 #define TXENABLE_PIN 2
+#define UART1_SELECT          // Use UART1 (pins 18/19) instead of UART0 (pins 0/1)
 
 #include "DcsBios.h"
 
@@ -100,6 +106,9 @@ DcsBios::Switch2Pos masterArmSw("MASTER_ARM_SW", SWITCH_PIN);
 
 // Momentary pushbutton - Master Caution Reset
 DcsBios::ActionButton masterCautionBtn("UFC_MASTER_CAUTION", "TOGGLE", BUTTON_PIN);
+
+// Potentiometer - Left DDI Brightness
+DcsBios::Potentiometer leftDdiBrt("LEFT_DDI_BRT_CTL", POT_PIN);
 
 // =============================================================================
 // DCS-BIOS OUTPUTS (Sim state -> LEDs)
