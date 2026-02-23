@@ -1,0 +1,96 @@
+# CockpitOS Release — Package and publish on version tag
+# Triggers when a tag like v1.2.3 is pushed (manually or via GitHub UI)
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history needed for changelog generation
+
+      - name: Get version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Find previous release tag
+        id: prev
+        run: |
+          CURRENT="${{ steps.version.outputs.tag }}"
+          # List all v* tags sorted by version, find the one before current
+          PREV=$(git tag --list 'v*' --sort=-version:refname | grep -A1 "^${CURRENT}$" | tail -1)
+          # If grep only returned the current tag (no previous), fall back
+          if [ "$PREV" = "$CURRENT" ] || [ -z "$PREV" ]; then
+            # Also check tags without v prefix for older releases
+            PREV=$(git tag --sort=-creatordate | grep -v "^${CURRENT}$" | head -1)
+          fi
+          echo "tag=$PREV" >> "$GITHUB_OUTPUT"
+          echo "Previous tag: $PREV"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREV="${{ steps.prev.outputs.tag }}"
+          CURRENT="${{ steps.version.outputs.tag }}"
+
+          {
+            echo 'body<<CHANGELOG_EOF'
+            echo "## What's Changed"
+            echo ""
+            if [ -n "$PREV" ]; then
+              # List commits since previous tag, skip merge commits
+              git log "${PREV}..${CURRENT}" --oneline --no-merges --format="- %s" | head -100
+              echo ""
+              echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV}...${CURRENT}"
+            else
+              git log --oneline --no-merges --format="- %s" | head -50
+            fi
+            echo 'CHANGELOG_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Package CockpitOS.zip
+        run: |
+          zip -r CockpitOS.zip . \
+            -x ".git/*" \
+            -x ".github/*" \
+            -x ".claude/*" \
+            -x ".vs/*" \
+            -x "__pycache__/*" \
+            -x "build/*" \
+            -x "Dev/*" \
+            -x "nul" \
+            -x "*.lock" \
+            -x "Debug Tools/logs/*" \
+            -x "src/Core/Private/*" \
+            -x "Disabled Panels/*" \
+            -x "Binaries/Unclassified/*" \
+            -x "compiler/backups/*" \
+            -x "compiler/__pycache__/*" \
+            -x "compiler/*.lock" \
+            -x "HID Manager/__pycache__/*" \
+            -x "label_creator/__pycache__/*" \
+            -x ".credentials/*" \
+            -x "CLAUDE.md" \
+            -x "TODO.md" \
+            -x "TODO/*"
+
+      - name: Create or update release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: CockpitOS v${{ steps.version.outputs.version }}
+          body: ${{ steps.changelog.outputs.body }}
+          files: CockpitOS.zip
+          make_latest: true

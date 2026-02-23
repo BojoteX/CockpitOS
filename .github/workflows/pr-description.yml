@@ -1,0 +1,46 @@
+# CockpitOS PR — Auto-populate description with commit list
+name: PR Description
+
+on:
+  pull_request:
+    types: [opened]
+    branches: [main]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  populate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate PR description
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: commits } = await github.rest.pulls.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              per_page: 100
+            });
+
+            const lines = commits
+              .filter(c => !c.commit.message.startsWith('Merge'))
+              .map(c => {
+                const msg = c.commit.message.split('\n')[0];
+                return `- ${msg}`;
+              });
+
+            const body = `## What's Changed\n\n${lines.join('\n')}`;
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              body: body
+            });
