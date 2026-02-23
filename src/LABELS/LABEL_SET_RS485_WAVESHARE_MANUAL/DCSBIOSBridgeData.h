@@ -23,6 +23,7 @@ struct CommandHistoryEntry {
     uint16_t        pendingValue;
     unsigned long   lastChangeTime;
     bool            hasPending;
+    uint16_t        maxPositions;
     uint8_t         lastReport[GAMEPAD_REPORT_SIZE];
     uint8_t         pendingReport[GAMEPAD_REPORT_SIZE];
     unsigned long   lastHidSendTime;
@@ -231,12 +232,12 @@ inline const SelectorEntry* findSelectorByDcsAndValue(const char* dcsCommand, ui
 
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
-    { "MASTER_ARM_SW", 0, 0, true, 1, 0,   0, false, {0}, {0}, 0 },
-    { "MASTER_CAUTION_RESET_SW", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "MASTER_MODE_AA", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "MASTER_MODE_AG", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "RADALT_HEIGHT", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "RADALT_TEST_SW", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
+    { "MASTER_ARM_SW", 0, 0, true, 1, 0,   0, false, 0, {0}, {0}, 0 },
+    { "MASTER_CAUTION_RESET_SW", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "MASTER_MODE_AA", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "MASTER_MODE_AG", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "RADALT_HEIGHT", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "RADALT_TEST_SW", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
 };
 static const size_t commandHistorySize = sizeof(commandHistory)/sizeof(CommandHistoryEntry);
 

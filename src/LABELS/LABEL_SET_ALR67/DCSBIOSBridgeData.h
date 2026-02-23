@@ -23,6 +23,7 @@ struct CommandHistoryEntry {
     uint16_t        pendingValue;
     unsigned long   lastChangeTime;
     bool            hasPending;
+    uint16_t        maxPositions;
     uint8_t         lastReport[GAMEPAD_REPORT_SIZE];
     uint8_t         pendingReport[GAMEPAD_REPORT_SIZE];
     unsigned long   lastHidSendTime;
@@ -357,26 +358,26 @@ inline const SelectorEntry* findSelectorByDcsAndValue(const char* dcsCommand, ui
 
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
-    { "AUX_REL_SW", 0, 0, true, 1, 0,   0, false, {0}, {0}, 0 },
-    { "CHART_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "CMSD_DISPENSE_SW", 0, 0, true, 2, 0,   0, false, {0}, {0}, 0 },
-    { "CMSD_JET_SEL_BTN", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "COCKKPIT_LIGHT_MODE_SW", 0, 0, true, 4, 0,   0, false, {0}, {0}, 0 },
-    { "CONSOLES_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "ECM_MODE_SW", 0, 0, true, 3, 0,   0, false, {0}, {0}, 0 },
-    { "FLOOD_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "INST_PNL_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "LIGHTS_TEST_SW", 0, 0, true, 5, 0,   0, false, {0}, {0}, 0 },
-    { "RWR_AUDIO_CTRL", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "RWR_BIT_BTN", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "RWR_DISPLAY_BTN", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "RWR_DIS_TYPE_SW", 0, 0, true, 6, 0,   0, false, {0}, {0}, 0 },
-    { "RWR_DMR_CTRL", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "RWR_OFFSET_BTN", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "RWR_POWER_BTN", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "RWR_RWR_INTESITY", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "RWR_SPECIAL_BTN", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "WARN_CAUTION_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
+    { "AUX_REL_SW", 0, 0, true, 1, 0,   0, false, 0, {0}, {0}, 0 },
+    { "CHART_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "CMSD_DISPENSE_SW", 0, 0, true, 2, 0,   0, false, 0, {0}, {0}, 0 },
+    { "CMSD_JET_SEL_BTN", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "COCKKPIT_LIGHT_MODE_SW", 0, 0, true, 4, 0,   0, false, 0, {0}, {0}, 0 },
+    { "CONSOLES_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "ECM_MODE_SW", 0, 0, true, 3, 0,   0, false, 0, {0}, {0}, 0 },
+    { "FLOOD_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "INST_PNL_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "LIGHTS_TEST_SW", 0, 0, true, 5, 0,   0, false, 0, {0}, {0}, 0 },
+    { "RWR_AUDIO_CTRL", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "RWR_BIT_BTN", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "RWR_DISPLAY_BTN", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "RWR_DIS_TYPE_SW", 0, 0, true, 6, 0,   0, false, 0, {0}, {0}, 0 },
+    { "RWR_DMR_CTRL", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "RWR_OFFSET_BTN", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "RWR_POWER_BTN", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "RWR_RWR_INTESITY", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "RWR_SPECIAL_BTN", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "WARN_CAUTION_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
 };
 static const size_t commandHistorySize = sizeof(commandHistory)/sizeof(CommandHistoryEntry);
 
