@@ -97,7 +97,11 @@ jobs:
         run: |
           TAG="${{ steps.version.outputs.tag }}"
           # Delete the release (but keep the tag) so we can recreate it with assets
-          gh release delete "$TAG" --yes 2>/dev/null || true
+          if gh release view "$TAG" &>/dev/null; then
+            gh release delete "$TAG" --yes
+            echo "Deleted existing release, waiting for API to sync..."
+            sleep 5
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
 
