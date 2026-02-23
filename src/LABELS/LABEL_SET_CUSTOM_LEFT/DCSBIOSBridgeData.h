@@ -23,6 +23,7 @@ struct CommandHistoryEntry {
     uint16_t        pendingValue;
     unsigned long   lastChangeTime;
     bool            hasPending;
+    uint16_t        maxPositions;
     uint8_t         lastReport[GAMEPAD_REPORT_SIZE];
     uint8_t         pendingReport[GAMEPAD_REPORT_SIZE];
     unsigned long   lastHidSendTime;
@@ -329,25 +330,25 @@ inline const SelectorEntry* findSelectorByDcsAndValue(const char* dcsCommand, ui
 
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
-    { "ANTI_SKID_SW", 0, 0, true, 10, 0,   0, false, {0}, {0}, 0 },
-    { "CHART_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "COCKKPIT_LIGHT_MODE_SW", 0, 0, true, 2, 0,   0, false, {0}, {0}, 0 },
-    { "CONSOLES_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "FIRE_TEST_SW", 0, 0, true, 9, 0,   0, false, {0}, {0}, 0 },
-    { "FLAP_SW", 0, 0, true, 6, 0,   0, false, {0}, {0}, 0 },
-    { "FLOOD_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "GEN_TIE_COVER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "GEN_TIE_SW", 0, 0, true, 1, 0,   0, false, {0}, {0}, 0 },
-    { "HOOK_BYPASS_SW", 0, 0, true, 7, 0,   0, false, {0}, {0}, 0 },
-    { "HYD_ISOLATE_OVERRIDE_SW", 0, 0, true, 4, 0,   0, false, {0}, {0}, 0 },
-    { "INST_PNL_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "LAUNCH_BAR_SW", 0, 0, true, 11, 0,   0, false, {0}, {0}, 0 },
-    { "LDG_TAXI_SW", 0, 0, true, 8, 0,   0, false, {0}, {0}, 0 },
-    { "LIGHTS_TEST_SW", 0, 0, true, 3, 0,   0, false, {0}, {0}, 0 },
-    { "MC_SW", 0, 0, true, 5, 0,   0, false, {0}, {0}, 0 },
-    { "SEL_JETT_BTN", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "SEL_JETT_KNOB", 0, 0, true, 12, 0,   0, false, {0}, {0}, 0 },
-    { "WARN_CAUTION_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
+    { "ANTI_SKID_SW", 0, 0, true, 10, 0,   0, false, 0, {0}, {0}, 0 },
+    { "CHART_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "COCKKPIT_LIGHT_MODE_SW", 0, 0, true, 2, 0,   0, false, 0, {0}, {0}, 0 },
+    { "CONSOLES_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "FIRE_TEST_SW", 0, 0, true, 9, 0,   0, false, 0, {0}, {0}, 0 },
+    { "FLAP_SW", 0, 0, true, 6, 0,   0, false, 0, {0}, {0}, 0 },
+    { "FLOOD_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "GEN_TIE_COVER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "GEN_TIE_SW", 0, 0, true, 1, 0,   0, false, 0, {0}, {0}, 0 },
+    { "HOOK_BYPASS_SW", 0, 0, true, 7, 0,   0, false, 0, {0}, {0}, 0 },
+    { "HYD_ISOLATE_OVERRIDE_SW", 0, 0, true, 4, 0,   0, false, 0, {0}, {0}, 0 },
+    { "INST_PNL_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "LAUNCH_BAR_SW", 0, 0, true, 11, 0,   0, false, 0, {0}, {0}, 0 },
+    { "LDG_TAXI_SW", 0, 0, true, 8, 0,   0, false, 0, {0}, {0}, 0 },
+    { "LIGHTS_TEST_SW", 0, 0, true, 3, 0,   0, false, 0, {0}, {0}, 0 },
+    { "MC_SW", 0, 0, true, 5, 0,   0, false, 0, {0}, {0}, 0 },
+    { "SEL_JETT_BTN", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "SEL_JETT_KNOB", 0, 0, true, 12, 0,   0, false, 0, {0}, {0}, 0 },
+    { "WARN_CAUTION_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
 };
 static const size_t commandHistorySize = sizeof(commandHistory)/sizeof(CommandHistoryEntry);
 

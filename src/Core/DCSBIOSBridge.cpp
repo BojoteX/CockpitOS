@@ -443,6 +443,7 @@ void syncCommandHistoryFromInputMapping() {
         e.pendingValue = 0;
         e.lastChangeTime = 0;
         e.lastSendTime = 0;
+        e.maxPositions = 0;
 
         // Bind any INPUT used by the firmware to this DCS label, so we always track it.
         for (size_t j = 0; j < InputMappingSize; ++j) {
@@ -464,6 +465,23 @@ void syncCommandHistoryFromInputMapping() {
             }
         }
     }
+
+    // Second pass: count positions per group so we can skip dwell for 2-pos toggles.
+    // A group with only 2 InputMapping entries (pos 0 and pos 1) is a simple toggle.
+    for (size_t i = 0; i < commandHistorySize; ++i) {
+        CommandHistoryEntry& e = commandHistory[i];
+        if (!e.isSelector || e.group == 0) continue;
+
+        uint16_t posCount = 0;
+        for (size_t j = 0; j < InputMappingSize; ++j) {
+            const InputMapping& m = InputMappings[j];
+            if (m.group == e.group && m.controlType && strcmp(m.controlType, "selector") == 0) {
+                posCount++;
+            }
+        }
+        e.maxPositions = posCount;
+    }
+
     debugPrint("[SYNC] Command history initialized for ALL inputs (selectors + buttons).\n");
 }
 
@@ -972,8 +990,9 @@ static void flushBufferedDcsCommands() {
         CommandHistoryEntry& e = commandHistory[i];
         if (!e.hasPending || e.group == 0) continue;
 
-        // NEW: during forced init, accept immediately
-        const bool dwellOk = forceInit || (now - e.lastChangeTime >= SELECTOR_DWELL_MS);
+        // Skip dwell for 2-pos toggles (no intermediate positions to sweep through)
+        const bool isTwoPos = (e.maxPositions > 0 && e.maxPositions <= 2);
+        const bool dwellOk = forceInit || isTwoPos || (now - e.lastChangeTime >= SELECTOR_DWELL_MS);
         if (dwellOk) {
             uint16_t g = e.group;
             if (g >= MAX_GROUPS) {

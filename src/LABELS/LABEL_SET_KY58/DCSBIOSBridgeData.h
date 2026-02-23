@@ -23,6 +23,7 @@ struct CommandHistoryEntry {
     uint16_t        pendingValue;
     unsigned long   lastChangeTime;
     bool            hasPending;
+    uint16_t        maxPositions;
     uint8_t         lastReport[GAMEPAD_REPORT_SIZE];
     uint8_t         pendingReport[GAMEPAD_REPORT_SIZE];
     unsigned long   lastHidSendTime;
@@ -194,18 +195,18 @@ static const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0])
 
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
-    { "CHART_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "COCKKPIT_LIGHT_MODE_SW", 0, 0, true, 1, 0,   0, false, {0}, {0}, 0 },
-    { "CONSOLES_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "FLOOD_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "INST_PNL_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "KY58_FILL_SELECT", 0, 0, true, 3, 0,   0, false, {0}, {0}, 0 },
-    { "KY58_FILL_SEL_PULL", 0, 0, true, 6, 0,   0, false, {0}, {0}, 0 },
-    { "KY58_MODE_SELECT", 0, 0, true, 4, 0,   0, false, {0}, {0}, 0 },
-    { "KY58_POWER_SELECT", 0, 0, true, 5, 0,   0, false, {0}, {0}, 0 },
-    { "KY58_VOLUME", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
-    { "LIGHTS_TEST_SW", 0, 0, true, 2, 0,   0, false, {0}, {0}, 0 },
-    { "WARN_CAUTION_DIMMER", 0, 0, false, 0, 0,   0, false, {0}, {0}, 0 },
+    { "CHART_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "COCKKPIT_LIGHT_MODE_SW", 0, 0, true, 1, 0,   0, false, 0, {0}, {0}, 0 },
+    { "CONSOLES_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "FLOOD_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "INST_PNL_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "KY58_FILL_SELECT", 0, 0, true, 3, 0,   0, false, 0, {0}, {0}, 0 },
+    { "KY58_FILL_SEL_PULL", 0, 0, true, 6, 0,   0, false, 0, {0}, {0}, 0 },
+    { "KY58_MODE_SELECT", 0, 0, true, 4, 0,   0, false, 0, {0}, {0}, 0 },
+    { "KY58_POWER_SELECT", 0, 0, true, 5, 0,   0, false, 0, {0}, {0}, 0 },
+    { "KY58_VOLUME", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
+    { "LIGHTS_TEST_SW", 0, 0, true, 2, 0,   0, false, 0, {0}, {0}, 0 },
+    { "WARN_CAUTION_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
 };
 static const size_t commandHistorySize = sizeof(commandHistory)/sizeof(CommandHistoryEntry);
 

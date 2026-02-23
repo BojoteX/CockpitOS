@@ -498,6 +498,7 @@ def run():
         f.write("    uint16_t        pendingValue;\n")
         f.write("    unsigned long   lastChangeTime;\n")
         f.write("    bool            hasPending;\n")
+        f.write("    uint16_t        maxPositions;\n")
         f.write("    uint8_t         lastReport[GAMEPAD_REPORT_SIZE];\n")
         f.write("    uint8_t         pendingReport[GAMEPAD_REPORT_SIZE];\n")
         f.write("    unsigned long   lastHidSendTime;\n")
@@ -659,7 +660,7 @@ def run():
         for label, (is_selector, grp) in sorted(command_tracking.items()):
             # initialize all numeric fields to zero, booleans to false, arrays to {0}
             f.write(
-                '    {{ "{label}", 0, 0, {sel}, {g}, 0,   0, false, '
+                '    {{ "{label}", 0, 0, {sel}, {g}, 0,   0, false, 0, '
                 '{{0}}, {{0}}, 0 }},\n'.format(
                     label=label,
                     sel="true" if is_selector else "false",
