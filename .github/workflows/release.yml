@@ -1,14 +1,14 @@
-# CockpitOS Release — Package and publish on version tag
-# To release: merge PR to main, then push a tag:
-#   git checkout main && git pull
-#   git tag v1.2.3
-#   git push origin v1.2.3
-# Do NOT create releases from the GitHub UI — this workflow handles everything.
+# CockpitOS Release — Package and publish
+# Triggered via: python release.py (or manually from Actions tab)
+# The workflow creates the tag, builds the zip, and publishes the release.
 name: Release
 
 on:
-  push:
-    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 1.1.5)'
+        required: true
 
 permissions:
   contents: write
@@ -20,42 +20,42 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
 
-      - name: Get version from tag
-        id: version
+      - name: Validate version
         run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          VERSION="${{ github.event.inputs.version }}"
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Invalid version format: $VERSION (expected: 1.2.3)"
+            exit 1
+          fi
+          if git tag -l "v${VERSION}" | grep -q .; then
+            echo "::error::Tag v${VERSION} already exists"
+            exit 1
+          fi
 
       - name: Find previous release tag
         id: prev
         run: |
-          CURRENT="${{ steps.version.outputs.tag }}"
-          CURRENT_VER="${CURRENT#v}"
-
           PREV=$(git tag -l | while read t; do
             ver="${t#v}"
             echo "$ver $t"
-          done | sort -t. -k1,1n -k2,2n -k3,3n | awk -v cur="$CURRENT_VER" '{
-            if ($1 == cur) { print prev; exit }
-            prev = $2
-          }')
+          done | sort -t. -k1,1n -k2,2n -k3,3n | tail -1 | awk '{print $2}')
 
           echo "tag=$PREV" >> "$GITHUB_OUTPUT"
           echo "Previous tag: $PREV"
 
       - name: Generate changelog
         run: |
+          VERSION="${{ github.event.inputs.version }}"
           PREV="${{ steps.prev.outputs.tag }}"
-          CURRENT="${{ steps.version.outputs.tag }}"
           REPO_URL="https://github.com/${{ github.repository }}"
 
           if [ -n "$PREV" ]; then
-            git log "${PREV}..${CURRENT}" --no-merges --format="- %s ([%h](${REPO_URL}/commit/%H))" | head -100 > changelog.md
+            git log "${PREV}..HEAD" --no-merges --format="- %s ([%h](${REPO_URL}/commit/%H))" | head -100 > changelog.md
             echo "" >> changelog.md
-            echo "**Full Changelog**: [${PREV}...${CURRENT}](${REPO_URL}/compare/${PREV}...${CURRENT})" >> changelog.md
+            echo "**Full Changelog**: [${PREV}...v${VERSION}](${REPO_URL}/compare/${PREV}...v${VERSION})" >> changelog.md
           else
             git log --no-merges --format="- %s ([%h](${REPO_URL}/commit/%H))" | head -50 > changelog.md
           fi
@@ -86,10 +86,16 @@ jobs:
             -x "TODO.md" \
             -x "TODO/*"
 
-      - name: Publish release
+      - name: Create tag and publish release
         run: |
-          gh release create "${{ steps.version.outputs.tag }}" \
-            --title "CockpitOS v${{ steps.version.outputs.version }}" \
+          VERSION="${{ github.event.inputs.version }}"
+          TAG="v${VERSION}"
+
+          git tag "$TAG"
+          git push origin "$TAG"
+
+          gh release create "$TAG" \
+            --title "CockpitOS v${VERSION}" \
             --notes-file changelog.md \
             --latest \
             CockpitOS.zip
