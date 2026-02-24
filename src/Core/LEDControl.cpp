@@ -212,11 +212,28 @@ void setLED(const char* label, bool state, uint8_t intensity, uint16_t rawValue,
             break;
 
         case DEVICE_MAGNETIC:
-            // Magnetic solenoid switch: energize when DCS position != rest position
+            // Magnetic solenoid: single (2-pos) or dual (3-pos)
             {
-                bool energize = (rawValue != led->info.magneticInfo.restPosition);
-                uint8_t pinLevel = (energize ^ led->activeLow) ? HIGH : LOW;
-                digitalWrite(led->info.magneticInfo.gpio, pinLevel);
+                const auto& m = led->info.magneticInfo;
+                uint8_t off = led->activeLow ? HIGH : LOW;
+                uint8_t on  = led->activeLow ? LOW  : HIGH;
+
+                if (m.gpioB == 255) {
+                    // Single solenoid (2-pos): rest=0, energize when ON
+                    digitalWrite(m.gpioA, (rawValue > 0) ? on : off);
+                } else {
+                    // Dual solenoid (3-pos): rest=1 (center)
+                    if (rawValue < 1) {
+                        digitalWrite(m.gpioA, on);
+                        digitalWrite(m.gpioB, off);
+                    } else if (rawValue > 1) {
+                        digitalWrite(m.gpioA, off);
+                        digitalWrite(m.gpioB, on);
+                    } else {
+                        digitalWrite(m.gpioA, off);
+                        digitalWrite(m.gpioB, off);
+                    }
+                }
             }
             break;
 
@@ -232,5 +249,34 @@ void setLED(const char* label, bool state, uint8_t intensity, uint16_t rawValue,
             endProfiling(PERF_LED_UNKNOWN);
             #endif
             break;
+    }
+
+    // Device-type-aware debug output (single block, no extra lookup)
+    if (DEBUG) {
+        switch (led->deviceType) {
+            case DEVICE_MAGNETIC: {
+                const auto& m = led->info.magneticInfo;
+                if (m.gpioB == 255) {
+                    debugPrintf("[MAGNETIC] %s %s (raw=%u)\n", label,
+                        rawValue > 0 ? "ENERGIZE" : "DE-ENERGIZE", rawValue);
+                } else {
+                    const char* pos = (rawValue < 1) ? "A" : (rawValue > 1) ? "B" : "REST";
+                    debugPrintf("[MAGNETIC] %s %s (raw=%u)\n", label, pos, rawValue);
+                }
+                break;
+            }
+            case DEVICE_GAUGE:
+                debugPrintf("[GAUGE] %s value=%u/%u\n", label, rawValue, maxValue);
+                break;
+            case DEVICE_NONE:
+                break;
+            default:
+                if (led->dimmable && intensity < 100) {
+                    debugPrintf("[LED] %s Intensity %u%%\n", label, intensity);
+                } else {
+                    debugPrintf("[LED] %s %s\n", label, state ? "ON" : "OFF");
+                }
+                break;
+        }
     }
 }

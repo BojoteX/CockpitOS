@@ -55,6 +55,30 @@ void preconfigureGPIO() {
                 // Optionally move gauge to safe position here if you wish
             }
         }
+        else if (led.deviceType == DEVICE_MAGNETIC) {
+            const auto& m = led.info.magneticInfo;
+            uint8_t offLevel = led.activeLow ? HIGH : LOW;
+
+            // Solenoid A — always present
+            pinMode(m.gpioA, OUTPUT);
+            digitalWrite(m.gpioA, offLevel);
+
+            // Solenoid B — only for 3-pos (255 = unused)
+            if (m.gpioB != 255) {
+                pinMode(m.gpioB, OUTPUT);
+                digitalWrite(m.gpioB, offLevel);
+            }
+
+            if (DEBUG) {
+                if (m.gpioB == 255) {
+                    debugPrintf("[INIT] MAGNETIC   %-20s (GPIO %2d)         -> OUTPUT, OFF (2-pos)\n",
+                        led.label, m.gpioA);
+                } else {
+                    debugPrintf("[INIT] MAGNETIC   %-20s (GPIO %2d, %2d)     -> OUTPUT, OFF (3-pos)\n",
+                        led.label, m.gpioA, m.gpioB);
+                }
+            }
+        }
     }
 }
 
@@ -87,6 +111,21 @@ void GPIO_setAllLEDs(bool state) {
         else if (led.deviceType == DEVICE_GAUGE && DEBUG) {
             debugPrintf("[LED GAUGE] %-20s (GPIO %2d) -> SKIPPED (servo)\n",
                         led.label, led.info.gaugeInfo.gpio);
+        }
+        else if (led.deviceType == DEVICE_MAGNETIC) {
+            const auto& m = led.info.magneticInfo;
+            uint8_t level = (state ^ led.activeLow) ? HIGH : LOW;
+            digitalWrite(m.gpioA, level);
+            if (m.gpioB != 255) digitalWrite(m.gpioB, level);
+            if (DEBUG) {
+                if (m.gpioB == 255) {
+                    debugPrintf("[MAGNETIC]  %-20s (GPIO %2d)          -> %s\n",
+                        led.label, m.gpioA, state ? "ON" : "OFF");
+                } else {
+                    debugPrintf("[MAGNETIC]  %-20s (GPIO %2d, %2d)      -> %s\n",
+                        led.label, m.gpioA, m.gpioB, state ? "ON" : "OFF");
+                }
+            }
         }
     }
 }
