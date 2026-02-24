@@ -128,13 +128,12 @@ _DEVICE_DESCRIPTIONS = {
     ],
     "MAGNETIC": [
         f"{CYAN}{BOLD}MAGNETIC{RESET} {DIM}\u2014 Solenoid for magnetically-held switches{RESET}",
-        f"{DIM}Drives a solenoid coil via a GPIO pin. The solenoid holds{RESET}",
-        f"{DIM}the switch in position; when DCS auto-returns the switch{RESET}",
-        f"{DIM}to its rest position, the solenoid de-energizes and the{RESET}",
-        f"{DIM}switch springs back. Requires a rest position value.{RESET}",
+        f"{DIM}Drives solenoid coil(s) via GPIO. When DCS auto-returns{RESET}",
+        f"{DIM}the switch to rest, solenoid de-energizes and the switch{RESET}",
+        f"{DIM}springs back.{RESET}",
         "",
-        f"{DIM}Good for: {RESET}APU, Engine Crank, LTD/R, and any switch",
-        f"          that DCS can auto-disengage.",
+        f"{DIM}  1 solenoid (2-pos toggle): {RESET}APU, LTD/R",
+        f"{DIM}  2 solenoids (3-pos rocker): {RESET}Engine Crank",
     ],
 }
 
@@ -279,7 +278,9 @@ def _generate_comment(device, info_type, info_values):
     if device == "WS2812" and len(vals) >= 1:
         return f"// WS2812 Index {vals[0]}"
     if device == "MAGNETIC" and len(vals) >= 2:
-        return f"// MAGNETIC GPIO {vals[0]} rest={vals[1]}"
+        return f"// MAGNETIC A={vals[0]} B={vals[1]}"
+    if device == "MAGNETIC" and len(vals) >= 1:
+        return f"// MAGNETIC A={vals[0]} (single)"
     return "// No Info"
 
 
@@ -373,7 +374,9 @@ def _info_summary(record):
     if dev == "GAUGE" and len(vals) >= 4:
         return f"gpio={vals[0]} {vals[1]}-{vals[2]}"
     if dev == "MAGNETIC" and len(vals) >= 2:
-        return f"gpio={vals[0]} rest={vals[1]}"
+        return f"A={vals[0]} B={vals[1]}"
+    if dev == "MAGNETIC" and len(vals) >= 1:
+        return f"A={vals[0]} (single)"
     return record["info_values"][:20]
 
 
@@ -551,18 +554,32 @@ def _edit_record_inner(record, label, max_values):
     elif dev == "MAGNETIC":
         # ── MAGNETIC: solenoid for magnetically-held switches ────────
         print(_SECTION_SEP)
-        gpio = ui.text_input("Solenoid GPIO pin",
-                             default=_extract_val(record["info_values"], 0, "0"))
-        if gpio is None: return False
+        ui.info(f"{DIM}1 solenoid = 2-pos toggle (APU, LTD/R){RESET}")
+        ui.info(f"{DIM}2 solenoids = 3-pos rocker (Engine Crank){RESET}")
         print()
-        ui.info(f"{DIM}Rest position: the DCS-BIOS output value when the switch is{RESET}")
-        ui.info(f"{DIM}in its spring-return (de-energized) position.{RESET}")
-        ui.info(f"{DIM}  Toggle switches (APU, LTD/R): rest = 0{RESET}")
-        ui.info(f"{DIM}  3-pos rocker (Engine Crank):   rest = 1 (center){RESET}")
-        rest = ui.text_input("Rest position value",
-                             default=_extract_val(record["info_values"], 1, "0"))
-        if rest is None: return False
-        record["info_values"] = f"{gpio.strip()}, {rest.strip()}"
+
+        # Infer current solenoid count from stored values
+        cur_b = _extract_val(record["info_values"], 1, "255")
+        cur_count = "1" if cur_b.strip() == "255" else "2"
+
+        count = ui.text_input("How many solenoids? (1 or 2)",
+                              default=cur_count)
+        if count is None: return False
+        count = count.strip()
+
+        if count == "2":
+            gpioA = ui.text_input("Solenoid A GPIO (below-center direction)",
+                                  default=_extract_val(record["info_values"], 0, "0"))
+            if gpioA is None: return False
+            gpioB = ui.text_input("Solenoid B GPIO (above-center direction)",
+                                  default=_extract_val(record["info_values"], 1, "0"))
+            if gpioB is None: return False
+            record["info_values"] = f"{gpioA.strip()}, {gpioB.strip()}"
+        else:
+            gpioA = ui.text_input("Solenoid GPIO pin",
+                                  default=_extract_val(record["info_values"], 0, "0"))
+            if gpioA is None: return False
+            record["info_values"] = f"{gpioA.strip()}, 255"
 
     # Dimmable & Active Low — skip for GAUGE and MAGNETIC (not applicable)
     if dev in ("GAUGE", "MAGNETIC"):
