@@ -4,6 +4,7 @@
 **Branch:** `claude/review-codebase-bugs-3sBAD`
 **Label Set Compiled:** MAIN
 **Build Result:** PASS (0 CockpitOS warnings, 71 framework-only warnings)
+**Findings:** 2 Critical, 20 Important, 20 Minor, 1 Generator
 **Flash:** 1,051,719 bytes (50%) | **RAM:** 103,296 bytes (31%)
 
 ---
@@ -242,7 +243,97 @@ The HID descriptor has `Report Count 16` but only 8 Usage IDs (X, Y, Z, Rx, Ry, 
 
 ---
 
-### I13. WingFold.cpp: PCA address hardcoded to 0x26
+### I13. CMD_HASH_TABLE_SIZE (127) can silently drop entries when commandHistorySize exceeds it
+
+**File:** `src/Core/DCSBIOSBridge.cpp:927-945`
+
+`CMD_HASH_TABLE_SIZE` is fixed at 127. `commandHistorySize` can be up to `MAX_TRACKED_RECORDS` (512). When `buildCmdHashTable()` inserts entries via linear probing, if more than ~95 commands exist (75% load factor), collision chains degrade severely. Above 127 entries, the probe loop exhausts all slots and entries are silently dropped -- no error path exists.
+
+Dropped entries cause `findCmdEntry()` to return `nullptr`, which makes `sendDCSBIOSCommand()` reject them with "REJECTED untracked". Complex cockpit panels (full F/A-18C) could exceed 127 commands.
+
+```cpp
+static constexpr size_t CMD_HASH_TABLE_SIZE = 127;
+for (size_t probe = 0; probe < CMD_HASH_TABLE_SIZE; ++probe) {
+    if (!cmdHashTable[h].label) { ... break; }
+    h = (h + 1) % CMD_HASH_TABLE_SIZE;
+}
+// No error path if probe loop completes without inserting
+```
+
+**Fix:** Increase `CMD_HASH_TABLE_SIZE` to a prime larger than `MAX_TRACKED_RECORDS` (e.g., 1031), or add a `static_assert`.
+
+---
+
+### I14. isCoverOpen / isToggleOn macros double-evaluate findCmdEntry()
+
+**File:** `src/DCSBIOSBridge.h:91-92`
+
+```cpp
+#define isCoverOpen(label) (findCmdEntry(label) ? (findCmdEntry(label)->lastValue > 0) : false)
+```
+
+The macro calls `findCmdEntry(label)` twice per invocation -- a TOCTOU issue and doubled hash lookup cost. If `label` is an expression with side effects, it would be evaluated twice.
+
+**Fix:** Replace with an inline function:
+```cpp
+inline bool isCoverOpen(const char* label) {
+    CommandHistoryEntry* e = findCmdEntry(label);
+    return e && e->lastValue > 0;
+}
+```
+
+---
+
+### I15. lastValSelector extern/definition dimension mismatch (ODR violation)
+
+**File:** `src/InputControl.h:47` vs `src/Core/InputControl.cpp:450`
+
+```cpp
+// Header (InputControl.h:47)
+extern int16_t lastValSelector[MAX_PCA_GROUPS][MAX_PCAS];
+
+// Definition (InputControl.cpp:450)
+int16_t lastValSelector[MAX_SELECTOR_GROUPS][MAX_PCAS] = { { -1 } };
+```
+
+`MAX_PCA_GROUPS` and `MAX_SELECTOR_GROUPS` are separate `#define` constants that both happen to be 128. If either is changed independently, this becomes a silent ODR violation the compiler/linker won't catch.
+
+**Fix:** Use the same constant (`MAX_SELECTOR_GROUPS`) in both places.
+
+---
+
+### I16. HIDManager_sendReport missing hidId bounds check before bit shift
+
+**File:** `src/Core/HIDManager.cpp:565`
+
+```cpp
+uint32_t mask = (1UL << (m->hidId - 1));  // no bounds check
+```
+
+If `hidId <= 0`, the subtraction wraps to a large value causing undefined behavior in the shift. If `hidId > 32`, the shift is also UB. Other callers (`HIDManager_setNamedButton`, `HIDManager_setToggleNamedButton`) check `hidId <= 0` before their own shifts, but `HIDManager_sendReport` does not.
+
+**Fix:** Add early return: `if (m->hidId <= 0 || m->hidId > 32) return;`
+
+---
+
+### I17. cdcEnsureTxReady / cdcEnsureRxReady spin loops can trigger watchdog
+
+**File:** `src/Core/DCSBIOSBridge.cpp:1214-1233`
+
+```cpp
+while (!cdcTxReady) {
+    yield();
+    if (millis() - start > timeoutMs) return false;
+}
+```
+
+These spin with `yield()` until a volatile flag is set or timeout expires. If USB is disconnected mid-operation, `yield()` may not feed the task watchdog (ESP32 TWDT is ~5s), causing a hard reset instead of a graceful timeout.
+
+**Fix:** Use `vTaskDelay(1)` instead of `yield()` to guarantee watchdog feeding, or add `esp_task_wdt_reset()` inside the loop.
+
+---
+
+### I18. WingFold.cpp: PCA address hardcoded to 0x26
 
 **File:** `src/Panels/WingFold.cpp:68-69`
 
@@ -256,6 +347,35 @@ g_port = 0;     // hardcoded
 **Impact:** WingFold panel only works on PCA address 0x26. Any other address configuration reads from the wrong I2C device.
 
 **Fix:** Parse the address from `m.source` like `_collectPcaAddresses` does in `Mappings.cpp`.
+
+---
+
+### I19. WiFi ring buffer not protected against concurrent access across cores
+
+**File:** `src/Core/WiFiDebug.cpp:55-107`
+
+WiFi debug ring buffer `wifiDbgSendHead`/`wifiDbgSendTail` use `volatile` but are read/written from both the main loop context (via `debugPrintf` -> `wifiDebugSendChunked`) and the AsyncUDP callback context (WiFi task on Core 0). The push/pop operations are non-atomic read-modify-write sequences.
+
+**Impact:** If debug messages are emitted from both cores concurrently (enabled when `USE_DCSBIOS_WIFI` is active), the ring buffer can corrupt, leading to garbled debug output or a tight loop.
+
+**Fix:** Protect push/pop with a `portMUX_TYPE` spinlock, or use a FreeRTOS queue.
+
+---
+
+### I20. wifi_setup() loops forever if WiFi connection fails
+
+**File:** `src/Core/WiFiDebug.cpp:276-279`
+
+```cpp
+while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    serialDebugPrint(".");
+}
+```
+
+No timeout. If WiFi is unavailable (wrong credentials, router down), the device hangs for 30s until the startup watchdog triggers bootloader mode.
+
+**Fix:** Add a timeout counter (e.g., 20s) and continue without WiFi if connection fails.
 
 ---
 
@@ -424,13 +544,74 @@ If a label set has >128 LEDs, this overflows. Development-only feature (`TEST_LE
 
 ---
 
-### M15. RingBuffer.h: DcsRawUsbOutRingMsg uses DCS_UDP_PACKET_MAXLEN for data field
+### M15. syncCommandHistoryFromInputMapping null-dereference if controlType is null
+
+**File:** `src/Core/DCSBIOSBridge.cpp:454-455`
+
+```cpp
+const bool isSel = (strcmp(m.controlType, "selector") == 0);
+const bool isBtn = (strcmp(m.controlType, "momentary") == 0);
+```
+
+No null check on `m.controlType` before `strcmp`. Other callers in `InputControl.cpp` consistently check `m.controlType &&` first. If any InputMapping has `controlType == nullptr`, this crashes.
+
+**Fix:** Add null guard: `const bool isSel = (m.controlType && strcmp(m.controlType, "selector") == 0);`
+
+---
+
+### M16. Dead declarations in HIDManager.h
+
+**File:** `src/HIDManager.h:12, 75`
+
+`void HIDSenderTask(void* param)` and `bool shouldPollDisplayRefreshMs(unsigned long& lastPoll)` are declared but never defined in any `.cpp` file. Any caller would get a linker error.
+
+**Fix:** Remove the stale declarations.
+
+---
+
+### M17. #if CLOSE_CDC_SERIAL without defined() guard
+
+**File:** `src/Core/HIDManager.cpp:70`
+
+`#if CLOSE_CDC_SERIAL` on line 70 works but relies on undefined macros evaluating to 0. Line 1115 in the same file correctly uses `#if defined(CLOSE_CDC_SERIAL)`. Inconsistent and triggers `-Wundef` with strict warnings.
+
+**Fix:** Change line 70 to `#if defined(CLOSE_CDC_SERIAL)`.
+
+---
+
+### M18. wifiDebugPrintln does not append a newline
+
+**File:** `src/Core/WiFiDebug.cpp:366-368`
+
+```cpp
+void wifiDebugPrintln(const char* msg) {
+    wifiDebugSendChunked(msg, strlen(msg));  // identical to wifiDebugPrint()
+}
+```
+
+The function name suggests it appends `\n` (like `Serial.println()`), but it does not. May explain concatenated debug output on WiFi console.
+
+**Fix:** Append `\n` to the message, or rename to match `wifiDebugPrint()` behavior.
+
+---
+
+### M19. RingBuffer.h: DcsRawUsbOutRingMsg uses DCS_UDP_PACKET_MAXLEN for data field
 
 **File:** `src/RingBuffer.h:27`
 
 The outgoing USB ring message struct uses `DCS_UDP_PACKET_MAXLEN` (which is 1472 in BLE mode) for its data field, but the clamp in push uses `DCS_USB_PACKET_MAXLEN` (64). In BLE mode, each of the 32 ring slots wastes ~1400 bytes.
 
 **Fix:** Use `DCS_USB_PACKET_MAXLEN` for the outgoing struct's data field.
+
+---
+
+### M20. onDcsBiosUdpPacket header/implementation signature mismatch
+
+**File:** `src/DCSBIOSBridge.h:130` vs `src/Core/DCSBIOSBridge.cpp:775`
+
+Header declares `void onDcsBiosUdpPacket(const uint8_t* data, size_t len)` but the implementation has `void onDcsBiosUdpPacket()` (no parameters). The parameterized version is never defined, so any translation unit calling it would get a linker error.
+
+**Fix:** Remove or update the stale declaration to match `void onDcsBiosUdpPacket();`.
 
 ---
 
