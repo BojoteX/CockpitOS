@@ -2,9 +2,9 @@ Generated DisplayMapping.cpp and DisplayMapping.h for devices: HUD, IFEI, UFC
 ============================================================
 CockpitOS PanelKind Generator
 ============================================================
-Root:   C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS
-Panels: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Panels
-Output: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Generated\PanelKind.h
+Root:   C:\Users\jaltu\Documents\Arduino\CockpitOS
+Panels: C:\Users\jaltu\Documents\Arduino\CockpitOS\src\Panels
+Output: C:\Users\jaltu\Documents\Arduino\CockpitOS\src\Generated\PanelKind.h
 
 Permanent PCA entries (1):
   AnalogGauge              — Auto-detected when DEVICE_GAUGE in LEDMapping
@@ -23,7 +23,7 @@ Scanning 12 panel files...
   TFT_Gauges_RadarAlt.cpp                  → TFTRadarAlt          (from PANEL_KIND)
   WingFold.cpp                             → WingFold             (from filename)
 
-Generated: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Generated\PanelKind.h
+Generated: C:\Users\jaltu\Documents\Arduino\CockpitOS\src\Generated\PanelKind.h
   → 1 permanent PCA entries
   → 12 compiled panel entries
   → 13 total + COUNT

@@ -587,10 +587,10 @@ void onLedChange(const char* label, uint16_t value, uint16_t max_value) {
     frameCounter++;
 
     if (max_value <= 1) {
-        setLED(label, value > 0);
+        setLED(label, value > 0, 100, value, max_value);
         char buf[128];
         snprintf(buf, sizeof(buf), "[LED] %s is set to %u", label, value);
-        if(DEBUG) debugPrintln(buf);    
+        if(DEBUG) debugPrintln(buf);
     } else {
         uint8_t intensity = (value * 100UL) / max_value;
         if (intensity < 7) {
