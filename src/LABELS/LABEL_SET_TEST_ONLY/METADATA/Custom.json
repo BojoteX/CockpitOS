@@ -1,3 +1,54 @@
 {
-    "Custom": {}
+    "Custom": {
+        "ENGINE_CRANK_SW_CUSTOM": {
+            "category": "Auxiliary Power Unit Panel",
+            "control_type": "momentary",
+            "description": "Engine Crank Switch, LEFT/OFF/RIGHT",
+            "identifier": "ENGINE_CRANK_SW",
+            "inputs": [
+                {
+                    "interface": "fixed_step"
+                }
+            ],
+            "outputs": [
+                {
+                    "address": 29890,
+                    "address_mask_shift_identifier": "FA_18C_hornet_ENGINE_CRANK_SW",
+                    "description": "selector position",
+                    "mask": 1536,
+                    "max_value": 2,
+                    "shift_by": 9,
+                    "suffix": "",
+                    "type": "integer"
+                }
+            ],
+            "oride_value": 2,
+            "oride_release": 1
+        },
+        "ENGINE_CRANK_SW_CUSTOM_2": {
+            "category": "Auxiliary Power Unit Panel",
+            "control_type": "momentary",
+            "description": "Engine Crank Switch, LEFT/OFF/RIGHT",
+            "identifier": "ENGINE_CRANK_SW",
+            "inputs": [
+                {
+                    "interface": "fixed_step"
+                }
+            ],
+            "outputs": [
+                {
+                    "address": 29890,
+                    "address_mask_shift_identifier": "FA_18C_hornet_ENGINE_CRANK_SW",
+                    "description": "selector position",
+                    "mask": 1536,
+                    "max_value": 2,
+                    "shift_by": 9,
+                    "suffix": "",
+                    "type": "integer"
+                }
+            ],
+            "oride_value": 0,
+            "oride_release": 1
+        }
+    }
 }
