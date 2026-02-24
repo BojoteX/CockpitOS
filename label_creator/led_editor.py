@@ -43,17 +43,19 @@ LED_DEVICES = [
     ("GN1640T",          "GN1640T"),
     ("WS2812",           "WS2812"),
     ("GAUGE",            "GAUGE"),
+    ("MAGNETIC",         "MAGNETIC"),
 ]
 
 # Map device -> info struct type name
 _DEVICE_INFO_MAP = {
-    "NONE":    "gpioInfo",
-    "GPIO":    "gpioInfo",
-    "PCA9555": "pcaInfo",
-    "TM1637":  "tm1637Info",
-    "GN1640T": "gn1640Info",
-    "WS2812":  "ws2812Info",
-    "GAUGE":   "gaugeInfo",
+    "NONE":     "gpioInfo",
+    "GPIO":     "gpioInfo",
+    "PCA9555":  "pcaInfo",
+    "TM1637":   "tm1637Info",
+    "GN1640T":  "gn1640Info",
+    "WS2812":   "ws2812Info",
+    "GAUGE":    "gaugeInfo",
+    "MAGNETIC": "magneticInfo",
 }
 
 
@@ -123,6 +125,16 @@ _DEVICE_DESCRIPTIONS = {
         "",
         f"{DIM}Good for: {RESET}physical analog gauges, needle instruments,",
         f"          and any indicator that uses a servo motor.",
+    ],
+    "MAGNETIC": [
+        f"{CYAN}{BOLD}MAGNETIC{RESET} {DIM}\u2014 Solenoid for magnetically-held switches{RESET}",
+        f"{DIM}Drives a solenoid coil via a GPIO pin. The solenoid holds{RESET}",
+        f"{DIM}the switch in position; when DCS auto-returns the switch{RESET}",
+        f"{DIM}to its rest position, the solenoid de-energizes and the{RESET}",
+        f"{DIM}switch springs back. Requires a rest position value.{RESET}",
+        "",
+        f"{DIM}Good for: {RESET}APU, Engine Crank, LTD/R, and any switch",
+        f"          that DCS can auto-disengage.",
     ],
 }
 
@@ -266,6 +278,8 @@ def _generate_comment(device, info_type, info_values):
         return f"// GN1640 Addr {vals[0]} Col {vals[1]} Row {vals[2]}"
     if device == "WS2812" and len(vals) >= 1:
         return f"// WS2812 Index {vals[0]}"
+    if device == "MAGNETIC" and len(vals) >= 2:
+        return f"// MAGNETIC GPIO {vals[0]} rest={vals[1]}"
     return "// No Info"
 
 
@@ -358,6 +372,8 @@ def _info_summary(record):
         return f"idx={vals[0]}"
     if dev == "GAUGE" and len(vals) >= 4:
         return f"gpio={vals[0]} {vals[1]}-{vals[2]}"
+    if dev == "MAGNETIC" and len(vals) >= 2:
+        return f"gpio={vals[0]} rest={vals[1]}"
     return record["info_values"][:20]
 
 
@@ -532,8 +548,24 @@ def _edit_record_inner(record, label, max_values):
         if period is None: return False
         record["info_values"] = f"{gpio.strip()}, {minP.strip()}, {maxP.strip()}, {period.strip()}"
 
-    # Dimmable & Active Low — skip for GAUGE (analog servo, not applicable)
-    if dev == "GAUGE":
+    elif dev == "MAGNETIC":
+        # ── MAGNETIC: solenoid for magnetically-held switches ────────
+        print(_SECTION_SEP)
+        gpio = ui.text_input("Solenoid GPIO pin",
+                             default=_extract_val(record["info_values"], 0, "0"))
+        if gpio is None: return False
+        print()
+        ui.info(f"{DIM}Rest position: the DCS-BIOS output value when the switch is{RESET}")
+        ui.info(f"{DIM}in its spring-return (de-energized) position.{RESET}")
+        ui.info(f"{DIM}  Toggle switches (APU, LTD/R): rest = 0{RESET}")
+        ui.info(f"{DIM}  3-pos rocker (Engine Crank):   rest = 1 (center){RESET}")
+        rest = ui.text_input("Rest position value",
+                             default=_extract_val(record["info_values"], 1, "0"))
+        if rest is None: return False
+        record["info_values"] = f"{gpio.strip()}, {rest.strip()}"
+
+    # Dimmable & Active Low — skip for GAUGE and MAGNETIC (not applicable)
+    if dev in ("GAUGE", "MAGNETIC"):
         record["dimmable"]  = "false"
         record["activeLow"] = "false"
     else:

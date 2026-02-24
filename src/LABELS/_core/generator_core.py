@@ -47,6 +47,7 @@ def run():
         "TM1637",
         "GN1640T",
         "WS2812",
+        "MAGNETIC",
         "NONE",
     ]
 
@@ -1258,6 +1259,8 @@ def run():
             return f"// GN1640 Addr {info[0]} Col {info[1]} Row {info[2]}"
         if device == "WS2812" and len(info) >= 1:
             return f"// WS2812 Index {info[0]}"
+        if device == "MAGNETIC" and len(info) >= 2:
+            return f"// MAGNETIC GPIO {info[0]} rest={info[1]}"
         return "// No Info"
 
     # ——— 1) PARSE existing LEDControl_Lookup.h (if any) ———
@@ -1375,6 +1378,7 @@ def run():
         out.write("    struct { uint8_t address; uint8_t column; uint8_t row; } gn1640Info;\n")
         # out.write("    struct { uint8_t index; } ws2812Info;\n")
         out.write("    struct { uint8_t index; uint8_t pin; uint8_t defR; uint8_t defG; uint8_t defB; uint8_t defBright; } ws2812Info;\n")
+        out.write("    struct { uint8_t gpio; uint16_t restPosition; } magneticInfo;\n")
         out.write("  } info;\n")
         out.write("  bool dimmable;\n")
         out.write("  bool activeLow;\n")

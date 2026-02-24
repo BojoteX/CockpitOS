@@ -9,6 +9,7 @@ enum LEDDeviceType {
   DEVICE_TM1637,
   DEVICE_GN1640T,
   DEVICE_WS2812,
+  DEVICE_MAGNETIC,
   DEVICE_NONE,
 };
 
@@ -22,6 +23,7 @@ struct LEDMapping {
     struct { uint8_t clkPin; uint8_t dioPin; uint8_t segment; uint8_t bit; } tm1637Info;
     struct { uint8_t address; uint8_t column; uint8_t row; } gn1640Info;
     struct { uint8_t index; uint8_t pin; uint8_t defR; uint8_t defG; uint8_t defB; uint8_t defBright; } ws2812Info;
+    struct { uint8_t gpio; uint16_t restPosition; } magneticInfo;
   } info;
   bool dimmable;
   bool activeLow;
@@ -31,7 +33,7 @@ struct LEDMapping {
 static const LEDMapping panelLEDs[] = {
   { "APU_CONTROL_SW"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "APU_READY_LT"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "ENGINE_CRANK_SW"  , DEVICE_GPIO    , {.gpioInfo = {15}}, true, false }, // GPIO 15,
+  { "ENGINE_CRANK_SW"  , DEVICE_GPIO    , {.gpioInfo = {15}}, false, false }, // GPIO 15,
   { "MASTER_ARM_SW"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MASTER_MODE_AA"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MASTER_MODE_AA_LT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
