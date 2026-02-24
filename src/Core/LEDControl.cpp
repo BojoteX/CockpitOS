@@ -12,6 +12,7 @@ static bool g_hasTM1637 = false;
 static bool g_hasWS2812 = false;
 static bool g_hasGN1640 = false;
 static bool g_hasGauge = false;
+static bool g_hasMagnetic = false;
 static bool g_deviceScanComplete = false;
 
 // ============================================================================
@@ -23,21 +24,23 @@ void scanOutputDevicePresence() {
     g_hasWS2812 = false;
     g_hasGN1640 = false;
     g_hasGauge = false;
+    g_hasMagnetic = false;
 
     for (uint16_t i = 0; i < panelLEDsCount; ++i) {
         switch (panelLEDs[i].deviceType) {
-        case DEVICE_TM1637:  g_hasTM1637 = true;  break;
-        case DEVICE_WS2812:  g_hasWS2812 = true;  break;
-        case DEVICE_GN1640T: g_hasGN1640 = true;  break;
-        case DEVICE_GAUGE:   g_hasGauge = true;  break;
+        case DEVICE_TM1637:   g_hasTM1637 = true;   break;
+        case DEVICE_WS2812:   g_hasWS2812 = true;   break;
+        case DEVICE_GN1640T:  g_hasGN1640 = true;   break;
+        case DEVICE_GAUGE:    g_hasGauge = true;     break;
+        case DEVICE_MAGNETIC: g_hasMagnetic = true;  break;
         default: break;
         }
     }
 
     g_deviceScanComplete = true;
 
-    debugPrintf("📊 Output device scan: TM1637=%d WS2812=%d GN1640=%d GAUGE=%d\n",
-        g_hasTM1637, g_hasWS2812, g_hasGN1640, g_hasGauge);
+    debugPrintf("📊 Output device scan: TM1637=%d WS2812=%d GN1640=%d GAUGE=%d MAGNETIC=%d\n",
+        g_hasTM1637, g_hasWS2812, g_hasGN1640, g_hasGauge, g_hasMagnetic);
 }
 
 // ============================================================================
@@ -49,10 +52,11 @@ bool hasOutputDevice(uint8_t deviceType) {
         return false;
     }
     switch (deviceType) {
-    case DEVICE_TM1637:  return g_hasTM1637;
-    case DEVICE_WS2812:  return g_hasWS2812;
-    case DEVICE_GN1640T: return g_hasGN1640;
-    case DEVICE_GAUGE:   return g_hasGauge;
+    case DEVICE_TM1637:   return g_hasTM1637;
+    case DEVICE_WS2812:   return g_hasWS2812;
+    case DEVICE_GN1640T:  return g_hasGN1640;
+    case DEVICE_GAUGE:    return g_hasGauge;
+    case DEVICE_MAGNETIC: return g_hasMagnetic;
     default: return false;
     }
 }
@@ -207,6 +211,32 @@ void setLED(const char* label, bool state, uint8_t intensity, uint16_t rawValue,
             #endif
             break;
 
+        case DEVICE_MAGNETIC:
+            // Magnetic solenoid: single (2-pos) or dual (3-pos)
+            {
+                const auto& m = led->info.magneticInfo;
+                uint8_t off = led->activeLow ? HIGH : LOW;
+                uint8_t on  = led->activeLow ? LOW  : HIGH;
+
+                if (m.gpioB == 255) {
+                    // Single solenoid (2-pos): rest=0, energize when ON
+                    digitalWrite(m.gpioA, (rawValue > 0) ? on : off);
+                } else {
+                    // Dual solenoid (3-pos): rest=1 (center)
+                    if (rawValue < 1) {
+                        digitalWrite(m.gpioA, on);
+                        digitalWrite(m.gpioB, off);
+                    } else if (rawValue > 1) {
+                        digitalWrite(m.gpioA, off);
+                        digitalWrite(m.gpioB, on);
+                    } else {
+                        digitalWrite(m.gpioA, off);
+                        digitalWrite(m.gpioB, off);
+                    }
+                }
+            }
+            break;
+
         case DEVICE_NONE:
         default:
             #if DEBUG_PERFORMANCE
@@ -214,10 +244,39 @@ void setLED(const char* label, bool state, uint8_t intensity, uint16_t rawValue,
             #endif
 
             // if(DEBUG) debugPrintf("⚠️ '%s' is NOT a LED or has not being configured yet\n", label);
-            
+
 #if DEBUG_PERFORMANCE
             endProfiling(PERF_LED_UNKNOWN);
-            #endif            
+            #endif
             break;
+    }
+
+    // Device-type-aware debug output (single block, no extra lookup)
+    if (DEBUG) {
+        switch (led->deviceType) {
+            case DEVICE_MAGNETIC: {
+                const auto& m = led->info.magneticInfo;
+                if (m.gpioB == 255) {
+                    debugPrintf("[MAGNETIC] %s %s (raw=%u)\n", label,
+                        rawValue > 0 ? "ENERGIZE" : "DE-ENERGIZE", rawValue);
+                } else {
+                    const char* pos = (rawValue < 1) ? "A" : (rawValue > 1) ? "B" : "REST";
+                    debugPrintf("[MAGNETIC] %s %s (raw=%u)\n", label, pos, rawValue);
+                }
+                break;
+            }
+            case DEVICE_GAUGE:
+                debugPrintf("[GAUGE] %s value=%u/%u\n", label, rawValue, maxValue);
+                break;
+            case DEVICE_NONE:
+                break;
+            default:
+                if (led->dimmable && intensity < 100) {
+                    debugPrintf("[LED] %s Intensity %u%%\n", label, intensity);
+                } else {
+                    debugPrintf("[LED] %s %s\n", label, state ? "ON" : "OFF");
+                }
+                break;
+        }
     }
 }

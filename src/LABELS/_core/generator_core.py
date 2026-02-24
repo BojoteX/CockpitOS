@@ -47,6 +47,7 @@ def run():
         "TM1637",
         "GN1640T",
         "WS2812",
+        "MAGNETIC",
         "NONE",
     ]
 
@@ -336,6 +337,7 @@ def run():
 
     # -------- BUILD SELECTOR_ENTRIES (filtered) -------- THE LOGIC HERE IS SACRED, YOU DO NOT TOUCH NOT EVEN A COMMENT
     selector_entries = []
+    custom_release_map = {}   # full_label -> release value (only for custom momentaries with non-zero release)
     groupCounter = 0
     for panel, controls in data.items():
         if not PROCESS_ALL and panel not in target_objects:
@@ -357,6 +359,63 @@ def run():
             # does this control expose fixed_step?
             has_fixed_step = any(inp.get('interface') == 'fixed_step' for inp in item.get('inputs', []))
 
+            # --- Custom control override: trust explicit control_type, skip heuristics ---
+            # Custom entries have ident != orig_ident (e.g. "MASTER_ARM_SW_CUSTOM" vs "MASTER_ARM_SW").
+            # Standard controls always have ident == identifier, so they never enter this block.
+            if ident != orig_ident:
+                # Find max_value from inputs (same logic as standard path)
+                custom_max = None
+                for inp in item.get('inputs', []):
+                    if inp.get('interface') == 'set_state' and 'max_value' in inp:
+                        custom_max = inp['max_value']
+                        break
+
+                # Optional override value from Custom.json (default: type-specific)
+                custom_oride = item.get('oride_value')
+
+                if ctype == 'momentary':
+                    press_val = custom_oride if custom_oride is not None else 1
+                    full_label = f"{ident}_PRESS"
+                    selector_entries.append((full_label, orig_ident, press_val, 'momentary', 0, "PRESS", ident))
+                    # Store release value for custom momentaries (default 0)
+                    custom_release = item.get('oride_release', 0)
+                    if custom_release:
+                        custom_release_map[full_label] = int(custom_release)
+                    continue
+
+                if ctype == 'fixed_step_dial':
+                    selector_entries.append((f"{ident}_DEC", orig_ident, 0, 'fixed_step', 0, "DEC", ident))
+                    selector_entries.append((f"{ident}_INC", orig_ident, 1, 'fixed_step', 0, "INC", ident))
+                    continue
+
+                if ctype in ('limited_dial', 'analog_dial'):
+                    a_max = custom_max if custom_max is not None else 1
+                    selector_entries.append((ident, orig_ident, a_max, 'analog', 0, "LEVEL", ident))
+                    selector_entries.append((f"{ident}_DEC", orig_ident, 0, 'variable_step', 0, "DEC", ident))
+                    selector_entries.append((f"{ident}_INC", orig_ident, 1, 'variable_step', 0, "INC", ident))
+                    continue
+
+                if ctype == 'selector':
+                    s_max = custom_max if custom_max is not None else 1
+                    count = s_max + 1
+                    groupCounter += 1
+                    for i in range(count):
+                        selector_entries.append((f"{ident}_POS{i}", orig_ident, i, 'selector', groupCounter, f"POS{i}", ident))
+                    if has_fixed_step and s_max > FIXED_STEP_INCDEC_THRESHOLD:
+                        selector_entries.append((f"{ident}_DEC", orig_ident, 0, 'fixed_step', 0, "DEC", ident))
+                        selector_entries.append((f"{ident}_INC", orig_ident, 1, 'fixed_step', 0, "INC", ident))
+                    continue
+
+                # Fallback for any custom type not explicitly handled above
+                # (action/toggle_switch already normalize to 'selector' via NORMALIZE_TO_SELECTOR)
+                press_val = custom_oride if custom_oride is not None else 1
+                full_label = f"{ident}_PRESS"
+                selector_entries.append((full_label, orig_ident, press_val, 'momentary', 0, "PRESS", ident))
+                custom_release = item.get('oride_release', 0)
+                if custom_release:
+                    custom_release_map[full_label] = int(custom_release)
+                continue
+            # --- End custom control override ---
 
             # skip analog gauges (but allow knobs)
             # if ctype in ('limited_dial','analog_dial','analog_gauge'):
@@ -986,7 +1045,9 @@ def run():
         r'"(?P<cmd>[^"]+)"\s*,\s*'
         r'(?P<value>-?\d+)\s*,\s*'
         r'"(?P<type>[^"]+)"\s*,\s*'
-        r'(?P<group>\d+)\s*\}\s*,'
+        r'(?P<group>\d+)\s*'
+        r'(?:,\s*(?P<releaseValue>\d+)\s*)?'   # optional: matches both old (no rel) and new format
+        r'\}\s*,'
     )
 
 
@@ -1007,7 +1068,8 @@ def run():
                     "oride_label": d["cmd"],
                     "oride_value": int(d["value"]),
                     "controlType": d["type"],
-                    "group":       int(d["group"])
+                    "group":       int(d["group"]),
+                    "releaseValue": int(d["releaseValue"]) if d.get("releaseValue") else 0
                 }
 
     # --- Strip lab + json_key for InputMapping merge, keep json_key for grouping ---
@@ -1050,14 +1112,26 @@ def run():
     for full, cmd, val, ct, grp, json_key in selector_entries_inputmap:
         if full in existing_map:
             e = existing_map[full]
-            merged.append((
-                e["label"], e["source"], e["port"], e["bit"],
-                e["hidId"], e["oride_label"], e["oride_value"],
-                e["controlType"], e["group"]
-            ))
+            # Custom entries (json_key != cmd): preserve hardware wiring but
+            # re-apply generator-computed value/type from Custom.json so that
+            # changes to oride_value or control_type take effect on re-gen.
+            # Also re-apply releaseValue from custom_release_map.
+            if json_key != cmd:
+                rel = custom_release_map.get(full, 0)
+                merged.append((
+                    e["label"], e["source"], e["port"], e["bit"],
+                    e["hidId"], cmd, val, ct, e["group"], rel
+                ))
+            else:
+                merged.append((
+                    e["label"], e["source"], e["port"], e["bit"],
+                    e["hidId"], e["oride_label"], e["oride_value"],
+                    e["controlType"], e["group"], e["releaseValue"]
+                ))
         else:
             final_grp = alloc_group(json_key, grp, full)  # <- key on ident, not cmd
-            merged.append((full, "NONE", 0, 0, -1, cmd, val, ct, final_grp))
+            rel = custom_release_map.get(full, 0)
+            merged.append((full, "NONE", 0, 0, -1, cmd, val, ct, final_grp, rel))
 
     # 3) write out merged list
     with open(INPUT_REFERENCE, "w", encoding="utf-8") as f2:
@@ -1078,8 +1152,9 @@ def run():
         f2.write("    uint16_t    oride_value;  // Override command value (value)\n")
         f2.write("    const char* controlType;  // Control type, e.g., \"selector\"\n")
         f2.write("    uint16_t    group;        // Group ID for exclusive selectors\n")
+        f2.write("    uint16_t    releaseValue; // DCS-BIOS value sent on momentary release (0 = default)\n")
         f2.write("};\n\n")
-        f2.write('//  label                       source     port bit hidId  DCSCommand           value   Type        group\n')
+        f2.write('//  label                       source     port bit hidId  DCSCommand           value   Type        group  rel\n')
 
         if not merged:
             f2.write("static const InputMapping InputMappings[] = {\n};\n")
@@ -1089,7 +1164,7 @@ def run():
             max_cmd   = max(len(e[5]) for e in merged)
             max_type  = max(len(e[7]) for e in merged)
 
-            for lbl, src, port, bit, hid, cmd, val, typ, gp in merged:
+            for lbl, src, port, bit, hid, cmd, val, typ, gp, rel in merged:
                 lblf = f'"{lbl}"'.ljust(max_label+2)
                 cmdf = f'"{cmd}"'.ljust(max_cmd+2)
                 ctf  = f'"{typ}"'.ljust(max_type+2)
@@ -1097,7 +1172,7 @@ def run():
                 # val_str = f"0xFFFF" if val > 32767 else f"{val:>5}"
                 val_str = f"{val:>5}"
                 f2.write(f'    {{ {lblf}, "{src}" , {port:>2} , {bit:>2} , {hid:>3} , '
-                     f'{cmdf}, {val_str} , {ctf}, {gp:>2} }},\n')
+                     f'{cmdf}, {val_str} , {ctf}, {gp:>2} , {rel:>2} }},\n')
 
             f2.write("};\n")
 
@@ -1105,7 +1180,7 @@ def run():
 
         # --- TrackedSelectorLabels[] auto-gen ---
         tracked_labels = set()
-        for lbl, src, port, bit, hid, oride_label, oride_value, typ, group in merged:
+        for lbl, src, port, bit, hid, oride_label, oride_value, typ, group, rel in merged:
             if typ == "selector" and int(group) > 0:
                 tracked_labels.add(oride_label)
         if tracked_labels:
@@ -1184,6 +1259,10 @@ def run():
             return f"// GN1640 Addr {info[0]} Col {info[1]} Row {info[2]}"
         if device == "WS2812" and len(info) >= 1:
             return f"// WS2812 Index {info[0]}"
+        if device == "MAGNETIC" and len(info) >= 2:
+            return f"// MAGNETIC A={info[0]} B={info[1]}"
+        if device == "MAGNETIC" and len(info) >= 1:
+            return f"// MAGNETIC A={info[0]} (single)"
         return "// No Info"
 
     # ——— 1) PARSE existing LEDControl_Lookup.h (if any) ———
@@ -1301,6 +1380,7 @@ def run():
         out.write("    struct { uint8_t address; uint8_t column; uint8_t row; } gn1640Info;\n")
         # out.write("    struct { uint8_t index; } ws2812Info;\n")
         out.write("    struct { uint8_t index; uint8_t pin; uint8_t defR; uint8_t defG; uint8_t defB; uint8_t defBright; } ws2812Info;\n")
+        out.write("    struct { uint8_t gpioA; uint8_t gpioB; } magneticInfo;  // gpioB=255 → single solenoid (2-pos)\n")
         out.write("  } info;\n")
         out.write("  bool dimmable;\n")
         out.write("  bool activeLow;\n")

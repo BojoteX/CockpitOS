@@ -9,6 +9,7 @@ enum LEDDeviceType {
   DEVICE_TM1637,
   DEVICE_GN1640T,
   DEVICE_WS2812,
+  DEVICE_MAGNETIC,
   DEVICE_NONE,
 };
 
@@ -22,6 +23,7 @@ struct LEDMapping {
     struct { uint8_t clkPin; uint8_t dioPin; uint8_t segment; uint8_t bit; } tm1637Info;
     struct { uint8_t address; uint8_t column; uint8_t row; } gn1640Info;
     struct { uint8_t index; uint8_t pin; uint8_t defR; uint8_t defG; uint8_t defB; uint8_t defBright; } ws2812Info;
+    struct { uint8_t gpioA; uint8_t gpioB; } magneticInfo;  // gpioB=255 → single solenoid (2-pos)
   } info;
   bool dimmable;
   bool activeLow;
@@ -29,6 +31,9 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
+  { "APU_CONTROL_SW"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "APU_READY_LT"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "ENGINE_CRANK_SW"  , DEVICE_MAGNETIC, {.magneticInfo = {15, 16}}, false, false }, // MAGNETIC A=15 B=16,
   { "MASTER_ARM_SW"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MASTER_MODE_AA"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MASTER_MODE_AA_LT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
@@ -54,18 +59,15 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"MASTER_MODE_AA", &panelLEDs[1]},
-  {"MASTER_ARM_SW", &panelLEDs[0]},
-  {"MASTER_MODE_AA_LT", &panelLEDs[2]},
+  {"APU_CONTROL_SW", &panelLEDs[0]},
+  {"MASTER_ARM_SW", &panelLEDs[3]},
+  {"MASTER_MODE_AA", &panelLEDs[4]},
+  {"MASTER_MODE_AA_LT", &panelLEDs[5]},
+  {nullptr, nullptr},
+  {"MC_DISCH", &panelLEDs[8]},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"MC_DISCH", &panelLEDs[5]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"ENGINE_CRANK_SW", &panelLEDs[2]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -76,7 +78,10 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"MC_READY", &panelLEDs[6]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"MC_READY", &panelLEDs[9]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -84,9 +89,9 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"MASTER_MODE_AG", &panelLEDs[3]},
-  {nullptr, nullptr},
-  {"MASTER_MODE_AG_LT", &panelLEDs[4]},
+  {"APU_READY_LT", &panelLEDs[1]},
+  {"MASTER_MODE_AG", &panelLEDs[6]},
+  {"MASTER_MODE_AG_LT", &panelLEDs[7]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},

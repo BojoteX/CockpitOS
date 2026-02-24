@@ -733,7 +733,9 @@ def _show_label_set_info(ls_name: str, prefs) -> str | None:
                 ls_name, ac_name)
             continue
         elif choice == "edit_custom":
-            _edit_custom_controls(ls_dir, ls_name, ac_name)
+            changed = _edit_custom_controls(ls_dir, ls_name, ac_name)
+            if changed:
+                _auto_generate(ls_name, ls_dir, prefs)
             continue
         elif choice == "edit_display":
             display_editor.edit_display_mapping(
@@ -816,7 +818,7 @@ def _edit_custom_controls(ls_dir: Path, ls_name: str = "", ac_name: str = ""):
     aircraft.merge_metadata(aircraft_data, ls_dir)
     sel_panels = _read_selected_panels(ls_dir)
     custom_json_path = ls_dir / "METADATA" / "Custom.json"
-    custom_editor.edit_custom_controls(
+    return custom_editor.edit_custom_controls(
         str(custom_json_path), aircraft_data,
         ls_name, ac_name,
         selected_panels=sel_panels or None)
