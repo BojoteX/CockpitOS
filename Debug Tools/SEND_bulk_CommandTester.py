@@ -1054,7 +1054,7 @@ def pick_debounce():
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def interactive_mode(bind_ip, dcs_ip):
-    """Full interactive chain builder."""
+    """Full interactive chain builder with send-again loop."""
 
     # Resolve display name
     if bind_ip == "127.0.0.1":
@@ -1083,78 +1083,88 @@ def interactive_mode(bind_ip, dcs_ip):
     # Pick debounce
     debounce_ms = pick_debounce()
 
-    # Chain building loop
     chain = []
 
+    # ── Outer loop: build chain -> send -> repeat ──
     while True:
-        # Control browser — pick a control to add
-        control = pick_control(controls, aircraft_name, chain)
 
-        if control is None:
-            # Esc from browser — go to review
-            action = review_chain(chain, debounce_ms, aircraft_name)
+        # ── Build chain ──
+        while True:
+            control = pick_control(controls, aircraft_name, chain)
 
-            if action == "add":
+            if control is None:
+                # Esc from browser — review
+                action = review_chain(chain, debounce_ms, aircraft_name)
+                if action == "add":
+                    continue
+                elif action == "send":
+                    break
+                elif action == "undo":
+                    if chain:
+                        chain.pop()
+                    continue
+                elif action == "clear":
+                    chain.clear()
+                    continue
+                else:  # cancel
+                    return
+
+            cmd = pick_action(control)
+            if cmd is None:
                 continue
-            elif action == "send":
-                break
-            elif action == "undo":
-                if chain:
-                    removed = chain.pop()
-                    _w(f"\n  {YELLOW}Removed:{RESET} {removed}\n")
-                    time.sleep(0.3)
+
+            chain.append(cmd)
+            _w(f"\n  {GREEN}Added #{len(chain)}:{RESET} {cmd}\n")
+            _w(f"\n  {DIM}Press any key to add more, or Esc to review chain...{RESET}")
+            ch = msvcrt.getwch()
+            if ch == "\x1b":
+                action = review_chain(chain, debounce_ms, aircraft_name)
+                if action == "add":
+                    continue
+                elif action == "send":
+                    break
+                elif action == "undo":
+                    if chain:
+                        chain.pop()
+                    continue
+                elif action == "clear":
+                    chain.clear()
+                    continue
+                else:
+                    return
+
+        if not chain:
+            _w(f"\n  {DIM}Nothing to send.{RESET}\n")
+            return
+
+        # ── Send loop: send, then ask again/new/exit ──
+        while True:
+            _cls()
+            cols, _ = _get_terminal_size()
+            header_w = cols - 4
+            _w(f"  {CYAN}{BOLD}{'=' * header_w}{RESET}\n")
+            _w(f"  {CYAN}{BOLD}  Sending Chain{RESET}  {DIM}({aircraft_name}){RESET}\n")
+            _w(f"  {CYAN}{BOLD}{'=' * header_w}{RESET}\n")
+            _w(f"\n  {DIM}Interface: {bind_label}  Target: {dcs_ip}:{DCS_PORT}  Debounce: {debounce_ms}ms{RESET}\n\n")
+
+            send_bulk(chain, bind_ip, dcs_ip, debounce_ms)
+
+            _w(f"\n  {GREEN}{BOLD}Done!{RESET} {DIM}{len(chain)} commands sent.{RESET}\n")
+
+            options = [
+                (f"{GREEN}Send again{RESET}", "again"),
+                (f"{CYAN}Build new chain{RESET}", "new"),
+                (f"{DIM}Exit{RESET}", "exit"),
+            ]
+            result = arrow_pick("What next?", options)
+
+            if result == "again":
                 continue
-            elif action == "clear":
+            elif result == "new":
                 chain.clear()
-                continue
-            else:  # cancel
-                _w(f"\n  {DIM}Cancelled.{RESET}\n")
-                return
-
-        # Pick action for this control
-        cmd = pick_action(control)
-        if cmd is None:
-            continue  # Back pressed in action picker — return to browser
-
-        chain.append(cmd)
-        _w(f"\n  {GREEN}Added #{len(chain)}:{RESET} {cmd}\n")
-        _w(f"\n  {DIM}Press any key to add more, or Esc to review chain...{RESET}")
-        ch = msvcrt.getwch()
-        if ch == "\x1b":
-            action = review_chain(chain, debounce_ms, aircraft_name)
-            if action == "add":
-                continue
-            elif action == "send":
-                break
-            elif action == "undo":
-                if chain:
-                    chain.pop()
-                continue
-            elif action == "clear":
-                chain.clear()
-                continue
+                break  # back to outer loop -> build chain
             else:
-                _w(f"\n  {DIM}Cancelled.{RESET}\n")
                 return
-
-    # Send the chain
-    if not chain:
-        _w(f"\n  {DIM}Nothing to send.{RESET}\n")
-        return
-
-    _cls()
-    cols, _ = _get_terminal_size()
-    header_w = cols - 4
-    _w(f"  {CYAN}{BOLD}{'=' * header_w}{RESET}\n")
-    _w(f"  {CYAN}{BOLD}  Sending Chain{RESET}  {DIM}({aircraft_name}){RESET}\n")
-    _w(f"  {CYAN}{BOLD}{'=' * header_w}{RESET}\n")
-    _w(f"\n  {DIM}Interface: {bind_label}  Target: {dcs_ip}:{DCS_PORT}  Debounce: {debounce_ms}ms{RESET}\n\n")
-
-    send_bulk(chain, bind_ip, dcs_ip, debounce_ms)
-
-    _w(f"\n  {GREEN}{BOLD}Done!{RESET} {DIM}{len(chain)} commands sent.{RESET}\n")
-    _w(f"\n  {DIM}Press any key...{RESET}")
-    msvcrt.getwch()
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN
