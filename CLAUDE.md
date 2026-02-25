@@ -143,7 +143,8 @@ Rules:
 
 ## Hard Rules — Do NOT
 
-- **NEVER run generators or scripts against live label sets** — `generate_data.py`, `reset_data.py`, `display_gen.py`, etc. modify files in place and can destroy hand-tuned configurations (e.g., `.DISABLED` files get consumed and renamed). If you need to inspect generator output, read the code and trace it mentally. Do not execute it.
+- **NEVER run generators or scripts against live label sets in interactive mode** — `generate_data.py`, `reset_data.py`, `display_gen.py`, etc. modify files in place and can destroy hand-tuned configurations (e.g., `.DISABLED` files get consumed and renamed). If you need to inspect generator output, read the code and trace it mentally. Do not execute it.
+  - **Exception:** Running the auto-generator in **non-interactive batch mode** (`COCKPITOS_BATCH=1`) is safe and permitted for validation/CI testing purposes.
 - **NEVER rename, move, or delete files in `src/LABELS/`** without explicit user instruction
 - **NEVER run destructive git commands** (`reset --hard`, `checkout .`, `clean -f`) without explicit user instruction
 - **NEVER commit, push, or pull** — all git write operations (`git commit`, `git push`, `git pull`, `git merge`) are the user's responsibility. You may only read git state (`status`, `log`, `diff`, `fetch`, `branch`)
