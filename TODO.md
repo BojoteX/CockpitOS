@@ -14,6 +14,26 @@
 
 ---
 
+## Bug Fixes
+
+### Generator exit code returns failure on success
+- **File:** `src/LABELS/_core/generator_core.py` line 1613
+- **Symptom:** `sys.exit(1)` is called unconditionally after a successful run. In batch mode (`COCKPITOS_BATCH=1`), CI interprets a successful generation as a failure.
+- **Fix:** Change `sys.exit(1)` to `sys.exit(0)` at end of successful `run()` path.
+- **Severity:** Minor — only affects CI/batch workflows, not interactive use (the `_pause()` before it is already correctly skipped in batch mode).
+
+---
+
+## Code Quality Enhancements
+
+### HID axis arrays use hardcoded [40] instead of HID_AXIS_COUNT
+- **File:** `src/Core/HIDManager.cpp` lines 379-382, 584
+- **Symptom:** Four filter/state arrays are declared as `[40]` while `HID_AXIS_COUNT` is 16. The reset loop also iterates to 40. No crash or overrun since arrays are oversized, but wastes 96 bytes of static RAM and the reset loop does 24 extra no-op iterations.
+- **Fix:** Replace `[40]` with `[HID_AXIS_COUNT]` in declarations; use `HID_AXIS_COUNT` as the loop bound in the reset loop.
+- **Severity:** Negligible — consistency improvement, no runtime impact.
+
+---
+
 ## DONE — CI/CD Automated Build Testing
 
 GitHub Actions workflow (`.github/workflows/ci-build.yml`) compiles all 16 label sets against ESP32-S3 on every push to `dev` and daily at 06:00 UTC. Produces per-label-set `warnings.log` and `errors.log` as downloadable artifacts. Warnings are classified into CockpitOS code vs. framework/SDK, matching the compiler tool's format.
