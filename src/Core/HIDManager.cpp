@@ -376,10 +376,11 @@ static void queueDeferredRelease(const char* label, uint16_t value) {
 }
 
 // Used for Axis stabilization and filtering (and reset for initialization)
-static int lastFiltered[HID_AXIS_COUNT] = { 0 };
-static int lastOutput[HID_AXIS_COUNT] = { -1 };
-static unsigned int stabCount[HID_AXIS_COUNT] = { 0 };
-static bool stabilized[HID_AXIS_COUNT] = { false };
+// Indexed by GPIO pin number (not axis enum), so must match g_bootstrapped[64].
+static int lastFiltered[64] = { 0 };
+static int lastOutput[64] = { -1 };
+static unsigned int stabCount[64] = { 0 };
+static bool stabilized[64] = { false };
 
 // Build HID group bitmasks
 void buildHIDGroupBitmasks() {
@@ -581,10 +582,11 @@ void HIDManager_resetAllAxes() {
 	// Re-initialize axis calibration
     axCalibInit();
 
-    for (int i = 0; i < HID_AXIS_COUNT; ++i) {
+    for (int i = 0; i < 64; ++i) {
         stabCount[i] = 0;
         stabilized[i] = false;
         lastOutput[i] = -1;
+        lastFiltered[i] = 0;
     }
 }
 
