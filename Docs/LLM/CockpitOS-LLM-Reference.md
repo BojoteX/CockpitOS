@@ -194,7 +194,7 @@ A **Label Set** is a folder in `src/LABELS/` containing all configuration files 
 ### InputMapping.h Record Format
 
 ```cpp
-{ "LABEL", "SOURCE", port, bit, hidButton, "dcsCommand", sendValue, "controlType", group }
+{ "LABEL", "SOURCE", port, bit, hidButton, "dcsCommand", sendValue, "controlType", group, releaseValue }
 ```
 
 | Field | Values | Description |
@@ -208,6 +208,7 @@ A **Label Set** is a folder in `src/LABELS/` containing all configuration files 
 | `sendValue` | int | Value to send (0/1 for momentary, position for selector, 65535 for analog) |
 | `controlType` | `"momentary"`, `"selector"`, `"analog"`, `"variable_step"`, `"fixed_step"` | Input behavior |
 | `group` | int | Selector group number (0 = ungrouped) |
+| `releaseValue` | int | DCS-BIOS value sent on momentary release (0 = default) |
 
 **Deep dive:** [Reference/Control-Types.md](../Reference/Control-Types.md)
 

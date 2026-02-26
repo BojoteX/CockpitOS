@@ -262,7 +262,7 @@ CockpitOS handles switch debouncing automatically in firmware. Key parameters in
 |------------------------|---------|-------------------------------------------------|
 | `VALUE_THROTTLE_MS`    | 50      | Minimum ms between sending the same value again |
 | `ANY_VALUE_THROTTLE_MS`| 33      | Minimum ms between sending any value            |
-| `SELECTOR_DWELL_MS`    | 250     | Wait time for stable selector value             |
+| `SELECTOR_DWELL_MS`    | 100     | Wait time for stable selector value             |
 
 You should not need to change these for standard switches. If you experience false triggers, add a 0.1uF capacitor between the GPIO pin and GND.
 

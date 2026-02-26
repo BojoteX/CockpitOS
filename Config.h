@@ -84,7 +84,7 @@
 #define IS_REPLAY                                   0 // Simulate a loopback DCS stream to check your panel is working and debug via Serial
 #define DCSBIOS_USE_LITE_VERSION                    1 // Set to 1 to use a LITE (local) version of the DCSBIOS Library. 0 Uses the Original unmodified Library (you'll need to install it)
 #define USE_WIRE_FOR_I2C                            1 // If set to 1 uses the Arduino compatible I2C Wire Library (slow). Use 0 for Faster alternative
-#define PCA_FAST_MODE                               1 // Set to 1 to enable 400MHz PCA Bus FAST MODE 
+#define PCA_FAST_MODE                               1 // Set to 1 to enable 400kHz PCA Bus FAST MODE
 #define SERIAL_RX_BUFFER_SIZE                     512 // This is the INCOMING buffer for DCS Data (in bytes) when using CDC / Serial. increase if you see OVERFLOW msg             
 #define SERIAL_TX_TIMEOUT                           5 // in ms (Used for CDC receive stream timeouts)
 #define HID_SENDREPORT_TIMEOUT                      5 // in ms (Only used with ESP32 Arduino Core HID.SendReport implementation)
