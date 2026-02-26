@@ -41,11 +41,11 @@ static const LEDMapping panelLEDs[] = {
   { "INSTR_INT_LT"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "NVG_FLOOD_INT_LT"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "STBY_COMPASS_INT_LT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "CB_FCS_CHAN3"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "CB_FCS_CHAN4"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "CB_HOOOK"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "CB_LG"              , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "FCS_BIT_SW"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }
+  { "CB_FCS_CHAN3"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "CB_FCS_CHAN4"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "CB_HOOOK"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "CB_LG"              , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "FCS_BIT_SW"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);
