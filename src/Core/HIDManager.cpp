@@ -370,7 +370,7 @@ static void queueDeferredRelease(const char* label, uint16_t value) {
     }
     // Buffer full — send directly as fallback (shouldn't happen with 4 slots)
     debugPrintf("[DCS] ⚠️ Deferred release buffer full! Sending immediately: %s = %u\n", label, value);
-    static char fbuf[10];
+    char fbuf[10];
     snprintf(fbuf, sizeof(fbuf), "%u", value);
     sendCommand(label, fbuf, false);
 }
@@ -386,7 +386,7 @@ static bool stabilized[64] = { false };
 void buildHIDGroupBitmasks() {
   for (size_t i = 0; i < InputMappingSize; ++i) {
       const InputMapping& m = InputMappings[i];
-      if (m.group > 0 && m.hidId > 0) {
+      if (m.group > 0 && m.group < MAX_GROUPS && m.hidId > 0) {
           groupBitmask[m.group] |= (1UL << (m.hidId - 1));
       }
   }
@@ -563,6 +563,7 @@ void HIDManager_sendReport(const char* label, int32_t rawValue) {
         return;
 
     // flip just this bit
+    if (m->hidId <= 0 || m->hidId > 32) return;
     uint32_t mask = (1UL << (m->hidId - 1));
     if (dcsValue)
         report.buttons |= mask;
@@ -929,7 +930,7 @@ void HIDManager_setNamedButton(const char* name, bool deferSend, bool pressed) {
             const bool isFixStep = (strcmp(ctype, "fixed_step") == 0);
 
             if (isVarStep || isFixStep) {
-                static char buf[12];
+                char buf[12];
                 if (isVarStep) strcpy(buf, pressed ? "+3200" : "-3200");
                 else           strcpy(buf, pressed ? "INC" : "DEC");
                 sendCommand(m->oride_label, buf, false);
@@ -1142,7 +1143,7 @@ void HIDManager_releaseTick() {
         debugPrintf("[DCS] Custom momentary release: %s = %u (%ums after press)\n",
                     label, value, (unsigned)CUSTOM_RESPONSE_THROTTLE_MS);
 
-        static char buf[10];
+        char buf[10];
         snprintf(buf, sizeof(buf), "%u", value);
         sendCommand(label, buf, false);
 

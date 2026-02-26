@@ -472,6 +472,7 @@ void buildPcaList() {
 }
 
 void buildPCA9555ResolvedInputs() {
+    memset(lastValSelector, 0xFF, sizeof(lastValSelector)); // init all to -1
     numPca9555Inputs = 0;
     for (size_t i = 0; i < InputMappingSize; ++i) {
         const auto& m = InputMappings[i];

@@ -17,7 +17,6 @@ __attribute__((constructor)) static void silence_logs(void) {
 #include "src/Globals.h" // Common header used by everyone
 #include "src/HIDManager.h" // Needed for _init and _loop for HIDManager
 #include "src/DCSBIOSBridge.h" // Needed for _init and _loop for DCSBIOSBridge
-#include "src/HIDManager.h" // Needed for MAX_GROUPS check
 #include "src/LEDControl.h" // Needed to initialize LEDs from our main .ino file
 
 #if DEBUG_USE_WIFI || USE_DCSBIOS_WIFI
@@ -204,7 +203,7 @@ void checkHealth() {
 
   if (getMaxUsedGroup() >= MAX_GROUPS) {
       debugPrintln("❌ Too many unique selector groups — increase MAX_GROUPS in Config.h");
-      while (true); // or handle as needed
+      while (true) { delay(1000); }
   }
 
 }
@@ -265,7 +264,7 @@ void setup() {
     #if USE_DCSBIOS_WIFI
       if (!isModeSelectorDCS()) {
         debugPrintln("❌ FATAL: Invalid configuration! USE_DCSBIOS_WIFI requires DCS-BIOS mode, not HID");
-        while (true) {}  // halt
+        while (true) { delay(1000); }
       }
     #endif
 

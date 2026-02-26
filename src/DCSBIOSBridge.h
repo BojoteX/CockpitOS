@@ -88,8 +88,11 @@ void sendCommand(const char* label, const char* value, bool silent = false); // 
 // void sendCommand(const char* label, const char* value);
 
 // ───── Tracked State Accessors via CommandHistory ─────
-#define isCoverOpen(label)     (findCmdEntry(label) ? (findCmdEntry(label)->lastValue > 0) : false)
-#define isToggleOn(label)      isCoverOpen(label)
+inline bool isCoverOpen(const char* label) {
+    CommandHistoryEntry* e = findCmdEntry(label);
+    return e && e->lastValue > 0;
+}
+inline bool isToggleOn(const char* label) { return isCoverOpen(label); }
 #define setCoverState(label,v) sendDCSBIOSCommand(label, v ? 1 : 0, true)
 #define setToggleState(label,v) setCoverState(label,v)
 
@@ -127,7 +130,7 @@ void onDisplayChange(const char* label, const char* value);
 void parseDcsBiosUdpPacket(const uint8_t* data, size_t len);
 
 // ───── DCSBIOS WiFi implementation ─────
-void onDcsBiosUdpPacket(const uint8_t* data, size_t len);
+void onDcsBiosUdpPacket();
 
 // Parse incoming data
 void DCSBIOSBridge_feedBytes(const uint8_t* data, size_t len);
