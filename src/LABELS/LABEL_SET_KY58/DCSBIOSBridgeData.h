@@ -193,6 +193,113 @@ static const SelectorEntry SelectorMap[] = {
 };
 static const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);
 
+// O(1) hash lookup for SelectorMap[] by (dcsCommand, value)
+struct SelectorHashEntry { const char* dcsCommand; uint16_t value; const SelectorEntry* entry; };
+static const SelectorHashEntry selectorHashTable[89] = {
+  {"LIGHTS_TEST_SW", 1, &SelectorMap[16]},
+  {"FLOOD_DIMMER", 1, &SelectorMap[11]},
+  {"KY58_VOLUME", 1, &SelectorMap[43]},
+  {nullptr, 0, nullptr},
+  {"KY58_FILL_SEL_PULL", 0, &SelectorMap[30]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"COCKKPIT_LIGHT_MODE_SW", 2, &SelectorMap[5]},
+  {"KY58_FILL_SELECT", 1, &SelectorMap[21]},
+  {"KY58_FILL_SELECT", 1, &SelectorMap[29]},
+  {"KY58_MODE_SELECT", 0, &SelectorMap[32]},
+  {"KY58_FILL_SELECT", 3, &SelectorMap[23]},
+  {"COCKKPIT_LIGHT_MODE_SW", 1, &SelectorMap[4]},
+  {"KY58_MODE_SELECT", 0, &SelectorMap[36]},
+  {"KY58_POWER_SELECT", 2, &SelectorMap[40]},
+  {"KY58_FILL_SELECT", 2, &SelectorMap[22]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"FLOOD_DIMMER", 65535, &SelectorMap[9]},
+  {"FLOOD_DIMMER", 0, &SelectorMap[10]},
+  {"KY58_VOLUME", 0, &SelectorMap[42]},
+  {"KY58_VOLUME", 65535, &SelectorMap[41]},
+  {"CONSOLES_DIMMER", 1, &SelectorMap[8]},
+  {"KY58_FILL_SEL_PULL", 1, &SelectorMap[31]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"WARN_CAUTION_DIMMER", 65535, &SelectorMap[17]},
+  {nullptr, 0, nullptr},
+  {"INST_PNL_DIMMER", 65535, &SelectorMap[12]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"KY58_MODE_SELECT", 1, &SelectorMap[33]},
+  {"KY58_MODE_SELECT", 1, &SelectorMap[37]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"KY58_POWER_SELECT", 0, &SelectorMap[38]},
+  {"CHART_DIMMER", 0, &SelectorMap[1]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"CHART_DIMMER", 1, &SelectorMap[2]},
+  {"KY58_FILL_SELECT", 0, &SelectorMap[20]},
+  {"LIGHTS_TEST_SW", 0, &SelectorMap[15]},
+  {"KY58_FILL_SELECT", 0, &SelectorMap[28]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"WARN_CAUTION_DIMMER", 0, &SelectorMap[18]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"KY58_MODE_SELECT", 2, &SelectorMap[34]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"CHART_DIMMER", 65535, &SelectorMap[0]},
+  {"KY58_FILL_SELECT", 5, &SelectorMap[25]},
+  {nullptr, 0, nullptr},
+  {"KY58_POWER_SELECT", 1, &SelectorMap[39]},
+  {nullptr, 0, nullptr},
+  {"INST_PNL_DIMMER", 0, &SelectorMap[13]},
+  {"KY58_FILL_SELECT", 4, &SelectorMap[24]},
+  {"KY58_FILL_SELECT", 7, &SelectorMap[27]},
+  {nullptr, 0, nullptr},
+  {"KY58_FILL_SELECT", 6, &SelectorMap[26]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"INST_PNL_DIMMER", 1, &SelectorMap[14]},
+  {"WARN_CAUTION_DIMMER", 1, &SelectorMap[19]},
+  {"COCKKPIT_LIGHT_MODE_SW", 0, &SelectorMap[3]},
+  {"KY58_MODE_SELECT", 3, &SelectorMap[35]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
+  {"CONSOLES_DIMMER", 65535, &SelectorMap[6]},
+  {"CONSOLES_DIMMER", 0, &SelectorMap[7]},
+  {nullptr, 0, nullptr},
+};
+
+// Composite hash: labelHash(dcsCommand) ^ (value * 7919)
+inline const SelectorEntry* findSelectorByDcsAndValue(const char* dcsCommand, uint16_t value) {
+  uint16_t startH = (labelHash(dcsCommand) ^ (value * 7919u)) % 89;
+  for (uint16_t i = 0; i < 89; ++i) {
+    uint16_t idx = (startH + i >= 89) ? (startH + i - 89) : (startH + i);
+    const auto& entry = selectorHashTable[idx];
+    if (!entry.dcsCommand) return nullptr;
+    if (entry.value == value && strcmp(entry.dcsCommand, dcsCommand) == 0) return entry.entry;
+  }
+  return nullptr;
+}
+
+
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
     { "CHART_DIMMER", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
