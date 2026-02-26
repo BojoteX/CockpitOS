@@ -178,7 +178,7 @@ bool isPanelsSyncedThisMission() {
 static bool TEMP_DISABLE_LISTENER = false;
 
 // Frame counter for debugging purposes
-uint64_t frameCounter = 0;
+uint32_t frameCounter = 0;
 
 // Init DCS-BIOS previous values on startup
 static uint16_t g_prevValues[DcsOutputTableSize];
@@ -452,6 +452,7 @@ void syncCommandHistoryFromInputMapping() {
             if (!m.oride_label || strcmp(e.label, m.oride_label) != 0) continue;
 
             // Track selectors and buttons
+            if (!m.controlType) continue;
             const bool isSel = (strcmp(m.controlType, "selector") == 0);
             const bool isBtn = (strcmp(m.controlType, "momentary") == 0);
 
@@ -925,7 +926,7 @@ size_t dcsbios_getCommandHistorySize() {
 // O(1) hash lookup for commandHistory[] — built at runtime in this TU
 // so all callers (DCSBIOSBridge + HIDManager) share the same instance.
 // ----------------------------------------------------------------------------
-static constexpr size_t CMD_HASH_TABLE_SIZE = 127; // prime, comfortably > 2× MAX_TRACKED_RECORDS typical use
+static constexpr size_t CMD_HASH_TABLE_SIZE = 257; // prime, must exceed commandHistorySize for any label set
 struct CmdHistoryHashEntry { const char* label; CommandHistoryEntry* entry; };
 static CmdHistoryHashEntry cmdHashTable[CMD_HASH_TABLE_SIZE];
 static bool cmdHashBuilt = false;
@@ -1215,7 +1216,7 @@ static volatile bool cdcRxReady = false; // This will be set automatically when 
 bool cdcEnsureTxReady(uint32_t timeoutMs) {
     unsigned long start = millis();
     while (!cdcTxReady) {
-        yield();
+        delay(1);
         if (millis() - start > timeoutMs) {
             return false;
         }
@@ -1226,7 +1227,7 @@ bool cdcEnsureTxReady(uint32_t timeoutMs) {
 bool cdcEnsureRxReady(uint32_t timeoutMs) {
     unsigned long start = millis();
     while (!cdcRxReady) {
-        yield();
+        delay(1);
         if (millis() - start > timeoutMs) {
             return false;
         }
@@ -1583,7 +1584,7 @@ void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
     }
 #endif
 
-    static char buf[10];
+    char buf[10];
     snprintf(buf, sizeof(buf), "%u", value);
 
 // #if defined(SELECTOR_DWELL_MS) && (SELECTOR_DWELL_MS > 0)

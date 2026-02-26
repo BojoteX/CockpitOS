@@ -1,5 +1,5 @@
 // Max 8 PCA9555 devices
-static uint8_t pcaConfigCache[128][2] = { {0xFF, 0xFF} }; // default all pins as input at boot
+static uint8_t pcaConfigCache[128][2]; // initialized to 0xFF in PCA9555_initCache()
 static byte prevPort0Cache[8];
 static byte prevPort1Cache[8];
 static uint8_t addrCache[8];
@@ -92,14 +92,15 @@ void PCA9555_scanConnectedPanels(const uint8_t* addrs, uint8_t count) {
 }
 
 void PCA9555_initCache() {
+    memset(pcaConfigCache, 0xFF, sizeof(pcaConfigCache));
     for (uint8_t i = 0; i < discoveredDeviceCount; ++i) {
         uint8_t addr = discoveredDevices[i].address;
         debugPrintf("Initializing PCA_0x%02X inputs and cached port states\n", addr);
 
         initPCA9555AsInput(addr);
 
-        PCA9555_cachedPortStates[addr][0] = 0xFF;
-        PCA9555_cachedPortStates[addr][1] = 0xFF;
+        PCA9555_cachedPortStates[addr - 0x20][0] = 0xFF;
+        PCA9555_cachedPortStates[addr - 0x20][1] = 0xFF;
 
         Wire.beginTransmission(addr);
         Wire.write((uint8_t)0x02);
@@ -194,12 +195,12 @@ void PCA9555_write(uint8_t addr, uint8_t port, uint8_t bit, bool state) {
 
     // update the cache
     if (state)
-        PCA9555_cachedPortStates[addr][port] |=  (1 << bit);
+        PCA9555_cachedPortStates[addr - 0x20][port] |=  (1 << bit);
     else
-        PCA9555_cachedPortStates[addr][port] &= ~(1 << bit);
+        PCA9555_cachedPortStates[addr - 0x20][port] &= ~(1 << bit);
 
-    data0 = PCA9555_cachedPortStates[addr][0];
-    data1 = PCA9555_cachedPortStates[addr][1];
+    data0 = PCA9555_cachedPortStates[addr - 0x20][0];
+    data1 = PCA9555_cachedPortStates[addr - 0x20][1];
 
     // one-shot I²C write both ports
     uint32_t t0 = micros();
@@ -355,12 +356,13 @@ static inline esp_err_t PCA9555_writeReg2(uint8_t addr, uint8_t reg, uint8_t val
 
 // For LED cache/init, always best to use atomic multi-byte write
 void PCA9555_initCache() {
+    memset(pcaConfigCache, 0xFF, sizeof(pcaConfigCache));
     for (uint8_t i = 0; i < discoveredDeviceCount; ++i) {
         uint8_t addr = discoveredDevices[i].address;
         debugPrintf("Initializing PCA_0x%02X inputs and cached port states\n", addr);
         initPCA9555AsInput(addr);
-        PCA9555_cachedPortStates[addr][0] = 0xFF;
-        PCA9555_cachedPortStates[addr][1] = 0xFF;
+        PCA9555_cachedPortStates[addr - 0x20][0] = 0xFF;
+        PCA9555_cachedPortStates[addr - 0x20][1] = 0xFF;
         PCA9555_writeReg2(addr, 0x02, 0xFF, 0xFF);
     }
 }
@@ -429,11 +431,11 @@ void PCA9555_write(uint8_t addr, uint8_t port, uint8_t bit, bool state) {
         return;
     }
     if (state)
-        PCA9555_cachedPortStates[addr][port] |= (1 << bit);
+        PCA9555_cachedPortStates[addr - 0x20][port] |= (1 << bit);
     else
-        PCA9555_cachedPortStates[addr][port] &= ~(1 << bit);
-    uint8_t data0 = PCA9555_cachedPortStates[addr][0];
-    uint8_t data1 = PCA9555_cachedPortStates[addr][1];
+        PCA9555_cachedPortStates[addr - 0x20][port] &= ~(1 << bit);
+    uint8_t data0 = PCA9555_cachedPortStates[addr - 0x20][0];
+    uint8_t data1 = PCA9555_cachedPortStates[addr - 0x20][1];
     uint32_t t0 = micros();
     PCA9555_writeReg2(addr, 0x02, data0, data1);
     uint32_t dt = micros() - t0;

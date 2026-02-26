@@ -183,6 +183,6 @@ uint8_t hexNib(char c) {
         (c >= 'A' && c <= 'F') ? 10 + c - 'A' : 0;
 }
 uint8_t parseHexByte(const char* s) { // expects "0xNN"
-    if (!s || strlen(s) < 3) return 0;
+    if (!s || strlen(s) < 4) return 0;
     return (hexNib(s[2]) << 4) | hexNib(s[3]);
 }

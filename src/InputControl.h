@@ -44,7 +44,7 @@ extern size_t numPca9555Inputs;
 extern PcaState pcas[MAX_PCAS];
 extern size_t numPcas;
 extern bool lastStatePCA9555[MAX_PCA9555_INPUTS];
-extern int16_t lastValSelector[MAX_PCA_GROUPS][MAX_PCAS];
+extern int16_t lastValSelector[MAX_SELECTOR_GROUPS][MAX_PCAS];
 
 void buildPcaList();
 void buildPCA9555ResolvedInputs();
