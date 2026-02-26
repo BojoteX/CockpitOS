@@ -32,16 +32,16 @@ struct LEDMapping {
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
   { "CHART_DIMMER"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "COCKKPIT_LIGHT_MODE_SW", DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "COCKKPIT_LIGHT_MODE_SW", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CONSOLES_DIMMER"       , DEVICE_GPIO    , {.gpioInfo = {PIN(14)}}, true, false }, // GPIO PIN(14),
   { "FLOOD_DIMMER"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "INST_PNL_DIMMER"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "LIGHTS_TEST_SW"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "LIGHTS_TEST_SW"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "WARN_CAUTION_DIMMER"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "KY58_FILL_SELECT"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "KY58_FILL_SEL_PULL"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "KY58_MODE_SELECT"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "KY58_POWER_SELECT"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "KY58_FILL_SELECT"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "KY58_FILL_SEL_PULL"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "KY58_MODE_SELECT"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "KY58_POWER_SELECT"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "KY58_VOLUME"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 
