@@ -15,6 +15,6 @@ struct CoverGateDef {
     const char* release_label;
     const char* cover_label;
     CoverGateKind kind;
-    uint16_t delay_ms;
-    uint16_t close_delay_ms;
+    uint32_t delay_ms;
+    uint32_t close_delay_ms;
 };
