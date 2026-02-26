@@ -265,6 +265,7 @@ public:
         // 2) Dispatch per control type
         for (uint8_t i = 0; i < ae->count; ++i) {
             const DcsOutputEntry* entry = ae->entries[i];
+            if (!entry) continue;
             uint16_t val = (value & entry->mask) >> entry->shift;
             size_t index = entry - DcsOutputTable;
 
