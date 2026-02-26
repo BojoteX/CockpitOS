@@ -174,7 +174,7 @@ static volatile uint8_t packetLength = 0;
 static volatile uint16_t packetDataIdx = 0;
 
 // Skip state
-static volatile uint8_t skipRemaining = 0;
+static volatile uint16_t skipRemaining = 0;
 
 // Data type for filtering what goes into export buffer
 enum RxDataType : uint8_t {

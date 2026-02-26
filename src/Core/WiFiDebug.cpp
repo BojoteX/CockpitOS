@@ -273,9 +273,14 @@ void wifi_setup() {
     WiFi.mode(WIFI_STA);
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     serialDebugPrint("Connecting...");
+    int wifiAttempts = 0;
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
         serialDebugPrint(".");
+        if (++wifiAttempts > 40) {  // 20 second timeout
+            serialDebugPrintln("\nWiFi connection failed - continuing without WiFi");
+            return;
+        }
     }
 
     IPAddress ip = WiFi.localIP();
@@ -365,6 +370,7 @@ void wifiDebugPrintf(const char* format, ...) {
 
 void wifiDebugPrintln(const char* msg) {
     wifiDebugSendChunked(msg, strlen(msg));
+    wifiDebugSendChunked("\n", 1);
 }
 
 #endif // DEBUG_USE_WIFI || USE_DCSBIOS_WIFI

@@ -67,7 +67,7 @@
         #include "../CustomDescriptors/BidireccionalNew.h"   // defines GamepadReport_t and hidReportDesc
         struct { bool ready() const { return false; } } HID;
         #if !defined(LOADED_CDC_STACK) && !defined(LOADED_USB_STACK)
-            #if CLOSE_CDC_SERIAL
+            #if defined(CLOSE_CDC_SERIAL)
 		        // No stub for USB as we need to close the serial port AND USB is already defined above
             #else 
                 struct { void begin() {} template<typename...A> void onEvent(A...) {} } USB;
@@ -352,7 +352,7 @@ static void queueDeferredRelease(const char* label, uint16_t value) {
     // Debug print removed — the "fired" message below is sufficient
     // Overwrite any existing pending for the same label
     for (uint8_t i = 0; i < MAX_PENDING_RELEASES; ++i) {
-        if (s_pendingRelease[i].active && s_pendingRelease[i].label == label) {
+        if (s_pendingRelease[i].active && strcmp(s_pendingRelease[i].label, label) == 0) {
             s_pendingRelease[i].value  = value;
             s_pendingRelease[i].due_ms = due;
             return;
