@@ -31,6 +31,7 @@ struct InputMapping {
     uint16_t    oride_value;  // Override command value
     const char* controlType;  // "momentary", "selector", "analog", "variable_step", "fixed_step"
     uint16_t    group;        // Selector group number (0 = not grouped)
+    uint16_t    releaseValue; // DCS-BIOS value sent on momentary release (0 = default)
 };
 ```
 

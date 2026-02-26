@@ -51,7 +51,7 @@ Select your ESP32 board variant and configure board-specific options:
 | ESP32-H2 |
 | ESP32-P4 |
 
-After selecting a board, the tool presents configurable options like partition scheme, flash size, flash mode, USB mode, CPU frequency, and PSRAM. Dual-USB boards (S2, S3) automatically show USB-OTG and Hardware CDC options.
+After selecting a board, the tool presents configurable options like partition scheme, flash size, flash mode, USB mode, CPU frequency, and PSRAM. Dual-USB boards (S2, S3, P4) automatically show USB-OTG and Hardware CDC options.
 
 ### Role / Transport
 

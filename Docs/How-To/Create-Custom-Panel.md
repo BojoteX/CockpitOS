@@ -254,7 +254,7 @@ HIDManager_setNamedButton("MY_BUTTON", forceSend, value);
 // value = true (pressed) or false (released)
 
 // Move an analog axis
-HIDManager_moveAxis("MY_AXIS", gpioPin, axisIndex, isInit, forceSend);
+HIDManager_moveAxis("MY_AXIS", gpioPin, axis, forceSend, deferredSend);
 ```
 
 ---
