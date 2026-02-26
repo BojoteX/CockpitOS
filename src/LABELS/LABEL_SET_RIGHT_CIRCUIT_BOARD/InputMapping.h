@@ -14,16 +14,17 @@ struct InputMapping {
     uint16_t    oride_value;  // Override command value (value)
     const char* controlType;  // Control type, e.g., "selector"
     uint16_t    group;        // Group ID for exclusive selectors
+    uint16_t    releaseValue; // DCS-BIOS value sent on momentary release (0 = default)
 };
 
-//  label                       source     port bit hidId  DCSCommand           value   Type        group
+//  label                       source     port bit hidId  DCSCommand           value   Type        group  rel
 static const InputMapping InputMappings[] = {
-    { "CB_FCS_CHAN3"      , "GPIO" , 16 ,  0 ,   1 , "CB_FCS_CHAN3",     1 , "momentary",  0 },
-    { "CB_FCS_CHAN4"      , "GPIO" , 17 ,  0 ,   2 , "CB_FCS_CHAN4",     1 , "momentary",  0 },
-    { "CB_HOOOK"          , "GPIO" , 18 ,  0 ,   3 , "CB_HOOOK"    ,     1 , "momentary",  0 },
-    { "CB_LG"             , "GPIO" , 21 ,  0 ,   4 , "CB_LG"       ,     1 , "momentary",  0 },
-    { "FCS_BIT_SW_PRESS"  , "NONE" ,  0 ,  0 ,  -1 , "FCS_BIT_SW"  ,     0 , "selector" ,  1 },
-    { "FCS_BIT_SW_RELEASE", "NONE" ,  0 ,  0 ,  -1 , "FCS_BIT_SW"  ,     1 , "selector" ,  1 },
+    { "CB_FCS_CHAN3"      , "GPIO" , 16 ,  0 ,   1 , "CB_FCS_CHAN3",     1 , "momentary",  0 ,  0 },
+    { "CB_FCS_CHAN4"      , "GPIO" , 17 ,  0 ,   2 , "CB_FCS_CHAN4",     1 , "momentary",  0 ,  0 },
+    { "CB_HOOOK"          , "GPIO" , 18 ,  0 ,   3 , "CB_HOOOK"    ,     1 , "momentary",  0 ,  0 },
+    { "CB_LG"             , "GPIO" , 21 ,  0 ,   4 , "CB_LG"       ,     1 , "momentary",  0 ,  0 },
+    { "FCS_BIT_SW_PRESS"  , "NONE" ,  0 ,  0 ,  -1 , "FCS_BIT_SW"  ,     0 , "selector" ,  1 ,  0 },
+    { "FCS_BIT_SW_RELEASE", "NONE" ,  0 ,  0 ,  -1 , "FCS_BIT_SW"  ,     1 , "selector" ,  1 ,  0 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);
 

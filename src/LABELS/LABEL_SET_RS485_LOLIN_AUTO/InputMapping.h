@@ -14,35 +14,36 @@ struct InputMapping {
     uint16_t    oride_value;  // Override command value (value)
     const char* controlType;  // Control type, e.g., "selector"
     uint16_t    group;        // Group ID for exclusive selectors
+    uint16_t    releaseValue; // DCS-BIOS value sent on momentary release (0 = default)
 };
 
-//  label                       source     port bit hidId  DCSCommand           value   Type        group
+//  label                       source     port bit hidId  DCSCommand           value   Type        group  rel
 static const InputMapping InputMappings[] = {
-    { "MASTER_ARM_SW_SAFE"             , "NONE" , -1 ,  0 ,   6 , "MASTER_ARM_SW"          ,     0 , "selector"     ,  1 },
-    { "MASTER_ARM_SW_ARM"              , "NONE" , RS485_TEST_SWITCH_GPIO ,  0 ,   5 , "MASTER_ARM_SW"          ,     1 , "selector"     ,  1 },
-    { "MASTER_MODE_AA"                 , "NONE" ,  0 ,  0 ,  -1 , "MASTER_MODE_AA"         ,     1 , "momentary"    ,  0 },
-    { "MASTER_MODE_AG"                 , "NONE" ,  0 ,  0 ,  -1 , "MASTER_MODE_AG"         ,     1 , "momentary"    ,  0 },
-    { "MASTER_CAUTION_RESET_SW"        , "GPIO" , RS485_TEST_BUTTON_GPIO ,  0 ,   1 , "MASTER_CAUTION_RESET_SW",     1 , "momentary"    ,  0 },
-    { "RADALT_HEIGHT_POS0"             , "GPIO" , 13 ,  0 ,   3 , "RADALT_HEIGHT"          ,     0 , "variable_step",  0 },
-    { "RADALT_HEIGHT_POS1"             , "GPIO" , 12 ,  0 ,   4 , "RADALT_HEIGHT"          ,     1 , "variable_step",  0 },
-    { "RADALT_TEST_SW"                 , "NONE" ,  0 ,  0 ,  -1 , "RADALT_TEST_SW"         ,     1 , "momentary"    ,  0 },
-    { "THROTTLE_ATC_SW"                , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_ATC_SW"        ,     1 , "momentary"    ,  0 },
-    { "THROTTLE_CAGE_BTN"              , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_CAGE_BTN"      ,     1 , "momentary"    ,  0 },
-    { "THROTTLE_DISP_SW_FORWARD(CHAFF)", "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_DISP_SW"       ,     0 , "selector"     ,  2 },
-    { "THROTTLE_DISP_SW_CENTER(OFF)"   , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_DISP_SW"       ,     1 , "selector"     ,  2 },
-    { "THROTTLE_DISP_SW_AFT(FLARE)"    , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_DISP_SW"       ,     2 , "selector"     ,  2 },
-    { "THROTTLE_EXT_L_SW_OFF"          , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_EXT_L_SW"      ,     0 , "selector"     ,  3 },
-    { "THROTTLE_EXT_L_SW_ON"           , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_EXT_L_SW"      ,     1 , "selector"     ,  3 },
-    { "THROTTLE_FOV_SEL_SW"            , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_FOV_SEL_SW"    ,     1 , "momentary"    ,  0 },
-    { "THROTTLE_FRICTION"              , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_FRICTION"      , 65535 , "analog"       ,  0 },
-    { "THROTTLE_FRICTION_DEC"          , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_FRICTION"      ,     0 , "variable_step",  0 },
-    { "THROTTLE_FRICTION_INC"          , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_FRICTION"      ,     1 , "variable_step",  0 },
-    { "THROTTLE_RADAR_ELEV"            , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_RADAR_ELEV"    , 65535 , "analog"       ,  0 },
-    { "THROTTLE_RADAR_ELEV_DEC"        , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_RADAR_ELEV"    ,     0 , "variable_step",  0 },
-    { "THROTTLE_RADAR_ELEV_INC"        , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_RADAR_ELEV"    ,     1 , "variable_step",  0 },
-    { "THROTTLE_SPEED_BRK_RETRACT"     , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_SPEED_BRK"     ,     0 , "selector"     ,  4 },
-    { "THROTTLE_SPEED_BRK_OFF"         , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_SPEED_BRK"     ,     1 , "selector"     ,  4 },
-    { "THROTTLE_SPEED_BRK_EXTEND"      , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_SPEED_BRK"     ,     2 , "selector"     ,  4 },
+    { "MASTER_ARM_SW_SAFE"             , "NONE" , -1 ,  0 ,   6 , "MASTER_ARM_SW"          ,     0 , "selector"     ,  1 ,  0 },
+    { "MASTER_ARM_SW_ARM"              , "NONE" , RS485_TEST_SWITCH_GPIO ,  0 ,   5 , "MASTER_ARM_SW"          ,     1 , "selector"     ,  1 ,  0 },
+    { "MASTER_MODE_AA"                 , "NONE" ,  0 ,  0 ,  -1 , "MASTER_MODE_AA"         ,     1 , "momentary"    ,  0 ,  0 },
+    { "MASTER_MODE_AG"                 , "NONE" ,  0 ,  0 ,  -1 , "MASTER_MODE_AG"         ,     1 , "momentary"    ,  0 ,  0 },
+    { "MASTER_CAUTION_RESET_SW"        , "GPIO" , RS485_TEST_BUTTON_GPIO ,  0 ,   1 , "MASTER_CAUTION_RESET_SW",     1 , "momentary"    ,  0 ,  0 },
+    { "RADALT_HEIGHT_POS0"             , "GPIO" , 13 ,  0 ,   3 , "RADALT_HEIGHT"          ,     0 , "variable_step",  0 ,  0 },
+    { "RADALT_HEIGHT_POS1"             , "GPIO" , 12 ,  0 ,   4 , "RADALT_HEIGHT"          ,     1 , "variable_step",  0 ,  0 },
+    { "RADALT_TEST_SW"                 , "NONE" ,  0 ,  0 ,  -1 , "RADALT_TEST_SW"         ,     1 , "momentary"    ,  0 ,  0 },
+    { "THROTTLE_ATC_SW"                , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_ATC_SW"        ,     1 , "momentary"    ,  0 ,  0 },
+    { "THROTTLE_CAGE_BTN"              , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_CAGE_BTN"      ,     1 , "momentary"    ,  0 ,  0 },
+    { "THROTTLE_DISP_SW_FORWARD(CHAFF)", "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_DISP_SW"       ,     0 , "selector"     ,  2 ,  0 },
+    { "THROTTLE_DISP_SW_CENTER(OFF)"   , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_DISP_SW"       ,     1 , "selector"     ,  2 ,  0 },
+    { "THROTTLE_DISP_SW_AFT(FLARE)"    , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_DISP_SW"       ,     2 , "selector"     ,  2 ,  0 },
+    { "THROTTLE_EXT_L_SW_OFF"          , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_EXT_L_SW"      ,     0 , "selector"     ,  3 ,  0 },
+    { "THROTTLE_EXT_L_SW_ON"           , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_EXT_L_SW"      ,     1 , "selector"     ,  3 ,  0 },
+    { "THROTTLE_FOV_SEL_SW"            , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_FOV_SEL_SW"    ,     1 , "momentary"    ,  0 ,  0 },
+    { "THROTTLE_FRICTION"              , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_FRICTION"      , 65535 , "analog"       ,  0 ,  0 },
+    { "THROTTLE_FRICTION_DEC"          , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_FRICTION"      ,     0 , "variable_step",  0 ,  0 },
+    { "THROTTLE_FRICTION_INC"          , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_FRICTION"      ,     1 , "variable_step",  0 ,  0 },
+    { "THROTTLE_RADAR_ELEV"            , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_RADAR_ELEV"    , 65535 , "analog"       ,  0 ,  0 },
+    { "THROTTLE_RADAR_ELEV_DEC"        , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_RADAR_ELEV"    ,     0 , "variable_step",  0 ,  0 },
+    { "THROTTLE_RADAR_ELEV_INC"        , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_RADAR_ELEV"    ,     1 , "variable_step",  0 ,  0 },
+    { "THROTTLE_SPEED_BRK_RETRACT"     , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_SPEED_BRK"     ,     0 , "selector"     ,  4 ,  0 },
+    { "THROTTLE_SPEED_BRK_OFF"         , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_SPEED_BRK"     ,     1 , "selector"     ,  4 ,  0 },
+    { "THROTTLE_SPEED_BRK_EXTEND"      , "NONE" ,  0 ,  0 ,  -1 , "THROTTLE_SPEED_BRK"     ,     2 , "selector"     ,  4 ,  0 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);
 

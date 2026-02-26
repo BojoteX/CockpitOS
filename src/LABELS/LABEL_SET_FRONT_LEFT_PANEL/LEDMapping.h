@@ -32,20 +32,20 @@ struct LEDMapping {
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
   { "FORMATION_DIMMER"      , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "INT_WNG_TANK_SW"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "INT_WNG_TANK_SW"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "POSITION_DIMMER"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "STROBE_SW"             , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "EXT_PWR_SW"            , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "GND_PWR_1_SW"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "GND_PWR_2_SW"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "GND_PWR_3_SW"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
-  { "GND_PWR_4_SW"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "STROBE_SW"             , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "EXT_PWR_SW"            , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "GND_PWR_1_SW"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "GND_PWR_2_SW"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "GND_PWR_3_SW"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "GND_PWR_4_SW"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CHART_DIMMER"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "COCKKPIT_LIGHT_MODE_SW", DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "COCKKPIT_LIGHT_MODE_SW", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "CONSOLES_DIMMER"       , DEVICE_GPIO    , {.gpioInfo = {PIN(12)}}, true, false }, // GPIO PIN(12),
   { "FLOOD_DIMMER"          , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "INST_PNL_DIMMER"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "LIGHTS_TEST_SW"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false },
+  { "LIGHTS_TEST_SW"        , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "WARN_CAUTION_DIMMER"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 
