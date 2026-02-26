@@ -675,13 +675,13 @@ void renderIFEIDispatcher(void* drv, const SegmentMap* segMap, const char* value
         }
 
         if (isTempL) {
-            if (!isBlankN(value, def.numDigits)) copyN(tempL_base, value, def.numDigits + 1);
+            if (!isBlankN(value, def.numDigits) && def.numDigits + 1 <= sizeof(tempL_base)) copyN(tempL_base, value, def.numDigits + 1);
             if (!tempL_overlay && !fuel_mode_active)
                 display->addAsciiString7SegToShadow(isBlankN(value, def.numDigits) ? tempL_base : value, segMap, def.numDigits);
             break;
         }
         if (isTempR) {
-            if (!isBlankN(value, def.numDigits)) copyN(tempR_base, value, def.numDigits + 1);
+            if (!isBlankN(value, def.numDigits) && def.numDigits + 1 <= sizeof(tempR_base)) copyN(tempR_base, value, def.numDigits + 1);
             if (!tempR_overlay && !fuel_mode_active)
                 display->addAsciiString7SegToShadow(isBlankN(value, def.numDigits) ? tempR_base : value, segMap, def.numDigits);
             break;

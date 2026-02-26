@@ -99,7 +99,8 @@ void printLEDMenu() {
         int len = strlen(panelLEDs[i].label);
         for (int s = 0; s < colWidth - len && cursor < sizeof(line) - 1; ++s)
             line[cursor++] = ' ';
-        displayedIndexes[displayedCount++] = i; // <---- CRITICAL!
+        if (displayedCount >= 128) break;
+        displayedIndexes[displayedCount++] = i;
         line[cursor] = '\0';
         serialDebugPrint(line);
 
