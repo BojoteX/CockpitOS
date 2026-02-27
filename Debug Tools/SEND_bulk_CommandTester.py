@@ -1181,6 +1181,7 @@ def main():
     # Pick interface
     interfaces = get_all_interface_ips()
     bind_ip = pick_interface(interfaces)
+    print("\033[2J\033[H", end="", flush=True)
 
     # DCS target defaults to broadcast, or --ip override
     dcs_ip = args.ip if args.ip else "255.255.255.255"
