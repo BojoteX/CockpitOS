@@ -122,37 +122,29 @@ void commitAnonymousStringField(AnonymousStringBuffer& field) {
     }
 }
 
-// Subscribe to Display changes (idempotent — duplicate label+callback pairs are ignored)
+// Subscribe to Display changes
 bool subscribeToDisplayChange(const char* label, void (*callback)(const char* label, const char* value)) {
-    for (size_t i = 0; i < displaySubscriptionCount; ++i)
-        if (displaySubscriptions[i].label == label && displaySubscriptions[i].callback == callback) return true;
     if (displaySubscriptionCount >= MAX_DISPLAY_SUBSCRIPTIONS) return false;
     displaySubscriptions[displaySubscriptionCount++] = { label, callback };
     return true;
 }
 
-// Subscribe to Metadata changes (idempotent)
+// Subscribe to Metadata changes
 bool subscribeToMetadataChange(const char* label, void (*callback)(const char* label, uint16_t value)) {
-    for (size_t i = 0; i < metadataSubscriptionCount; ++i)
-        if (metadataSubscriptions[i].label == label && metadataSubscriptions[i].callback == callback) return true;
     if (metadataSubscriptionCount >= MAX_METADATA_SUBSCRIPTIONS) return false;
     metadataSubscriptions[metadataSubscriptionCount++] = { label, callback };
     return true;
 }
 
-// Subscribe to selector changes (idempotent)
+// Subscribe to selector changes
 bool subscribeToSelectorChange(const char* label, void (*callback)(const char* label, uint16_t value)) {
-    for (size_t i = 0; i < selectorSubscriptionCount; ++i)
-        if (selectorSubscriptions[i].label == label && selectorSubscriptions[i].callback == callback) return true;
     if (selectorSubscriptionCount >= MAX_SELECTOR_SUBSCRIPTIONS) return false;
     selectorSubscriptions[selectorSubscriptionCount++] = { label, callback };
     return true;
 }
 
-// Subscribe to LED changes (idempotent)
+// Subscribe to LED changes
 bool subscribeToLedChange(const char* label, void (*callback)(const char*, uint16_t, uint16_t)) {
-    for (size_t i = 0; i < ledSubscriptionCount; ++i)
-        if (ledSubscriptions[i].label == label && ledSubscriptions[i].callback == callback) return true;
     if (ledSubscriptionCount >= MAX_LED_SUBSCRIPTIONS) return false;
     ledSubscriptions[ledSubscriptionCount++] = { label, callback };
     return true;
