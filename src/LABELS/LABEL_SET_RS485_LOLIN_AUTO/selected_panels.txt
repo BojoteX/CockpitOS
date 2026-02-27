@@ -16,7 +16,7 @@
 # Canopy Internal Jettison Handle
 # Caution Light Panel
 # Clock
-Cockpit Altimeter
+# Cockpit Altimeter
 # Comms frequency
 # Communication Panel
 # Custom
@@ -60,13 +60,13 @@ Cockpit Altimeter
 # Lock Shoot Lights
 # Map Gain/Spin Recovery Panel
 Master Arm Panel
-Master Caution Light
+# Master Caution Light
 # Metadata
 # Mission Computer and Hydraulic Isolate Panel
 # Position
 # RH Advisory Panel
 # RWR Control Indicator
-Radar Altimeter
+# Radar Altimeter
 # Radio Frequencies
 # Right DDI
 # Right Engine Fire Warning Extinguisher Light
@@ -83,7 +83,7 @@ Radar Altimeter
 # Station Jettison Select
 # Stick
 # TODO
-Throttle Quadrant
+# Throttle Quadrant
 # Time
 # Up Front Controller (UFC)
 # Wing Fold Switch
