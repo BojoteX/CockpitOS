@@ -1,5 +1,5 @@
-// PID:0x522B 
+// PID:0x589E 
 
 #pragma once
 
-#define LABEL_SET CUSTOM_RIGHT
+#define LABEL_SET ALR67

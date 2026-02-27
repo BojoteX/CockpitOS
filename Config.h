@@ -9,7 +9,7 @@
 // ==============================================================================================================
 
 // Versioning for internal use
-#define VERSION_CURRENT        "R.1.1.4_dev_02-09-26" // Just to troubleshoot instalations
+#define VERSION_CURRENT        "R.1.2.1_dev_02-27-26" // Just to troubleshoot instalations
 
 // Your personal Wi-Fi network credentials should be stored in .credentials/wifi.h. If file wifi.h not found or does not exists yet, we use defaults ("TestNetwork" / "TestingOnly")
 #if __has_include(".credentials/wifi.h")
@@ -39,7 +39,7 @@
 
 // RS485 *** [ Master ] *** (Option only work when RS485_MASTER_ENABLED is set to 1)
 #define RS485_SMART_MODE                            0 // If enabled, filters by DcsOutputTable (only addresses your slaves need). see selected_panels.txt in your panel LABEL SET. Keep in mind SMART mode reduces BANDWIDTH on the RS485 bus at the expense of slightly increased LATENCY (due to filtering)
-#define RS485_MAX_SLAVE_ADDRESS                   127 // Maximum slave address to poll (valid range: 1-127).        
+#define RS485_MAX_SLAVE_ADDRESS                    32 // Maximum slave address to poll (valid range: 1-127).        
 
 // RS485 *** General Setting *** 
 #define RS485_TX_WARMUP_DELAY_US                    0 // Manual DE: delay after DE assert before TX
@@ -306,7 +306,7 @@
 
 #if VERBOSE_PERFORMANCE_ONLY
   #undef DEBUG_PERFORMANCE
-  #define DEBUG_PERFORMANCE 1
+  #define DEBUG_PERFORMANCE 0
 #endif
 
 #if USE_DCSBIOS_WIFI && !DEVICE_HAS_WIFI
