@@ -343,6 +343,7 @@ Examples:
     # Always pick interface first
     interfaces = get_all_interface_ips()
     selected_interfaces = pick_interface(interfaces)
+    print("\033[2J\033[H", end="", flush=True)
 
     # Build interface label for header
     iface_label = ", ".join(f"{ip} ({name})" for name, ip in selected_interfaces)
