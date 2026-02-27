@@ -271,7 +271,8 @@ public:
 
             if (entry->controlType != CT_DISPLAY) {
                 if (index >= DcsOutputTableSize || g_prevValues[index] == val) continue;
-                g_prevValues[index] = val;            // admits first 0/1/etc.
+                // g_prevValues updated only after successful queue below,
+                // so dropped updates retry on the next frame.
             }
 
             switch (entry->controlType) {
@@ -279,6 +280,7 @@ public:
                 case CT_LED:
                 case CT_ANALOG:
                     if (pendingUpdateCount < MAX_PENDING_UPDATES) {
+                        g_prevValues[index] = val;
                         pendingUpdates[pendingUpdateCount++] = {entry->label, val, entry->max_value};
                     } else {
                         pendingUpdateOverflow++;
@@ -288,6 +290,7 @@ public:
                 case CT_SELECTOR:
                     onSelectorChange(entry->label, val);
                     if (pendingUpdateCount < MAX_PENDING_UPDATES) {
+                        g_prevValues[index] = val;
                         pendingUpdates[pendingUpdateCount++] = {entry->label, val, entry->max_value};
                     } else {
                         pendingUpdateOverflow++;
