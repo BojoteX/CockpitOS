@@ -396,6 +396,7 @@ def configure_transport_and_role(prefs, board_has_dual_usb_fn, preferred_usb_mod
     board_has_dual_usb_fn and preferred_usb_mode_fn are passed in to avoid
     circular imports with boards.py.
     """
+    load_config_snapshot()  # Re-read Config.h — may have changed externally
     header("Firmware Configuration (Config.h)")
 
     current_transport = read_current_transport()
@@ -465,6 +466,7 @@ def configure_transport_and_role(prefs, board_has_dual_usb_fn, preferred_usb_mod
     spinner.start()
 
     write_count = 0
+    write_failed = False
 
     # Set exactly ONE transport define to 1, rest to 0
     if mode == "slave":
@@ -475,20 +477,26 @@ def configure_transport_and_role(prefs, board_has_dual_usb_fn, preferred_usb_mod
     for define in TRANSPORT_DEFINES:
         target = 1 if define == active_key else 0
         if config_get(define) != str(target):
-            config_set(define, str(target))
-            write_count += 1
+            if config_set(define, str(target)):
+                write_count += 1
+            else:
+                write_failed = True
 
     # RS485 Master/Slave flags
     master_val = 1 if mode == "master" else 0
     if config_get("RS485_MASTER_ENABLED") != str(master_val):
-        config_set("RS485_MASTER_ENABLED", str(master_val))
-        write_count += 1
+        if config_set("RS485_MASTER_ENABLED", str(master_val)):
+            write_count += 1
+        else:
+            write_failed = True
 
     # Slave address
     if slave_address is not None:
         if config_get("RS485_SLAVE_ADDRESS") != str(slave_address):
-            config_set("RS485_SLAVE_ADDRESS", str(slave_address))
-            write_count += 1
+            if config_set("RS485_SLAVE_ADDRESS", str(slave_address)):
+                write_count += 1
+            else:
+                write_failed = True
 
     # Smart USB mode for dual-USB boards
     usb_changed = False
@@ -500,6 +508,11 @@ def configure_transport_and_role(prefs, board_has_dual_usb_fn, preferred_usb_mod
             usb_changed = True
 
     spinner.stop()
+
+    if write_failed:
+        print()
+        error("Failed to write some Config.h values!")
+        error("Config.h may be locked by another program or read-only.")
 
     # Save in prefs
     prefs["transport"] = transport if transport else "slave"
