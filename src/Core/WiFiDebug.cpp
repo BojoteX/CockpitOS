@@ -369,19 +369,8 @@ void wifiDebugPrintf(const char* format, ...) {
 }
 
 void wifiDebugPrintln(const char* msg) {
-    // Combine msg + newline into a single chunked send to avoid
-    // the \n becoming its own UDP packet (which shows as a blank line)
-    char buf[WIFI_DEBUG_BUFFER_SIZE];
-    size_t len = strlen(msg);
-    if (len + 1 < sizeof(buf)) {
-        memcpy(buf, msg, len);
-        buf[len] = '\n';
-        wifiDebugSendChunked(buf, len + 1);
-    } else {
-        // Message too large for local buffer — send in two parts (rare)
-        wifiDebugSendChunked(msg, len);
-        wifiDebugSendChunked("\n", 1);
-    }
+    wifiDebugSendChunked(msg, strlen(msg));
+    wifiDebugSendChunked("\n", 1);
 }
 
 #endif // DEBUG_USE_WIFI || USE_DCSBIOS_WIFI
