@@ -3,20 +3,49 @@
 
    Based on the official DCS-BIOS RS485 Master library code, with one addition:
    every PC byte is also fed into a local protocol parser that drives an
-   MC_READY LED on pin 10. This lets you visually verify sync with a slave
+   output LED on pin 10. This lets you visually verify sync with a slave
    that has the same LED on pin 10.
 
    Hardware: Arduino Mega 2560
    TX1 = 18, RX1 = 19, Direction control = pin 2
-   MC_READY LED = pin 10 (with 220Ω resistor to GND)
+   LED output = pin 10 (with 220Ω resistor to GND)
 
    DIAGNOSTIC: Pin 13 (built-in LED) toggles every time a DCS-BIOS sync
    frame is detected, so you can verify the stream is being received and
-   parsed correctly even if MC_READY never comes.
+   parsed correctly even if the target LED output never comes.
 */
 
+// ============================================================================
+// USER OPTION — Select which aircraft LED output to monitor
+// ============================================================================
+// Uncomment ONE of the following to select the LED output this master will
+// parse from the DCS-BIOS export stream and drive on LED_OUTPUT_PIN (pin 10).
+//
+//   HORNET_MC_READY   — FA-18C Master Arm Panel "READY" light (yellow)
+//                        Address 0x740C, Mask 0x8000, Shift 15
+//
+//   APACHE_PLT_CMWS_ARM — AH-64D Pilot CMWS Flare Squibs ARM/SAFE indicator
+//                          Address 0x8712, Mask 0x0020, Shift 5
+//
+
+#define HORNET_MC_READY         // FA-18C  MC_READY          addr=0x740C mask=0x8000
+//#define APACHE_PLT_CMWS_ARM  // AH-64D  PLT_CMWS_ARM      addr=0x8712 mask=0x0020
+
+// --- Resolve selection to address + mask ---
+#if defined(HORNET_MC_READY) && defined(APACHE_PLT_CMWS_ARM)
+    #error "Select only ONE aircraft LED output — not both!"
+#elif defined(HORNET_MC_READY)
+    #define LED_DCS_ADDRESS  0x740C
+    #define LED_DCS_MASK     0x8000
+#elif defined(APACHE_PLT_CMWS_ARM)
+    #define LED_DCS_ADDRESS  0x8712
+    #define LED_DCS_MASK     0x0020
+#else
+    #error "No aircraft LED output selected — uncomment one option above!"
+#endif
+
 #define UART1_TXENABLE_PIN 2
-#define MC_READY_PIN 10
+#define LED_OUTPUT_PIN 10
 #define SYNC_LED_PIN 13     // Built-in LED - toggles on each sync frame
 
 // We do NOT define DCSBIOS_RS485_MASTER here — this sketch is fully
@@ -82,9 +111,9 @@ public:
 // LED SYNC — Minimal protocol parser + LED driver
 // ============================================================================
 // Parses the raw DCS-BIOS export stream the master receives from the PC.
-// Watches for address 0x740C (FA-18C MC_READY) and drives pin 10.
+// Watches for LED_DCS_ADDRESS and drives LED_OUTPUT_PIN when mask matches.
 //
-// Also uses DcsBios::LED-style approach: intercepts any address/data pair
+// Uses DcsBios::LED-style approach: intercepts any address/data pair
 // matching our target and applies the mask immediately.
 
 static uint8_t  ledParserState = DCSBIOS_STATE_WAIT_FOR_SYNC;
@@ -129,8 +158,8 @@ void ledParserProcessByte(uint8_t c) {
             ledParserData = ((uint16_t)c << 8) | ledParserData;
             ledParserCount--;
             // Check if this is our LED address
-            if (ledParserAddress == 0x740C) {
-                if (ledParserData & 0x8000) {
+            if (ledParserAddress == LED_DCS_ADDRESS) {
+                if (ledParserData & LED_DCS_MASK) {
                     sbi(PORTB, 4);   // Pin 10 HIGH — direct port, ISR-safe
                 } else {
                     cbi(PORTB, 4);   // Pin 10 LOW — direct port, ISR-safe
@@ -529,8 +558,8 @@ ISR(USART3_RX_vect) { s8(); uart3.rxISR(); c8(); }
 
 void setup() {
     // LED pins
-    pinMode(MC_READY_PIN, OUTPUT);
-    digitalWrite(MC_READY_PIN, LOW);
+    pinMode(LED_OUTPUT_PIN, OUTPUT);
+    digitalWrite(LED_OUTPUT_PIN, LOW);
     pinMode(SYNC_LED_PIN, OUTPUT);
     digitalWrite(SYNC_LED_PIN, LOW);
 
@@ -540,12 +569,12 @@ void setup() {
     pinMode(9, OUTPUT);
     digitalWrite(9, 0);
 
-    // Quick LED test - flash MC_READY and SYNC LEDs 3 times
+    // Quick LED test - flash output and SYNC LEDs 3 times
     for (int i = 0; i < 3; i++) {
-        digitalWrite(MC_READY_PIN, HIGH);
+        digitalWrite(LED_OUTPUT_PIN, HIGH);
         digitalWrite(SYNC_LED_PIN, HIGH);
         delay(150);
-        digitalWrite(MC_READY_PIN, LOW);
+        digitalWrite(LED_OUTPUT_PIN, LOW);
         digitalWrite(SYNC_LED_PIN, LOW);
         delay(150);
     }
