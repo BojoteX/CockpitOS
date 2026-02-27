@@ -394,8 +394,8 @@ void loop() {
       debugPrintln("🔌 Main Loop started");
       // This is a dummy report, it will only run ONCE (when loop starts) to trigger a Feature request to our device when USE_DCSBIOS_USB is active to do an initial drain of our ring buffer to allow the USB handshake to happen
       HIDManager_dispatchReport(true);
-    }    
-    mainLoopStarted = true;
+      mainLoopStarted = true;
+    }
 
     // Performance Profiling using beginProfiling("name") -> endProfiling("name") but only when DEBUG_PERFORMANCE  
     #if DEBUG_PERFORMANCE
