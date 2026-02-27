@@ -54,7 +54,7 @@
 
 // For production, ALL THESE should be set to 0. Use for debugging only.
 #define DEBUG_ENABLED                               0 // Use it ONLY when identifying issues or troubleshooting. Not required when using VERBOSE modes below
-#define DEBUG_PERFORMANCE                           1 // Shows profiling for specific tasks and memory usage for debug and troubleshooting.
+#define DEBUG_PERFORMANCE                           0 // Shows profiling for specific tasks and memory usage for debug and troubleshooting.
 #define VERBOSE_MODE                                0 // Verbose will output to both WiFi & Serial (Uses a LOT of Memory, might fail compile on S2 devices).
 #define VERBOSE_MODE_SERIAL_ONLY                    0 // Verbose will only output to Serial. 
 #define VERBOSE_MODE_WIFI_ONLY                      0 // Verbose will only output to WiFi.
