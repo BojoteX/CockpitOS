@@ -593,17 +593,8 @@ def _build_rows(known_pins, detected):
                 elif auto_key == "TFT":
                     hint = ""  # deferred
 
-            rows.append({
-                "type": ROW_PIN,
-                "group": grp_name,
-                "define": name,
-                "value": val,          # None if not set
-                "help": pdef.get("help", ""),
-                "hint": hint,
-                "pdef": pdef,
-            })
-
             # Per-pin warning: required group has device detected but this pin is missing
+            warning = ""
             if grp_required and val is None and pdef.get("type") != "bool":
                 # TM1637: only warn for modules actually in use
                 tm_mod = pdef.get("tm_module")
@@ -611,11 +602,18 @@ def _build_rows(known_pins, detected):
                     pass  # module not in use, skip warning
                 else:
                     det_str = ", ".join(d for d in required_devs if d in detected)
-                    rows.append({
-                        "type": ROW_WARNING,
-                        "group": grp_name,
-                        "message": f"{name} required ({det_str} detected)",
-                    })
+                    warning = f"! required ({det_str} detected)"
+
+            rows.append({
+                "type": ROW_PIN,
+                "group": grp_name,
+                "define": name,
+                "value": val,          # None if not set
+                "help": pdef.get("help", ""),
+                "hint": hint,
+                "warning": warning,
+                "pdef": pdef,
+            })
 
     return rows
 
@@ -810,31 +808,65 @@ def edit_custom_pins(filepath, input_filepath, led_filepath,
         name = row["define"]
         val = row["value"]
         hint = row.get("hint", "")
+        warning = row.get("warning", "")
 
         val_plain = val if val is not None else "(not set)"
         name_part = f"{name:<{name_w}}"
         val_part = f"{val_plain:<{val_w}}"
         hint_room = max(0, body_w - name_w - val_w)
-        hint_part = f"{hint[:hint_room]:<{hint_room}}"
 
-        if is_highlighted and _flash_active[0]:
-            return (f"{_SEL_BG} {YELLOW}> "
-                    f"{name_part}{val_part}{hint_part}"
-                    f"{RESET}{DIM}{scroll_char}{RESET}")
-        elif is_highlighted:
-            nc = GREEN if val is not None else DIM
-            vc = GREEN if val is not None else DIM
-            return (f"{_SEL_BG} {CYAN}>{RESET}{_SEL_BG} "
-                    f"{nc}{name_part}{RESET}{_SEL_BG}"
-                    f"{vc}{val_part}{RESET}{_SEL_BG}"
-                    f"{DIM}{hint_part}{RESET}{_SEL_BG}"
-                    f"{DIM}{scroll_char}{RESET}")
+        # Warning replaces hint when present (they never overlap)
+        if warning:
+            warn_text = warning[:hint_room]
+            pad = hint_room - len(warn_text)
+            warn_part_styled = f"{WARN_BG} {warn_text} {RESET}" if warn_text else ""
+            # Remaining padding after the warning tag
+            after_warn = max(0, hint_room - len(warn_text) - 2)
+            tail = f"{' ' * after_warn}" if after_warn > 0 else ""
         else:
-            color = RESET if val is not None else DIM
-            return (f"   "
-                    f"{color}{name_part}{val_part}{RESET}"
-                    f"{DIM}{hint_part}{RESET}"
-                    f"{DIM}{scroll_char}{RESET}")
+            warn_part_styled = ""
+            tail = ""
+
+        if warning:
+            if is_highlighted and _flash_active[0]:
+                return (f"{_SEL_BG} {YELLOW}> "
+                        f"{name_part}{val_part}"
+                        f"{RESET}{warn_part_styled}{_SEL_BG}{tail}"
+                        f"{RESET}{DIM}{scroll_char}{RESET}")
+            elif is_highlighted:
+                nc = GREEN if val is not None else DIM
+                vc = GREEN if val is not None else DIM
+                return (f"{_SEL_BG} {CYAN}>{RESET}{_SEL_BG} "
+                        f"{nc}{name_part}{RESET}{_SEL_BG}"
+                        f"{vc}{val_part}{RESET}"
+                        f"{warn_part_styled}{_SEL_BG}{tail}"
+                        f"{RESET}{DIM}{scroll_char}{RESET}")
+            else:
+                color = RESET if val is not None else DIM
+                return (f"   "
+                        f"{color}{name_part}{val_part}{RESET}"
+                        f"{warn_part_styled}{tail}"
+                        f"{DIM}{scroll_char}{RESET}")
+        else:
+            hint_part = f"{hint[:hint_room]:<{hint_room}}"
+            if is_highlighted and _flash_active[0]:
+                return (f"{_SEL_BG} {YELLOW}> "
+                        f"{name_part}{val_part}{hint_part}"
+                        f"{RESET}{DIM}{scroll_char}{RESET}")
+            elif is_highlighted:
+                nc = GREEN if val is not None else DIM
+                vc = GREEN if val is not None else DIM
+                return (f"{_SEL_BG} {CYAN}>{RESET}{_SEL_BG} "
+                        f"{nc}{name_part}{RESET}{_SEL_BG}"
+                        f"{vc}{val_part}{RESET}{_SEL_BG}"
+                        f"{DIM}{hint_part}{RESET}{_SEL_BG}"
+                        f"{DIM}{scroll_char}{RESET}")
+            else:
+                color = RESET if val is not None else DIM
+                return (f"   "
+                        f"{color}{name_part}{val_part}{RESET}"
+                        f"{DIM}{hint_part}{RESET}"
+                        f"{DIM}{scroll_char}{RESET}")
 
     def _draw():
         os.system("cls" if os.name == "nt" else "clear")
