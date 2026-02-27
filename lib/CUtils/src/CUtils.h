@@ -110,7 +110,7 @@ bool GN1640_detect(uint8_t clkPin, uint8_t dioPin);
 void GN1640_tick();
 
 // —— PCA9555 (I²C expander) —— 
-extern uint8_t PCA9555_cachedPortStates[8][2];  // address 0x20–0x27 → [port0,port1]
+extern uint8_t PCA9555_cachedPortStates[MAX_DEVICES][2];  // indexed by discovery slot → [port0,port1]
 void PCA9555_setAllLEDs(bool state);
 void PCA9555_allLEDsByAddress(uint8_t addr, bool state);
 void PCA9555_allOn(uint8_t addr);
