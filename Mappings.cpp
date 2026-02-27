@@ -141,6 +141,41 @@ void initMappings() {
         }
     }
 
+    // GPIO pin conflict detection: same pin used as both input and output
+    {
+        // Track pin usage: bit 0 = input, bit 1 = output
+        uint8_t pinUsage[48] = {0};
+
+        // Scan InputMappings for GPIO inputs
+        for (size_t i = 0; i < InputMappingSize; ++i) {
+            const auto& m = InputMappings[i];
+            if (!m.label || !m.source) continue;
+            if (strcmp(m.source, "GPIO") != 0) continue;
+            if (m.port < 0 || m.port >= 48) continue;
+            pinUsage[m.port] |= 1;  // mark as input
+        }
+
+        // Scan LEDMapping for GPIO outputs (GPIO LEDs and analog gauges)
+        for (uint16_t i = 0; i < panelLEDsCount; ++i) {
+            const auto& led = panelLEDs[i];
+            int8_t gpio = -1;
+            if (led.deviceType == DEVICE_GPIO)
+                gpio = led.info.gpioInfo.gpio;
+            else if (led.deviceType == DEVICE_GAUGE)
+                gpio = (int8_t)led.info.gaugeInfo.gpio;
+            if (gpio < 0 || gpio >= 48) continue;
+            pinUsage[gpio] |= 2;  // mark as output
+        }
+
+        // Check for conflicts
+        for (uint8_t pin = 0; pin < 48; ++pin) {
+            if (pinUsage[pin] == 3) {
+                debugPrintf("❌ [MAPPING] GPIO %u used as BOTH input and output!\n", pin);
+                ok = false;
+            }
+        }
+    }
+
     if (!ok) {
         debugPrintln("❌ [MAPPING] Invalid configuration detected. Halting.");
         while (true) { delay(1000); }

@@ -36,12 +36,10 @@
 #include <driver/rmt.h>
 #endif
 
-// ---- Strict protocol timing ----
-#define HT1622_WR_MIN_US   4
-#define HT1622_DATA_SU_NS 120
-#define HT1622_DATA_H_NS  600
-#define HT1622_CS_SETUP_NS 600
-#define HT1622_CS_HOLD_NS  800
+// ---- Strict protocol timing (all values in microseconds) ----
+#define HT1622_WR_MIN_US    4   // WR pulse width minimum
+#define HT1622_CS_SETUP_US  1   // Datasheet min: 600ns. 1us is sufficient.
+#define HT1622_CS_HOLD_US   1   // Datasheet min: 800ns. 1us is sufficient.
 #define HT1622_RAM_SIZE    64
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -60,7 +58,7 @@ void HT1622::init() {
     pinMode(_data, OUTPUT);
 
     setCS(true); setWR(true); setDATA(true);
-    delayMicroseconds(HT1622_CS_SETUP_NS / 1000 + 1);
+    delayMicroseconds(HT1622_CS_SETUP_US);
 
     sendCmd(0x00); // SYS DIS
     sendCmd(0x18); // RC 32K
@@ -71,12 +69,12 @@ void HT1622::init() {
     // Protected critical section for reset sequence
     portENTER_CRITICAL(&ht1622_mux);
     setCS(false); 
-    delayMicroseconds(HT1622_CS_SETUP_NS / 1000 + 1);
+    delayMicroseconds(HT1622_CS_SETUP_US);
     writeCommandBits(0xE3, 8);
     setCS(true); 
     portEXIT_CRITICAL(&ht1622_mux);
     
-    delayMicroseconds(HT1622_CS_HOLD_NS / 1000 + 1);
+    delayMicroseconds(HT1622_CS_HOLD_US);
 
     sendCmd(0x03); // LCD ON
     clear();
@@ -89,7 +87,7 @@ void HT1622::sendCmd(uint8_t cmd) {
     portENTER_CRITICAL(&ht1622_mux);
     
     setCS(false);
-    delayMicroseconds(HT1622_CS_SETUP_NS / 1000 + 1);
+    delayMicroseconds(HT1622_CS_SETUP_US);
 
     writeBitStrict(1); writeBitStrict(0); writeBitStrict(0);
     writeCommandBits(cmd, 8);
@@ -100,7 +98,7 @@ void HT1622::sendCmd(uint8_t cmd) {
     portEXIT_CRITICAL(&ht1622_mux);
     // ════════════════════════════════════════════════════════════════════════
     
-    delayMicroseconds(HT1622_CS_HOLD_NS / 1000 + 1);
+    delayMicroseconds(HT1622_CS_HOLD_US);
 }
 
 void HT1622::writeNibble(uint8_t addr, uint8_t nibble) {
@@ -110,7 +108,7 @@ void HT1622::writeNibble(uint8_t addr, uint8_t nibble) {
     portENTER_CRITICAL(&ht1622_mux);
     
     setCS(false);
-    delayMicroseconds(HT1622_CS_SETUP_NS / 1000 + 1);
+    delayMicroseconds(HT1622_CS_SETUP_US);
 
     writeBitStrict(1); writeBitStrict(0); writeBitStrict(1);
     for (int i = 5; i >= 0; i--) writeBitStrict((addr >> i) & 1);
@@ -121,7 +119,7 @@ void HT1622::writeNibble(uint8_t addr, uint8_t nibble) {
     portEXIT_CRITICAL(&ht1622_mux);
     // ════════════════════════════════════════════════════════════════════════
     
-    delayMicroseconds(HT1622_CS_HOLD_NS / 1000 + 1);
+    delayMicroseconds(HT1622_CS_HOLD_US);
 }
 
 // --- RMT Unified Commit Burst ---
@@ -187,7 +185,7 @@ void HT1622::commitBurst(const uint8_t* shadow) {
     portENTER_CRITICAL(&ht1622_mux);
     
     setCS(false);
-    delayMicroseconds(HT1622_CS_SETUP_NS / 1000 + 1);
+    delayMicroseconds(HT1622_CS_SETUP_US);
 
     writeBitStrict(1); writeBitStrict(0); writeBitStrict(1);
     for (int i = 5; i >= 0; --i) writeBitStrict((0 >> i) & 1);
@@ -203,7 +201,7 @@ void HT1622::commitBurst(const uint8_t* shadow) {
     portEXIT_CRITICAL(&ht1622_mux);
     // ════════════════════════════════════════════════════════════════════════
     
-    delayMicroseconds(HT1622_CS_HOLD_NS / 1000 + 1);
+    delayMicroseconds(HT1622_CS_HOLD_US);
 }
 
 void HT1622::commit(const uint8_t* shadow, uint8_t* lastShadow, int shadowLen) {
@@ -253,7 +251,7 @@ void HT1622::commitPartial(const uint8_t* shadow, uint8_t* lastShadow,
     portENTER_CRITICAL(&ht1622_mux);
 
     setCS(false);
-    delayMicroseconds(HT1622_CS_SETUP_NS / 1000 + 1);
+    delayMicroseconds(HT1622_CS_SETUP_US);
 
     // Write command header: 101 (write mode)
     writeBitStrict(1); writeBitStrict(0); writeBitStrict(1);
@@ -273,7 +271,7 @@ void HT1622::commitPartial(const uint8_t* shadow, uint8_t* lastShadow,
     portEXIT_CRITICAL(&ht1622_mux);
     // ════════════════════════════════════════════════════════════════════════
     
-    delayMicroseconds(HT1622_CS_HOLD_NS / 1000 + 1);
+    delayMicroseconds(HT1622_CS_HOLD_US);
 }
 
 void HT1622::allSegmentsOn() {

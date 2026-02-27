@@ -32,8 +32,8 @@ uint8_t         discoveredDeviceCount = 0;
 const char*     panelNameByAddr[I2C_ADDR_SPACE] = { nullptr };
 
 // PCA9555 write/read cache
-// indexed by (address - 0x20), port 0 or 1
-uint8_t PCA9555_cachedPortStates[8][2] = {{0}};
+// indexed by discovery slot (0 to MAX_DEVICES-1), port 0 or 1
+uint8_t PCA9555_cachedPortStates[MAX_DEVICES][2] = {{0}};
 
 // Include all internal modules
 #include "internal/WS2812.cpp"  
