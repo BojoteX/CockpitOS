@@ -10,10 +10,17 @@ bool loggingEnabled = false;
 static char pcaLabelBuf[MAX_DEVICES][10];
 
 // ===== I2C bus recovery: failure tracking and bus unlock =====
-static uint8_t  i2cFailCount[8] = {0};             // per PCA address (0x20-0x27)
+static uint8_t  i2cFailCount[MAX_DEVICES] = {0};   // per discovery slot (0 to MAX_DEVICES-1)
 static uint32_t lastI2CRecoveryMs = 0;
 static const uint8_t  I2C_FAIL_THRESHOLD  = 10;    // consecutive failures before recovery
 static const uint32_t I2C_RECOVERY_COOLDOWN_MS = 5000; // min ms between recovery attempts
+
+// Map any PCA address to its discovery slot (0..discoveredDeviceCount-1), or -1 if not found
+static int8_t pcaSlot(uint8_t addr) {
+    for (uint8_t i = 0; i < discoveredDeviceCount; ++i)
+        if (discoveredDevices[i].address == addr) return (int8_t)i;
+    return -1;
+}
 
 /////////////////////////////////////
 // Actual i2c functions
@@ -97,24 +104,16 @@ void PCA9555_scanConnectedPanels(const uint8_t* addrs, uint8_t count) {
     }
 }
 
-// Bounds check helper: PCA9555 valid address range is 0x20-0x27
-static inline bool pcaAddrValid(uint8_t addr) { return addr >= 0x20 && addr <= 0x27; }
-
 void PCA9555_initCache() {
     memset(pcaConfigCache, 0xFF, sizeof(pcaConfigCache));
     for (uint8_t i = 0; i < discoveredDeviceCount; ++i) {
         uint8_t addr = discoveredDevices[i].address;
         debugPrintf("Initializing PCA_0x%02X inputs and cached port states\n", addr);
 
-        if (!pcaAddrValid(addr)) {
-            debugPrintf("[PCA] ❌ Address 0x%02X out of PCA9555 range, skipping cache init\n", addr);
-            continue;
-        }
-
         initPCA9555AsInput(addr);
 
-        PCA9555_cachedPortStates[addr - 0x20][0] = 0xFF;
-        PCA9555_cachedPortStates[addr - 0x20][1] = 0xFF;
+        PCA9555_cachedPortStates[i][0] = 0xFF;
+        PCA9555_cachedPortStates[i][1] = 0xFF;
 
         Wire.beginTransmission(addr);
         Wire.write((uint8_t)0x02);
@@ -206,16 +205,17 @@ void PCA9555_write(uint8_t addr, uint8_t port, uint8_t bit, bool state) {
         if(DEBUG) debugPrintf("[PCA] ❌ Write / LED skipped. %s (0x%02X) not present\n", getPanelName(addr), addr);
         return;
     }
-    if (!pcaAddrValid(addr)) return;
+    int8_t slot = pcaSlot(addr);
+    if (slot < 0) return;
 
     // update the cache
     if (state)
-        PCA9555_cachedPortStates[addr - 0x20][port] |=  (1 << bit);
+        PCA9555_cachedPortStates[slot][port] |=  (1 << bit);
     else
-        PCA9555_cachedPortStates[addr - 0x20][port] &= ~(1 << bit);
+        PCA9555_cachedPortStates[slot][port] &= ~(1 << bit);
 
-    data0 = PCA9555_cachedPortStates[addr - 0x20][0];
-    data1 = PCA9555_cachedPortStates[addr - 0x20][1];
+    data0 = PCA9555_cachedPortStates[slot][0];
+    data1 = PCA9555_cachedPortStates[slot][1];
 
     // one-shot I²C write both ports
     uint32_t t0 = micros();
@@ -285,6 +285,7 @@ static void i2cBusRecovery_Wire() {
 // Corrected readPCA9555 function (Wire-style)
 bool readPCA9555(uint8_t address, byte &port0, byte &port1) {
     byte tmpPort0, tmpPort1;
+    int8_t slot = pcaSlot(address);
 
     Wire.beginTransmission(address);
     Wire.write((uint8_t)0x00);  // Port 0 input register
@@ -296,7 +297,7 @@ bool readPCA9555(uint8_t address, byte &port0, byte &port1) {
         port1 = tmpPort1;
 
         // Reset failure counter on success
-        if (pcaAddrValid(address)) i2cFailCount[address - 0x20] = 0;
+        if (slot >= 0) i2cFailCount[slot] = 0;
 
         // NOW CALL LOGGER IF CHANGED
         if (isPCA9555LoggingEnabled() && shouldLogChange(address, port0, port1)) {
@@ -307,10 +308,9 @@ bool readPCA9555(uint8_t address, byte &port0, byte &port1) {
     }
 
     // Track consecutive failures and attempt bus recovery
-    if (pcaAddrValid(address)) {
-        uint8_t idx = address - 0x20;
-        if (i2cFailCount[idx] < 255) i2cFailCount[idx]++;
-        if (i2cFailCount[idx] == I2C_FAIL_THRESHOLD) {
+    if (slot >= 0) {
+        if (i2cFailCount[slot] < 255) i2cFailCount[slot]++;
+        if (i2cFailCount[slot] == I2C_FAIL_THRESHOLD) {
             i2cBusRecovery_Wire();
         }
     }
@@ -409,22 +409,15 @@ static inline esp_err_t PCA9555_writeReg2(uint8_t addr, uint8_t reg, uint8_t val
     return i2c_master_write_to_device(PCA_I2C_PORT, addr, buf, 3, 100);
 }
 
-// Bounds check helper: PCA9555 valid address range is 0x20-0x27
-static inline bool pcaAddrValid(uint8_t addr) { return addr >= 0x20 && addr <= 0x27; }
-
 // For LED cache/init, always best to use atomic multi-byte write
 void PCA9555_initCache() {
     memset(pcaConfigCache, 0xFF, sizeof(pcaConfigCache));
     for (uint8_t i = 0; i < discoveredDeviceCount; ++i) {
         uint8_t addr = discoveredDevices[i].address;
         debugPrintf("Initializing PCA_0x%02X inputs and cached port states\n", addr);
-        if (!pcaAddrValid(addr)) {
-            debugPrintf("[PCA] Address 0x%02X out of PCA9555 range, skipping cache init\n", addr);
-            continue;
-        }
         initPCA9555AsInput(addr);
-        PCA9555_cachedPortStates[addr - 0x20][0] = 0xFF;
-        PCA9555_cachedPortStates[addr - 0x20][1] = 0xFF;
+        PCA9555_cachedPortStates[i][0] = 0xFF;
+        PCA9555_cachedPortStates[i][1] = 0xFF;
         PCA9555_writeReg2(addr, 0x02, 0xFF, 0xFF);
     }
 }
@@ -492,13 +485,14 @@ void PCA9555_write(uint8_t addr, uint8_t port, uint8_t bit, bool state) {
         if(DEBUG) debugPrintf("[PCA] ❌ Write / LED skipped. %s (0x%02X) not present\n", getPanelName(addr), addr);
         return;
     }
-    if (!pcaAddrValid(addr)) return;
+    int8_t slot = pcaSlot(addr);
+    if (slot < 0) return;
     if (state)
-        PCA9555_cachedPortStates[addr - 0x20][port] |= (1 << bit);
+        PCA9555_cachedPortStates[slot][port] |= (1 << bit);
     else
-        PCA9555_cachedPortStates[addr - 0x20][port] &= ~(1 << bit);
-    uint8_t data0 = PCA9555_cachedPortStates[addr - 0x20][0];
-    uint8_t data1 = PCA9555_cachedPortStates[addr - 0x20][1];
+        PCA9555_cachedPortStates[slot][port] &= ~(1 << bit);
+    uint8_t data0 = PCA9555_cachedPortStates[slot][0];
+    uint8_t data1 = PCA9555_cachedPortStates[slot][1];
     uint32_t t0 = micros();
     PCA9555_writeReg2(addr, 0x02, data0, data1);
     uint32_t dt = micros() - t0;
@@ -559,6 +553,7 @@ static void i2cBusRecovery_IDF() {
 bool readPCA9555(uint8_t address, byte &port0, byte &port1) {
     uint8_t reg = 0x00;
     uint8_t buf[2] = {0, 0};
+    int8_t slot = pcaSlot(address);
     esp_err_t ret = i2c_master_write_read_device(
         PCA_I2C_PORT,
         address,
@@ -571,7 +566,7 @@ bool readPCA9555(uint8_t address, byte &port0, byte &port1) {
         port1 = buf[1];
 
         // Reset failure counter on success
-        if (pcaAddrValid(address)) i2cFailCount[address - 0x20] = 0;
+        if (slot >= 0) i2cFailCount[slot] = 0;
 
         if (isPCA9555LoggingEnabled() && shouldLogChange(address, port0, port1)) {
             logPCA9555State(address, port0, port1);
@@ -580,10 +575,9 @@ bool readPCA9555(uint8_t address, byte &port0, byte &port1) {
     }
 
     // Track consecutive failures and attempt bus recovery
-    if (pcaAddrValid(address)) {
-        uint8_t idx = address - 0x20;
-        if (i2cFailCount[idx] < 255) i2cFailCount[idx]++;
-        if (i2cFailCount[idx] == I2C_FAIL_THRESHOLD) {
+    if (slot >= 0) {
+        if (i2cFailCount[slot] < 255) i2cFailCount[slot]++;
+        if (i2cFailCount[slot] == I2C_FAIL_THRESHOLD) {
             i2cBusRecovery_IDF();
         }
     }
