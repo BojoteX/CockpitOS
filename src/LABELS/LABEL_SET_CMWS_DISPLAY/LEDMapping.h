@@ -31,13 +31,13 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
-  { "PLT_CMWS_ARM"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "PLT_CMWS_ARM"     , DEVICE_GPIO    , {.gpioInfo = {16}}, false, false }, // GPIO 16,
   { "PLT_CMWS_BYPASS"  , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "PLT_CMWS_JETT"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "PLT_CMWS_JETT_CVR", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "PLT_CMWS_LAMP"    , DEVICE_NONE    , {.gpioInfo = {0}}, true, false }, // No Info,
+  { "PLT_CMWS_LAMP"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "PLT_CMWS_MODE"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "PLT_CMWS_VOL"     , DEVICE_NONE    , {.gpioInfo = {0}}, true, false }, // No Info
+  { "PLT_CMWS_VOL"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);

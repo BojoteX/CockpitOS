@@ -1,5 +1,5 @@
-// PID:0x3B38 
+// PID:0xEC87 
 
 #pragma once
 
-#define LABEL_SET RS485_LOLIN_AUTO
+#define LABEL_SET TEST_ONLY
