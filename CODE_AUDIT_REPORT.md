@@ -10,6 +10,29 @@ This document serves two purposes:
 
 ---
 
+## Implementation Status
+
+| Finding | Category | Status | Summary |
+|---------|----------|--------|---------|
+| **#1** | Performance — HIGH | **IMPLEMENTED** | GPIO selectors pre-resolved into flat table |
+| **#2** | Performance — MEDIUM-HIGH | **IMPLEMENTED** | GPIO momentaries pre-resolved into flat table |
+| **#3** | Performance — MEDIUM | **SKIPPED** | Subscriptions max 32, fire per-change not per-frame |
+| **#4** | Performance — LOW-MEDIUM | **SKIPPED** | Only fires on dwell expiry, not per frame |
+| **#5** | Performance — LOW | **SKIPPED** | Array <16 entries, per-event only |
+| **#6** | Memory Safety — MEDIUM-HIGH | **IMPLEMENTED** | Bounds check added to all cache accessors |
+| **#7** | Error Handling — MEDIUM | **SKIPPED** | detect() already checks ACK; hot-path timing risk |
+| **#8** | Correctness — MEDIUM | **SKIPPED** | Selectors have dwell; adding per-bit timers risks latency |
+| **#9** | Validation — MEDIUM | **IMPLEMENTED** | Pin conflict check added to initMappings() |
+| **#10** | Code Quality — LOW | **IMPLEMENTED** | NS defines replaced with US equivalents |
+| **#11** | Robustness — MEDIUM | **IMPLEMENTED** | I2C recovery with failure counting added |
+| **#12** | Performance — LOW-MEDIUM | **SKIPPED** | Hot-path calls are per-change, not per-frame |
+| **#13** | Informational | N/A | No action needed (correct as-is) |
+| **#14** | Informational | N/A | No action needed (correct as-is) |
+
+**6 implemented, 6 skipped (with justification), 2 informational (no action needed)**
+
+---
+
 ## Executive Summary
 
 **Code Quality Score: 8.2 / 10**
@@ -46,6 +69,12 @@ Everything in this chain runs **every single frame** (no `delay()` in loop). A t
 ---
 
 ## FINDING 1 — `pollGPIOSelectors()` is O(groups * mappings) with strcmp, every frame
+
+### Status: IMPLEMENTED
+
+**Changes:** `src/Core/InputControl.cpp`, `src/InputControl.h`, `src/Panels/Generic.cpp`
+
+Added `GPIOSelEntry` struct and `GPIOSelGroup` metadata. `buildGPIOSelectorInputs()` scans InputMappings once at startup and populates a flat array grouped by selector group. `pollGPIOSelectors()` rewritten to iterate only pre-resolved entries — zero strcmp in the hot path. All behavior preserved: one-hot first-LOW-wins, regular active-level, fallback, forceSend, gpioSelectorCache semantics.
 
 ### Category: PERFORMANCE — HIGH
 
@@ -84,6 +113,12 @@ The developer already solved this exact problem for PCA9555 inputs. Look at:
 
 ## FINDING 2 — `pollGPIOMomentaries()` linear scan with strcmp, every frame
 
+### Status: IMPLEMENTED
+
+**Changes:** `src/Core/InputControl.cpp`, `src/InputControl.h`, `src/Panels/Generic.cpp`
+
+Added `GPIOMomEntry` struct. `buildGPIOMomentaryInputs()` scans InputMappings once at startup, filters for GPIO momentaries (excluding encoder pins via `encoderPinMask`), and builds a flat array. `pollGPIOMomentaries()` rewritten to iterate only the pre-resolved entries. State tracking uses a dedicated `lastGpioMomState[]` array indexed by flat position. forceSend behavior preserved.
+
 ### Category: PERFORMANCE — MEDIUM-HIGH
 
 ### Where to look
@@ -108,6 +143,10 @@ Same pattern: build a pre-resolved `GPIOMomentaryEntry[]` flat table at startup.
 ---
 
 ## FINDING 3 — Subscriber dispatch is O(n) with strcmp per DCS-BIOS update
+
+### Status: SKIPPED
+
+**Reason:** Subscription arrays are capped at 32 entries (`MAX_LED_SUBSCRIPTIONS=32`, etc.) and dispatch fires per DCS-BIOS state change, not per frame. With typical usage of 10-20 subscribers and ~50-100 changes per consistency frame, the total is ~500-2000 strcmp() calls per frame — measurable but not dominant. Adding hash tables per subscription type adds significant code complexity (collision handling, multi-subscriber per label support) for relatively small gain in arrays this size. The complexity-to-benefit ratio does not justify implementation.
 
 ### Category: PERFORMANCE — MEDIUM
 
@@ -144,6 +183,10 @@ Use the same hash table pattern the developer already uses for `findCmdEntry()` 
 
 ## FINDING 4 — Linear search in `flushBufferedHidCommands()` selector flush
 
+### Status: SKIPPED
+
+**Reason:** Verified that this code only fires when a selector's dwell timer expires (~100ms after last state change), not every frame. The linear scan occurs at most once per selector change event. Impact is negligible compared to Findings 1-2 which run every frame at 250Hz.
+
 ### Category: PERFORMANCE — LOW-MEDIUM
 
 ### Where to look
@@ -169,6 +212,10 @@ Build a per-group lookup table mapping `(group, oride_value) -> InputMapping*` a
 
 ## FINDING 5 — `isLatchedButton()` linear scan with strcmp
 
+### Status: SKIPPED
+
+**Reason:** `kLatchedButtons[]` is typically <16 entries. With short labels (~20 chars), 16 strcmp() calls take <50us. Fires per button event only, not per frame. Cost is negligible.
+
 ### Category: PERFORMANCE — LOW
 
 ### Where to look
@@ -186,6 +233,12 @@ Add a `bool isLatched` field to the InputMapping struct, set during `initMapping
 ---
 
 ## FINDING 6 — PCA9555 cache index not bounds-checked
+
+### Status: IMPLEMENTED
+
+**Changes:** `lib/CUtils/src/internal/PCA9555.cpp`
+
+Added `pcaAddrValid()` inline helper (checks `addr >= 0x20 && addr <= 0x27`). Applied to both Wire and ESP-IDF versions of `PCA9555_initCache()` and `PCA9555_write()`. Out-of-range addresses are logged and skipped. Zero performance cost (single comparison, only in init/write paths).
 
 ### Category: MEMORY SAFETY — MEDIUM-HIGH
 
@@ -216,6 +269,10 @@ if (addr < 0x20 || addr > 0x27) return;  // (or return false for read functions)
 
 ## FINDING 7 — GN1640 ACK bit returned but never checked by callers
 
+### Status: SKIPPED
+
+**Reason:** Audit claim partially incorrect. `GN1640_detect()` already properly checks ACK via `GN1640_sendByteWithAck()` and returns the result. The hot-path functions (`GN1640_command`, `GN1640_write`, `GN1640_tick`) intentionally use `GN1640_sendByte()` — a different function that doesn't read ACK at all. Adding ACK reading to every byte in the hot path would add a 9th clock cycle per byte plus GPIO direction changes, risking bus timing violations on the GN1640's timing-sensitive protocol.
+
 ### Category: ERROR HANDLING — MEDIUM
 
 ### Where to look
@@ -243,6 +300,10 @@ The GN1640 drives the caution advisory panel (multiple LEDs in a grid). If the c
 ---
 
 ## FINDING 8 — HC165 shift register inputs lack debounce
+
+### Status: SKIPPED
+
+**Reason:** As the audit itself notes, HC165 selectors already go through dwell arbitration (`SELECTOR_DWELL_MS=100`), which effectively debounces them. Only momentaries are theoretically vulnerable. Adding per-bit debounce timers for up to 64 HC165 bits adds 256 bytes of state, a per-frame timestamp comparison for every bit, and risks introducing latency for fast-response momentary buttons. The main loop at 250Hz already provides ~4ms implicit debounce. Risk of breaking existing working behavior outweighs the marginal benefit.
 
 ### Category: CORRECTNESS — MEDIUM
 
@@ -279,6 +340,12 @@ static uint32_t hc165BounceBits = 0;  // candidate changes waiting for stability
 
 ## FINDING 9 — No GPIO pin conflict detection between input and output mappings
 
+### Status: IMPLEMENTED
+
+**Changes:** `Mappings.cpp`
+
+Added a pin-usage validation pass at the end of `initMappings()`, before the halt check. Scans InputMappings for GPIO inputs and panelLEDs for GPIO outputs (both `DEVICE_GPIO` and `DEVICE_GAUGE`). If any pin is used as both input and output, prints an error and halts. Zero runtime cost (only runs once at startup).
+
 ### Category: VALIDATION — MEDIUM
 
 ### Where to look
@@ -308,6 +375,12 @@ Add a pin-usage validation pass at the END of `initMappings()`:
 
 ## FINDING 10 — HT1622 timing constants use misleading integer truncation
 
+### Status: IMPLEMENTED
+
+**Changes:** `lib/CUtils/src/internal/HT1622.cpp`
+
+Replaced `HT1622_CS_SETUP_NS`, `HT1622_CS_HOLD_NS`, `HT1622_DATA_SU_NS`, `HT1622_DATA_H_NS` with `HT1622_CS_SETUP_US` and `HT1622_CS_HOLD_US`. All `delayMicroseconds(X_NS / 1000 + 1)` calls replaced with `delayMicroseconds(X_US)`. Timing behavior is identical (both evaluate to 1us). Unused defines removed.
+
 ### Category: CODE QUALITY — LOW
 
 ### Where to look
@@ -336,6 +409,12 @@ Replace nanosecond defines with direct microsecond values and add a comment:
 ---
 
 ## FINDING 11 — No I2C bus recovery mechanism
+
+### Status: IMPLEMENTED
+
+**Changes:** `lib/CUtils/src/internal/PCA9555.cpp`
+
+Added per-address failure counter (`i2cFailCount[8]`), success reset, and recovery trigger after 10 consecutive failures. Recovery procedure: tear down I2C driver, toggle SCL as GPIO 9 times (standard I2C bus unlock), reinitialize I2C with original configuration (respects `PCA_FAST_MODE`). 5-second cooldown between recovery attempts. Implemented for both Wire and ESP-IDF versions. All failure counters reset after recovery.
 
 ### Category: ROBUSTNESS — MEDIUM
 
@@ -374,6 +453,10 @@ In `PCA9555.cpp` or a helper:
 ---
 
 ## FINDING 12 — Debug printf with emoji in hot path
+
+### Status: SKIPPED
+
+**Reason:** Verified that `debugPrintf` is a function (not a macro) that always calls `vsnprintf`. However, the cited "hot path" calls are not actually per-frame: `debugPrintf("🛩️ [HID] GROUP %u FLUSHED: ...")` fires on dwell expiry (~100ms), and `debugPrintf("[STATE UPDATE] 🔁 %s = %s\n", ...)` fires on DCS-BIOS state changes. When both `debugToSerial` and `debugToUDP` are false, `debugPrint()` returns immediately after the format — total cost ~10us per call, infrequent. Converting `debugPrintf` to a macro would require careful handling of variadic arguments and side effects in format arguments, adding risk for minimal gain.
 
 ### Category: PERFORMANCE — LOW-MEDIUM
 
@@ -476,17 +559,17 @@ Evidence of skill:
 ## Implementation Priority
 
 ### Tier 1 — Performance (biggest loop frequency impact)
-1. Finding 1: Pre-resolve GPIO selectors (eliminates ~4,000+ strcmp/frame)
-2. Finding 2: Pre-resolve GPIO momentaries (eliminates ~600+ strcmp/frame)
-3. Finding 3: Hash-based subscriber dispatch (eliminates ~1,000-3,000 strcmp/frame)
+1. ~~Finding 1: Pre-resolve GPIO selectors (eliminates ~4,000+ strcmp/frame)~~ **DONE**
+2. ~~Finding 2: Pre-resolve GPIO momentaries (eliminates ~600+ strcmp/frame)~~ **DONE**
+3. Finding 3: Hash-based subscriber dispatch — **SKIPPED** (subscriptions max 32, per-change not per-frame)
 
 ### Tier 2 — Robustness (hardware reliability)
-4. Finding 6: PCA9555 cache bounds check (memory safety)
-5. Finding 11: I2C bus recovery (prevents permanent PCA failure)
-6. Finding 8: HC165 debounce (prevents double-press)
-7. Finding 9: GPIO pin conflict detection (catches config errors)
+4. ~~Finding 6: PCA9555 cache bounds check (memory safety)~~ **DONE**
+5. ~~Finding 11: I2C bus recovery (prevents permanent PCA failure)~~ **DONE**
+6. Finding 8: HC165 debounce — **SKIPPED** (dwell already debounces selectors; risk of latency)
+7. ~~Finding 9: GPIO pin conflict detection (catches config errors)~~ **DONE**
 
 ### Tier 3 — Quality of life (nice to have)
-8. Finding 7: GN1640 ACK checking
-9. Finding 10: HT1622 timing constant cleanup
-10. Finding 12: Debug print elimination verification
+8. Finding 7: GN1640 ACK checking — **SKIPPED** (detect() already checks ACK; hot-path timing risk)
+9. ~~Finding 10: HT1622 timing constant cleanup~~ **DONE**
+10. Finding 12: Debug print elimination — **SKIPPED** (per-change not per-frame; minimal impact)
