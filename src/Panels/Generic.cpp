@@ -60,8 +60,6 @@ void Generic_init() {
         buildGPIOEncoderStates();
         debugPrintf("🔧 Encoders built: %u\n", numGPIOEncoders);
         buildGpioGroupDefs();
-        buildGPIOSelectorInputs();
-        buildGPIOMomentaryInputs();
 
 		// HC165 Inputs Init
         if (HC165_BITS > 0) {
