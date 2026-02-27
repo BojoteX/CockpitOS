@@ -85,6 +85,42 @@ static GpioGroupDef groupDef[MAX_SELECTOR_GROUPS];
 // Per-group selector cache (oride_value). 0xFFFF = unknown.
 static uint16_t gpioSelectorCache[MAX_SELECTOR_GROUPS];
 
+// ===== Pre-resolved GPIO selector flat table (eliminates strcmp from hot path) =====
+#define MAX_GPIO_SEL_ENTRIES 128
+
+struct GPIOSelEntry {
+    int8_t  port;         // GPIO pin number (-1 for fallback)
+    int8_t  bit;          // -1 = one-hot, 0 = active-low, 1 = active-high
+    uint16_t group;
+    int16_t oride_value;
+    const char* label;
+};
+
+struct GPIOSelGroup {
+    uint16_t startIdx;    // first entry index in gpioSelEntries[]
+    uint16_t count;       // number of entries in this group
+    int16_t  fallbackIdx; // absolute index into gpioSelEntries[] (-1 = none)
+    bool     isOneHot;    // all entries are one-hot style (bit == -1)
+};
+
+static GPIOSelEntry gpioSelEntries[MAX_GPIO_SEL_ENTRIES];
+static size_t       gpioSelEntryCount = 0;
+static GPIOSelGroup gpioSelGroups[MAX_SELECTOR_GROUPS];
+static bool         gpioSelGroupUsed[MAX_SELECTOR_GROUPS];
+
+// ===== Pre-resolved GPIO momentary flat table (eliminates strcmp from hot path) =====
+#define MAX_GPIO_MOM_ENTRIES 128
+
+struct GPIOMomEntry {
+    uint8_t     port;     // GPIO pin number
+    int8_t      bit;      // active level (0=active-low, 1=active-high)
+    const char* label;
+};
+
+static GPIOMomEntry gpioMomEntries[MAX_GPIO_MOM_ENTRIES];
+static size_t       gpioMomEntryCount = 0;
+static bool         lastGpioMomState[MAX_GPIO_MOM_ENTRIES];
+
 // One-time GPIO input init
 static uint8_t gpioInputsInitialized = 0;
 static uint8_t gpioPinConfigured[48] = { 0 };
@@ -141,6 +177,74 @@ void buildGpioGroupDefs() {
                 groupDef[g].pins[groupDef[g].numPins++] = m.port;
         }
     }
+}
+
+// Build pre-resolved GPIO selector table — eliminates all strcmp from pollGPIOSelectors()
+void buildGPIOSelectorInputs() {
+    gpioSelEntryCount = 0;
+    memset(gpioSelGroupUsed, 0, sizeof(gpioSelGroupUsed));
+
+    for (uint16_t g = 1; g < MAX_SELECTOR_GROUPS; ++g) {
+        uint16_t start = (uint16_t)gpioSelEntryCount;
+        uint16_t count = 0;
+        uint16_t oneHot = 0;
+        int16_t  fallback = -1;
+
+        for (size_t i = 0; i < InputMappingSize; ++i) {
+            const InputMapping& m = InputMappings[i];
+            if (!m.label || !m.source) continue;
+            if (strcmp(m.source, "GPIO") != 0) continue;
+            if (!m.controlType || strcmp(m.controlType, "selector") != 0) continue;
+            if (m.group != g) continue;
+            if (gpioSelEntryCount >= MAX_GPIO_SEL_ENTRIES) break;
+
+            GPIOSelEntry& e = gpioSelEntries[gpioSelEntryCount];
+            e.port = m.port;
+            e.bit = m.bit;
+            e.group = m.group;
+            e.oride_value = m.oride_value;
+            e.label = m.label;
+
+            if (m.bit == -1) oneHot++;
+            // Fallback: port == -1 (for one-hot also bit == -1)
+            if (m.port == -1) fallback = (int16_t)gpioSelEntryCount;
+
+            gpioSelEntryCount++;
+            count++;
+        }
+
+        if (count > 0) {
+            gpioSelGroups[g].startIdx = start;
+            gpioSelGroups[g].count = count;
+            gpioSelGroups[g].fallbackIdx = fallback;
+            gpioSelGroups[g].isOneHot = (oneHot == count);
+            gpioSelGroupUsed[g] = true;
+        }
+    }
+    debugPrintf("GPIO selectors pre-resolved: %u entries\n", (unsigned)gpioSelEntryCount);
+}
+
+// Build pre-resolved GPIO momentary table — eliminates all strcmp from pollGPIOMomentaries()
+void buildGPIOMomentaryInputs() {
+    gpioMomEntryCount = 0;
+    memset(lastGpioMomState, 0, sizeof(lastGpioMomState));
+
+    for (size_t i = 0; i < InputMappingSize; ++i) {
+        const auto& m = InputMappings[i];
+        if (!m.label || !m.source) continue;
+        if (strcmp(m.source, "GPIO") != 0) continue;
+        if (m.port < 0) continue;
+        if (encoderPinMask[m.port]) continue;          // skip encoder pins
+        if (!m.controlType || strcmp(m.controlType, "momentary") != 0) continue;
+        if (gpioMomEntryCount >= MAX_GPIO_MOM_ENTRIES) break;
+
+        GPIOMomEntry& e = gpioMomEntries[gpioMomEntryCount];
+        e.port = (uint8_t)m.port;
+        e.bit = m.bit;
+        e.label = m.label;
+        gpioMomEntryCount++;
+    }
+    debugPrintf("GPIO momentaries pre-resolved: %u entries\n", (unsigned)gpioMomEntryCount);
 }
 
 void buildGPIOEncoderStates() {
@@ -213,82 +317,60 @@ void pollGPIOSelectors(bool forceSend) {
     initGPIOInputsOnce();
 
     for (uint16_t g = 1; g < MAX_SELECTOR_GROUPS; ++g) {
-        // Step 0: Count how many selectors in this group, how many are one-hot
-        int total = 0, oneHot = 0;
-        for (size_t i = 0; i < InputMappingSize; ++i) {
-            const InputMapping& m = InputMappings[i];
-            if (!m.label || strcmp(m.source, "GPIO") != 0 || strcmp(m.controlType, "selector") != 0) continue;
-            if (m.group != g) continue;
-            total++;
-            if (m.bit == -1) oneHot++;
-        }
-        if (total == 0) continue;
-
+        if (!gpioSelGroupUsed[g]) continue;
+        const GPIOSelGroup& grp = gpioSelGroups[g];
         bool groupActive = false;
+        const uint16_t end = grp.startIdx + grp.count;
 
         // CASE 1: all entries are one-hot style (every entry bit == -1)
-        if (oneHot == total) {
+        if (grp.isOneHot) {
             // "One-hot" (one pin per position): first LOW wins
-            for (size_t i = 0; i < InputMappingSize; ++i) {
-                const InputMapping& m = InputMappings[i];
-                if (!m.label || strcmp(m.source, "GPIO") != 0 || strcmp(m.controlType, "selector") != 0) continue;
-                if (m.group != g || m.port < 0 || m.bit != -1) continue;
-                bool pressed = (digitalRead(m.port) == LOW);
+            for (uint16_t j = grp.startIdx; j < end; ++j) {
+                const GPIOSelEntry& e = gpioSelEntries[j];
+                if (e.port < 0) continue; // skip fallback
+                bool pressed = (digitalRead(e.port) == LOW);
                 if (pressed) {
-                    if (forceSend || gpioSelectorCache[g] != (uint16_t)m.oride_value) {
-                        gpioSelectorCache[g] = (uint16_t)m.oride_value;
-                        HIDManager_setNamedButton(m.label, false, true);
+                    if (forceSend || gpioSelectorCache[g] != (uint16_t)e.oride_value) {
+                        gpioSelectorCache[g] = (uint16_t)e.oride_value;
+                        HIDManager_setNamedButton(e.label, false, true);
                     }
                     groupActive = true;
                     break; // Only one pin can be LOW
                 }
             }
             // Fallback
-            if (!groupActive) {
-                for (size_t i = 0; i < InputMappingSize; ++i) {
-                    const InputMapping& m = InputMappings[i];
-                    if (!m.label || strcmp(m.source, "GPIO") != 0 || strcmp(m.controlType, "selector") != 0) continue;
-                    if (m.group != g || m.port != -1 || m.bit != -1) continue;
-                    if (forceSend || gpioSelectorCache[g] != (uint16_t)m.oride_value) {
-                        gpioSelectorCache[g] = (uint16_t)m.oride_value;
-                        HIDManager_setNamedButton(m.label, false, true);
-                    }
-                    groupActive = true;
-                    break; // ensure single fallback emit
+            if (!groupActive && grp.fallbackIdx >= 0) {
+                const GPIOSelEntry& fb = gpioSelEntries[grp.fallbackIdx];
+                if (forceSend || gpioSelectorCache[g] != (uint16_t)fb.oride_value) {
+                    gpioSelectorCache[g] = (uint16_t)fb.oride_value;
+                    HIDManager_setNamedButton(fb.label, false, true);
                 }
             }
         }
         // CASE 2: regular selectors (bit encodes active level)
         else {
             // Regular: For each selector, fire on pin/bit logic
-            for (size_t i = 0; i < InputMappingSize; ++i) {
-                const InputMapping& m = InputMappings[i];
-                if (!m.label || strcmp(m.source, "GPIO") != 0 || strcmp(m.controlType, "selector") != 0) continue;
-                if (m.group != g || m.port < 0) continue;
-                if (m.bit == -1) continue; // skip one-hot, handled above
-                int pinState = digitalRead(m.port);
-                bool isActive = (m.bit == 0) ? (pinState == LOW) : (pinState == HIGH);
+            for (uint16_t j = grp.startIdx; j < end; ++j) {
+                const GPIOSelEntry& e = gpioSelEntries[j];
+                if (e.port < 0) continue;    // skip fallback
+                if (e.bit == -1) continue;    // skip one-hot in mixed group
+                int pinState = digitalRead(e.port);
+                bool isActive = (e.bit == 0) ? (pinState == LOW) : (pinState == HIGH);
                 if (isActive) {
-                    if (forceSend || gpioSelectorCache[g] != (uint16_t)m.oride_value) {
-                        gpioSelectorCache[g] = (uint16_t)m.oride_value;
-                        HIDManager_setNamedButton(m.label, false, true);
+                    if (forceSend || gpioSelectorCache[g] != (uint16_t)e.oride_value) {
+                        gpioSelectorCache[g] = (uint16_t)e.oride_value;
+                        HIDManager_setNamedButton(e.label, false, true);
                     }
                     groupActive = true;
                     break;
                 }
             }
-            // Fallback for regular
-            if (!groupActive) {
-                for (size_t i = 0; i < InputMappingSize; ++i) {
-                    const InputMapping& m = InputMappings[i];
-                    if (!m.label || strcmp(m.source, "GPIO") != 0 || strcmp(m.controlType, "selector") != 0) continue;
-                    if (m.group != g || m.port != -1) continue;
-                    if (forceSend || gpioSelectorCache[g] != (uint16_t)m.oride_value) {
-                        gpioSelectorCache[g] = (uint16_t)m.oride_value;
-                        HIDManager_setNamedButton(m.label, false, true);
-                    }
-                    groupActive = true;
-                    break; // ensure single fallback emit
+            // Fallback for regular (port == -1)
+            if (!groupActive && grp.fallbackIdx >= 0) {
+                const GPIOSelEntry& fb = gpioSelEntries[grp.fallbackIdx];
+                if (forceSend || gpioSelectorCache[g] != (uint16_t)fb.oride_value) {
+                    gpioSelectorCache[g] = (uint16_t)fb.oride_value;
+                    HIDManager_setNamedButton(fb.label, false, true);
                 }
             }
         }
@@ -297,20 +379,15 @@ void pollGPIOSelectors(bool forceSend) {
 
 void pollGPIOMomentaries(bool forceSend) {
     initGPIOInputsOnce();
-    static bool lastGpioMomentaryState[256] = { false };
 
-    for (size_t i = 0; i < InputMappingSize && i < 256; ++i) {
-        const auto& m = InputMappings[i];
-        if (!m.label || !m.source || strcmp(m.source, "GPIO") != 0 || m.port < 0) continue;
-        if (encoderPinMask[m.port]) continue;
-        if (strcmp(m.controlType, "momentary") != 0) continue;
+    for (size_t i = 0; i < gpioMomEntryCount; ++i) {
+        const GPIOMomEntry& e = gpioMomEntries[i];
+        int pinState = digitalRead(e.port);
+        bool isActive = (e.bit == 0) ? (pinState == LOW) : (pinState == HIGH);
 
-        int pinState = digitalRead(m.port);
-        bool isActive = (m.bit == 0) ? (pinState == LOW) : (pinState == HIGH);
-
-        if (forceSend || isActive != lastGpioMomentaryState[i]) {
-            HIDManager_setNamedButton(m.label, forceSend, isActive ? 1 : 0);
-            lastGpioMomentaryState[i] = isActive;
+        if (forceSend || isActive != lastGpioMomState[i]) {
+            HIDManager_setNamedButton(e.label, forceSend, isActive ? 1 : 0);
+            lastGpioMomState[i] = isActive;
         }
     }
 }

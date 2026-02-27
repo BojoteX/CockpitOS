@@ -14,6 +14,8 @@ extern uint8_t numGPIOEncoders;
 extern uint8_t encoderPinMask[48];
 void buildGPIOEncoderStates();
 void buildGpioGroupDefs();
+void buildGPIOSelectorInputs();
+void buildGPIOMomentaryInputs();
 void pollGPIOEncoders();
 void pollGPIOSelectors(bool forceSend = false);
 void pollGPIOMomentaries(bool forceSend = false);

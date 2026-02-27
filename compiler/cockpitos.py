@@ -80,6 +80,7 @@ def save_prefs(prefs):
 # Show full config summary
 # -----------------------------------------------------------------------------
 def show_config(prefs):
+    load_config_snapshot()  # Re-read Config.h — may have changed externally
     header("Current Configuration")
     print()
 
@@ -359,6 +360,7 @@ def configure_wifi_credentials():
 
 def configure_debug_toggles():
     """Toggle debug/verbose defines in Config.h."""
+    load_config_snapshot()  # Re-read Config.h — may have changed externally
     header("Debug / Verbose Toggles")
 
     toggles = [
@@ -378,24 +380,31 @@ def configure_debug_toggles():
         return
 
     changes = []
+    failed = []
     for label, key in toggles:
         new_val = "1" if result[key] else "0"
         old_val = config_get(key) or "0"
         if new_val != old_val:
-            config_set(key, new_val)
-            changes.append(f"{key}: {old_val} -> {new_val}")
+            if config_set(key, new_val):
+                changes.append(f"{key}: {old_val} -> {new_val}")
+            else:
+                failed.append(key)
 
     print()
+    if failed:
+        error(f"Failed to write Config.h for: {', '.join(failed)}")
+        error("Config.h may be locked by another program or read-only.")
     if changes:
         success("Config.h updated:")
         for c in changes:
             info(f"  {c}")
-    else:
+    elif not failed:
         info("No changes.")
 
 
 def configure_advanced_settings():
     """Advanced settings — Config.h toggles and compiler preferences."""
+    load_config_snapshot()  # Re-read Config.h — may have changed externally
     header("Advanced Settings")
 
     transport = read_current_transport()
@@ -437,12 +446,15 @@ def configure_advanced_settings():
 
     # Apply Config.h changes
     changes = []
+    failed = []
     for label, key in config_toggles:
         new_val = "1" if result[key] else "0"
         old_val = config_get(key) or "0"
         if new_val != old_val:
-            config_set(key, new_val)
-            changes.append(f"{key}: {old_val} -> {new_val}")
+            if config_set(key, new_val):
+                changes.append(f"{key}: {old_val} -> {new_val}")
+            else:
+                failed.append(key)
 
     # Apply compiler preference changes
     new_detail = result.get("show_detailed_warnings", False)
@@ -453,11 +465,14 @@ def configure_advanced_settings():
         changes.append(f"Detailed warnings: {state_str}")
 
     print()
+    if failed:
+        error(f"Failed to write Config.h for: {', '.join(failed)}")
+        error("Config.h may be locked by another program or read-only.")
     if changes:
         success("Settings updated:")
         for c in changes:
             info(f"  {c}")
-    else:
+    elif not failed:
         info("No changes.")
 
 
@@ -606,8 +621,11 @@ def main():
         sys.exit(1)
 
     while True:
-        # Reload prefs and live state every iteration to avoid stale data
+        # Reload prefs AND Config.h from disk every iteration.
+        # Config.h is the source of truth — it may change externally
+        # (git, editor, AI agent) while the tool is running.
         prefs = load_prefs()
+        load_config_snapshot()
         active_ls = read_active_label_set() or "(none)"
         transport = read_current_transport()
         role = read_current_role()

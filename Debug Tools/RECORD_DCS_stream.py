@@ -253,6 +253,7 @@ def main():
     # Discover and pick interface
     interfaces = get_all_interface_ips()
     selected_interfaces = pick_interface(interfaces)
+    print("\033[2J\033[H", end="", flush=True)
 
     # Setup socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)

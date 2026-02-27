@@ -334,6 +334,7 @@ def main():
     # === INTERFACE SELECTION ===
     interfaces = get_all_interface_ips()
     selected_interfaces = pick_interface(interfaces)
+    print("\033[2J\033[H", end="", flush=True)
 
     # === STREAM SELECTION ===
     streams_path = os.path.join(os.getcwd(), STREAMS_DIR)
