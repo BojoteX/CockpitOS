@@ -38,7 +38,7 @@
 #define RS485_TX_PRE_DE_DELAY_US                   40 // AVR slave sends a phantom 0x00 byte (~40us) with DE low before responding — without this delay the ESP32 responds before the AVR master exits its TXC ISR, causing UDR overrun
 
 // RS485 *** [ Master ] *** (Option only work when RS485_MASTER_ENABLED is set to 1)
-#define RS485_SMART_MODE                            0 // If enabled, filters by DcsOutputTable (only addresses your slaves need). see selected_panels.txt in your panel LABEL SET. Keep in mind SMART mode reduces BANDWIDTH on the RS485 bus at the expense of slightly increased LATENCY (due to filtering)
+#define RS485_SMART_MODE                            1 // If enabled, filters by DcsOutputTable (only addresses your slaves need). see selected_panels.txt in your panel LABEL SET. Keep in mind SMART mode reduces BANDWIDTH on the RS485 bus at the expense of slightly increased LATENCY (due to filtering)
 #define RS485_MAX_SLAVE_ADDRESS                    32 // Maximum slave address to poll (valid range: 1-127).        
 
 // RS485 *** General Setting *** 

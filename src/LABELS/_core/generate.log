@@ -1,4 +1,4 @@
-Generated DisplayMapping.cpp and DisplayMapping.h for devices: HUD, IFEI, UFC
+Generated DisplayMapping.cpp and DisplayMapping.h for devices: CPG, PLT
 ============================================================
 CockpitOS PanelKind Generator
 ============================================================
@@ -32,10 +32,10 @@ Done!
 Current LABEL SET: LABEL_SET_RS485_LOLIN_AUTO
 
 [INFO] The current target_objects (panel(s) to be processed) are:
-  - Master Arm Panel
+  - PLT CMWS
 
-[✓] Generated DCSBIOSBridgeData.h with 7 outputs,  4 selectors.
-[✓] Generated InputMapping.h with 4 entries.
+[✓] Generated DCSBIOSBridgeData.h with 38 outputs,  19 selectors.
+[✓] Generated InputMapping.h with 19 entries.
 ✅ Found 7 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
 🔢 Using TABLE_SIZE = 53 (next prime ≥ 14)
 ✅ LEDMapping.h fully regenerated with dynamic enum from KNOWN_DEVICES.

@@ -4,6 +4,6 @@
 
 #define LABEL_SET_NAME        "RS485_LOLIN_AUTO"
 #define HAS_HID_MODE_SELECTOR 0
-#define LABEL_SET_FULLNAME    "Lolin TEST RS485" // You can safely change this
+#define LABEL_SET_FULLNAME    "CockpitOS Panel RS485_LOLIN_AUTO" // You can safely change this
 #define HAS_RS485_LOLIN_AUTO
-#define AUTOGEN_USB_PID       0x4A9A // DO NOT EDIT THIS
+#define AUTOGEN_USB_PID       0xD58D // DO NOT EDIT THIS
