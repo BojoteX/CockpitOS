@@ -28,8 +28,8 @@
 //                          Address 0x8712, Mask 0x0020, Shift 5
 //
 
-#define HORNET_MC_READY         // FA-18C  MC_READY          addr=0x740C mask=0x8000
-//#define APACHE_PLT_CMWS_ARM  // AH-64D  PLT_CMWS_ARM      addr=0x8712 mask=0x0020
+// #define HORNET_MC_READY         // FA-18C  MC_READY          addr=0x740C mask=0x8000
+#define APACHE_PLT_CMWS_ARM  // AH-64D  PLT_CMWS_ARM      addr=0x8712 mask=0x0020
 
 // --- Resolve selection to address + mask ---
 #if defined(HORNET_MC_READY) && defined(APACHE_PLT_CMWS_ARM)
