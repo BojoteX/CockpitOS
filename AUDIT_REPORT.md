@@ -1,400 +1,229 @@
 # CockpitOS Critical-Path Code Audit Report
 
-**Date:** 2026-02-27
+**Date:** 2026-02-27 (revised after validation pass)
 **Scope:** End-to-end firmware audit — input hot path, output hot path, RS485 master/slave, transport layers, panel init, label set compilation
 **Focus:** Bugs, race conditions, memory corruption, CPU/memory inefficiencies affecting real-time performance
 
 ---
 
-## CRITICAL Severity (Crash / Data Corruption / Watchdog Reset)
+## Revision Notice
 
-### C1. RS485 Slave: `txLen` overflow and `txFrameBuf` buffer overrun
+The initial audit reported 4 CRITICAL, 6 HIGH, and 15 MEDIUM findings. After a thorough re-validation pass — reading all project documentation (`Docs/`, `Docs/LLM/`, config headers), checking actual default config values, tracing every code path with dry runs, and verifying hardware capabilities per ESP32 variant — the vast majority of findings were **retracted**. The developer already accounted for most of the flagged conditions through config guards, buffer sizing, and architectural choices documented in code comments.
 
-| Field | Value |
-|-------|-------|
-| **File** | `lib/CUtils/src/internal/RS485Slave.cpp:306` |
-| **Impact** | Memory corruption, hung slave TX, silent data loss |
-
-`txLen` is declared as `uint8_t`. When the payload reaches 253 bytes, the total frame is 1 (length) + 1 (msgtype) + 253 (data) + 1 (checksum) = 256 bytes. `txLen++` wraps to 0, causing `uart_ll_write_txfifo()` to be called with `txLen = 0` (no data transmitted). The state machine enters `TX_WAITING_DONE` but the UART never fires TX_DONE, hanging the slave permanently.
-
-Additionally, `txFrameBuf` is only `RS485_TX_BUFFER_SIZE + 4 = 132` bytes. Payloads > 128 bytes write past the buffer end, corrupting adjacent static memory.
-
-**Fix:** Change `txLen` to `uint16_t`. Cap `toSend` at `min(253, RS485_TX_BUFFER_SIZE - 3)` to respect actual buffer capacity. Add `static_assert` to enforce the invariant at compile time.
+**Final validated finding count: 0 CRITICAL, 0 HIGH, 4 MEDIUM (real), 7 LOW (cosmetic/defensive)**
 
 ---
 
-### C2. RS485 Master: `txBytes()` spin-wait with interrupts disabled
+## Retracted Findings (with explanation)
 
-| Field | Value |
-|-------|-------|
-| **File** | `lib/CUtils/src/internal/RS485Master.cpp:506-515, 618-619` |
-| **Impact** | CPU stall with RX interrupts disabled, lost UART bytes, potential watchdog on large frames |
+### ~~C1. RS485 Slave `txLen` uint8_t overflow~~ — RETRACTED
 
-`txWithEchoPrevention()` disables RX interrupts, then calls `txBytes()` for frames > 128 bytes (UART FIFO size). `txBytes()` spin-waits on `uart_ll_get_txfifo_len() == 0`. At 250kbps, each byte takes 40us. For a 260-byte frame, the spin-wait after FIFO fill is ~5.3ms with interrupts disabled. On single-core chips (S2/C3/C6/H2), the entire CPU is blocked.
+**Why wrong:** `RS485_TX_BUFFER_SIZE = 128` (default). `queueCommand()` caps `txCount_val` at 128. `sendResponseISR()` caps `toSend = min(txCount_val, 253)` → max 128. Frame = 1+1+128+1 = 131 bytes. `txLen` reaches max 131, fits `uint8_t`. `txFrameBuf` is 132 bytes — data fits. The overflow only occurs if someone changes `RS485_TX_BUFFER_SIZE` to >= 253, which is not the default and would be unusual.
 
-**Fix:** Add compile-time guard to ensure broadcast frames always fit in the 128-byte FIFO:
-```cpp
-static_assert(RS485_RELAY_CHUNK_SIZE + 4 <= 128, "Relay chunk must fit in TX FIFO");
-```
+### ~~C2. RS485 Master `txBytes()` spin-wait~~ — RETRACTED
 
----
+**Why wrong:** The developer **already designed around this**. `RS485_RELAY_CHUNK_SIZE = 124` (comment at `RS485Config.h:102-103`: "124 = 128 FIFO depth - 3 (header) - 1 (checksum) → fits in one FIFO load, avoiding the spin-wait txBytes path for oversized broadcasts"). SMART mode: `RS485_MAX_BROADCAST_CHUNK = 64`. Polls = 3 bytes. ALL frames are <= 128 bytes with default config. The `txBytes()` spin-wait path is **dead code**. Also, `disableRxInt()` only disables RX interrupts, not all system interrupts.
 
-### C3. Ring buffer race: WiFi AsyncUDP callback vs main loop without memory barriers
+### ~~C3. Ring buffer RISC-V memory barrier race~~ — RETRACTED
 
-| Field | Value |
-|-------|-------|
-| **File** | `src/Core/RingBuffer.cpp:76-131` |
-| **Impact** | Data corruption on RISC-V (C3/C6/H2), torn ring buffer reads |
+**Why wrong:** The WiFi ring buffer (`RingBuffer.cpp`) is only active when `USE_DCSBIOS_WIFI=1`. WiFi-capable ESP32 RISC-V variants: C3 (single-core), C6 (WiFi runs on HP core only). On single-core or single-application-core, volatile prevents compiler reordering, and in-order execution prevents CPU reordering. On dual-core Xtensa (S3), TSO memory ordering makes volatile sufficient for SPSC. The developer is clearly aware of RISC-V fence requirements — the RS485 code uses `RS485_RISCV_FENCE()` and explicit `__riscv` fences where needed.
 
-`dcsUdpRingbufPush()` is called from the AsyncUDP callback (LwIP task, potentially different core), while `dcsUdpRingbufPop()` runs in `loop()`. Head/tail are `volatile uint8_t` but have no memory barriers. On ESP32-C3/C6 RISC-V, store-load reordering can cause the consumer to see updated head before the data is visible, reading garbage.
+### ~~C4. `reassemblyLen` local variable in `onDcsBiosUdpPacket`~~ — RETRACTED
 
-**Fix:** Use `__atomic_store_n(&head, newVal, __ATOMIC_RELEASE)` on producer side and `__atomic_load_n(&head, __ATOMIC_ACQUIRE)` on consumer side. Or use FreeRTOS `xQueueSend`/`xQueueReceive`.
+**Why wrong:** `dcsUdpRingbufPushChunked()` is **all-or-nothing** — it checks `dcsUdpRingbufAvailable() < needed` before pushing ANY chunks, and pushes all chunks in a tight for loop (~1-2us). The drain loop always finds all chunks of a packet in the ring buffer. The `break` at `MAX_UDP_FRAMES_PER_DRAIN` only fires after `isLastChunk=true` (when `reassemblyLen = 0`). Making `reassemblyLen` static would actually be WORSE — stale state from a previous call could corrupt the next packet.
 
----
+### ~~H2. `MessageBuffer::clear()` vs ISR~~ — RETRACTED
 
-### C4. `onDcsBiosUdpPacket()` reassembly: `reassemblyLen` resets across calls, corrupting chunked frames
+**Why wrong:** `clear()` is only called when: (1) `messageBuffer.complete = true` → state is IDLE → ISR ignores bytes, or (2) mid-message timeout → error recovery path where losing a partial byte from a corrupted message is harmless.
 
-| Field | Value |
-|-------|-------|
-| **File** | `src/Core/DCSBIOSBridge.cpp:784-808` |
-| **Impact** | Corrupted DCS-BIOS frames when UDP packets are split across ring buffer drain calls |
+### ~~H3. `checkRxTimeout()` modifies ISR state~~ — RETRACTED
 
-`reassemblyLen` is a local variable, reset to 0 each call. When a chunked UDP packet (WiFi path with `DCS_UDP_PACKET_MAXLEN=128`) spans multiple calls to `onDcsBiosUdpPacket()`, the continuation chunks start at offset 0 instead of the correct offset, producing a corrupted reassembled frame fed to the protocol parser.
+**Why wrong:** Same reasoning as H2. The timeout handler runs during an error condition (slave went silent). On single-core, the ISR preempts the task, not vice versa. After timeout sets `state = IDLE`, the ISR stops processing bytes. Any ISR byte during the timeout window is from a dead slave — losing it is correct behavior.
 
-**Fix:** Make `reassemblyLen` static:
-```cpp
-static size_t reassemblyLen = 0;
-```
+### ~~H4. Subscriber dispatch O(n) strcmp~~ — RETRACTED
 
----
+**Why wrong:** Max 32 subscribers per type (LED, selector, metadata, display). Typical registration: 1-5 subscribers. Even worst-case 32 x 100 outputs/frame = 3200 strcmp of short strings = ~50us per frame at 240MHz. That's 0.15% CPU at 30Hz. Negligible.
 
-## HIGH Severity (Performance Degradation on Hot Path)
+### ~~H5. `isLatchedButton()` linear scan~~ — RETRACTED
 
-### H1. RS485 Master: Change queue race between main loop and FreeRTOS task
+**Why wrong:** `MAX_LATCHED_BUTTONS = 16`. Called once per physical button event (human input rate ~10Hz). 16 strcmp per button press = ~1us. The documentation (`Docs/Advanced/Latched-Buttons.md:65`) explicitly states: "The linear scan is acceptable because `MAX_LATCHED_BUTTONS` is 16 and the check only involves short string comparisons."
 
-| Field | Value |
-|-------|-------|
-| **File** | `lib/CUtils/src/internal/RS485Master.cpp:201-248, 303-317` |
-| **Impact** | Data corruption, `changeCount` underflow, `broadcastBuffer` overflow |
+### ~~M2. RS485 Slave RISC-V fence on export buffer~~ — RETRACTED
 
-When `RS485_USE_TASK=1`, `queueChange()` (main loop) and `prepareBroadcastData()` (RS485 task) both access `changeQueue[]`, `changeHead`/`changeTail`/`changeCount` without synchronization. Non-atomic read-modify-write on `changeCount` from both contexts can underflow on RISC-V or with preemption.
+**Why wrong:** ESP32-C3/C6/H2 are in-order RISC-V cores. The ISR runs on the same core as the consumer task. On single-core in-order, stores from the ISR are visible in program order. volatile prevents compiler reordering, which is sufficient.
 
-**Fix:** Protect with `portENTER_CRITICAL`/`portEXIT_CRITICAL` using a shared spinlock, or use a FreeRTOS stream buffer.
+### ~~M3. Export buffer overflow ISR reset~~ — RETRACTED
 
----
+**Why wrong:** The ISR resets both `exportReadPos` and `exportWritePos` to 0 atomically from the ISR's perspective (no preemption within ISR). The consumer reads volatile positions on each loop iteration. After reset, `exportReadPos == exportWritePos`, so the consumer loop exits cleanly. The ISR also resets to `RX_SYNC`, meaning old data was partial/corrupted anyway.
 
-### H2. RS485 Master: `MessageBuffer::clear()` non-atomic vs ISR writes
+### ~~M4. Static `fallback[16]` in `onSelectorChange`~~ — RETRACTED
 
-| Field | Value |
-|-------|-------|
-| **File** | `lib/CUtils/src/internal/RS485Master.cpp:163-167, 802, 1051` |
-| **Impact** | ISR writes during clear cause buffer state corruption |
+**Why wrong:** The static buffer is consumed immediately by `debugPrintf` on line 649. Subscriber callbacks receive `(label, value)` — an integer, not the `stateStr` pointer. No code stores a reference to `fallback`. No reentry path exists (sequential dispatch from protocol parser).
 
-`clear()` sets `readPos`, `writePos`, `complete` in three separate stores from loop context. The UART RX ISR can fire between these writes, calling `put()` which uses `getLength()` (depends on both pointers).
+### ~~M5. Static `cbuf[10]` in HIDManager~~ — RETRACTED
 
-**Fix:** Wrap `clear()` in `portDISABLE_INTERRUPTS()`/`portENABLE_INTERRUPTS()`.
+**Why wrong:** Both instances are consumed immediately by `sendCommand()`, which formats and sends the DCS-BIOS command and returns. No reentry into HIDManager between `snprintf` and `sendCommand`. The static qualifier is harmless.
+
+### ~~M6. 260-byte stack allocation in RS485 task~~ — RETRACTED
+
+**Why wrong:** 260 bytes in a 4096-byte task stack is 6.3% utilization. ESP32 ISRs use a **separate** interrupt stack, not the task stack. Plenty of headroom for the call chain.
+
+### ~~M7. `DEBUG_USE_WIFI` ring buffer bypass~~ — RETRACTED
+
+**Why wrong:** The DCS-BIOS multicast listener is inside `#if USE_DCSBIOS_WIFI` (WiFiDebug.cpp:178). `DEBUG_USE_WIFI` only enables debug output over WiFi — it does NOT set up the DCS-BIOS data listener. The `DCS_USE_RINGBUFFER` code path is exclusively within the `USE_DCSBIOS_WIFI` block, which already has the `#error` guard.
 
 ---
 
-### H3. RS485 Master: `checkRxTimeout()` modifies ISR-owned state without critical section
+## Validated Findings — MEDIUM
 
-| Field | Value |
-|-------|-------|
-| **File** | `lib/CUtils/src/internal/RS485Master.cpp:807-843` |
-| **Impact** | State machine corruption, ISR and loop writing `state` concurrently |
-
-On timeout, the loop writes to `messageBuffer`, `state`, and `messageCompleteTime` — all ISR-modified. A late-arriving byte processed by the ISR during the timeout handler corrupts both buffer and state machine.
-
-**Fix:** Disable UART RX interrupt before modifying shared state in timeout handler.
-
----
-
-### H4. Subscriber dispatch: O(n) strcmp on every DCS-BIOS output update
-
-| Field | Value |
-|-------|-------|
-| **File** | `src/Core/DCSBIOSBridge.cpp:604-608, 643-647, 661-665, 679-684` |
-| **Impact** | ~12,800 strcmp calls per DCS-BIOS frame, measurable CPU waste |
-
-Each `onLedChange`/`onSelectorChange`/`onMetaDataChange`/`onDisplayChange` iterates all subscribers (up to 32 each) with `strcmp()` to match labels. At 30Hz with ~100 outputs per frame, this is significant overhead.
-
-**Fix:** Build a hash table for subscribers at registration time (same pattern as existing `findCmdEntry()`).
-
----
-
-### H5. `isLatchedButton()`: O(n) linear scan with strcmp on hot path
-
-| Field | Value |
-|-------|-------|
-| **File** | `Mappings.cpp:380-384` |
-| **Impact** | Unnecessary strcmp overhead on every input event |
-
-Called from `HIDManager_setNamedButton()` on every button press/release. Linear scan with `strcmp()` per entry.
-
-**Fix:** Build a hash set at init time, or add a `bool isLatched` flag to InputMapping pre-resolved at build.
-
----
-
-### H6. Selector hash table generator emits duplicate keys — unreachable SelectorMap entries
-
-| Field | Value |
-|-------|-------|
-| **File** | `src/LABELS/*/DCSBIOSBridgeData.h` (generator bug in `src/LABELS/_core/generator_core.py`) |
-| **Impact** | Incorrect selector position dispatch — first match wins, duplicates silently shadowed |
-
-Multiple label sets have duplicate `(dcsCommand, value)` entries in their `selectorHashTable[]`. The hash lookup returns the first match, making later entries unreachable. Confirmed in 4 label sets:
-
-- `LABEL_SET_FRONT_LEFT_PANEL`: `RWR_DIS_TYPE_SW`, `ECM_MODE_SW` duplicated
-- `LABEL_SET_KY58`: `KY58_FILL_SELECT`, `KY58_MODE_SELECT` duplicated
-- `LABEL_SET_RS485_WAVESHARE_MANUAL`: `BLEED_AIR_KNOB`, `INS_SW`, `RADAR_SW` duplicated
-- `LABEL_SET_TEST_ONLY`: `ENGINE_CRANK_SW` duplicated
-
-**Fix:** The generator must deduplicate entries by `(dcsCommand, value)` composite key before emitting the hash table. Affected file: `src/LABELS/_core/generator_core.py` selector hash table generation.
-
----
-
-## MEDIUM Severity (Edge Case Bugs)
-
-### M1. RS485 Master: `parseCount` underflow on odd-count DCS-BIOS frames
-
-| Field | Value |
-|-------|-------|
-| **File** | `lib/CUtils/src/internal/RS485Master.cpp:283-293` |
-
-`parseCount` is `uint16_t`, decremented in both data states. An odd count value (from corruption) causes underflow from 0 to 65535 in `PARSE_DATA_HIGH`, locking the parser until the next sync pattern.
-
-**Fix:** Check `parseCount > 0` before decrementing in `PARSE_DATA_HIGH`.
-
----
-
-### M2. RS485 Slave: Missing RISC-V memory fence on export buffer consumer
-
-| Field | Value |
-|-------|-------|
-| **File** | `lib/CUtils/src/internal/RS485Slave.cpp:253-261` |
-
-`processExportData()` reads ISR-written `exportWritePos`. On RISC-V, `volatile` only prevents compiler reordering. CPU can serve stale values.
-
-**Fix:** Add `__asm__ __volatile__("fence" ::: "memory")` before loop on RISC-V targets.
-
----
-
-### M3. RS485 Slave: Export buffer overflow ISR reset corrupts consumer
-
-| Field | Value |
-|-------|-------|
-| **File** | `lib/CUtils/src/internal/RS485Slave.cpp:486-490` |
-
-ISR resets both `exportReadPos` and `exportWritePos` to 0 on overflow. Consumer may have cached old positions, reading garbage after reset.
-
-**Fix:** Advance `exportReadPos` to equal `exportWritePos` instead of resetting both.
-
----
-
-### M4. `static char fallback[16]` in `onSelectorChange` — shared across calls
-
-| Field | Value |
-|-------|-------|
-| **File** | `src/Core/DCSBIOSBridge.cpp:636` |
-
-Static buffer used for fallback state strings. Any subscriber storing the `stateStr` pointer gets corrupted data on next call.
-
-**Fix:** Remove `static` (16 bytes is fine on stack).
-
----
-
-### M5. `static char cbuf[10]` reentrancy hazard in HIDManager
-
-| Field | Value |
-|-------|-------|
-| **File** | `src/Core/HIDManager.cpp:878, 946` |
-
-Two `static char cbuf[10]` buffers used for `snprintf` before `sendCommand()`. The CoverGate reentry guard protects some paths, but not all. Nested calls would corrupt the buffer.
-
-**Fix:** Remove `static` — 10 bytes is safe on stack.
-
----
-
-### M6. RS485 Master: 260-byte stack allocation in 4096-byte FreeRTOS task
-
-| Field | Value |
-|-------|-------|
-| **File** | `lib/CUtils/src/internal/RS485Master.cpp:680` |
-
-`sendBroadcast()` allocates `uint8_t frame[260]` on stack in the RS485 task (stack = 4096 bytes). Reduces ISR stack safety margin.
-
-**Fix:** Make `frame` a file-static buffer.
-
----
-
-### M7. `DEBUG_USE_WIFI` without ring buffer bypasses SPSC safety
-
-| Field | Value |
-|-------|-------|
-| **File** | `src/Core/WiFiDebug.cpp:201`, `Config.h:202-203` |
-
-The `#error` guard only covers `USE_DCSBIOS_WIFI`, not `DEBUG_USE_WIFI`. If debug WiFi is enabled without `DCS_USE_RINGBUFFER`, the async callback directly calls `parseDcsBiosUdpPacket()` from the wrong context.
-
-**Fix:** Add `#error` for `DEBUG_USE_WIFI && !DCS_USE_RINGBUFFER` in Config.h.
-
----
-
-### M8. Protocol parser: no length validation on `count` field
-
-| Field | Value |
-|-------|-------|
-| **File** | `lib/DCS-BIOS/src/internal/Protocol.cpp:39-46` |
-
-A corrupted `count` value (up to 65535) keeps the parser in data mode for 131070 bytes, consuming potential sync patterns as data and causing missed frames.
-
-**Fix:** Add maximum count guard: `if (count > 2048) { state = DCSBIOS_STATE_WAIT_FOR_SYNC; break; }`
-
----
-
-### M9. `pollPCA9555_flat` selector group loop: O(groups x inputs) per chip per poll
+### M1. PCA9555 selector group loop: O(groups x inputs) per chip per poll
 
 | Field | Value |
 |-------|-------|
 | **File** | `src/Core/InputControl.cpp:594-613` |
+| **Impact** | Measurable CPU waste with 4+ PCA chips |
 
-The selector group loop iterates `MAX_SELECTOR_GROUPS` (128) groups, and for each group, scans all `numPca9555Inputs` (up to 64). This runs per PCA chip per poll cycle (250 Hz). With 8 PCA chips, worst case is `8 * 128 * 64 = 65,536` iterations per poll. The GPIO selector path already solved this with pre-resolved flat tables and `gpioSelGroupUsed[]` for O(1) skip.
+The selector group loop iterates `MAX_SELECTOR_GROUPS` (128) groups, and for each group, scans all `numPca9555Inputs` (up to 64). The GPIO selector path already solved this with pre-resolved flat tables and `gpioSelGroupUsed[]` for O(1) empty-group skip. With 1-2 PCA chips and typical input counts, overhead is ~1% CPU. With 4+ chips, it becomes significant (~6%).
 
-**Fix:** Pre-resolve PCA selectors at init time with per-chip, per-group start/count indices. At minimum, add a `bool pcaSelGroupUsed[MAX_SELECTOR_GROUPS]` to skip empty groups in O(1).
-
----
-
-### M10. Serial transport reads bytes one at a time through `parseDcsBiosUdpPacket`
-
-| Field | Value |
-|-------|-------|
-| **File** | `src/Core/DCSBIOSBridge.cpp:1816-1853` |
-
-The serial read path calls `parseDcsBiosUdpPacket(&b, 1)` for each byte. This means function call overhead (including the `for` loop setup) is paid 1472+ times per DCS-BIOS frame instead of once. On RS485 master builds, it also results in 1472+ calls to `RS485Master_feedExportData` with `len=1`.
-
-**Fix:** Batch-read from Serial into a local buffer:
-```cpp
-uint8_t buf[256];
-while (Serial.available() > 0) {
-    int n = Serial.readBytes(buf, min((int)Serial.available(), (int)sizeof(buf)));
-    if (n > 0) { parseDcsBiosUdpPacket(buf, n); got = true; }
-}
-```
+**Fix:** Add `bool pcaSelGroupUsed[MAX_SELECTOR_GROUPS]` to skip empty groups in O(1), matching the GPIO pattern.
 
 ---
 
-### M11. CT_DISPLAY path does two redundant hash lookups per word
-
-| Field | Value |
-|-------|-------|
-| **File** | `src/Core/DCSBIOSBridge.cpp:297-312` |
-
-Every display write calls both `findDisplayBufferByLabel()` and `findDisplayFieldByLabel()` for the same label — two separate hash lookups with identical key. For display-heavy panels (IFEI with 40+ display fields), this doubles lookup overhead on the hottest path.
-
-**Fix:** Consolidate into a single lookup by adding `base_addr` and `length` fields to `DisplayBufferEntry`.
-
----
-
-### M12. Display buffer dirty-flag not used in `onConsistentData` flush
-
-| Field | Value |
-|-------|-------|
-| **File** | `src/Core/DCSBIOSBridge.cpp:355-363` |
-
-Every frame (30Hz), all registered display buffers are checked via `strncmp` even when nothing changed. The `RegisteredDisplayBuffer` struct has a `dirtyFlag` field but it's not checked here. Only the `AnonymousStringBuffer` path uses dirty flags.
-
-**Fix:** Set `*b.dirtyFlag = true` in the CT_DISPLAY write path when bytes are modified, then gate the `strncmp` on the dirty flag.
-
----
-
-### M13. Dropped `pendingUpdates` permanently lost — `g_prevValues` already updated
+### M2. Dropped `pendingUpdates` permanently lost — `g_prevValues` already updated
 
 | Field | Value |
 |-------|-------|
 | **File** | `src/Core/DCSBIOSBridge.cpp:274, 281-285` |
+| **Impact** | LEDs/gauges stuck at wrong state until next sim value change |
 
-When `pendingUpdates[]` overflows (> `MAX_PENDING_UPDATES = 220`), dropped updates are never retried because `g_prevValues[index]` was already updated, so the change-detection filter suppresses the same value on the next frame.
+When `pendingUpdates[]` overflows (> `MAX_PENDING_UPDATES = 220`), dropped updates are never retried because `g_prevValues[index]` was already updated at line 274. The change-detection filter suppresses the same value on subsequent frames. The value stays wrong until DCS-BIOS sends a different value for that address. This is most likely to trigger on the first full export frame after connecting (all addresses sent at once).
 
-**Fix:** Only update `g_prevValues[index]` after successfully queuing the update:
+**Fix:** Only update `g_prevValues[index]` after successfully queuing:
 ```cpp
 if (pendingUpdateCount < MAX_PENDING_UPDATES) {
     g_prevValues[index] = val;
     pendingUpdates[pendingUpdateCount++] = {entry->label, val, entry->max_value};
 } else {
-    pendingUpdateOverflow++; // Don't update g_prevValues — allow retry
+    pendingUpdateOverflow++;
 }
 ```
 
 ---
 
-### M14. Null pointer dereference in `buildGPIOEncoderStates` on null `source`/`controlType`
+### M3. Selector hash table generator emits duplicate `(dcsCommand, value)` keys
 
 | Field | Value |
 |-------|-------|
-| **File** | `src/Core/InputControl.cpp:256-257` |
+| **File** | `src/LABELS/*/DCSBIOSBridgeData.h` (generator bug in `src/LABELS/_core/generator_core.py`) |
+| **Impact** | Wrong position label in debug output and subscriber callbacks (cosmetic) |
 
-`strcmp(mi.source, "GPIO")` called without null check on `mi.source`. Similarly for `mi.controlType` on line 257. A hand-edited label set with null fields would crash. Other build functions already have null guards.
+Confirmed duplicate `(dcsCommand, value)` entries in at least 2 label sets:
+- `LABEL_SET_KY58`: `KY58_FILL_SELECT` value 1, `KY58_MODE_SELECT` values 0 and 1
+- `LABEL_SET_TEST_ONLY`: `ENGINE_CRANK_SW` values 0 and 2
 
-**Fix:** Add null guards: `if (!mi.label || !mi.source || strcmp(mi.source, "GPIO") != 0) continue;`
+The hash lookup (`findSelectorByDcsAndValue`) returns the first match, making later entries unreachable. Impact is cosmetic — affects position label display (e.g., "NORM" vs "OFF"), not actual DCS-BIOS command routing.
+
+**Fix:** Generator should deduplicate entries by `(dcsCommand, value)` composite key before emitting the hash table.
 
 ---
 
-### M15. TFT_Gauges_CabinPressure: unreachable `#elif` warning branch
+### M4. RS485 Master change queue race between main loop and FreeRTOS task
 
 | Field | Value |
 |-------|-------|
-| **File** | `src/Panels/TFT_Gauges_CabinPressure.cpp:8, 481-483` |
+| **File** | `lib/CUtils/src/internal/RS485Master.cpp:221-231, 634-654` |
+| **Impact** | Off-by-one in change count, causing stale value broadcast or skipped change |
 
-Line 8's outer guard requires `HAS_ALR67 && (ESP_FAMILY_S3 || ESP_FAMILY_S2) && ENABLE_TFT_GAUGES`. Line 481's `#elif` tests `HAS_ALR67 && ENABLE_TFT_GAUGES` without the ESP family condition. Since the `#elif` is part of the same `#if` block, it can only be reached when the outer guard is false — but its condition is a subset of the outer guard (missing the ESP family check), so it's never true when the outer guard is false. The `#warning "Cabin Pressure Gauge requires ESP32-S2 or ESP32-S3"` on line 482 is dead code. Other TFT gauge files (Battery, RadarAlt) have the same pattern but use the full guard in both branches.
+When `RS485_USE_TASK=1` and `RS485_SMART_MODE=1`, `queueChange()` (main loop via `RS485Master_feedExportData`) and `prepareBroadcastData()` (RS485 task) both modify `changeCount` without synchronization. A FreeRTOS tick preempting the main loop during the 3-instruction `changeCount` update window can cause a lost increment/decrement. Consequence is an off-by-one: either a stale queue entry is broadcast (benign — corrected next frame) or a change is skipped (corrected on next sim change).
 
-**Fix:** Change line 481 to match the pattern in other TFT gauge files — use the ESP-family-independent define in the `#elif`:
-```cpp
-#elif defined(HAS_ALR67) || defined(HAS_CABIN_PRESSURE_GAUGE)
-#warning "Cabin Pressure Gauge requires ESP32-S2 or ESP32-S3"
-#endif
-```
+**Fix:** Wrap the `changeCount` modifications in `portENTER_CRITICAL`/`portEXIT_CRITICAL` with a shared spinlock, or switch to a FreeRTOS stream buffer.
+
+---
+
+## Validated Findings — LOW (Defensive Coding / Marginal)
+
+These are technically correct observations but have negligible practical impact. Included for completeness.
+
+### L1. Protocol parser: no max-count guard
+
+| File | `lib/DCS-BIOS/src/internal/Protocol.cpp:39-46` |
+|------|-------|
+
+A corrupted `count` value keeps the parser in data mode, but the 4-byte sync detection runs in parallel and resyncs within one frame (~33ms). Self-correcting.
+
+### L2. RS485 Master `parseCount` underflow on odd byte count
+
+| File | `lib/CUtils/src/internal/RS485Master.cpp:283-293` |
+|------|-------|
+
+Odd count from corruption causes underflow, but sync detection resyncs within one frame. Requires bus-level corruption.
+
+### L3. Serial transport byte-at-a-time processing
+
+| File | `src/Core/DCSBIOSBridge.cpp:1816-1818` |
+|------|-------|
+
+Function call overhead is ~0.07% CPU at 115200 baud. The parser processes bytes individually regardless of batching.
+
+### L4. CT_DISPLAY double hash lookup
+
+| File | `src/Core/DCSBIOSBridge.cpp:297-312` |
+|------|-------|
+
+Two hash lookups for same label per display word. Adds microseconds per frame. Negligible.
+
+### L5. Display buffer strncmp without dirty flag
+
+| File | `src/Core/DCSBIOSBridge.cpp:355-363` |
+|------|-------|
+
+strncmp of small buffers (8-16 bytes) at 30Hz is sub-microsecond total.
+
+### L6. Null guard missing in `buildGPIOEncoderStates`
+
+| File | `src/Core/InputControl.cpp:256-257` |
+|------|-------|
+
+`strcmp(mi.source, "GPIO")` without null check on `mi.source`. Can't happen with auto-generated mappings, but adding `!mi.source ||` is good defensive coding.
+
+### L7. TFT_Gauges_CabinPressure: unreachable `#elif` warning
+
+| File | `src/Panels/TFT_Gauges_CabinPressure.cpp:8, 481-483` |
+|------|-------|
+
+Dead code path — the `#warning` never fires. Other TFT gauge files have the correct pattern.
 
 ---
 
 ## Summary Table
 
-| # | Severity | Component | Issue |
-|---|----------|-----------|-------|
-| C1 | CRITICAL | RS485 Slave | `txLen` uint8_t overflow + txFrameBuf overrun |
-| C2 | CRITICAL | RS485 Master | Spin-wait with interrupts disabled |
-| C3 | CRITICAL | Ring Buffer | No memory barriers on RISC-V (WiFi SPSC) |
-| C4 | CRITICAL | DCSBIOSBridge | Chunked frame reassembly drops partial data across calls |
-| H1 | HIGH | RS485 Master | Change queue race (main loop vs task) |
-| H2 | HIGH | RS485 Master | `MessageBuffer::clear()` not ISR-safe |
-| H3 | HIGH | RS485 Master | Timeout handler vs ISR state corruption |
-| H4 | HIGH | DCSBIOSBridge | O(n) strcmp in subscriber dispatch (hot path) |
-| H5 | HIGH | Mappings | `isLatchedButton()` linear scan on hot path |
-| H6 | HIGH | Label Sets | Selector hash table duplicate keys (generator bug) |
-| M1 | MEDIUM | RS485 Master | `parseCount` underflow on odd byte count |
-| M2 | MEDIUM | RS485 Slave | Missing RISC-V fence on consumer |
-| M3 | MEDIUM | RS485 Slave | Export buffer overflow reset race |
-| M4 | MEDIUM | DCSBIOSBridge | Static fallback buffer shared across calls |
-| M5 | MEDIUM | HIDManager | Static cbuf reentrancy hazard |
-| M6 | MEDIUM | RS485 Master | Large stack allocation in FreeRTOS task |
-| M7 | MEDIUM | WiFiDebug | Missing #error guard for DEBUG_USE_WIFI path |
-| M8 | MEDIUM | Protocol | No max-count guard in DCS-BIOS parser |
-| M9 | MEDIUM | InputControl | PCA selector O(groups x inputs) quadratic scan |
-| M10 | MEDIUM | DCSBIOSBridge | Serial path byte-at-a-time processing overhead |
-| M11 | MEDIUM | DCSBIOSBridge | CT_DISPLAY double hash lookup per word |
-| M12 | MEDIUM | DCSBIOSBridge | Display buffer strncmp every frame without dirty flag |
-| M13 | MEDIUM | DCSBIOSBridge | Dropped pendingUpdates permanently lost |
-| M14 | MEDIUM | InputControl | Null deref in encoder build on null source/controlType |
-| M15 | MEDIUM | TFT Panels | Unreachable #elif warning in CabinPressure gauge |
+| # | Severity | Component | Status | Issue |
+|---|----------|-----------|--------|-------|
+| ~~C1~~ | ~~CRITICAL~~ | RS485 Slave | RETRACTED | txLen can't overflow with default config (128) |
+| ~~C2~~ | ~~CRITICAL~~ | RS485 Master | RETRACTED | txBytes() is dead code — config sized to avoid it |
+| ~~C3~~ | ~~CRITICAL~~ | Ring Buffer | RETRACTED | RISC-V WiFi chips are single-core; Xtensa is TSO |
+| ~~C4~~ | ~~CRITICAL~~ | DCSBIOSBridge | RETRACTED | PushChunked is all-or-nothing; local var is correct |
+| ~~H1-H5~~ | ~~HIGH~~ | Various | RETRACTED | See retraction details above |
+| ~~H6~~ | ~~HIGH~~ | Label Sets | DOWNGRADED | → M3 (cosmetic impact only) |
+| M1 | MEDIUM | InputControl | VALID | PCA selector O(groups x inputs) quadratic scan |
+| M2 | MEDIUM | DCSBIOSBridge | VALID | Dropped pendingUpdates permanently lost |
+| M3 | MEDIUM | Label Sets | VALID | Selector hash duplicate keys (generator bug) |
+| M4 | MEDIUM | RS485 Master | VALID | Change queue race (off-by-one consequence) |
+| L1-L7 | LOW | Various | VALID | Defensive coding / marginal performance |
 
 ---
 
 ## Positive Observations
 
-- Pre-resolved flat tables for GPIO selectors/momentaries/encoders eliminate strcmp from polling hot paths — well done
-- O(1) hash lookups for `findCmdEntry()`, `findHidMappingByDcs()`, `findSelectorByDcsAndValue()`, `findDcsOutputEntries()` — excellent
-- `#error` guards for invalid transport combinations are comprehensive
-- Mapping validation at init (`initMappings()`) catches most overflow conditions early
-- Ring buffer SPSC design is correct for the Xtensa ESP32 family (TSO-like ordering)
-- The DCS-BIOS protocol parser in `Protocol.cpp` handles sync robustly with the 4-byte sync detection running in parallel with state machine transitions
-- All pre-resolved table builds check their respective MAX limits before writing — no buffer overflows in the input init path
-- No watchdog-triggering blocking calls found in the input polling path — I2C timeout is bounded, HC165/TM1637 use microsecond delays
+These hold up after the re-validation and deserve emphasis:
+
+- **Config-as-defense:** `RS485_RELAY_CHUNK_SIZE = 124` was specifically calculated to avoid the FIFO spin-wait path. `RS485_TX_BUFFER_SIZE = 128` keeps slave responses well within uint8_t. These aren't accidents — the comments prove intentional design.
+- **RISC-V awareness:** The RS485 code uses `RS485_RISCV_FENCE()`, `#ifdef __riscv` fences in the slave, and documents the rationale in comments. The developer understands the memory model differences.
+- **TX_DONE non-blocking pattern:** Both master and slave use the `state → clear → FIFO → enable` ordering with detailed comments explaining the race it prevents. This is expert-level bare-metal UART programming.
+- **Pre-resolved flat tables** for GPIO selectors/momentaries/encoders eliminate strcmp from polling hot paths
+- **O(1) hash lookups** for `findCmdEntry()`, `findHidMappingByDcs()`, `findSelectorByDcsAndValue()`, `findDcsOutputEntries()`
+- **`#error` guards** for invalid transport combinations are comprehensive
+- **All-or-nothing ring buffer push** (`PushChunked`) prevents partial-packet consumption
+- **FreeRTOS xQueue** for cross-context command passing in RS485 master task mode
+- **`portDISABLE_INTERRUPTS`** correctly used in slave `queueCommand` for ISR-safe ring buffer access
 - The `onConsistentData()` batched update pattern (queue during writes, flush at frame boundary) is architecturally sound
