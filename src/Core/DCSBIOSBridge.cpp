@@ -332,6 +332,7 @@ public:
                 */
 
                 case CT_METADATA:
+                    g_prevValues[index] = val;
                     onMetaDataChange(entry->label, val);
                     break;
             }
