@@ -133,7 +133,7 @@ Each label set is a folder in src/LABELS/LABEL_SET_<name>/ containing:
 
 ### InputMapping.h — Input Definitions
 ```cpp
-{ "LABEL", "SOURCE", port, bit, hidButton, "dcsCommand", sendValue, "controlType", group }
+{ "LABEL", "SOURCE", port, bit, hidButton, "dcsCommand", sendValue, "controlType", group, releaseValue }
 ```
 
 | Field | Values | Description |
@@ -147,6 +147,7 @@ Each label set is a folder in src/LABELS/LABEL_SET_<name>/ containing:
 | sendValue | int | Value to send (0/1 momentary, position for selector, 65535 analog) |
 | controlType | "momentary", "selector", "analog", "variable_step", "fixed_step" | Behavior |
 | group | int | Selector group (0 = ungrouped, 1+ = grouped selectors share same command) |
+| releaseValue | int | DCS-BIOS value sent on momentary release (0 = default) |
 
 ### Control Types Explained
 
@@ -313,7 +314,7 @@ Only ONE transport can be active at a time. Set via Compiler Tool > Role / Trans
 | IS_REPLAY | 0 | Enable stream replay testing mode |
 | TEST_LEDS | 0 | Flash all LEDs on startup for wiring verification |
 | SCAN_WIFI_NETWORKS | 0 | Scan and list available WiFi networks on boot |
-| SELECTOR_DWELL_MS | 250 | Debounce delay for selector switches (ms) |
+| SELECTOR_DWELL_MS | 100 | Debounce delay for selector switches (ms) |
 | SERVO_UPDATE_FREQ_MS | 20 | Servo gauge update interval |
 | DEBUG_ENABLED_FOR_TM1637_ONLY | 0 | Per-device debug filter |
 | DEBUG_ENABLED_FOR_PCA_ONLY | 0 | Per-device debug filter |
@@ -796,7 +797,7 @@ All debug flags should be 0 for production — debug output adds latency.
 A: No. The three Python tools handle everything. The Setup Tool installs a bundled arduino-cli, the Compiler Tool compiles and uploads. Arduino IDE is optional for advanced users who want to edit firmware code directly.
 
 **Q: Which ESP32 should I buy?**
-A: ESP32-S3 for best all-around (USB HID + WiFi + BLE). ESP32-S2 for budget USB HID. ESP32-P4 for max performance. Classic ESP32 if you only need WiFi.
+A: ESP32-S3 for best all-around (USB HID + WiFi + BLE). ESP32-S2 for budget USB HID. ESP32-P4 for max performance (USB only, no WiFi). Classic ESP32 if you only need WiFi.
 
 **Q: Can I mix input types on the same panel?**
 A: Yes. A single label set can use GPIO, PCA9555, HC165, TM1637, and MATRIX inputs simultaneously. Same for outputs — mix GPIO LEDs, WS2812, servos, TM1637 displays freely.

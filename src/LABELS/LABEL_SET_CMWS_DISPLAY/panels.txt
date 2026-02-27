@@ -41,6 +41,7 @@ PLT MPD Right
 PLT NVS Panel
 PLT SAI
 PLT SAI Gauges
+PLT Standby Compass
 PLT Up-Front Display
 PLT Video Control Panel
 Radio Frequencies

@@ -86,7 +86,7 @@ The quick-reference lookup table. Contains:
 - **MATRIX scanning encoding** with complete worked example (anchor vs position rows, one-hot bit encoding)
 - **Custom panel checklist** (compile guard, PANEL_KIND comment, nullptr for unused hooks, required includes)
 - **Existing reference implementations** — ALWAYS check this before writing new panel code
-- **Critical defaults verified against code** (SELECTOR_DWELL_MS=250, PCA_FAST_MODE=1, etc.)
+- **Critical defaults verified against code** (SELECTOR_DWELL_MS=100, PCA_FAST_MODE=1, etc.)
 - **RS485 optimization checklist**
 - **Key struct definitions** (PanelHooks, CoverGateDef, SegmentMap)
 - **Firmware limits** (MAX_COVER_GATES=16, MAX_LATCHED_BUTTONS=16, subscription limits=32 each)

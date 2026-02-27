@@ -99,7 +99,8 @@ void printLEDMenu() {
         int len = strlen(panelLEDs[i].label);
         for (int s = 0; s < colWidth - len && cursor < sizeof(line) - 1; ++s)
             line[cursor++] = ' ';
-        displayedIndexes[displayedCount++] = i; // <---- CRITICAL!
+        if (displayedCount >= 128) break;
+        displayedIndexes[displayedCount++] = i;
         line[cursor] = '\0';
         serialDebugPrint(line);
 
@@ -183,6 +184,6 @@ uint8_t hexNib(char c) {
         (c >= 'A' && c <= 'F') ? 10 + c - 'A' : 0;
 }
 uint8_t parseHexByte(const char* s) { // expects "0xNN"
-    if (!s || strlen(s) < 3) return 0;
+    if (!s || strlen(s) < 4) return 0;
     return (hexNib(s[2]) << 4) | hexNib(s[3]);
 }

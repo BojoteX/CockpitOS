@@ -14,11 +14,12 @@ struct InputMapping {
     uint16_t    oride_value;  // Override command value (value)
     const char* controlType;  // Control type, e.g., "selector"
     uint16_t    group;        // Group ID for exclusive selectors
+    uint16_t    releaseValue; // DCS-BIOS value sent on momentary release (0 = default)
 };
 
-//  label                       source     port bit hidId  DCSCommand           value   Type        group
+//  label                       source     port bit hidId  DCSCommand           value   Type        group  rel
 static const InputMapping InputMappings[] = {
-    { "MASTER_CAUTION_RESET_SW", "GPIO" ,  0 ,  0 ,   1 , "MASTER_CAUTION_RESET_SW",     1 , "momentary",  0 },
+    { "MASTER_CAUTION_RESET_SW", "GPIO" ,  0 ,  0 ,   1 , "MASTER_CAUTION_RESET_SW",     1 , "momentary",  0 ,  0 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);
 

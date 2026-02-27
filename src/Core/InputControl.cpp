@@ -472,6 +472,7 @@ void buildPcaList() {
 }
 
 void buildPCA9555ResolvedInputs() {
+    memset(lastValSelector, 0xFF, sizeof(lastValSelector)); // init all to -1
     numPca9555Inputs = 0;
     for (size_t i = 0; i < InputMappingSize; ++i) {
         const auto& m = InputMappings[i];
@@ -751,8 +752,12 @@ static void Matrix_buildOnce() {
         }
 
         // Finalize strobe count
-        uint8_t maxIdx = 0; for (uint8_t i = 0; i < MAX_MATRIX_STROBES; ++i) if (R.strobes[i] != 0xFF && i > maxIdx) maxIdx = i;
-        R.strobeCount = (uint8_t)(maxIdx + 1);
+        bool anyStrobe = false;
+        uint8_t maxIdx = 0;
+        for (uint8_t i = 0; i < MAX_MATRIX_STROBES; ++i) {
+            if (R.strobes[i] != 0xFF) { if (i > maxIdx || !anyStrobe) maxIdx = i; anyStrobe = true; }
+        }
+        R.strobeCount = anyStrobe ? (uint8_t)(maxIdx + 1) : 0;
 
         // If data pin still unknown, grab any port from family
         if (R.dataPin == 0xFF) {

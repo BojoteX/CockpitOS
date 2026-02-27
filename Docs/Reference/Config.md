@@ -163,7 +163,7 @@ These flags enable raw I/O tracing for specific hardware peripherals. Use only w
 | `SERVO_UPDATE_FREQ_MS` | `20` | ms | Update interval for analog servo gauge instruments. |
 | `VALUE_THROTTLE_MS` | `50` | ms | Minimum interval between sending the same value again (debounce). |
 | `ANY_VALUE_THROTTLE_MS` | `33` | ms | Minimum interval between sending any value (prevents USB endpoint spam). |
-| `SELECTOR_DWELL_MS` | `250` | ms | Wait time for a stable selector value before sending. Dwell-time filtering. |
+| `SELECTOR_DWELL_MS` | `100` | ms | Wait time for a stable selector value before sending. Dwell-time filtering. |
 | `STREAM_TIMEOUT_MS` | `1000` | ms | Milliseconds without data before declaring the DCS stream dead. |
 | `MISSION_START_DEBOUNCE` | `500` | ms | Delay before panel sync after a mission start event. |
 | `SERIAL_TX_TIMEOUT` | `5` | ms | CDC serial receive stream timeout. |

@@ -3,13 +3,14 @@
 
 // Embedded LEDMapping structure and enums
 enum LEDDeviceType {
+  DEVICE_GPIO,
+  DEVICE_GAUGE,
+  DEVICE_PCA9555,
   DEVICE_TM1637,
   DEVICE_GN1640T,
-  DEVICE_GPIO,
-  DEVICE_NONE,
   DEVICE_WS2812,
-  DEVICE_PCA9555,
-  DEVICE_GAUGE,
+  DEVICE_MAGNETIC,
+  DEVICE_NONE,
 };
 
 struct LEDMapping {
@@ -39,7 +40,12 @@ static const LEDMapping panelLEDs[] = {
   { "IFEI_DISP_INT_LT"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "INSTR_INT_LT"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "NVG_FLOOD_INT_LT"   , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "STBY_COMPASS_INT_LT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
+  { "STBY_COMPASS_INT_LT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "CB_FCS_CHAN3"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "CB_FCS_CHAN4"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "CB_HOOOK"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "CB_LG"              , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "FCS_BIT_SW"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);
@@ -65,12 +71,12 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {"CONSOLE_INT_LT", &panelLEDs[1]},
-  {nullptr, nullptr},
+  {"FCS_BIT_SW", &panelLEDs[14]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {"FLOOD_INT_LT", &panelLEDs[4]},
-  {nullptr, nullptr},
+  {"CB_HOOOK", &panelLEDs[12]},
   {"INSTR_INT_LT", &panelLEDs[7]},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -82,7 +88,7 @@ static const LEDHashEntry ledHashTable[53] = {
   {"IFEI_DISP_INT_LT", &panelLEDs[6]},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"CB_FCS_CHAN3", &panelLEDs[10]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {"ENG_INSTR_INT_LT", &panelLEDs[3]},
@@ -95,8 +101,8 @@ static const LEDHashEntry ledHashTable[53] = {
   {"CHART_INT_LT", &panelLEDs[0]},
   {nullptr, nullptr},
   {"STBY_COMPASS_INT_LT", &panelLEDs[9]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
+  {"CB_FCS_CHAN4", &panelLEDs[11]},
+  {"CB_LG", &panelLEDs[13]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},

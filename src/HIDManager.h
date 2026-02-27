@@ -9,7 +9,6 @@ void HIDManager_startUSB();
 void HIDManager_setup();
 void HIDManager_loop();
 void HIDManager_releaseTick();
-void HIDSenderTask(void* param);
 size_t getMaxUsedGroup();
 
 // ───── HID Axis ─────
@@ -72,7 +71,6 @@ void HIDManager_setAxisDirect(HIDAxis axis, uint16_t value);
 // ───── Utility / Maintenance ─────
 void HIDManager_commitDeferredReport(const char* deviceName);
 bool shouldPollMs(unsigned long &lastPoll);
-bool shouldPollDisplayRefreshMs(unsigned long& lastPoll);
 void HIDManager_keepAlive();
 void HIDManager_sendReport(const char* label, int32_t value = -1);
 void flushBufferedHidCommands();
