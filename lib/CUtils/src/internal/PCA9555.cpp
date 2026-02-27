@@ -9,6 +9,12 @@ bool loggingEnabled = false;
 // Static label storage for auto-discovered PCA panels ("PCA 0xNN\0" = 9 chars)
 static char pcaLabelBuf[MAX_DEVICES][10];
 
+// ===== I2C bus recovery: failure tracking and bus unlock =====
+static uint8_t  i2cFailCount[8] = {0};             // per PCA address (0x20-0x27)
+static uint32_t lastI2CRecoveryMs = 0;
+static const uint8_t  I2C_FAIL_THRESHOLD  = 10;    // consecutive failures before recovery
+static const uint32_t I2C_RECOVERY_COOLDOWN_MS = 5000; // min ms between recovery attempts
+
 /////////////////////////////////////
 // Actual i2c functions
 /////////////////////////////////////
@@ -91,11 +97,19 @@ void PCA9555_scanConnectedPanels(const uint8_t* addrs, uint8_t count) {
     }
 }
 
+// Bounds check helper: PCA9555 valid address range is 0x20-0x27
+static inline bool pcaAddrValid(uint8_t addr) { return addr >= 0x20 && addr <= 0x27; }
+
 void PCA9555_initCache() {
     memset(pcaConfigCache, 0xFF, sizeof(pcaConfigCache));
     for (uint8_t i = 0; i < discoveredDeviceCount; ++i) {
         uint8_t addr = discoveredDevices[i].address;
         debugPrintf("Initializing PCA_0x%02X inputs and cached port states\n", addr);
+
+        if (!pcaAddrValid(addr)) {
+            debugPrintf("[PCA] ❌ Address 0x%02X out of PCA9555 range, skipping cache init\n", addr);
+            continue;
+        }
 
         initPCA9555AsInput(addr);
 
@@ -192,6 +206,7 @@ void PCA9555_write(uint8_t addr, uint8_t port, uint8_t bit, bool state) {
         if(DEBUG) debugPrintf("[PCA] ❌ Write / LED skipped. %s (0x%02X) not present\n", getPanelName(addr), addr);
         return;
     }
+    if (!pcaAddrValid(addr)) return;
 
     // update the cache
     if (state)
@@ -239,6 +254,34 @@ void initPCA9555AsInput(uint8_t addr) {
     pcaConfigCache[addr][1] = configPort1;
 }
 
+// I2C bus recovery: toggle SCL 9 times to release stuck SDA
+static void i2cBusRecovery_Wire() {
+    uint32_t now = millis();
+    if (now - lastI2CRecoveryMs < I2C_RECOVERY_COOLDOWN_MS) return;
+    lastI2CRecoveryMs = now;
+
+    debugPrintln("[PCA] I2C bus recovery: toggling SCL to release stuck slave");
+    Wire.end();
+    pinMode(SCL_PIN, OUTPUT);
+    pinMode(SDA_PIN, INPUT_PULLUP);
+    for (int i = 0; i < 9; ++i) {
+        digitalWrite(SCL_PIN, HIGH); delayMicroseconds(5);
+        digitalWrite(SCL_PIN, LOW);  delayMicroseconds(5);
+    }
+    digitalWrite(SCL_PIN, HIGH);
+    delayMicroseconds(5);
+
+    #if PCA_FAST_MODE
+    Wire.begin(SDA_PIN, SCL_PIN, 400000);
+    #else
+    Wire.begin(SDA_PIN, SCL_PIN, 100000);
+    #endif
+    Wire.setTimeOut(100);
+
+    // Reset all failure counters
+    memset(i2cFailCount, 0, sizeof(i2cFailCount));
+}
+
 // Corrected readPCA9555 function (Wire-style)
 bool readPCA9555(uint8_t address, byte &port0, byte &port1) {
     byte tmpPort0, tmpPort1;
@@ -252,12 +295,24 @@ bool readPCA9555(uint8_t address, byte &port0, byte &port1) {
         port0 = tmpPort0;
         port1 = tmpPort1;
 
+        // Reset failure counter on success
+        if (pcaAddrValid(address)) i2cFailCount[address - 0x20] = 0;
+
         // NOW CALL LOGGER IF CHANGED
         if (isPCA9555LoggingEnabled() && shouldLogChange(address, port0, port1)) {
             logPCA9555State(address, port0, port1);
         }
 
         return true;
+    }
+
+    // Track consecutive failures and attempt bus recovery
+    if (pcaAddrValid(address)) {
+        uint8_t idx = address - 0x20;
+        if (i2cFailCount[idx] < 255) i2cFailCount[idx]++;
+        if (i2cFailCount[idx] == I2C_FAIL_THRESHOLD) {
+            i2cBusRecovery_Wire();
+        }
     }
     return false;
 }
@@ -354,12 +409,19 @@ static inline esp_err_t PCA9555_writeReg2(uint8_t addr, uint8_t reg, uint8_t val
     return i2c_master_write_to_device(PCA_I2C_PORT, addr, buf, 3, 100);
 }
 
+// Bounds check helper: PCA9555 valid address range is 0x20-0x27
+static inline bool pcaAddrValid(uint8_t addr) { return addr >= 0x20 && addr <= 0x27; }
+
 // For LED cache/init, always best to use atomic multi-byte write
 void PCA9555_initCache() {
     memset(pcaConfigCache, 0xFF, sizeof(pcaConfigCache));
     for (uint8_t i = 0; i < discoveredDeviceCount; ++i) {
         uint8_t addr = discoveredDevices[i].address;
         debugPrintf("Initializing PCA_0x%02X inputs and cached port states\n", addr);
+        if (!pcaAddrValid(addr)) {
+            debugPrintf("[PCA] Address 0x%02X out of PCA9555 range, skipping cache init\n", addr);
+            continue;
+        }
         initPCA9555AsInput(addr);
         PCA9555_cachedPortStates[addr - 0x20][0] = 0xFF;
         PCA9555_cachedPortStates[addr - 0x20][1] = 0xFF;
@@ -430,6 +492,7 @@ void PCA9555_write(uint8_t addr, uint8_t port, uint8_t bit, bool state) {
         if(DEBUG) debugPrintf("[PCA] ❌ Write / LED skipped. %s (0x%02X) not present\n", getPanelName(addr), addr);
         return;
     }
+    if (!pcaAddrValid(addr)) return;
     if (state)
         PCA9555_cachedPortStates[addr - 0x20][port] |= (1 << bit);
     else
@@ -455,6 +518,43 @@ void initPCA9555AsInput(uint8_t addr) {
     PCA9555_writeReg2(addr, 0x06, configPort0, configPort1);
 }
 
+// I2C bus recovery: toggle SCL 9 times to release stuck SDA (ESP-IDF version)
+static void i2cBusRecovery_IDF() {
+    uint32_t now = millis();
+    if (now - lastI2CRecoveryMs < I2C_RECOVERY_COOLDOWN_MS) return;
+    lastI2CRecoveryMs = now;
+
+    debugPrintln("[PCA] I2C bus recovery: toggling SCL to release stuck slave");
+    i2c_driver_delete(PCA_I2C_PORT);
+    gpio_set_direction((gpio_num_t)SCL_PIN, GPIO_MODE_OUTPUT);
+    gpio_set_direction((gpio_num_t)SDA_PIN, GPIO_MODE_INPUT);
+    gpio_set_pull_mode((gpio_num_t)SDA_PIN, GPIO_PULLUP_ONLY);
+    for (int i = 0; i < 9; ++i) {
+        gpio_set_level((gpio_num_t)SCL_PIN, 1); delayMicroseconds(5);
+        gpio_set_level((gpio_num_t)SCL_PIN, 0); delayMicroseconds(5);
+    }
+    gpio_set_level((gpio_num_t)SCL_PIN, 1);
+    delayMicroseconds(5);
+
+    // Re-init I2C driver
+    i2c_config_t conf = {};
+    conf.mode = I2C_MODE_MASTER;
+    conf.sda_io_num = SDA_PIN;
+    conf.scl_io_num = SCL_PIN;
+    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
+    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
+    #if PCA_FAST_MODE
+    conf.master.clk_speed = 400000;
+    #else
+    conf.master.clk_speed = 100000;
+    #endif
+    i2c_param_config(PCA_I2C_PORT, &conf);
+    i2c_driver_install(PCA_I2C_PORT, I2C_MODE_MASTER, 0, 0, 0);
+
+    // Reset all failure counters
+    memset(i2cFailCount, 0, sizeof(i2cFailCount));
+}
+
 // Fast/atomic input read
 bool readPCA9555(uint8_t address, byte &port0, byte &port1) {
     uint8_t reg = 0x00;
@@ -469,10 +569,23 @@ bool readPCA9555(uint8_t address, byte &port0, byte &port1) {
     if (ret == ESP_OK) {
         port0 = buf[0];
         port1 = buf[1];
+
+        // Reset failure counter on success
+        if (pcaAddrValid(address)) i2cFailCount[address - 0x20] = 0;
+
         if (isPCA9555LoggingEnabled() && shouldLogChange(address, port0, port1)) {
             logPCA9555State(address, port0, port1);
         }
         return true;
+    }
+
+    // Track consecutive failures and attempt bus recovery
+    if (pcaAddrValid(address)) {
+        uint8_t idx = address - 0x20;
+        if (i2cFailCount[idx] < 255) i2cFailCount[idx]++;
+        if (i2cFailCount[idx] == I2C_FAIL_THRESHOLD) {
+            i2cBusRecovery_IDF();
+        }
     }
     return false;
 }
