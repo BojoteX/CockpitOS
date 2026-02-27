@@ -135,6 +135,24 @@ Called from `HIDManager_setNamedButton()` on every button press/release. Linear 
 
 ---
 
+### H6. Selector hash table generator emits duplicate keys — unreachable SelectorMap entries
+
+| Field | Value |
+|-------|-------|
+| **File** | `src/LABELS/*/DCSBIOSBridgeData.h` (generator bug in `src/LABELS/_core/generator_core.py`) |
+| **Impact** | Incorrect selector position dispatch — first match wins, duplicates silently shadowed |
+
+Multiple label sets have duplicate `(dcsCommand, value)` entries in their `selectorHashTable[]`. The hash lookup returns the first match, making later entries unreachable. Confirmed in 4 label sets:
+
+- `LABEL_SET_FRONT_LEFT_PANEL`: `RWR_DIS_TYPE_SW`, `ECM_MODE_SW` duplicated
+- `LABEL_SET_KY58`: `KY58_FILL_SELECT`, `KY58_MODE_SELECT` duplicated
+- `LABEL_SET_RS485_WAVESHARE_MANUAL`: `BLEED_AIR_KNOB`, `INS_SW`, `RADAR_SW` duplicated
+- `LABEL_SET_TEST_ONLY`: `ENGINE_CRANK_SW` duplicated
+
+**Fix:** The generator must deduplicate entries by `(dcsCommand, value)` composite key before emitting the hash table. Affected file: `src/LABELS/_core/generator_core.py` selector hash table generation.
+
+---
+
 ## MEDIUM Severity (Edge Case Bugs)
 
 ### M1. RS485 Master: `parseCount` underflow on odd-count DCS-BIOS frames
@@ -233,30 +251,6 @@ A corrupted `count` value (up to 65535) keeps the parser in data mode for 131070
 
 ---
 
-## Summary Table
-
-| # | Severity | Component | Issue |
-|---|----------|-----------|-------|
-| C1 | CRITICAL | RS485 Slave | `txLen` uint8_t overflow + txFrameBuf overrun |
-| C2 | CRITICAL | RS485 Master | Spin-wait with interrupts disabled |
-| C3 | CRITICAL | Ring Buffer | No memory barriers on RISC-V (WiFi SPSC) |
-| C4 | CRITICAL | DCSBIOSBridge | Chunked frame reassembly drops partial data across calls |
-| H1 | HIGH | RS485 Master | Change queue race (main loop vs task) |
-| H2 | HIGH | RS485 Master | `MessageBuffer::clear()` not ISR-safe |
-| H3 | HIGH | RS485 Master | Timeout handler vs ISR state corruption |
-| H4 | HIGH | DCSBIOSBridge | O(n) strcmp in subscriber dispatch (hot path) |
-| H5 | HIGH | Mappings | `isLatchedButton()` linear scan on hot path |
-| M1 | MEDIUM | RS485 Master | `parseCount` underflow on odd byte count |
-| M2 | MEDIUM | RS485 Slave | Missing RISC-V fence on consumer |
-| M3 | MEDIUM | RS485 Slave | Export buffer overflow reset race |
-| M4 | MEDIUM | DCSBIOSBridge | Static fallback buffer shared across calls |
-| M5 | MEDIUM | HIDManager | Static cbuf reentrancy hazard |
-| M6 | MEDIUM | RS485 Master | Large stack allocation in FreeRTOS task |
-| M7 | MEDIUM | WiFiDebug | Missing #error guard for DEBUG_USE_WIFI path |
-| M8 | MEDIUM | Protocol | No max-count guard in DCS-BIOS parser |
-
----
-
 ### M9. `pollPCA9555_flat` selector group loop: O(groups x inputs) per chip per poll
 
 | Field | Value |
@@ -344,6 +338,23 @@ if (pendingUpdateCount < MAX_PENDING_UPDATES) {
 
 ---
 
+### M15. TFT_Gauges_CabinPressure: unreachable `#elif` warning branch
+
+| Field | Value |
+|-------|-------|
+| **File** | `src/Panels/TFT_Gauges_CabinPressure.cpp:8, 481-483` |
+
+Line 8's outer guard requires `HAS_ALR67 && (ESP_FAMILY_S3 || ESP_FAMILY_S2) && ENABLE_TFT_GAUGES`. Line 481's `#elif` tests `HAS_ALR67 && ENABLE_TFT_GAUGES` without the ESP family condition. Since the `#elif` is part of the same `#if` block, it can only be reached when the outer guard is false — but its condition is a subset of the outer guard (missing the ESP family check), so it's never true when the outer guard is false. The `#warning "Cabin Pressure Gauge requires ESP32-S2 or ESP32-S3"` on line 482 is dead code. Other TFT gauge files (Battery, RadarAlt) have the same pattern but use the full guard in both branches.
+
+**Fix:** Change line 481 to match the pattern in other TFT gauge files — use the ESP-family-independent define in the `#elif`:
+```cpp
+#elif defined(HAS_ALR67) || defined(HAS_CABIN_PRESSURE_GAUGE)
+#warning "Cabin Pressure Gauge requires ESP32-S2 or ESP32-S3"
+#endif
+```
+
+---
+
 ## Summary Table
 
 | # | Severity | Component | Issue |
@@ -357,6 +368,7 @@ if (pendingUpdateCount < MAX_PENDING_UPDATES) {
 | H3 | HIGH | RS485 Master | Timeout handler vs ISR state corruption |
 | H4 | HIGH | DCSBIOSBridge | O(n) strcmp in subscriber dispatch (hot path) |
 | H5 | HIGH | Mappings | `isLatchedButton()` linear scan on hot path |
+| H6 | HIGH | Label Sets | Selector hash table duplicate keys (generator bug) |
 | M1 | MEDIUM | RS485 Master | `parseCount` underflow on odd byte count |
 | M2 | MEDIUM | RS485 Slave | Missing RISC-V fence on consumer |
 | M3 | MEDIUM | RS485 Slave | Export buffer overflow reset race |
@@ -371,6 +383,7 @@ if (pendingUpdateCount < MAX_PENDING_UPDATES) {
 | M12 | MEDIUM | DCSBIOSBridge | Display buffer strncmp every frame without dirty flag |
 | M13 | MEDIUM | DCSBIOSBridge | Dropped pendingUpdates permanently lost |
 | M14 | MEDIUM | InputControl | Null deref in encoder build on null source/controlType |
+| M15 | MEDIUM | TFT Panels | Unreachable #elif warning in CabinPressure gauge |
 
 ---
 
