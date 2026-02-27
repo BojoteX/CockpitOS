@@ -40,5 +40,7 @@ All previous engineering TODO items have been resolved:
 - METADATA seeding — done (Setup copies metadata JSONs to _core/metadata/, label_set.create_label_set() seeds METADATA/ dir with metadata JSONs + empty Custom.json, wipe cleans metadata)
 - Generator group ID fix for Custom controls — done (selector_entries 7th field carries JSON key; PATCH block and alloc_group key on ident so custom copies get separate group IDs)
 - Generator output/LED dedup for Custom controls — done (custom copies skipped from output_entries since they share the same DCS-BIOS address; output editing removed from custom_editor.py)
+- Generator exit code bug — fixed (sys.exit(1) on success path changed to sys.exit(0); batch mode was reporting failure to CI)
+- HID axis array sizing — fixed (replaced hardcoded [40] with HID_AXIS_COUNT in stabilization arrays and reset loop)
 
-*Last updated 2026-02-21.*
+*Last updated 2026-02-25.*

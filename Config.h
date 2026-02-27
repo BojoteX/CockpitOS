@@ -9,7 +9,7 @@
 // ==============================================================================================================
 
 // Versioning for internal use
-#define VERSION_CURRENT        "R.1.1.4_dev_02-09-26" // Just to troubleshoot instalations
+#define VERSION_CURRENT        "R.1.2.1_dev_02-27-26" // Just to troubleshoot instalations
 
 // Your personal Wi-Fi network credentials should be stored in .credentials/wifi.h. If file wifi.h not found or does not exists yet, we use defaults ("TestNetwork" / "TestingOnly")
 #if __has_include(".credentials/wifi.h")
@@ -39,7 +39,7 @@
 
 // RS485 *** [ Master ] *** (Option only work when RS485_MASTER_ENABLED is set to 1)
 #define RS485_SMART_MODE                            0 // If enabled, filters by DcsOutputTable (only addresses your slaves need). see selected_panels.txt in your panel LABEL SET. Keep in mind SMART mode reduces BANDWIDTH on the RS485 bus at the expense of slightly increased LATENCY (due to filtering)
-#define RS485_MAX_SLAVE_ADDRESS                   127 // Maximum slave address to poll (valid range: 1-127).        
+#define RS485_MAX_SLAVE_ADDRESS                    32 // Maximum slave address to poll (valid range: 1-127).        
 
 // RS485 *** General Setting *** 
 #define RS485_TX_WARMUP_DELAY_US                    0 // Manual DE: delay after DE assert before TX
@@ -53,11 +53,11 @@
 // TinyUSB + Wi-Fi enabled at the same time consume a LOT of memory, so if you decide to enable debugging (below) on S2 devices keep that in mind as compiles will most likely fail if both the WiFi stack (for debug or normal operation) is enabled along USB-OTG (TinyUSB). To avoid, simply use an S3 device or stick to the stack capabilities (e.g) Debug via Serial if using USB or Debug via WiFi if using WiFi as transport.  
 
 // For production, ALL THESE should be set to 0. Use for debugging only.
-#define DEBUG_ENABLED                               1 // Use it ONLY when identifying issues or troubleshooting. Not required when using VERBOSE modes below
-#define DEBUG_PERFORMANCE                           1 // Shows profiling for specific tasks and memory usage for debug and troubleshooting.
+#define DEBUG_ENABLED                               0 // Use it ONLY when identifying issues or troubleshooting. Not required when using VERBOSE modes below
+#define DEBUG_PERFORMANCE                           0 // Shows profiling for specific tasks and memory usage for debug and troubleshooting.
 #define VERBOSE_MODE                                0 // Verbose will output to both WiFi & Serial (Uses a LOT of Memory, might fail compile on S2 devices).
 #define VERBOSE_MODE_SERIAL_ONLY                    0 // Verbose will only output to Serial. 
-#define VERBOSE_MODE_WIFI_ONLY                      1 // Verbose will only output to WiFi.
+#define VERBOSE_MODE_WIFI_ONLY                      0 // Verbose will only output to WiFi.
 #define VERBOSE_PERFORMANCE_ONLY                    0 // This will output perf snapshots ONLY, make sure you pick VERBOSE_MODE_SERIAL_ONLY or VERBOSE_MODE_WIFI_ONLY so that we know where to output those snapshot ONLY messages.
 #define DEBUG_PERFORMANCE_SHOW_TASKS                0 // Includes the current task list with the snapshot. Not really needed.
 #define DEBUG_LISTENERS_AT_STARTUP                  0 // Debug Listeners for ADVANCED troubleshooting! usually not needed.
@@ -84,7 +84,7 @@
 #define IS_REPLAY                                   0 // Simulate a loopback DCS stream to check your panel is working and debug via Serial
 #define DCSBIOS_USE_LITE_VERSION                    1 // Set to 1 to use a LITE (local) version of the DCSBIOS Library. 0 Uses the Original unmodified Library (you'll need to install it)
 #define USE_WIRE_FOR_I2C                            1 // If set to 1 uses the Arduino compatible I2C Wire Library (slow). Use 0 for Faster alternative
-#define PCA_FAST_MODE                               1 // Set to 1 to enable 400MHz PCA Bus FAST MODE 
+#define PCA_FAST_MODE                               1 // Set to 1 to enable 400kHz PCA Bus FAST MODE
 #define SERIAL_RX_BUFFER_SIZE                     512 // This is the INCOMING buffer for DCS Data (in bytes) when using CDC / Serial. increase if you see OVERFLOW msg             
 #define SERIAL_TX_TIMEOUT                           5 // in ms (Used for CDC receive stream timeouts)
 #define HID_SENDREPORT_TIMEOUT                      5 // in ms (Only used with ESP32 Arduino Core HID.SendReport implementation)
@@ -292,7 +292,7 @@
 
 // --- Wi-Fi capability guard ---
 // ESP32-H2: no Wi-Fi (BLE + 802.15.4 only) | ESP32-P4: no Wi-Fi / no BT (application MCU)
-#if (defined(ESP_FAMILY_H2))
+#if (defined(ESP_FAMILY_H2) || defined(ESP_FAMILY_P4))
   #define DEVICE_HAS_WIFI 0
 #else
   #define DEVICE_HAS_WIFI 1
@@ -305,7 +305,8 @@
 #endif
 
 #if VERBOSE_PERFORMANCE_ONLY
-  #define DEBUG_PERFORMANCE 1
+  #undef DEBUG_PERFORMANCE
+  #define DEBUG_PERFORMANCE 0
 #endif
 
 #if USE_DCSBIOS_WIFI && !DEVICE_HAS_WIFI

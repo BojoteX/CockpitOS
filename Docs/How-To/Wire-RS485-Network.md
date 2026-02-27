@@ -9,7 +9,7 @@ RS485 networking connects multiple ESP32 panels on a shared bus so they all rece
 RS485 is a differential signaling standard that uses two wires (A and B) to transmit data. Because it measures the voltage difference between the two wires rather than the absolute voltage, it is highly resistant to electrical noise -- ideal for cockpit builds with servo motors, solenoids, and other noise sources.
 
 **Key characteristics:**
-- Up to 32 devices on one bus (with standard transceivers)
+- Up to 32 devices on one bus (1 master + 31 slaves with standard transceivers)
 - Cable runs up to 1200 meters (4000 feet) at lower baud rates
 - Noise-immune differential signaling
 - Half-duplex (one device transmits at a time)
