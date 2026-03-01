@@ -137,7 +137,7 @@
 // WiFi Debug Ring Buffer 
 #define WIFI_DEBUG_USE_RINGBUFFER                   1 // Should be use a ring buffer for WiFi Debug messages? helps when using WiFi DCS Mode. If WiFi is not used, this value is ignored anyway. Also, if using CDC + WiFi Debug, this is REQUIRED to avoid CDC stalls
 #if WIFI_DEBUG_USE_RINGBUFFER
-  #define WIFI_DBG_SEND_RINGBUF_SIZE               32 // How many slots in our buffer
+  #define WIFI_DBG_SEND_RINGBUF_SIZE               16 // How many slots in our buffer
   #define WIFI_DBG_MSG_MAXLEN                      64 // Max size for each slot
 #else
   #define WIFI_DBG_SEND_RINGBUF_SIZE                0 // How many slots in our buffer
@@ -158,8 +158,8 @@
 #else // Used for incoming DCS stream via WiFi UDP (if enabled) 
   #if USE_DCSBIOS_WIFI || USE_DCSBIOS_BLUETOOTH
     #define DCS_USE_RINGBUFFER                    1  // Enforces WiFi/BLE use of a ring buffer for the incoming DCS Stream data (otherwise it will crash)
-    #define DCS_UDP_RINGBUF_SIZE                 16  // Number of UDP packets buffered (reduced from 64: larger slots need fewer entries)
-    #define DCS_UDP_PACKET_MAXLEN      UDP_MAX_SIZE  // Match full UDP frame size — eliminates multi-chunk ring buffer splits and the cross-core race they cause
+    #define DCS_UDP_RINGBUF_SIZE                 32  // Number of UDP packets buffered (reduced from 64: larger slots need fewer entries)
+    #define DCS_UDP_PACKET_MAXLEN               128  // Match full UDP frame size — eliminates multi-chunk ring buffer splits and the cross-core race they cause
   #else 
     #define DCS_USE_RINGBUFFER                    0  // No need for it as Wi-Fi/BLE for DCS-BIOS is not active.
     #define DCS_UDP_RINGBUF_SIZE                  0  // Number of BLE packets buffered (tune as needed)
