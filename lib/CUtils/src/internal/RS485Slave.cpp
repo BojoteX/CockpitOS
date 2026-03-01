@@ -192,6 +192,7 @@ static volatile uint32_t statBroadcasts = 0;
 static volatile uint32_t statExportBytes = 0;
 static volatile uint32_t statCommandsSent = 0;
 static uint32_t statTxDrops = 0;           // Task context only — NOT volatile
+static volatile uint32_t statExportOverflows = 0;  // Export buffer overflow events (ISR)
 
 // ============================================================================
 // FREERTOS TASK (when RS485_USE_TASK=1)
@@ -484,6 +485,7 @@ static void IRAM_ATTR uart_isr_handler(void* arg) {
                 if (rxDataType == RXDATA_DCSBIOS_EXPORT) {
                     if (exportBufferAvailableForWrite() == 0) {
                         // Buffer overflow! Force re-sync (match AVR behavior)
+                        statExportOverflows++;
                         state = SlaveState::RX_SYNC;
                         lastRxTime = now;
                         exportReadPos = 0;
@@ -678,8 +680,8 @@ static void rs485SlaveLoop() {
     if (millis() - lastStatusMs >= RS485_STATUS_INTERVAL_MS) {
         lastStatusMs = millis();
 
-        debugPrintf("[RS485S] Polls=%lu Bcasts=%lu Export=%lu Cmds=%lu TxPend=%d TxDrop=%lu\n",
-                    statPolls, statBroadcasts, statExportBytes, statCommandsSent, txCount(), statTxDrops);
+        debugPrintf("[RS485S] Polls=%lu Bcasts=%lu Export=%lu Cmds=%lu TxPend=%d TxDrop=%lu ExOvf=%lu\n",
+                    statPolls, statBroadcasts, statExportBytes, statCommandsSent, txCount(), statTxDrops, statExportOverflows);
 
         if (lastPollMs > 0) {
             debugPrintf("[RS485S] Last poll: %lu ms ago\n", millis() - lastPollMs);

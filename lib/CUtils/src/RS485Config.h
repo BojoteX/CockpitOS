@@ -30,7 +30,7 @@
  *   │ • NO parsing, NO filtering - bytes in, bytes out                   │
  *   │ • Works with ANY sim, ANY aircraft, ANY address                    │
  *   │ • Use for debugging or when you don't know addresses yet           │
- *   │ • Uses: 512 bytes RAM (minimal!)                                   │
+ *   │ • Uses: 8KB RAM for raw relay buffer                                │
  *   └─────────────────────────────────────────────────────────────────────┘
  *
  * ==========================================================================
@@ -61,51 +61,26 @@
 #endif
 
 // ============================================================================
-// SMART MODE OPTIONS (only apply when SMART_MODE=1)
+// RAW BYTE BUFFER (shared by both smart mode and relay mode)
 // ============================================================================
-#if RS485_SMART_MODE
+// Both modes use the same raw byte buffer and chunking strategy.
+// Smart mode filters which address blocks get forwarded; relay mode forwards all.
 
-// Change detection (delta compression)
-// 1 = Only broadcast changed values (recommended - huge bandwidth savings)
-// 0 = Broadcast all filtered values every frame (rarely useful)
-#ifndef RS485_CHANGE_DETECT
-#define RS485_CHANGE_DETECT     0 // DCSBIOS Already has change detection, so this is optional extra filtering
-#endif
-
-// Change queue size (address/value pairs)
-// Each entry = 4 bytes RAM, each change on wire = ~10 bytes
-#ifndef RS485_CHANGE_QUEUE_SIZE
-#define RS485_CHANGE_QUEUE_SIZE 128
-#endif
-
-// Maximum bytes per broadcast chunk (each change = 10 bytes on wire)
-// Larger = more efficient (fewer TX turnarounds), smaller = more responsive polling
-// 64 = ~6 changes per burst (good balance), 128 = ~12, 244 = max (buffer limit)
-#ifndef RS485_MAX_BROADCAST_CHUNK
-#define RS485_MAX_BROADCAST_CHUNK 64
-#endif
-
-#endif // RS485_SMART_MODE
-
-// ============================================================================
-// RELAY MODE OPTIONS (only apply when SMART_MODE=0)
-// ============================================================================
-#if !RS485_SMART_MODE
-
-// Ring buffer size for raw export data
-// 512 bytes = ~2 full DCS-BIOS frames
+// Ring buffer size for raw export data.
+// Must be large enough for the biggest DCS-BIOS UDP frame (state dumps can
+// reach ~2000+ bytes depending on aircraft complexity) because UDP delivers
+// the entire packet at once, unlike the Arduino master which receives Serial
+// byte-by-byte.  8192 provides comfortable headroom for any aircraft.
 #ifndef RS485_RAW_BUFFER_SIZE
-#define RS485_RAW_BUFFER_SIZE   512
+#define RS485_RAW_BUFFER_SIZE   8192
 #endif
 
-// Maximum bytes per broadcast in relay mode.
-// 124 = 128 FIFO depth - 3 (header) - 1 (checksum) → fits in one FIFO load,
+// Maximum bytes per broadcast chunk.
+// 124 = 128 FIFO depth - 3 (header) - 1 (checksum) -> fits in one FIFO load,
 // avoiding the spin-wait txBytes path for oversized broadcasts.
 #ifndef RS485_RELAY_CHUNK_SIZE
 #define RS485_RELAY_CHUNK_SIZE  124
 #endif
-
-#endif // !RS485_SMART_MODE
 
 // ============================================================================
 // HARDWARE PINS

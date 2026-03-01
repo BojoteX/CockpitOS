@@ -235,6 +235,7 @@ bool RS485Master_init();
 void RS485Master_loop();
 void RS485Master_stop();
 void RS485Master_feedExportData(const uint8_t* data, size_t len);
+void RS485Master_feedExportByte(uint8_t byte);
 void RS485Master_forceFullSync();
 bool RS485Master_isSlaveOnline(uint8_t address);
 uint8_t RS485Master_getOnlineSlaveCount();

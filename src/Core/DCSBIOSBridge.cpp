@@ -214,7 +214,9 @@ class DcsBiosSniffer : public DcsBios::ExportStreamListener {
 public:
     DcsBiosSniffer(): 
         // DcsBios::ExportStreamListener(0x0000, 0x77FF), // Old version (Hornet Only)
+        // DcsBios::ExportStreamListener(0x0000, 0x87A6), // Apache
         DcsBios::ExportStreamListener(0x0000, 0xFFFD),
+
         pendingUpdateCount(0),
         pendingUpdateOverflow(0),
         _lastWriteMs(0),
@@ -754,15 +756,17 @@ void parseDcsBiosUdpPacket(const uint8_t* data, size_t len) {
     // === END DEBUG ===
 #endif
 
+    // Feed each byte to parser AND RS485 relay simultaneously.
+    // This matches the Arduino master's ISR pattern: byte in → byte straight
+    // to RS485 buffer, no delay. Previously we parsed ALL bytes first, then
+    // fed them to RS485 in one batch — which caused rawBuffer overflow on
+    // large UDP packets (state dump ~1954 bytes vs 512-byte buffer).
     for (size_t i = 0; i < len; ++i) {
         DcsBios::parser.processChar(data[i]);
-    }
-    // yield();
-
-    // NEW: Also feed to RS-485 for slave distribution
 #if RS485_MASTER_ENABLED
-    RS485Master_feedExportData(data, len);
+        RS485Master_feedExportByte(data[i]);
 #endif
+    }
 
 }
 
@@ -786,7 +790,7 @@ void onDcsBiosUdpPacket() {
     } frames[MAX_UDP_FRAMES_PER_DRAIN];
 
     size_t frameCount = 0;
-    size_t reassemblyLen = 0;
+    static size_t reassemblyLen = 0;  // MUST be static: multi-chunk packets may span drain calls (producer on core 0, consumer on core 1)
     DcsUdpRingMsg pkt;
 
     // Phase 1: Drain as many complete UDP frames as possible

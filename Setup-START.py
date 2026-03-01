@@ -594,6 +594,53 @@ def get_dcsbios_dev_version():
     return _read_dcsbios_version_from_dir(DCSBIOS_DEV_DIR / "DCS-BIOS")
 
 
+# =============================================================================
+#  DCS-BIOS MTU / MAX_PAYLOAD_SIZE patch
+# =============================================================================
+DCSBIOS_RECOMMENDED_MTU = 1460  # Must match Config.h UDP_MAX_SiZE
+
+
+def _get_connection_manager_path(dcs_path):
+    """Return Path to ConnectionManager.lua for a DCS saved games path, or None."""
+    p = dcs_path / "Scripts" / "DCS-BIOS" / "lib" / "ConnectionManager.lua"
+    return p if p.exists() else None
+
+
+def get_dcsbios_mtu(dcs_path):
+    """Read MAX_PAYLOAD_SIZE from ConnectionManager.lua. Returns int or None."""
+    lua = _get_connection_manager_path(dcs_path)
+    if lua is None:
+        return None
+    try:
+        for line in lua.read_text(encoding="utf-8").splitlines():
+            m = re.match(r'\s*MAX_PAYLOAD_SIZE\s*=\s*(\d+)', line)
+            if m:
+                return int(m.group(1))
+    except OSError:
+        pass
+    return None
+
+
+def patch_dcsbios_mtu(dcs_path):
+    """Patch MAX_PAYLOAD_SIZE to DCSBIOS_RECOMMENDED_MTU. Returns (ok, message)."""
+    lua = _get_connection_manager_path(dcs_path)
+    if lua is None:
+        return False, "ConnectionManager.lua not found"
+    try:
+        content = lua.read_text(encoding="utf-8")
+        new_content, count = re.subn(
+            r'(MAX_PAYLOAD_SIZE\s*=\s*)\d+',
+            rf'\g<1>{DCSBIOS_RECOMMENDED_MTU}',
+            content,
+        )
+        if count == 0:
+            return False, "MAX_PAYLOAD_SIZE not found in file"
+        lua.write_text(new_content, encoding="utf-8")
+        return True, f"Patched to {DCSBIOS_RECOMMENDED_MTU}"
+    except OSError as e:
+        return False, str(e)
+
+
 def _pick_dcs_path(dcs_list):
     """Let user pick a DCS installation if multiple found. Returns (label, path) or None."""
     if len(dcs_list) == 1:
@@ -644,7 +691,11 @@ def retry(label, fn, retries=MAX_RETRIES):
 #  Status display (shown on main screen, like compiler tool)
 # =============================================================================
 def show_status():
-    """Show current environment state below the banner."""
+    """Show current environment state below the banner.
+
+    Returns True if any DCS-BIOS installation has a mismatched MTU value
+    (i.e. the "Fix DCS-BIOS MTU" menu option should be shown).
+    """
     cli_ver = get_cli_version()
     core_ver = get_installed_core_version(MANIFEST["esp32_core"]["platform"])
     lib_ver = get_installed_lib_version(MANIFEST["lovyangfx"]["library"])
@@ -685,13 +736,22 @@ def show_status():
         names = ", ".join(pip for _, pip in missing_deps)
         _w(f"     \U0001f517 {YELLOW}HID Manager deps: {len(missing_deps)} missing ({names}){RESET}\n")
 
-    # DCS-BIOS
+    # DCS-BIOS + MTU check
+    mtu_needs_fix = False
     dcs_list = find_dcs_saved_games()
     if dcs_list:
         for dcs_label, dcs_path in dcs_list:
             ver = get_dcsbios_version(dcs_path)
             if ver:
                 _w(f"     \U0001f3ae {CYAN}DCS-BIOS ({dcs_label}): {ver}{RESET}\n")
+                # MTU check for this installation
+                mtu = get_dcsbios_mtu(dcs_path)
+                if mtu is not None:
+                    if mtu == DCSBIOS_RECOMMENDED_MTU:
+                        _w(f"     \U0001f4e1 {GREEN}DCS-BIOS MTU: {mtu}{RESET}  {DIM}(OK){RESET}\n")
+                    else:
+                        _w(f"     \U0001f4e1 {YELLOW}DCS-BIOS MTU: {mtu}{RESET}  {DIM}(should be {DCSBIOS_RECOMMENDED_MTU} — use Fix option below){RESET}\n")
+                        mtu_needs_fix = True
             else:
                 _w(f"     \U0001f3ae {YELLOW}DCS-BIOS ({dcs_label}): not installed{RESET}\n")
     else:
@@ -702,6 +762,7 @@ def show_status():
             _w(f"     \U0001f3ae {DIM}DCS-BIOS: not installed{RESET}\n")
 
     _w("\n")
+    return mtu_needs_fix
 
 
 # =============================================================================
@@ -1178,6 +1239,50 @@ def _find_extracted_bios(extract_dir):
                 return candidate
 
     return None
+
+
+def action_fix_dcsbios_mtu():
+    """Patch DCS-BIOS MAX_PAYLOAD_SIZE to match firmware UDP_MAX_SiZE (1460).
+
+    The default DCS-BIOS value (2048) exceeds the ESP32 firmware receive buffer,
+    causing IP fragmentation and data loss over WiFi. This patches
+    ConnectionManager.lua to use the correct value.
+    """
+    show_banner()
+    _w(f"\n  {BOLD}Fix DCS-BIOS MTU (MAX_PAYLOAD_SIZE){RESET}\n\n")
+
+    dcs_list = find_dcs_saved_games()
+    if not dcs_list:
+        warn("No DCS World installations found.")
+        _w("\n  Press any key...")
+        msvcrt.getwch()
+        return
+
+    patched = 0
+    for dcs_label, dcs_path in dcs_list:
+        mtu = get_dcsbios_mtu(dcs_path)
+        if mtu is None:
+            info(f"{dcs_label}: DCS-BIOS not installed — skipping")
+            continue
+        if mtu == DCSBIOS_RECOMMENDED_MTU:
+            success(f"{dcs_label}: already {DCSBIOS_RECOMMENDED_MTU} — OK")
+            continue
+
+        info(f"{dcs_label}: current value is {YELLOW}{mtu}{RESET}, patching to {GREEN}{DCSBIOS_RECOMMENDED_MTU}{RESET}...")
+        ok, msg = patch_dcsbios_mtu(dcs_path)
+        if ok:
+            success(f"{dcs_label}: {msg}")
+            patched += 1
+        else:
+            error(f"{dcs_label}: {msg}")
+
+    if patched:
+        _w(f"\n  {GREEN}{BOLD}Done!{RESET} {patched} installation(s) patched.\n")
+    else:
+        _w(f"\n  Nothing to patch.\n")
+
+    _w("\n  Press any key...")
+    msvcrt.getwch()
 
 
 def action_download_dcsbios():
@@ -2002,12 +2107,20 @@ def main():
 
     while True:
         show_banner()
-        show_status()
+        mtu_needs_fix = show_status()
 
-        choice = pick_action("What would you like to do?", [
+        menu_options = [
             ("Setup / Update environment",         "setup"),
             ("Reset to recommended versions",      "reset"),
             ("Download / Update DCS-BIOS",         "dcsbios"),
+        ]
+
+        if mtu_needs_fix:
+            menu_options.append(
+                (f"{YELLOW}Fix DCS-BIOS MTU{RESET}",  "fix_mtu"),
+            )
+
+        menu_options += [
             ("Advanced — Version Pinning",         "advanced",  "dim"),
             ("",),
             ("---", "Switch Tool"),
@@ -2015,7 +2128,9 @@ def main():
             ("Compile Tool",                       "compiler"),
             ("",),
             ("Exit",                               "exit",      "dim"),
-        ])
+        ]
+
+        choice = pick_action("What would you like to do?", menu_options)
 
         if choice == "setup":
             action_setup()
@@ -2023,6 +2138,8 @@ def main():
             action_reset_to_manifest()
         elif choice == "dcsbios":
             action_download_dcsbios()
+        elif choice == "fix_mtu":
+            action_fix_dcsbios_mtu()
         elif choice == "advanced":
             action_advanced_versions()
         elif choice == "compiler":
