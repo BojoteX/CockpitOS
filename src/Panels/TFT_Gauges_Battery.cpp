@@ -329,6 +329,7 @@ static void BatteryGauge_task(void*) {
         BatteryGauge_draw(false, false);
         vTaskDelay(pdMS_TO_TICKS(5));
     }
+    waitDMADone();
     tftTaskHandle = nullptr;
     vTaskDelete(nullptr);
 }

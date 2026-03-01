@@ -280,7 +280,7 @@ Only ONE transport can be active at a time. Set via Compiler Tool > Role / Trans
 - 120-ohm termination resistors at each end
 - Master config: RS485_MASTER_ENABLED=1, set DE/RE/RX/TX pins
 - Slave config: RS485_SLAVE_ENABLED=1, unique RS485_SLAVE_ADDRESS (1-126)
-- RS485_SMART_MODE: Master only forwards data that slaves have subscribed to
+- RS485_SMART_MODE: When 1, master filters data using its own DcsOutputTable (master's selected_panels.txt must include all panels any slave needs). Default 0 (Relay Mode) forwards everything with no panel config required
 - All RS485 settings managed by Compiler Tool > Role / Transport wizard
 
 ---
@@ -607,9 +607,9 @@ Round TFT displays for analog gauge faces:
 
 **Architecture:** One master (connects to DCS-BIOS via USB/WiFi/Serial) forwards data to slaves over half-duplex RS485 bus. Master polls slaves round-robin for input commands.
 
-**Smart Mode vs Relay Mode:**
-- `RS485_SMART_MODE=0` (Relay): Master forwards entire DCS-BIOS stream. Simple, more bandwidth.
-- `RS485_SMART_MODE=1` (Smart): Master filters stream, only forwards addresses slaves subscribe to. 100-1000x bandwidth reduction.
+**Relay Mode vs Smart Mode:**
+- `RS485_SMART_MODE=0` (Relay, default): Master forwards entire DCS-BIOS stream. No panel configuration required on master.
+- `RS485_SMART_MODE=1` (Smart): Master filters stream using its own DcsOutputTable. 20-50x bandwidth reduction. Requires the master's `selected_panels.txt` to include ALL panels that ANY slave on the bus relies on.
 
 **Key optimization: RS485_MAX_SLAVE_ADDRESS** — Default 127. If you have 3 slaves with addresses 1-3, set this to 3. Eliminates 124 wasted poll cycles per round.
 

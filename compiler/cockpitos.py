@@ -194,54 +194,6 @@ def do_compile(prefs, verbose=False):
                           show_detailed_warnings=show_detail)
 
 
-def do_quick_compile(prefs, verbose=False):
-    """Quick compile — reuse current label set, skip generate_data.py."""
-    active = read_active_label_set()
-    if not active:
-        warn("No active label set. Use full COMPILE first.")
-        return False
-
-    if not prefs.get("fqbn"):
-        warn("No board configured yet.")
-        fqbn = select_board(prefs)
-        if fqbn is None:
-            return False
-        prefs["fqbn"] = fqbn
-        opts = configure_options(fqbn, prefs)
-        if opts is None:
-            return False
-        prefs["options"] = opts
-        save_prefs(prefs)
-    else:
-        fqbn = prefs["fqbn"]
-        opts = prefs.get("options", {})
-
-    # Pre-compile cross-validation
-    issues = validate_config_vs_board(prefs)
-    has_fatal = False
-    for level, msg in issues:
-        if level == FATAL:
-            error(f"[FATAL] {msg}")
-            has_fatal = True
-        else:
-            warn(f"[WARNING] {msg}")
-    if has_fatal:
-        error("Cannot compile \u2014 fix the fatal issue(s) above first.")
-        return False
-    if any(lv == WARNING for lv, _ in issues):
-        if not confirm("Warnings detected. Continue compiling anyway?", default_yes=True):
-            return False
-
-    info(f"Quick compile \u2014 reusing label set: {CYAN}{active}{RESET}")
-    info(f"{DIM}Skipping label set selection and generate_data.py{RESET}")
-    print()
-
-    fresh = load_prefs()
-    show_detail = fresh.get("show_detailed_warnings", False)
-    return compile_sketch(fqbn, opts, verbose=verbose, board_name=prefs.get("board_name"),
-                          show_detailed_warnings=show_detail)
-
-
 # -----------------------------------------------------------------------------
 # Misc Options sub-menu
 # -----------------------------------------------------------------------------
@@ -676,12 +628,6 @@ def main():
                 ssid_shown = True
             print(f"     \U0001f517 {transport_parts}")
 
-        # -- Label set line ------------------------------------------------------
-        if active_ls != "(none)":
-            print(f"     \U0001f3f7\ufe0f {CYAN}{active_ls}{RESET}")
-        else:
-            print(f"     \U0001f3f7\ufe0f {DIM}(no label set){RESET}")
-
         # -- HID mode line -------------------------------------------------------
         hid_on = config_get("MODE_DEFAULT_IS_HID") == "1"
         if hid_on:
@@ -712,15 +658,14 @@ def main():
         print()
 
         choice = menu_pick([
-            ("action_bar", [
-                ("Compile", "compile"),
-                *([ ("Quick Compile", "qcompile") ] if active_ls != "(none)" else []),
-                ("Upload", "upload"),
-            ]),
-            ("",),
             ("Board / Options",      "board",     "normal"),
             ("Role / Transport",     "transport", "normal"),
             ("Misc Options",         "misc",      "normal"),
+            ("",),
+            ("action_bar", [
+                ("Compile", "compile"),
+                ("Upload", "upload"),
+            ]),
             ("",),
             ("---", "Switch Tool"),
             ("Label Creator",        "label",     "normal"),
@@ -776,31 +721,6 @@ def main():
                         input(f"\n  {DIM}Press Enter to continue...{RESET}")
                         break
                     elif ch == "\x1b":   # ESC → back to menu
-                        sys.stdout.write(SHOW_CUR)
-                        sys.stdout.flush()
-                        break
-            else:
-                input(f"\n  {DIM}Press Enter to continue...{RESET}")
-
-        elif choice == "qcompile":
-            compile_ok = do_quick_compile(prefs)
-            if compile_ok:
-                print(f"\n  {DIM}Press Enter to upload, Esc for menu...{RESET}")
-                sys.stdout.write(HIDE_CUR)
-                sys.stdout.flush()
-                while True:
-                    ch = msvcrt.getwch()
-                    if ch == "\r":
-                        sys.stdout.write(SHOW_CUR)
-                        sys.stdout.flush()
-                        if prefs.get("fqbn") and BUILD_DIR.exists():
-                            upload_sketch(prefs["fqbn"], prefs.get("options", {}),
-                                          board_name=prefs.get("board_name"))
-                        else:
-                            warn("Board not configured or no build found.")
-                        input(f"\n  {DIM}Press Enter to continue...{RESET}")
-                        break
-                    elif ch == "\x1b":
                         sys.stdout.write(SHOW_CUR)
                         sys.stdout.flush()
                         break

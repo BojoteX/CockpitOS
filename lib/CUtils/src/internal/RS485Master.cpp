@@ -211,10 +211,17 @@ static void bufferRawByte(uint8_t byte) {
 // (or is the aircraft name). Consecutive relevant words are coalesced into
 // compact sub-blocks with reconstructed headers. Irrelevant words are skipped.
 //
+// IMPORTANT: The DcsOutputTable is built from the MASTER's own label set
+// (selected_panels.txt). For Smart Mode to work correctly, the master's
+// selected_panels.txt must include ALL panels that ANY slave on the bus
+// relies on. If a slave needs addresses not covered by the master's panels,
+// those addresses will be filtered out. Relay Mode (SMART_MODE=0) has no
+// such requirement — it forwards everything unconditionally.
+//
 // WHY WORD-LEVEL: DCS-BIOS sends large contiguous blocks (e.g., address 0x0000
 // count 0x8000). Block-level filtering forwards the ENTIRE block if ANY address
 // matches — effectively zero filtering. Word-level filtering produces only the
-// addresses the slave needs (typically 100-200 bytes vs 30,000+).
+// addresses the slaves need (typically 100-200 bytes vs 30,000+).
 
 #if RS485_SMART_MODE
 
@@ -1097,7 +1104,6 @@ static void rs485PollLoop() {
         int64_t now = esp_timer_get_time();
         if ((now - messageCompleteTime) > RS485_MSG_DRAIN_TIMEOUT_US) {
             messageBuffer.clear();
-            messageBuffer.complete = false;
             statDrainStalls++;
         }
     }

@@ -317,7 +317,7 @@ The master device needs one standard transport (USB, WiFi, or Serial) **plus** t
 
 // RS-485 Master
 #define RS485_MASTER_ENABLED     1
-#define RS485_SMART_MODE         0   // 1 = filter by slave needs
+#define RS485_SMART_MODE         0   // 1 = filter by master's DcsOutputTable
 #define RS485_MAX_SLAVE_ADDRESS  127 // highest address to poll
 ```
 
@@ -335,9 +335,11 @@ Each slave uses `RS485_SLAVE_ENABLED` as its transport and has a unique address:
 #define RS485_SLAVE_ADDRESS      1   // unique, 1-126
 ```
 
-### Smart Mode
+### Relay Mode vs Smart Mode
 
-When `RS485_SMART_MODE=1`, the master filters the DCS-BIOS data stream and only forwards addresses that the slaves actually need (based on `selected_panels.txt` in each label set). This reduces bus bandwidth at the cost of slightly higher latency due to the filtering overhead.
+By default, the master operates in **Relay Mode** (`RS485_SMART_MODE=0`), forwarding the entire DCS-BIOS stream to all slaves with no filtering and no additional configuration required.
+
+When `RS485_SMART_MODE=1`, the master filters the DCS-BIOS data stream using its own DcsOutputTable and only forwards addresses covered by the master's panels. This provides 20-50x bandwidth reduction but requires that the master's `selected_panels.txt` include ALL panels that ANY slave on the bus relies on. Use the Label Creator to add slave panels to the master's label set.
 
 ### Wiring
 

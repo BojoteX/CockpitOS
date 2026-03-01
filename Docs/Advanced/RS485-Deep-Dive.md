@@ -285,58 +285,9 @@ The old ordering (FIFO -> state -> clear -> enable) had a fatal race where tick 
 
 The master supports two fundamentally different approaches to broadcasting export data to slaves.
 
-### Smart Mode (`RS485_SMART_MODE=1`)
+### Relay Mode (`RS485_SMART_MODE=0`, default)
 
-Smart Mode parses the DCS-BIOS export stream, filters by address, detects changes, and sends only relevant delta updates.
-
-```
-DCS-BIOS Export Stream (from PC)
-   |
-   v
-parseExportByte()
-   |
-   +-- Sync detection (4x 0x55 bytes)
-   +-- Extract address/value pairs
-   |
-   v
-processAddressValue(address, value)
-   |
-   +-- Filter: findDcsOutputEntries(address)
-   |     Discard addresses not in DcsOutputTable
-   |
-   +-- Change detect (optional): prevExport[address] == value?
-   |     Skip if unchanged
-   |
-   v
-queueChange(address, value)
-   |
-   v
-Change Queue (ring buffer, RS485_CHANGE_QUEUE_SIZE entries)
-   |
-   v
-prepareBroadcastData()
-   |
-   +-- Reconstruct valid DCS-BIOS frames for each change
-   |     [0x55 0x55 0x55 0x55] [addr_lo addr_hi] [0x02 0x00] [val_lo val_hi]
-   |
-   v
-sendBroadcast()
-   |
-   +-- Frame: [Addr=0][MsgType=0][Length][Reconstructed frames...][Checksum]
-```
-
-**Advantages:**
-- Bandwidth reduction of 100-1000x (only changed, relevant addresses are sent).
-- Slaves receive only data they need.
-- Works with the existing DCS-BIOS parser on the slave side.
-
-**Cost:**
-- 32KB RAM for `prevExport[]` when `RS485_CHANGE_DETECT=1` (optional).
-- Change queue uses `RS485_CHANGE_QUEUE_SIZE * 4` bytes.
-
-### Relay Mode (`RS485_SMART_MODE=0`)
-
-Relay Mode acts as a transparent byte pipe, forwarding the raw DCS-BIOS export stream without any parsing or filtering.
+Relay Mode acts as a transparent byte pipe, forwarding the raw DCS-BIOS export stream without any parsing or filtering. This is the default mode and requires no additional configuration.
 
 ```
 DCS-BIOS Export Stream (from PC)
@@ -345,7 +296,7 @@ DCS-BIOS Export Stream (from PC)
 bufferRawByte()
    |
    v
-Raw Ring Buffer (RS485_RAW_BUFFER_SIZE bytes, 512 default)
+Raw Ring Buffer (RS485_RAW_BUFFER_SIZE bytes, 8192 default)
    |
    v
 prepareBroadcastData()
@@ -360,12 +311,61 @@ sendBroadcast()
 
 **Advantages:**
 - Works with any aircraft, any address -- no DcsOutputTable dependency.
-- Minimal RAM usage (512 bytes).
+- No panel configuration required on the master -- just enable and go.
 - Ideal for debugging or when panel configurations are unknown.
 
 **Cost:**
 - Full bandwidth -- every byte is forwarded regardless of relevance.
 - Slaves must parse and filter the entire export stream themselves.
+
+### Smart Mode (`RS485_SMART_MODE=1`)
+
+Smart Mode parses the DCS-BIOS export stream byte-by-byte and performs word-level address filtering using the master's DcsOutputTable. Only addresses that match the table (plus the aircraft name range 0x0000-0x0016) are forwarded. Consecutive relevant words are coalesced into compact sub-blocks with reconstructed DCS-BIOS headers to minimize overhead.
+
+```
+DCS-BIOS Export Stream (from PC)
+   |
+   v
+filterExportByte()  [state machine]
+   |
+   +-- Sync detection (4x 0x55 bytes, state-aware)
+   +-- Address/Count extraction from block headers
+   +-- Per-word filtering: isAddressRelevant()
+   |     +-- Aircraft name (0x0000-0x0016): always forwarded
+   |     +-- All other: O(1) hash lookup in findDcsOutputEntries()
+   +-- Consecutive relevant words coalesced into sub-blocks
+   |
+   v
+flushSubBlock()
+   |
+   +-- Reconstruct valid DCS-BIOS block header (addr + count)
+   +-- Emit only the relevant data bytes
+   |
+   v
+rawBuffer [shared 8KB ring]
+   |
+   v
+prepareBroadcastData()
+   |
+   +-- Drain up to RS485_RELAY_CHUNK_SIZE bytes (124 default)
+   |
+   v
+sendBroadcast()
+   |
+   +-- Frame: [Addr=0][MsgType=0][Length][Filtered frames...][Checksum]
+```
+
+**Advantages:**
+- 20-50x bandwidth reduction (only relevant addresses are forwarded).
+- Works with the existing DCS-BIOS parser on the slave side.
+- Beneficial when you have many slaves and want to reduce bus traffic.
+
+**Cost:**
+- ~2-5% CPU on the master for parsing and hash lookups.
+
+**IMPORTANT -- Panel configuration requirement:** The master's DcsOutputTable is auto-generated from its `selected_panels.txt` (managed via the Label Creator). In Smart Mode, the master can ONLY forward addresses that appear in its own DcsOutputTable. This means the master's `selected_panels.txt` must include ALL panels that ANY slave on the bus relies on. If a slave needs an address not covered by the master's panels, that data will be silently filtered out.
+
+For example: 1 master + 3 slaves. Slave 1 uses IFEI, Slave 2 uses Left Console, Slave 3 uses Right Console. The master's `selected_panels.txt` must include IFEI, Left Console, AND Right Console -- even if the master itself doesn't have any of those panels wired to its own hardware. Relay Mode has no such requirement.
 
 ---
 
@@ -579,18 +579,15 @@ xTaskCreate(rs485Task, "RS485M", ...);
 | Define | Default | Description |
 |--------|---------|-------------|
 | `RS485_MASTER_ENABLED` | 0 | Enable master mode |
-| `RS485_SMART_MODE` | 0 | 1=Smart (filtered), 0=Relay (raw bytes) |
-| `RS485_CHANGE_DETECT` | 0 | Enable delta compression (Smart Mode only) |
+| `RS485_SMART_MODE` | 0 | 0=Relay (raw bytes, default), 1=Smart (filtered by master's DcsOutputTable) |
 | `RS485_BAUD` | 250000 | Bus baud rate |
 | `RS485_UART_NUM` | 1 | UART peripheral number |
 | `RS485_POLL_TIMEOUT_US` | 1000 | First-byte response timeout |
 | `RS485_RX_TIMEOUT_US` | 5000 | Mid-message timeout |
 | `RS485_MAX_POLL_INTERVAL_US` | 2000 | Max time between polls |
 | `RS485_DISCOVERY_INTERVAL` | 50 | Poll cycles between discovery scans |
-| `RS485_CHANGE_QUEUE_SIZE` | 128 | Change queue entries (Smart Mode) |
-| `RS485_MAX_BROADCAST_CHUNK` | 64 | Max bytes per broadcast |
-| `RS485_RAW_BUFFER_SIZE` | 512 | Raw buffer size (Relay Mode) |
-| `RS485_RELAY_CHUNK_SIZE` | 124 | Max bytes per relay broadcast |
+| `RS485_RAW_BUFFER_SIZE` | 8192 | Raw buffer size (shared by both modes) |
+| `RS485_RELAY_CHUNK_SIZE` | 124 | Max bytes per broadcast chunk |
 | `RS485_INPUT_BUFFER_SIZE` | 256 | Slave command input buffer |
 | `RS485_TX_WARMUP_DELAY_US` | 0 | DE pin warmup delay |
 | `RS485_MSG_DRAIN_TIMEOUT_US` | 5000 | Force-clear stalled messages |

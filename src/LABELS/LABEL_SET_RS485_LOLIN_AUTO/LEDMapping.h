@@ -36,7 +36,7 @@ static const LEDMapping panelLEDs[] = {
   { "PLT_CMWS_JETT"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "PLT_CMWS_JETT_CVR", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "PLT_CMWS_LAMP"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "PLT_CMWS_MODE"    , DEVICE_GPIO    , {.gpioInfo = {2}}, false, false }, // GPIO 2,
+  { "PLT_CMWS_MODE"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "PLT_CMWS_VOL"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 

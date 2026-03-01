@@ -333,6 +333,163 @@ def preferred_usb_mode(transport):
     return "hwcdc"            # Hardware CDC
 
 
+# -----------------------------------------------------------------------------
+# Chip family detection & transport capability
+# -----------------------------------------------------------------------------
+
+# IDF target name → CockpitOS family shorthand
+_MCU_TO_FAMILY = {
+    "esp32":   "classic",
+    "esp32s2": "s2",  "esp32s3": "s3",
+    "esp32c2": "c2",  "esp32c3": "c3",
+    "esp32c5": "c5",  "esp32c6": "c6",
+    "esp32h2": "h2",  "esp32p4": "p4",
+}
+
+# FQBN substring patterns ordered by descending length (avoids "esp32" matching "esp32s3")
+_FQBN_PATTERNS = [
+    ("esp32s2", "s2"),  ("esp32s3", "s3"),
+    ("esp32c2", "c2"),  ("esp32c3", "c3"),
+    ("esp32c5", "c5"),  ("esp32c6", "c6"),
+    ("esp32h2", "h2"),  ("esp32p4", "p4"),
+    ("esp32",   "classic"),
+]
+
+# Mirrors Config.h compile-time guards — see Config.h capability matrix at bottom
+FAMILY_TRANSPORTS = {
+    "classic": ["wifi", "serial", "ble", "slave"],
+    "s2":      ["wifi", "usb", "serial", "slave"],
+    "s3":      ["wifi", "usb", "serial", "ble", "slave"],
+    "c2":      ["wifi", "serial", "ble", "slave"],
+    "c3":      ["wifi", "serial", "ble", "slave"],
+    "c5":      ["wifi", "serial", "ble", "slave"],
+    "c6":      ["wifi", "serial", "ble", "slave"],
+    "h2":      ["serial", "ble", "slave"],
+    "p4":      ["usb", "serial", "slave"],
+}
+
+# USB capability per chip family (hardware fact — not configurable)
+#   "dual"     → has both HW CDC and USB-OTG (USBMode option will exist)
+#   "otg_only" → USB-OTG (TinyUSB) only, no HW CDC (S2)
+#   "cdc_only" → HW CDC only, no USB-OTG (C3, C5, C6, H2)
+#   "none"     → no native USB, external UART bridge (Classic, C2)
+_FAMILY_USB_TYPE = {
+    "classic": "none",
+    "c2":      "none",
+    "s2":      "otg_only",
+    "s3":      "dual",
+    "c3":      "cdc_only",
+    "c5":      "cdc_only",
+    "c6":      "cdc_only",
+    "h2":      "cdc_only",
+    "p4":      "dual",
+}
+
+def get_serial_label(family, prefs=None):
+    """Return board-appropriate serial transport label.
+
+    Detection strategy:
+    1. Query the board's actual USBMode option via arduino-cli (if FQBN available)
+    2. Check prefs for current USBMode selection
+    3. Fall back to chip family USB hardware type
+    """
+    usb_type = _FAMILY_USB_TYPE.get(family)
+
+    # Dual-USB boards (S3, P4): label depends on USBMode setting
+    if usb_type == "dual":
+        # First: check what the user has currently selected in prefs
+        usb_mode = (prefs or {}).get("options", {}).get("USBMode")
+        if usb_mode is not None:
+            if usb_mode == "hwcdc":
+                return "Serial (HW CDC)"
+            elif usb_mode == "default":
+                return "Serial (USB-OTG CDC)"
+
+        # Second: query the board's default USBMode via arduino-cli
+        fqbn = (prefs or {}).get("fqbn")
+        if fqbn:
+            board_options = get_board_options(fqbn)
+            usb_opt = board_options.get("USBMode")
+            if usb_opt:
+                default_val = usb_opt.get("default")
+                if default_val == "hwcdc":
+                    return "Serial (HW CDC)"
+                elif default_val == "default":
+                    return "Serial (USB-OTG CDC)"
+
+        # Both failed — show both possibilities
+        return "Serial (HW CDC / USB-OTG CDC)"
+
+    # Single-USB boards: fixed by hardware
+    if usb_type == "otg_only":
+        return "Serial (USB-OTG CDC)"
+    if usb_type == "cdc_only":
+        return "Serial (HW CDC)"
+    if usb_type == "none":
+        if family == "classic":
+            return "Serial (UART Bridge — CH340/CP2102)"
+        return "Serial (UART Bridge)"
+
+    return "Serial (CDC/Socat)"
+
+# Friendly chip name for UI
+FAMILY_CHIP_NAME = {
+    "classic": "ESP32",
+    "s2": "ESP32-S2", "s3": "ESP32-S3",
+    "c2": "ESP32-C2", "c3": "ESP32-C3",
+    "c5": "ESP32-C5", "c6": "ESP32-C6",
+    "h2": "ESP32-H2", "p4": "ESP32-P4",
+}
+
+_chip_cache = {}
+
+def get_chip_family(fqbn):
+    """Detect ESP32 chip family from FQBN.
+
+    Returns family string ('classic','s2','s3','c3','c6','h2','p4', etc.) or None.
+    Uses arduino-cli build.mcu property (reliable for all boards including third-party),
+    with FQBN substring fallback if CLI fails.
+    """
+    if not fqbn:
+        return None
+    if fqbn in _chip_cache:
+        return _chip_cache[fqbn]
+
+    family = None
+
+    # Primary: arduino-cli JSON output → build_properties → build.mcu
+    # Works for ALL boards (including third-party like lolin_s2_mini, XIAO_ESP32C3)
+    try:
+        r = run_cli("board", "details", "--fqbn", fqbn, "--format", "json")
+        if r and r.returncode == 0:
+            import json
+            data = json.loads(r.stdout)
+            for prop in data.get("build_properties", []):
+                if prop.startswith("build.mcu="):
+                    mcu = prop.split("=", 1)[1].strip().lower()
+                    family = _MCU_TO_FAMILY.get(mcu)
+                    break
+    except (json.JSONDecodeError, KeyError, TypeError):
+        pass
+
+    # Fallback: FQBN substring match (only works for boards with chip in name)
+    if family is None:
+        board_id = fqbn.split(":")[-1].lower() if ":" in fqbn else fqbn.lower()
+        for pattern, fam in _FQBN_PATTERNS:
+            if pattern in board_id:
+                family = fam
+                break
+
+    _chip_cache[fqbn] = family
+    return family
+
+
+def get_chip_name(fqbn):
+    """Return friendly chip name (e.g. 'ESP32-C6') or None."""
+    family = get_chip_family(fqbn)
+    return FAMILY_CHIP_NAME.get(family) if family else None
+
+
 def validate_config_vs_board(prefs):
     """Cross-validate Config.h settings against board options."""
     issues = []
