@@ -415,16 +415,53 @@ def configure_transport_and_role(prefs, board_has_dual_usb_fn, preferred_usb_mod
     if is_master is None:
         return None
 
-    # --- Step 2: Choose Transport ---
+    # --- Step 2: Choose Transport (filtered by board capability) ---
+    from boards import (get_chip_family, get_chip_name,
+                        FAMILY_TRANSPORTS, get_serial_label)
+
+    fqbn = prefs.get("fqbn")
+    family = get_chip_family(fqbn) if fqbn else None
+    chip_name = get_chip_name(fqbn) if fqbn else None
+    supported = FAMILY_TRANSPORTS.get(family) if family else None
+    serial_label = get_serial_label(family, prefs) if family else None
+
+    # Build filtered transport options with board-appropriate labels
+    def _build_transport_opts(exclude_slave=False):
+        opts = []
+        for label, key in TRANSPORTS:
+            if exclude_slave and key == "slave":
+                continue
+            if supported and key not in supported:
+                continue
+            # Replace serial label with board-specific variant
+            if key == "serial" and serial_label:
+                label = serial_label
+            opts.append((label, key))
+        return opts
+
     if is_master == "yes":
-        header("Choose Transport (WiFi / USB / Socat)")
+        if chip_name:
+            header(f"Choose Transport for {chip_name}")
+        else:
+            header("Choose Transport")
         info(f"{DIM}RS485 Master requires a real transport to forward data.{RESET}")
-        transport_opts = [(label, key) for label, key in TRANSPORTS if key != "slave"]
-        prev = current_transport if current_transport != "slave" else "usb"
+        transport_opts = _build_transport_opts(exclude_slave=True)
+        prev = current_transport if current_transport != "slave" else None
     else:
-        header("Choose Transport (WiFi / USB / Socat / RS485 Slave)")
-        transport_opts = list(TRANSPORTS)
-        prev = current_transport or "usb"
+        if chip_name:
+            header(f"Choose Transport for {chip_name}")
+        else:
+            header("Choose Transport")
+        transport_opts = _build_transport_opts()
+        prev = current_transport
+
+    if not fqbn:
+        info(f"{DIM}No board selected — showing all transports.{RESET}")
+
+    # If current transport isn't in the filtered list, clear the default
+    available_keys = [key for _, key in transport_opts]
+    if prev and prev not in available_keys:
+        prev = available_keys[0] if available_keys else None
 
     transport = pick("Select transport:", transport_opts, default=prev)
     if transport is None:

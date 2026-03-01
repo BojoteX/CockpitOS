@@ -13,24 +13,28 @@
  * RS485_SMART_MODE selects the fundamental operating mode:
  *
  *   ┌─────────────────────────────────────────────────────────────────────┐
- *   │ SMART_MODE=1 (default) - Intelligent Filtered Broadcasting         │
- *   ├─────────────────────────────────────────────────────────────────────┤
- *   │ • Parses DCS-BIOS stream, extracts address/value pairs             │
- *   │ • Filters by DcsOutputTable (only addresses your slaves need)      │
- *   │ • Change detection reduces bandwidth by 100-1000x                  │
- *   │ • Reconstructs valid DCS-BIOS frames for broadcast                 │
- *   │ • Best for production with known panel configurations              │
- *   │ • Uses: change queue + 32KB RAM only if CHANGE_DETECT=1            │
- *   └─────────────────────────────────────────────────────────────────────┘
- *
- *   ┌─────────────────────────────────────────────────────────────────────┐
- *   │ SMART_MODE=0 - Raw Relay Mode (Arduino-compatible)                 │
+ *   │ SMART_MODE=0 (default) - Raw Relay Mode (Arduino-compatible)       │
  *   ├─────────────────────────────────────────────────────────────────────┤
  *   │ • Raw byte relay, exactly like Arduino Mega master                 │
  *   │ • NO parsing, NO filtering - bytes in, bytes out                   │
  *   │ • Works with ANY sim, ANY aircraft, ANY address                    │
- *   │ • Use for debugging or when you don't know addresses yet           │
- *   │ • Uses: 8KB RAM for raw relay buffer                                │
+ *   │ • No panel configuration required on the master                    │
+ *   │ • Uses: 8KB RAM for raw relay buffer                               │
+ *   └─────────────────────────────────────────────────────────────────────┘
+ *
+ *   ┌─────────────────────────────────────────────────────────────────────┐
+ *   │ SMART_MODE=1 - Intelligent Filtered Broadcasting                   │
+ *   ├─────────────────────────────────────────────────────────────────────┤
+ *   │ • Parses DCS-BIOS stream, filters by DcsOutputTable                │
+ *   │ • Word-level filtering with sub-block coalescing                   │
+ *   │ • Reconstructs valid DCS-BIOS frames for broadcast                 │
+ *   │ • 20-50x bandwidth reduction over Relay Mode                       │
+ *   │ • IMPORTANT: The master's DcsOutputTable determines what gets      │
+ *   │   forwarded. The master's selected_panels.txt (via Label Creator)  │
+ *   │   must include ALL panels that ANY slave on the bus relies on.     │
+ *   │   If a slave needs an address that is not covered by the master's  │
+ *   │   panels, that data will be filtered out and the slave will not    │
+ *   │   receive it.                                                      │
  *   └─────────────────────────────────────────────────────────────────────┘
  *
  * ==========================================================================

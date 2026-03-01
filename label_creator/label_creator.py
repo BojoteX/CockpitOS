@@ -753,6 +753,9 @@ def _show_label_set_info(ls_name: str, prefs) -> str | None:
         elif choice == "reset":
             return "reset"
         else:
+            # Auto-generate before leaving (same as selecting the menu option)
+            if is_generated and has_panels:
+                _auto_generate(ls_name, ls_dir, prefs)
             return None
 
 

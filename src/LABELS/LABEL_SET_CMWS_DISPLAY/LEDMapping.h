@@ -31,12 +31,12 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
-  { "PLT_CMWS_ARM"     , DEVICE_GPIO    , {.gpioInfo = {16}}, false, false }, // GPIO 16,
+  { "PLT_CMWS_ARM"     , DEVICE_GPIO    , {.gpioInfo = {13}}, false, false }, // GPIO 13,
   { "PLT_CMWS_BYPASS"  , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "PLT_CMWS_JETT"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "PLT_CMWS_JETT_CVR", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "PLT_CMWS_LAMP"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "PLT_CMWS_MODE"    , DEVICE_WS2812  , {.ws2812Info = {0, 21, 255, 0, 0, 255}}, false, false }, // WS2812 Index 0,
+  { "PLT_CMWS_MODE"    , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "PLT_CMWS_VOL"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
 
