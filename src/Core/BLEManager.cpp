@@ -504,14 +504,21 @@ void BLEManager_dispatchReport(bool force) {
 }
 
 void BLEManager_send(const uint8_t* data, size_t len) {
-    if (!g_connected || !readyToNotify || !gHidInput || !data || !len) return;
+    if (!data || !len) return;
     uint8_t tx[64] = { 0 };
     const size_t n = len <= 64 ? len : 64;
     memcpy(tx, data, n);
 
+    // Always cache the latest report so dispatchReport() can republish it
+    // once the link becomes ready (prevents stale state after connect/subscribe).
     portENTER_CRITICAL(&g_bleMux);
     memcpy(ble_last_published, tx, 64);
     portEXIT_CRITICAL(&g_bleMux);
+
+    if (!g_connected || !readyToNotify || !gHidInput) {
+        g_inputDirty = true;  // Will be picked up once link is ready
+        return;
+    }
 
     // v2.1 FIX: Check notify() return value — if TX buffer full, mark dirty for retry
     // This prevents state desync when BLE radio is congested (e.g., Master Arm flip missed)

@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.2.2 — 2026-03-01
+
+### Improved
+- Misc bug fixes
+- Misc bug fixes
+- BLE HID Implementation
+
 ## v1.2.1 — 2026-02-28
 
 ### Added
