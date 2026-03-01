@@ -26,7 +26,7 @@ namespace DcsBios {
 				break;
 
 			case DCSBIOS_STATE_ADDRESS_LOW:
-				address = (unsigned int)c;
+				address = (uint16_t)c;
 				state = DCSBIOS_STATE_ADDRESS_HIGH;
 				break;
 
@@ -37,7 +37,7 @@ namespace DcsBios {
 				break;
 
 			case DCSBIOS_STATE_COUNT_LOW:
-				count = (unsigned int)c;
+				count = (uint16_t)c;
 				state = DCSBIOS_STATE_COUNT_HIGH;
 				break;
 
@@ -47,7 +47,7 @@ namespace DcsBios {
 				break;
 
 			case DCSBIOS_STATE_DATA_LOW:
-				data = (unsigned int)c;
+				data = (uint16_t)c;
 				count = count - 1;
 				state = DCSBIOS_STATE_DATA_HIGH;
 				break;

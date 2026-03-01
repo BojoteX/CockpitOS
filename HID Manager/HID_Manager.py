@@ -230,6 +230,29 @@ def release_instance_lock() -> None:
 # CONFIGURATION CONSTANTS
 # ══════════════════════════════════════════════════════════════════════════════
 
+# --- Padding byte control ----------------------------------------------------
+# The OS-level HID driver enforces 64-byte reports (from the descriptor).
+# We MUST pad — the question is WHAT to pad with.
+#
+# 0x00 = original behavior.  Zeros are parsed by the firmware as valid
+#        protocol data: addr=0x0000, count=0x0000 (underflows to 0xFFFF),
+#        creating phantom writes that zero out the aircraft-name buffer
+#        before onConsistentData can commit it.
+#
+# 0x55 = BROKEN.  Creates SYNC alignment issues: 54 padding bytes / 4 = 13
+#        SYNCs + 2 leftover 0x55 bytes that eat the next frame's real SYNC,
+#        causing the parser to drop the entire following frame.
+#
+# 0xFF = safe padding.  Creates addr=0xFFFF which triggers address-progression
+#        flush of DcsBiosSniffer (0xFFFC < 0xFFFF), committing the aircraft
+#        name with real data intact.  Then startESL goes NULL, so all
+#        remaining 0xFF words are silently dropped.  The next frame's real
+#        SYNC (0x55 x4) is detected by the parallel sync counter — no
+#        alignment issue because the counter is independent of the data
+#        state machine.
+#
+PADDING_BYTE = 0xFF
+
 # --- Protocol constants (must match firmware) --------------------------------
 
 # HID report payload size.  Matches the descriptor in
@@ -1265,8 +1288,8 @@ class NetworkManager:
                     chunk = data[offset:offset + DEFAULT_REPORT_SIZE]
                     # Prepend report ID 0x00 (hidapi requirement)
                     rep = bytes([0]) + chunk
-                    # Zero-pad to exactly 65 bytes (1 ID + 64 payload)
-                    rep += b'\x00' * ((DEFAULT_REPORT_SIZE + 1) - len(rep))
+                    # Pad to exactly 65 bytes (1 ID + 64 payload)
+                    rep += bytes([PADDING_BYTE]) * ((DEFAULT_REPORT_SIZE + 1) - len(rep))
                     reports.append(rep)
                     offset += DEFAULT_REPORT_SIZE
                 reports = tuple(reports)  # Immutable → safe to share

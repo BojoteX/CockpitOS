@@ -1,4 +1,4 @@
-Generated DisplayMapping.cpp and DisplayMapping.h for devices: CPG, PLT
+Generated DisplayMapping.cpp and DisplayMapping.h for devices: HUD, IFEI, UFC
 ============================================================
 CockpitOS PanelKind Generator
 ============================================================
@@ -29,23 +29,25 @@ Generated: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Generated\Pan
   → 13 total + COUNT
 
 Done!
-Current LABEL SET: LABEL_SET_RS485_LOLIN_AUTO
+Current LABEL SET: LABEL_SET_TEST_ONLY
 
 [INFO] The current target_objects (panel(s) to be processed) are:
-  - PLT CMWS
+  - Auxiliary Power Unit Panel
+  - Custom
+  - Master Arm Panel
 
-[✓] Generated DCSBIOSBridgeData.h with 38 outputs,  19 selectors.
-[✓] Generated InputMapping.h with 19 entries.
-✅ Found 7 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
-🔢 Using TABLE_SIZE = 53 (next prime ≥ 14)
+[✓] Generated DCSBIOSBridgeData.h with 10 outputs,  11 selectors.
+[✓] Generated InputMapping.h with 11 entries.
+✅ Found 10 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
+🔢 Using TABLE_SIZE = 53 (next prime ≥ 20)
 ✅ LEDMapping.h fully regenerated with dynamic enum from KNOWN_DEVICES.
 
 [INFO] Generating DisplayMapping.cpp/h using display_gen.py ...
 ✅ Renamed .cpp files to cpp.DISABLE in the inactive LABEL SETS to avoid linker conflicts
-[✓] Created LabelSetConfig.h with AUTOGEN_USB_PID=0xD58D (from 'CockpitOS Panel RS485_LOLIN_AUTO')
-[+] Created LatchedButtons.h (empty)
-[+] Created CoverGates.h (empty)
-[✓] Created ../active_set.h with LABEL_SET RS485_LOLIN_AUTO
+[✓] Created LabelSetConfig.h with AUTOGEN_USB_PID=0xEC87 (from 'Test Only Uff')
+[=] LatchedButtons.h exists, preserving
+[=] CoverGates.h exists, preserving
+[✓] Created ../active_set.h with LABEL_SET TEST_ONLY
 
 ============================================================
 Running generate_panelkind.py to update PanelKind.h...

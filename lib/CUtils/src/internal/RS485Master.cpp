@@ -9,8 +9,9 @@
  *   - TX is NON-BLOCKING: FIFO loaded, TX_DONE interrupt handles bus turnaround
  *   - Bus released within ~1us of last bit (matches AVR TXC behavior)
  *   - RISC-V memory barriers for ESP32-C3/C6 cache coherency
- *   - Smart mode with DcsOutputTable filtering and change detection
- *   - Relay mode for Arduino-compatible raw byte pumping
+ *   - Smart mode: byte-level address filter using DcsOutputTable
+ *   - Relay mode: raw byte pass-through (Arduino-compatible)
+ *   - Both modes share the same rawBuffer → identical slave byte stream
  *
  * V2.3 CRITICAL FIX - TX_DONE NON-BLOCKING TX:
  *   The v2.2 blocking txWithEchoPrevention() held DE HIGH for ~52us after
@@ -170,135 +171,10 @@ public:
 static MessageBuffer<RS485_INPUT_BUFFER_SIZE> messageBuffer;
 
 // ============================================================================
-// SMART MODE: CHANGE TRACKING (only when RS485_SMART_MODE=1)
+// RAW BYTE BUFFER (shared by both smart mode and relay mode)
 // ============================================================================
-
-#if RS485_SMART_MODE
-
-// DCS-BIOS export stream parser state
-enum ParseState : uint8_t {
-    PARSE_WAIT_SYNC,
-    PARSE_ADDRESS_LOW,
-    PARSE_ADDRESS_HIGH,
-    PARSE_COUNT_LOW,
-    PARSE_COUNT_HIGH,
-    PARSE_DATA_LOW,
-    PARSE_DATA_HIGH
-};
-
-static ParseState parseState = PARSE_WAIT_SYNC;
-static uint8_t syncByteCount = 0;
-static uint16_t parseAddress = 0;
-static uint16_t parseCount = 0;
-static uint16_t parseData = 0;
-
-// Change tracking for delta compression
-#if RS485_CHANGE_DETECT
-static uint16_t prevExport[0x4000];  // 32KB for address range 0x0000-0x7FFF
-static bool prevInitialized = false;
-#endif
-
-// Change queue
-struct Change { uint16_t address; uint16_t value; };
-static Change changeQueue[RS485_CHANGE_QUEUE_SIZE];
-static volatile uint16_t changeHead = 0;
-static volatile uint16_t changeTail = 0;
-static volatile uint16_t changeCount = 0;
-
-// Forward declaration for DcsOutputTable lookup (from DCSBIOSBridgeData.h)
-struct AddressEntry;  // Forward declare the struct
-extern const AddressEntry* findDcsOutputEntries(uint16_t addr);
-
-static void initPrevValues() {
-    #if RS485_CHANGE_DETECT
-    for (size_t i = 0; i < 0x4000; ++i) {
-        prevExport[i] = 0xFFFFu;
-    }
-    prevInitialized = true;
-    #endif
-}
-
-static void queueChange(uint16_t address, uint16_t value) {
-    if (changeCount >= RS485_CHANGE_QUEUE_SIZE) {
-        // Queue full - drop oldest
-        changeTail = (changeTail + 1) % RS485_CHANGE_QUEUE_SIZE;
-        changeCount--;
-    }
-    changeQueue[changeHead].address = address;
-    changeQueue[changeHead].value = value;
-    changeHead = (changeHead + 1) % RS485_CHANGE_QUEUE_SIZE;
-    changeCount++;
-}
-
-static void processAddressValue(uint16_t address, uint16_t value) {
-    if (address >= 0x8000) return;  // Invalid address range
-
-    // Filter by DcsOutputTable (CockpitOS label set)
-    if (findDcsOutputEntries(address) == nullptr) {
-        return;  // Not needed by any slave
-    }
-
-    #if RS485_CHANGE_DETECT
-    uint16_t index = address >> 1;
-    if (prevExport[index] == value) return;  // No change
-    prevExport[index] = value;
-    #endif
-
-    queueChange(address, value);
-}
-
-static void parseExportByte(uint8_t c) {
-    // Sync detection runs in parallel with parsing
-    if (c == 0x55) {
-        syncByteCount++;
-    } else {
-        syncByteCount = 0;
-    }
-
-    if (syncByteCount >= 4) {
-        parseState = PARSE_ADDRESS_LOW;
-        syncByteCount = 0;
-        return;
-    }
-
-    switch (parseState) {
-        case PARSE_WAIT_SYNC:
-            break;
-        case PARSE_ADDRESS_LOW:
-            parseAddress = c;
-            parseState = PARSE_ADDRESS_HIGH;
-            break;
-        case PARSE_ADDRESS_HIGH:
-            parseAddress |= ((uint16_t)c << 8);
-            parseState = (parseAddress != 0x5555) ? PARSE_COUNT_LOW : PARSE_WAIT_SYNC;
-            break;
-        case PARSE_COUNT_LOW:
-            parseCount = c;
-            parseState = PARSE_COUNT_HIGH;
-            break;
-        case PARSE_COUNT_HIGH:
-            parseCount |= ((uint16_t)c << 8);
-            parseState = PARSE_DATA_LOW;
-            break;
-        case PARSE_DATA_LOW:
-            parseData = c;
-            parseCount--;
-            parseState = PARSE_DATA_HIGH;
-            break;
-        case PARSE_DATA_HIGH:
-            parseData |= ((uint16_t)c << 8);
-            parseCount--;
-            processAddressValue(parseAddress, parseData);
-            parseAddress += 2;
-            parseState = (parseCount == 0) ? PARSE_ADDRESS_LOW : PARSE_DATA_LOW;
-            break;
-    }
-}
-
-#else
-// ============================================================================
-// RELAY MODE: RAW BYTE BUFFER (only when RS485_SMART_MODE=0)
-// ============================================================================
+// Both modes send raw DCS-BIOS bytes to the slave through this buffer.
+// Smart mode filters which address blocks get buffered; relay mode buffers all.
 
 static uint8_t rawBuffer[RS485_RAW_BUFFER_SIZE];
 static volatile uint16_t rawHead = 0;
@@ -307,13 +183,211 @@ static volatile uint16_t rawTail = 0;
 static inline uint16_t rawCount() { return (uint16_t)(rawHead - rawTail); }
 static inline bool rawEmpty() { return rawHead == rawTail; }
 
+static bool rawOverflowWarned = false;
+
 static void bufferRawByte(uint8_t byte) {
     if (rawCount() >= RS485_RAW_BUFFER_SIZE - 1) {
-        // Overflow - discard oldest
-        rawTail = rawTail + 1;
+        if (!rawOverflowWarned) {
+            rawOverflowWarned = true;
+            debugPrintf("[RS485M] WARNING: rawBuffer overflow (%d bytes)! Increase RS485_RAW_BUFFER_SIZE\n", RS485_RAW_BUFFER_SIZE);
+        }
+        rawTail = rawTail + 1;  // Overflow - discard oldest
     }
     rawBuffer[rawHead % RS485_RAW_BUFFER_SIZE] = byte;
     rawHead = rawHead + 1;
+}
+
+// ============================================================================
+// SMART MODE: WORD-LEVEL ADDRESS FILTER (only when RS485_SMART_MODE=1)
+// ============================================================================
+// Parses the DCS-BIOS stream byte-by-byte. For each 2-byte word within an
+// address block, checks if that specific word address is in DcsOutputTable
+// (or is the aircraft name). Consecutive relevant words are coalesced into
+// compact sub-blocks with reconstructed headers. Irrelevant words are skipped.
+//
+// WHY WORD-LEVEL: DCS-BIOS sends large contiguous blocks (e.g., address 0x0000
+// count 0x8000). Block-level filtering forwards the ENTIRE block if ANY address
+// matches — effectively zero filtering. Word-level filtering produces only the
+// addresses the slave needs (typically 100-200 bytes vs 30,000+).
+
+#if RS485_SMART_MODE
+
+// Forward declaration for DcsOutputTable lookup (from DCSBIOSBridgeData.h)
+struct AddressEntry;
+extern const AddressEntry* findDcsOutputEntries(uint16_t addr);
+
+// Filter state machine (mirrors Protocol.cpp's states)
+enum FilterState : uint8_t {
+    FLT_WAIT_SYNC,
+    FLT_ADDRESS_LOW,
+    FLT_ADDRESS_HIGH,
+    FLT_COUNT_LOW,
+    FLT_COUNT_HIGH,
+    FLT_DATA_LOW,
+    FLT_DATA_HIGH
+};
+
+static FilterState fltState = FLT_WAIT_SYNC;
+static uint8_t fltSyncCount = 0;       // Consecutive 0x55 bytes seen
+static uint16_t fltAddress = 0;         // Block start address (from header)
+static uint16_t fltCount = 0;           // Remaining data bytes in block
+static uint16_t fltCurrentAddr = 0;     // Current word address within block
+static uint8_t fltDataLo = 0;           // Buffered low byte of current word
+
+// Sub-block accumulator: coalesces consecutive relevant words into one block
+// header+data before flushing to rawBuffer. This avoids emitting a separate
+// 6-byte mini-block per word (4 header + 2 data = 3x overhead).
+#define FLT_SUB_BUF_SIZE 128
+static uint16_t fltSubAddr = 0;         // Start address of current sub-block
+static uint8_t fltSubBuf[FLT_SUB_BUF_SIZE];
+static uint16_t fltSubLen = 0;          // Data bytes accumulated
+
+// Smart mode diagnostics (reset each status interval)
+static uint32_t fltStatSyncs = 0;       // Sync sequences detected
+static uint32_t fltStatWordsIn = 0;     // Total words processed
+static uint32_t fltStatWordsOut = 0;    // Relevant words forwarded
+static uint32_t fltStatBytesOut = 0;    // Total bytes written to rawBuffer
+static uint32_t fltStatFlushes = 0;     // Sub-block flushes
+
+static void flushSubBlock() {
+    if (fltSubLen == 0) return;
+    // Emit reconstructed address block header
+    bufferRawByte(fltSubAddr & 0xFF);
+    bufferRawByte((fltSubAddr >> 8) & 0xFF);
+    bufferRawByte(fltSubLen & 0xFF);
+    bufferRawByte((fltSubLen >> 8) & 0xFF);
+    // Emit data bytes
+    for (uint16_t i = 0; i < fltSubLen; i++) {
+        bufferRawByte(fltSubBuf[i]);
+    }
+    fltStatBytesOut += 4 + fltSubLen;  // header + data
+    fltStatFlushes++;
+    fltSubLen = 0;
+}
+
+static bool isAddressRelevant(uint16_t address) {
+    // Aircraft name (0x0000-0x0016): always forward — slaves need it for
+    // mission detection and panel initialization regardless of their panels.
+    if (address <= 0x0016) return true;
+    return findDcsOutputEntries(address) != nullptr;
+}
+
+static void filterExportByte(uint8_t c) {
+    // ---- State-aware sync detection ----
+    // Unlike Protocol.cpp's parallel sync (which counts 0x55 in ALL states),
+    // we ONLY count in non-data states. This prevents false SYNC triggers from
+    // data patterns like two consecutive words with value 0x5555 (4x 0x55).
+    //
+    // In Protocol.cpp, false syncs are tolerable because ALL bytes reach the
+    // parser — it just briefly misinterprets data before resyncing. Here, a
+    // false sync permanently LOSES data: the filter misinterprets subsequent
+    // data as headers, and since garbage addresses don't match DcsOutputTable,
+    // relevant display words are silently dropped for the rest of the frame.
+    //
+    // State-aware detection is safe because:
+    // - The DCS-BIOS stream from UDP is reliable (no corruption)
+    // - Real SYNCs always appear at block boundaries (FLT_ADDRESS_LOW/HIGH)
+    // - Even if corruption occurs, the filter resyncs when the current block's
+    //   count runs out and the next real SYNC appears as an address header
+    //   (0x5555 → WAIT_SYNC → remaining 0x55 bytes complete the SYNC)
+    if (fltState == FLT_DATA_LOW || fltState == FLT_DATA_HIGH) {
+        // Inside a data block — never count toward sync
+        fltSyncCount = 0;
+    } else {
+        // Between blocks — normal sync detection
+        if (c == 0x55) {
+            fltSyncCount++;
+        } else {
+            fltSyncCount = 0;
+        }
+    }
+
+    if (fltSyncCount == 4) {
+        // Sync detected — flush pending sub-block, emit sync, reset state
+        flushSubBlock();
+        bufferRawByte(0x55);
+        bufferRawByte(0x55);
+        bufferRawByte(0x55);
+        bufferRawByte(0x55);
+        fltStatSyncs++;
+        fltStatBytesOut += 4;
+        fltState = FLT_ADDRESS_LOW;
+        fltSyncCount = 0;
+        return;
+    }
+
+    // ---- State machine ----
+    switch (fltState) {
+        case FLT_WAIT_SYNC:
+            break;
+
+        case FLT_ADDRESS_LOW:
+            fltAddress = (uint16_t)c;
+            fltState = FLT_ADDRESS_HIGH;
+            break;
+
+        case FLT_ADDRESS_HIGH:
+            fltAddress |= ((uint16_t)c << 8);
+            if (fltAddress == 0x5555) {
+                fltState = FLT_WAIT_SYNC;
+            } else {
+                fltState = FLT_COUNT_LOW;
+            }
+            break;
+
+        case FLT_COUNT_LOW:
+            fltCount = (uint16_t)c;
+            fltState = FLT_COUNT_HIGH;
+            break;
+
+        case FLT_COUNT_HIGH:
+            fltCount |= ((uint16_t)c << 8);
+            fltCurrentAddr = fltAddress;
+            fltState = FLT_DATA_LOW;
+            break;
+
+        case FLT_DATA_LOW:
+            fltDataLo = c;
+            fltCount--;
+            fltState = FLT_DATA_HIGH;
+            break;
+
+        case FLT_DATA_HIGH: {
+            fltCount--;
+            fltStatWordsIn++;
+
+            if (isAddressRelevant(fltCurrentAddr)) {
+                fltStatWordsOut++;
+                // Extend current sub-block if consecutive and buffer has room
+                if (fltSubLen > 0 && fltCurrentAddr == fltSubAddr + fltSubLen
+                    && fltSubLen + 2 <= FLT_SUB_BUF_SIZE) {
+                    fltSubBuf[fltSubLen++] = fltDataLo;
+                    fltSubBuf[fltSubLen++] = c;
+                } else {
+                    // Start new sub-block (flush previous if any)
+                    flushSubBlock();
+                    fltSubAddr = fltCurrentAddr;
+                    fltSubBuf[0] = fltDataLo;
+                    fltSubBuf[1] = c;
+                    fltSubLen = 2;
+                }
+            } else {
+                // Irrelevant word — flush any pending sub-block
+                if (fltSubLen > 0) flushSubBlock();
+            }
+
+            fltCurrentAddr += 2;
+
+            if (fltCount == 0) {
+                // End of block — flush remaining sub-block
+                flushSubBlock();
+                fltState = FLT_ADDRESS_LOW;
+            } else {
+                fltState = FLT_DATA_LOW;
+            }
+            break;
+        }
+    }
 }
 
 #endif // RS485_SMART_MODE
@@ -629,32 +703,7 @@ static void txWithEchoPrevention(const uint8_t* data, size_t len) {
 // BROADCAST FUNCTIONS
 // ============================================================================
 
-#if RS485_SMART_MODE
-// SMART MODE: Build DCS-BIOS frames from change queue
-static void prepareBroadcastData() {
-    broadcastLen = 0;
-
-    while (changeCount > 0 && broadcastLen < RS485_MAX_BROADCAST_CHUNK) {
-        Change& change = changeQueue[changeTail];
-
-        // Build complete DCS-BIOS frame for this change
-        broadcastBuffer[broadcastLen++] = 0x55;
-        broadcastBuffer[broadcastLen++] = 0x55;
-        broadcastBuffer[broadcastLen++] = 0x55;
-        broadcastBuffer[broadcastLen++] = 0x55;
-        broadcastBuffer[broadcastLen++] = change.address & 0xFF;
-        broadcastBuffer[broadcastLen++] = (change.address >> 8) & 0xFF;
-        broadcastBuffer[broadcastLen++] = 0x02;  // Count low
-        broadcastBuffer[broadcastLen++] = 0x00;  // Count high
-        broadcastBuffer[broadcastLen++] = change.value & 0xFF;
-        broadcastBuffer[broadcastLen++] = (change.value >> 8) & 0xFF;
-
-        changeTail = (changeTail + 1) % RS485_CHANGE_QUEUE_SIZE;
-        changeCount--;
-    }
-}
-#else
-// RELAY MODE: Drain raw bytes
+// Drain raw bytes from the shared buffer (used by both smart and relay modes)
 static void prepareBroadcastData() {
     broadcastLen = 0;
 
@@ -668,7 +717,6 @@ static void prepareBroadcastData() {
         rawTail = rawTail + 1;
     }
 }
-#endif
 
 static void sendBroadcast() {
     prepareBroadcastData();
@@ -898,15 +946,11 @@ bool RS485Master_init() {
     state = MasterState::IDLE;
     currentPollAddr = 1;
 
+    rawHead = 0; rawTail = 0;
     #if RS485_SMART_MODE
-        changeHead = 0; changeTail = 0; changeCount = 0;
-        parseState = PARSE_WAIT_SYNC;
-        syncByteCount = 0;
-        #if RS485_CHANGE_DETECT
-        initPrevValues();
-        #endif
-    #else
-        rawHead = 0; rawTail = 0;
+    fltState = FLT_WAIT_SYNC;
+    fltSyncCount = 0;
+    fltSubLen = 0;
     #endif
 
     // Configure DE pin first (before UART)
@@ -970,13 +1014,9 @@ bool RS485Master_init() {
     debugPrintf("[RS485M] ISR registered on core %d\n", xPortGetCoreID());
 
     #if RS485_SMART_MODE
-        #if RS485_CHANGE_DETECT
-        debugPrintln("[RS485M] Mode: SMART (filtered + change detection)");
-        #else
-        debugPrintln("[RS485M] Mode: SMART (filtered, no delta)");
-        #endif
+    debugPrintln("[RS485M] Mode: SMART (byte-level address filter)");
     #else
-        debugPrintln("[RS485M] Mode: RELAY (raw bytes, Arduino-compatible)");
+    debugPrintln("[RS485M] Mode: RELAY (raw bytes, Arduino-compatible)");
     #endif
 
     // Create FreeRTOS task if enabled
@@ -1061,12 +1101,8 @@ static void rs485PollLoop() {
     if (state == MasterState::IDLE) {
         int64_t now = esp_timer_get_time();
 
-        // Check if we should broadcast
-        #if RS485_SMART_MODE
-        bool hasBroadcastData = (changeCount > 0);
-        #else
+        // Check if we should broadcast (both modes use rawBuffer)
         bool hasBroadcastData = !rawEmpty();
-        #endif
 
         // FIX: Match standalone priority logic exactly
         // Priority 1: Send broadcast if available, but ensure we poll at least every MAX_POLL_INTERVAL
@@ -1096,14 +1132,18 @@ static void rs485PollLoop() {
 
         float respRate = statPollsPresent > 0 ? 100.0f * statResponses / statPollsPresent : 0;
 
-        #if RS485_SMART_MODE
-        debugPrintf("[RS485M] Polls=%lu(%lu) Resp=%.1f%% Bcasts=%lu Cmds=%lu Slaves=%d Queue=%d Drops=%lu MidT=%lu Drain=%lu\n",
-                    statPolls, statPollsPresent, respRate, statBroadcasts, statInputCmds, onlineCount, changeCount, messageBuffer.dropCount,
-                    statMidMsgTimeouts, statDrainStalls);
-        #else
-        debugPrintf("[RS485M] Polls=%lu(%lu) Resp=%.1f%% Bcasts=%lu Cmds=%lu Slaves=%d Raw=%d Drops=%lu MidT=%lu Drain=%lu\n",
+        debugPrintf("[RS485M] Polls=%lu(%lu) Resp=%.1f%% Bcasts=%lu Cmds=%lu Slaves=%d Buf=%d Drops=%lu MidT=%lu Drain=%lu\n",
                     statPolls, statPollsPresent, respRate, statBroadcasts, statInputCmds, onlineCount, rawCount(), messageBuffer.dropCount,
                     statMidMsgTimeouts, statDrainStalls);
+
+        #if RS485_SMART_MODE
+        debugPrintf("[RS485M-SMART] Syncs=%lu WordsIn=%lu WordsOut=%lu BytesOut=%lu Flushes=%lu\n",
+                    fltStatSyncs, fltStatWordsIn, fltStatWordsOut, fltStatBytesOut, fltStatFlushes);
+        fltStatSyncs = 0;
+        fltStatWordsIn = 0;
+        fltStatWordsOut = 0;
+        fltStatBytesOut = 0;
+        fltStatFlushes = 0;
         #endif
     }
     #endif
@@ -1126,27 +1166,30 @@ void RS485Master_loop() {
 void RS485Master_feedExportData(const uint8_t* data, size_t len) {
     if (!initialized) return;
 
-    #if RS485_SMART_MODE
-    // Parse and queue changes
     for (size_t i = 0; i < len; i++) {
-        parseExportByte(data[i]);
-    }
-    #else
-    // Buffer raw bytes
-    for (size_t i = 0; i < len; i++) {
+        #if RS485_SMART_MODE
+        filterExportByte(data[i]);
+        #else
         bufferRawByte(data[i]);
+        #endif
     }
+}
+
+void RS485Master_feedExportByte(uint8_t byte) {
+    if (!initialized) return;
+    #if RS485_SMART_MODE
+    filterExportByte(byte);
+    #else
+    bufferRawByte(byte);
     #endif
 }
 
 void RS485Master_forceFullSync() {
+    rawHead = 0; rawTail = 0;
     #if RS485_SMART_MODE
-        #if RS485_CHANGE_DETECT
-        initPrevValues();
-        #endif
-        changeHead = 0; changeTail = 0; changeCount = 0;
-    #else
-        rawHead = 0; rawTail = 0;
+    fltState = FLT_WAIT_SYNC;
+    fltSyncCount = 0;
+    fltSubLen = 0;
     #endif
     debugPrintln("[RS485M] Forced full sync");
 }
@@ -1168,16 +1211,11 @@ void RS485Master_printStatus() {
     debugPrintln("\n[RS485M] ========== STATUS ==========");
 
     #if RS485_SMART_MODE
-        #if RS485_CHANGE_DETECT
-        debugPrintln("[RS485M] Mode: SMART (filtered + change detection)");
-        #else
-        debugPrintln("[RS485M] Mode: SMART (filtered, no delta)");
-        #endif
-        debugPrintf("[RS485M] Change queue: %d/%d\n", changeCount, RS485_CHANGE_QUEUE_SIZE);
+    debugPrintln("[RS485M] Mode: SMART (byte-level address filter)");
     #else
-        debugPrintln("[RS485M] Mode: RELAY (raw bytes)");
-        debugPrintf("[RS485M] Raw buffer: %d/%d\n", rawCount(), RS485_RAW_BUFFER_SIZE);
+    debugPrintln("[RS485M] Mode: RELAY (raw bytes)");
     #endif
+    debugPrintf("[RS485M] Buffer: %d/%d\n", rawCount(), RS485_RAW_BUFFER_SIZE);
 
     debugPrint("[RS485M] Online slaves: ");
     bool first = true;
