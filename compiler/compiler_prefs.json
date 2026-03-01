@@ -1,23 +1,16 @@
 {
-  "fqbn": "esp32:esp32:lolin_s3_mini",
+  "fqbn": "esp32:esp32:lolin_s2_mini",
   "options": {
-    "UploadSpeed": "921600",
-    "USBMode": "hwcdc",
-    "CDCOnBoot": "default",
+    "CDCOnBoot": "dis_cdc",
     "MSCOnBoot": "default",
     "DFUOnBoot": "default",
-    "UploadMode": "default",
-    "CPUFreq": "240",
-    "FlashMode": "qio",
     "PartitionScheme": "no_ota",
     "DebugLevel": "none",
-    "LoopCore": "1",
-    "EventsCore": "1",
     "EraseFlash": "none"
   },
-  "transport": "ble",
+  "transport": "usb",
   "role": "standalone",
   "usb_mode": null,
-  "board_name": "LOLIN S3 Mini",
+  "board_name": "LOLIN S2 Mini",
   "show_detailed_warnings": false
 }

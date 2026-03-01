@@ -830,8 +830,15 @@ void BLE_setup(){
 
   if (WAKE_PIN != GPIO_NUM_NC) pinMode((int)WAKE_PIN, INPUT_PULLUP);
 
-  NimBLEDevice::init(USB_PRODUCT);
-  NimBLEDevice::setDeviceName(USB_PRODUCT);
+  // NimBLE GAP device name is limited to 31 bytes (CONFIG_BT_NIMBLE_GAP_DEVICE_NAME_MAX_LEN).
+  // If the name exceeds this, ble_svc_gap_device_name_set() silently fails and the
+  // device advertises as "nimble" (the NimBLE default). Truncate to guarantee our name.
+  constexpr size_t BLE_NAME_MAX = 31;
+  char bleName[BLE_NAME_MAX + 1];
+  strncpy(bleName, USB_PRODUCT, BLE_NAME_MAX);
+  bleName[BLE_NAME_MAX] = '\0';
+
+  NimBLEDevice::init(bleName);
 
 #if BLE_DELETE_BONDS_ON_BOOT
   NimBLEDevice::deleteAllBonds();
@@ -937,7 +944,7 @@ void BLE_setup(){
   // === END DEBUG ===
 
   NimBLEAdvertisementData scan;
-  scan.setName(USB_PRODUCT, true);
+  scan.setName(bleName, true);
 
   gAdv->enableScanResponse(true);
   bool ok = true;
