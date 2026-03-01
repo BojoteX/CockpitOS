@@ -1,77 +1,51 @@
-AMPCD
-APU Fire Warning Extinguisher Light
-Angle of Attack Indexer Lights
-Antenna Select Panel
-Arresting Hook Handle and Light
-Auxiliary Power Unit Panel
-Canopy Internal Jettison Handle
-Caution Light Panel
-Clock
-Cockpit Altimeter
-Comms frequency
-Communication Panel
-Defog Panel
-Dispenser/EMC Panel
-ECM Dispenser Button
-Ejection Seat
-Electrical Power Panel
-Emergency Jettison Button
-Emergency and Parking Brake Handle
-Environment Control Louver
-Environment Control System Panel
-Exterior Lights Panel
+CPG Armament Panel
+CPG COMM Panel
+CPG Cockpit
+CPG Collective (Flight Grip)
+CPG Collective (Mission Grip)
+CPG Cyclic
+CPG Emergency Panel
+CPG Fire Control Panel
+CPG Internal Light System
+CPG Internal Lights
+CPG Keyboard Unit
+CPG Left Console
+CPG MPD Left
+CPG MPD Right
+CPG NVS Panel
+CPG TEDAC Display
+CPG TEDAC Left Handgrip
+CPG TEDAC Right Handgrip
+CPG Up-Front Display
+Cockpit Gauges
 External Aircraft Model
-Fire Systems
-Fire Test Panel
-Flaps, Landing Gear, Stores Indicator Panel
-Flight Computer Cool Switch
-Flight Control System Panel
-Fuel Panel
-Generator Tie Control Switch
-Ground Power Panel
-HUD
-HUD Control Panel
-HUD Video Bit Panel
-HUD Video Record Panel
-HYD 1 and HYD Pressure Indicator
-Heading and Course Set Switches
-Integrated Fuel/Engine Indicator (IFEI)
-Interior Lights Panel
-Internal Canopy Switch
-Internal Lights
-KY-58 Control
-LH Advisory Panel
-LOX Indicator
-Landing Gear Handle and Warning Tone Silence
-Left DDI
-Left Engine Fire Warning Extinguisher Light
-Left Essential Circuit Breakers
-Lock Shoot Lights
-Map Gain/Spin Recovery Panel
-Master Arm Panel
-Master Caution Light
-Mission Computer and Hydraulic Isolate Panel
-RH Advisory Panel
-RWR Control Indicator
-Radar Altimeter
+PLT Altimeter
+PLT Altimeter Gauges
+PLT Armament Panel
+PLT CMWS
+PLT COMM Panel
+PLT Cockpit
+PLT Collective (Flight Grip)
+PLT Collective (Mission Grip)
+PLT Cyclic
+PLT Emergency Panel
+PLT External Light System
+PLT Fire Control Panel
+PLT Generator Panel
+PLT Internal Light System
+PLT Internal Lights
+PLT Keyboard Unit
+PLT Left Console
+PLT MPD Left
+PLT MPD Right
+PLT NVS Panel
+PLT SAI
+PLT SAI Gauges
+PLT Standby Compass
+PLT Up-Front Display
+PLT Video Control Panel
 Radio Frequencies
-Right DDI
-Right Engine Fire Warning Extinguisher Light
-Right Essential Circuit Breakers
-Rudder Pedal Adjust Level
-Select Jettison Button
-Sensor Panel
-Standby Airspeed Indicator
-Standby Altimeter
-Standby Attitude Reference Indicator
-Standby Compass
-Standby Rate of Climb Indicator
-Station Jettison Select
-Stick
-TODO
-Throttle Quadrant
-Up Front Controller (UFC)
-Wing Fold Switch
+Seat
 Altitude
 Heading
 Metadata

@@ -126,7 +126,7 @@ The Compiler Tool's RS485 master wizard configures Smart Mode and Max Slave Addr
 
 | Setting | Default | Description | Configured By |
 |---|---|---|---|
-| `RS485_SMART_MODE` | `0` | When `1`, master filters data and only forwards addresses that slaves need. Reduces bandwidth. | Compiler Tool |
+| `RS485_SMART_MODE` | `0` | When `1`, master filters data using its DcsOutputTable (built from the master's panels). The master's `selected_panels.txt` must include all panels that any slave needs. | Compiler Tool |
 | `RS485_MAX_SLAVE_ADDRESS` | `127` | Highest slave address to poll. Lower this to reduce polling overhead. | Compiler Tool |
 | `RS485_USE_TASK` | `1` | `1` = dedicated FreeRTOS task (best for USB/Serial). `0` = run in main loop (best for WiFi). | Manual (Config.h) |
 | `RS485_TASK_CORE` | `0` | CPU core for the RS485 task on dual-core boards. | Manual (Config.h) |
@@ -207,14 +207,18 @@ Each slave has its own label set folder in `src/LABELS/` with its own InputMappi
 +----------------------------------------------------------------------+
 ```
 
-### Smart Mode vs. Relay Mode
+### Relay Mode vs. Smart Mode
 
 | Mode | Config | Behavior |
 |---|---|---|
-| **Relay Mode** (default) | `RS485_SMART_MODE 0` | Master relays the entire DCS-BIOS stream to all slaves. Simpler, more bandwidth used. |
-| **Smart Mode** | `RS485_SMART_MODE 1` | Master filters the stream and only forwards data that at least one slave has subscribed to. Lower bandwidth, slightly higher latency on the master. |
+| **Relay Mode** (default) | `RS485_SMART_MODE 0` | Master relays the entire DCS-BIOS stream to all slaves. No configuration required beyond enabling the master. |
+| **Smart Mode** | `RS485_SMART_MODE 1` | Master filters the stream using its DcsOutputTable, forwarding only addresses covered by the master's panels. 20-50x bandwidth reduction. |
 
-For most builds with a small number of slaves, Relay Mode is fine. Smart Mode becomes beneficial when you have many slaves and want to reduce bus traffic.
+Relay Mode is always the default and works out of the box. Smart Mode becomes beneficial when you have many slaves and want to reduce bus traffic, but it requires additional setup on the master:
+
+**Smart Mode requirement:** The master's `selected_panels.txt` must include ALL panels that ANY slave on the bus relies on. The master uses its own DcsOutputTable (auto-generated from its panels) to decide what to forward. If a slave needs an address that isn't covered by any panel in the master's label set, that data will be filtered out and the slave won't receive it. Use the Label Creator to add all slave panels to the master's label set.
+
+For example, if you have 1 master and 3 slaves where Slave 1 uses the IFEI panel, Slave 2 uses the Left Console, and Slave 3 uses the Right Console, the master's `selected_panels.txt` must include IFEI, Left Console, AND Right Console -- even if the master itself doesn't use any of those panels for its own hardware.
 
 ---
 

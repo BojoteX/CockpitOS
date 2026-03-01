@@ -351,10 +351,10 @@ struct SegmentMap {
 When users report lag on RS485 networks:
 
 1. **RS485_MAX_SLAVE_ADDRESS** — Default 127. If you have 3 slaves, set to 3. Eliminates 124 wasted poll cycles.
-2. **RS485_SMART_MODE** — Set to 1 on master. Forwards only subscribed addresses instead of entire stream.
+2. **RS485_SMART_MODE** — Set to 1 on master for 20-50x bandwidth reduction. Requires the master's `selected_panels.txt` to include ALL panels that ANY slave needs. Default 0 (Relay) forwards everything with no panel config needed.
 3. **RS485_USE_TASK** — Must be 1 for USB/Serial transport on master (dedicated FreeRTOS task). Set 0 only for WiFi.
 4. **Debug flags** — All must be 0 on production RS485 nodes. Even minimal logging stalls the poll loop.
-5. **Label set scope** — Each slave's label set should contain ONLY the panels that slave physically has. Broader sets inflate subscriptions.
+5. **Label set scope** — Each slave's label set should contain ONLY the panels that slave physically has. If using Smart Mode, the master's label set must be the superset of all slave panel needs.
 6. **Wiring** — Twisted pair for A/B, 120-ohm termination at both physical ends only, common ground between all nodes.
 
 ---

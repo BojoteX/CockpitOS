@@ -24,7 +24,7 @@ Exactly **one** transport must be enabled (set to `1`). The compiler enforces th
 |------|---------|-------------|
 | `RS485_MASTER_ENABLED` | `0` | Enable RS-485 master role. The master still needs one of the four transports above to connect to DCS-BIOS, then forwards data to slaves. |
 | `RS485_SLAVE_ADDRESS` | `1` | Slave address ID (1-126). Each slave on the bus must have a unique address. Only used when `RS485_SLAVE_ENABLED=1`. |
-| `RS485_SMART_MODE` | `0` | Master only: filter forwarded data to only the addresses your slaves need. Reduces bus bandwidth at the cost of slightly higher latency. |
+| `RS485_SMART_MODE` | `0` | Master only: when `1`, filters forwarded data using the master's DcsOutputTable. The master's `selected_panels.txt` must include all panels that any slave needs. Relay mode (`0`, default) forwards everything with no panel configuration required. |
 | `RS485_MAX_SLAVE_ADDRESS` | `127` | Master only: highest slave address to poll (1-127). |
 | `RS485_TX_PRE_DE_DELAY_US` | `40` | Microsecond delay before slave response. Prevents collisions with AVR masters. |
 | `RS485_TX_WARMUP_DELAY_US` | `0` | Manual DE: delay after DE assert before TX. |

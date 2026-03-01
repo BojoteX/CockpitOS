@@ -47,7 +47,7 @@
 #define RS485_SLAVE_ENABLED                         0 // Set as RS-485 Slave, you need to also run a master RS485 on a separate device
 
 // RS485 *** [ Slave ] *** (Only if RS485_SLAVE_ENABLED is set to 1)
-#define RS485_SLAVE_ADDRESS                         1 // This is the Slave addres ID! Only use when RS485_SLAVE_ENABLED (above) is set to 1. Choose a device address between (1-126) each slave should have a unique address
+#define RS485_SLAVE_ADDRESS                         2 // This is the Slave addres ID! Only use when RS485_SLAVE_ENABLED (above) is set to 1. Choose a device address between (1-126) each slave should have a unique address
 #define RS485_TX_PRE_DE_DELAY_US                   40 // AVR slave sends a phantom 0x00 byte (~40us) with DE low before responding — without this delay the ESP32 responds before the AVR master exits its TXC ISR, causing UDR overrun
 
 // RS485 *** [ Master ] *** (Option only work when RS485_MASTER_ENABLED is set to 1)
@@ -365,6 +365,34 @@
     #define LED_BUILTIN -1 // Default LED pin
   #endif
 #endif
+
+// ============================================================================
+//  ESP32 DEVICE CAPABILITY MATRIX
+// ============================================================================
+//
+//  Chip     | Arch   | Cores | WiFi | BLE | USB-OTG | RTC GPIO | Deep-sleep wake
+//  ---------|--------|-------|------|-----|---------|----------|----------------
+//  Classic  | Xtensa |   2   |  Y   |  Y  |    N    |    Y     | EXT0 / EXT1
+//  S2       | Xtensa |   1   |  Y   |  N  |    Y    |    Y     | EXT0 / EXT1
+//  S3       | Xtensa |   2   |  Y   |  Y  |    Y    |    Y     | EXT0 / EXT1
+//  C2       | RISC-V |   1   |  Y   |  Y  |    N    |    N     | GPIO
+//  C3       | RISC-V |   1   |  Y   |  Y  |    N    |    N     | GPIO
+//  C5       | RISC-V |   1   |  Y   |  Y  |    N    |    N     | GPIO
+//  C6       | RISC-V |   1   |  Y   |  Y  |    N    |    N     | GPIO
+//  H2       | RISC-V |   1   |  N   |  Y  |    N    |    N     | EXT1 / GPIO
+//  P4       | RISC-V |   2   |  N   |  N  |    Y    |    N     | GPIO
+//
+//  CockpitOS transport support:
+//
+//  Transport       | Allowed chips                    | Guard
+//  ----------------|----------------------------------|-------------------------------
+//  USB  (TinyUSB)  | S2, S3, P4                       | #error at line ~337
+//  WiFi (UDP)      | All EXCEPT H2, P4                | #error at line ~327
+//  Serial (CDC)    | All                              | (always available)
+//  Bluetooth (BLE) | Classic, S3, C2, C3, C5, C6, H2 | #error at line ~356
+//  RS485 Slave     | All (UART-based)                 | (no chip restriction)
+//
+// ============================================================================
 
 #include "src/LABELS/active_set.h"
 #if !defined(LABEL_SET)
