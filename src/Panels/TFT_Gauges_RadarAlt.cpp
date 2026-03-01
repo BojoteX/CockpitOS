@@ -192,6 +192,7 @@ static inline void waitDMADone() {
 
 // Full-frame force flag (first frame, mode change, BIT start)
 static volatile bool needsFullFlush = true;
+static volatile bool taskStopRequested = false;
 
 // --- Sprite helpers ---
 static void buildNeedle(lgfx::LGFX_Sprite& spr, const uint16_t* img) {
@@ -413,10 +414,12 @@ static void RadarAlt_draw(bool force = false, bool blocking = false)
 // --- Task ---
 static void RadarAlt_task(void*)
 {
-    for (;;) {
+    while (!taskStopRequested) {
         RadarAlt_draw(false, false);
         vTaskDelay(pdMS_TO_TICKS(5));
     }
+    tftTaskHandle = nullptr;
+    vTaskDelete(nullptr);
 }
 
 // --- API ---
@@ -566,9 +569,13 @@ void RadarAlt_bitTest()
 
 void RadarAlt_deinit()
 {
-    waitDMADone(); dmaBusy = false;
-
-    if (tftTaskHandle) { vTaskDelete(tftTaskHandle); tftTaskHandle = nullptr; }
+    if (tftTaskHandle) {
+        taskStopRequested = true;
+        const uint32_t start = millis();
+        while (tftTaskHandle && (millis() - start) < 200) { vTaskDelay(pdMS_TO_TICKS(5)); }
+        if (tftTaskHandle) { vTaskDelete(tftTaskHandle); tftTaskHandle = nullptr; }
+        taskStopRequested = false;
+    }
 
     needle.deleteSprite();
     pointerSpr.deleteSprite();

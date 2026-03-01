@@ -147,6 +147,7 @@ static volatile bool    gaugeDirty = false;
 static volatile uint8_t currentLightingMode = 0; // 0=Day, 2=NVG
 static uint8_t          lastNeedleMode = 0xFF;
 static volatile bool    needsFullFlush = true;
+static volatile bool    taskStopRequested = false;
 
 static unsigned long    lastDrawTime = 0;
 static TaskHandle_t     tftTaskHandle = nullptr;
@@ -324,10 +325,12 @@ static void BatteryGauge_draw(bool force = false, bool blocking = false)
 
 // --- Task ---
 static void BatteryGauge_task(void*) {
-    for (;;) {
+    while (!taskStopRequested) {
         BatteryGauge_draw(false, false);
         vTaskDelay(pdMS_TO_TICKS(5));
     }
+    tftTaskHandle = nullptr;
+    vTaskDelete(nullptr);
 }
 
 // --- API ---
@@ -429,8 +432,13 @@ void BatteryGauge_bitTest() {
 }
 
 void BatteryGauge_deinit() {
-    waitDMADone();
-    if (tftTaskHandle) { vTaskDelete(tftTaskHandle); tftTaskHandle = nullptr; }
+    if (tftTaskHandle) {
+        taskStopRequested = true;
+        const uint32_t start = millis();
+        while (tftTaskHandle && (millis() - start) < 200) { vTaskDelay(pdMS_TO_TICKS(5)); }
+        if (tftTaskHandle) { vTaskDelete(tftTaskHandle); tftTaskHandle = nullptr; }
+        taskStopRequested = false;
+    }
 
     needleU_spr.deleteSprite();
     needleE_spr.deleteSprite();

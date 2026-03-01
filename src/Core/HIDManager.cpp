@@ -415,6 +415,7 @@ static void buildHidDcsHashTable() {
     for (size_t i = 0; i < HID_DCS_HASH_SIZE; ++i)
         hidDcsHashTable[i] = { nullptr, 0, nullptr };
 
+    size_t inserted = 0;
     for (size_t i = 0; i < InputMappingSize; ++i) {
         const auto& m = InputMappings[i];
         if (!m.oride_label || m.hidId <= 0 || m.hidId > 32) continue;
@@ -423,10 +424,15 @@ static void buildHidDcsHashTable() {
         for (size_t probe = 0; probe < HID_DCS_HASH_SIZE; ++probe) {
             if (!hidDcsHashTable[h].oride_label) {
                 hidDcsHashTable[h] = { m.oride_label, (uint16_t)m.oride_value, &m };
+                inserted++;
                 break;
             }
             h = (h + 1) % HID_DCS_HASH_SIZE;
         }
+    }
+    if (inserted >= HID_DCS_HASH_SIZE) {
+        debugPrintf("⚠️ [HID] DCS hash table overflow: %u entries in %u slots\n",
+                    (unsigned)inserted, (unsigned)HID_DCS_HASH_SIZE);
     }
     hidDcsHashBuilt = true;
 }

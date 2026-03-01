@@ -124,28 +124,40 @@ void commitAnonymousStringField(AnonymousStringBuffer& field) {
 
 // Subscribe to Display changes
 bool subscribeToDisplayChange(const char* label, void (*callback)(const char* label, const char* value)) {
-    if (displaySubscriptionCount >= MAX_DISPLAY_SUBSCRIPTIONS) return false;
+    if (displaySubscriptionCount >= MAX_DISPLAY_SUBSCRIPTIONS) {
+        debugPrintf("⚠️ [BRIDGE] Display subscription overflow for: %s\n", label);
+        return false;
+    }
     displaySubscriptions[displaySubscriptionCount++] = { label, callback };
     return true;
 }
 
 // Subscribe to Metadata changes
 bool subscribeToMetadataChange(const char* label, void (*callback)(const char* label, uint16_t value)) {
-    if (metadataSubscriptionCount >= MAX_METADATA_SUBSCRIPTIONS) return false;
+    if (metadataSubscriptionCount >= MAX_METADATA_SUBSCRIPTIONS) {
+        debugPrintf("⚠️ [BRIDGE] Metadata subscription overflow for: %s\n", label);
+        return false;
+    }
     metadataSubscriptions[metadataSubscriptionCount++] = { label, callback };
     return true;
 }
 
 // Subscribe to selector changes
 bool subscribeToSelectorChange(const char* label, void (*callback)(const char* label, uint16_t value)) {
-    if (selectorSubscriptionCount >= MAX_SELECTOR_SUBSCRIPTIONS) return false;
+    if (selectorSubscriptionCount >= MAX_SELECTOR_SUBSCRIPTIONS) {
+        debugPrintf("⚠️ [BRIDGE] Selector subscription overflow for: %s\n", label);
+        return false;
+    }
     selectorSubscriptions[selectorSubscriptionCount++] = { label, callback };
     return true;
 }
 
 // Subscribe to LED changes
 bool subscribeToLedChange(const char* label, void (*callback)(const char*, uint16_t, uint16_t)) {
-    if (ledSubscriptionCount >= MAX_LED_SUBSCRIPTIONS) return false;
+    if (ledSubscriptionCount >= MAX_LED_SUBSCRIPTIONS) {
+        debugPrintf("⚠️ [BRIDGE] LED subscription overflow for: %s\n", label);
+        return false;
+    }
     ledSubscriptions[ledSubscriptionCount++] = { label, callback };
     return true;
 }
@@ -936,6 +948,8 @@ size_t dcsbios_getCommandHistorySize() {
 // so all callers (DCSBIOSBridge + HIDManager) share the same instance.
 // ----------------------------------------------------------------------------
 static constexpr size_t CMD_HASH_TABLE_SIZE = 257; // prime, must exceed commandHistorySize for any label set
+static_assert(commandHistorySize < CMD_HASH_TABLE_SIZE,
+    "CMD_HASH_TABLE_SIZE is too small for this label set — increase it to at least commandHistorySize + 1");
 struct CmdHistoryHashEntry { const char* label; CommandHistoryEntry* entry; };
 static CmdHistoryHashEntry cmdHashTable[CMD_HASH_TABLE_SIZE];
 static bool cmdHashBuilt = false;
@@ -1422,9 +1436,9 @@ void sendCommand(const char* msg, const char* arg, bool silent) {
 
 #if RS485_SLAVE_ENABLED
     // In slave mode, queue command for RS-485 transmission
-    RS485Slave_queueCommand(msg, arg);
-    // if (!silent) debugPrintf("🛩️ [RS485S] Queued: %s %s\n", msg, arg);
-    debugPrintf("🛩️ [RS485S] Queued: %s %s\n", msg, arg);
+    if (!RS485Slave_queueCommand(msg, arg)) {
+        debugPrintf("⚠️ [RS485S] TX buffer full, dropped: %s %s\n", msg, arg);
+    }
     return;  // Don't send via WiFi/USB
 #endif
 

@@ -1,18 +1,38 @@
+# IDE / Editor
 .claude
-.vs
+.vs/
+.vscode/*.log
+
+# Windows
 nul
-__pycache__
+Thumbs.db
+desktop.ini
+
+# Python
+__pycache__/
+*.pyc
+
+# Secrets / Credentials
 .credentials
-Dev
-build
-Debug Tools/logs
-src/Core/Private
+.env
+
+# Build artifacts
+build/
+*.map
+
+# Project-specific
+Dev/
+Debug Tools/logs/
+src/Core/Private/
+Disabled Panels/
+Binaries/Unclassified/
+
+# Lock files
 HID Manager/hid_manager.lock
-Disabled Panels
-Binaries/Unclassified
-compiler/backups
 compiler/cockpitos.lock
-compiler/__pycache__
-HID Manager/__pycache__
-label_creator/__pycache__
+
+# Tool backups
+compiler/backups/
+
+# Internal
 release.py

@@ -73,6 +73,12 @@
 #endif
 
 // ============================================================================
+// COMPILE-TIME CONFIG VALIDATION
+// ============================================================================
+static_assert(RS485_MAX_SLAVE_ADDRESS > 0,   "RS485_MAX_SLAVE_ADDRESS must be > 0");
+static_assert(RS485_MAX_SLAVE_ADDRESS <= 127, "RS485_MAX_SLAVE_ADDRESS must be <= 127");
+
+// ============================================================================
 // HARDWARE ABSTRACTION
 // ============================================================================
 
@@ -417,6 +423,8 @@ static volatile uint8_t rxMsgType = 0;
 
 // Broadcast buffer
 static uint8_t broadcastBuffer[256];
+static_assert(RS485_RELAY_CHUNK_SIZE <= sizeof(broadcastBuffer),
+    "RS485_RELAY_CHUNK_SIZE exceeds broadcastBuffer capacity");
 static size_t broadcastLen = 0;
 
 // Statistics
