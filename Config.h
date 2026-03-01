@@ -33,16 +33,16 @@
 #endif
 
 //
-#define MODE_DEFAULT_IS_HID                         0 // Is HID mode default? (This should almost always be 0). Only enable if you want your device to send Input buttons/axes at the OS level. This is so you can use the device with other simulators (Inputs only)
+#define MODE_DEFAULT_IS_HID                         1 // Is HID mode default? (This should almost always be 0). Only enable if you want your device to send Input buttons/axes at the OS level. This is so you can use the device with other simulators (Inputs only)
 
 // Is this an RS-485 Master? leave to 0 for normal operation.
 #define RS485_MASTER_ENABLED                        0 // Set as RS-485 Master. Polls slaves. Forwards data, you still need to choose a transport above (WiFi, Serial, USB etc)
 
 // Here is where you tell the firmware which 'transport' will be used to Communicate with the simulator (only ONE can be selected). 
 // Bluetooth BLE, Pure Native USB, WIFI, Serial (CDC/Socat) or as an RS485 slave. ** Only ONE ** can be active 
-#define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included in Open Source version of CockpitOS) (Works on ALL ESP32s except S2s and some P4s).
+#define USE_DCSBIOS_BLUETOOTH                       1 // *INTERNAL USE ONLY* (Not included in Open Source version of CockpitOS) (Works on ALL ESP32s except S2s and some P4s).
 #define USE_DCSBIOS_WIFI                            0 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
-#define USE_DCSBIOS_USB                             1 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
+#define USE_DCSBIOS_USB                             0 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
 #define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 #define RS485_SLAVE_ENABLED                         0 // Set as RS-485 Slave, you need to also run a master RS485 on a separate device
 
@@ -344,10 +344,6 @@
 
 // --- BLE allowed chips ---
 #if USE_DCSBIOS_BLUETOOTH
-
-  #if !__has_include("src/Core/Private/BLEManager.cpp")
-      #error "The Open source version of CockpitOS does NOT include BLE support. This is reserved for private use only. Not available upon request or as a paid feature."
-  #endif
 
   #if !( defined(ESP_FAMILY_CLASSIC) || defined(ESP_FAMILY_S3) || \
          defined(ESP_FAMILY_C2)      || defined(ESP_FAMILY_C3) || \

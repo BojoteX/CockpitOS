@@ -76,14 +76,14 @@
         class GPDevice { public: bool sendReport(const void*, int) { return false; } };
 #endif
 
-// --- HID mode requires USB transport (non-negotiable) ---
+// --- HID mode requires USB or BLE transport ---
 // Only applies when HID is forced at compile time (MODE_DEFAULT_IS_HID=1).
 // HAS_HID_MODE_SELECTOR only means a physical switch exists on the PCB;
 // at runtime the user may choose DCS-BIOS mode over any transport.
 #if !RS485_SLAVE_ENABLED
   #if defined(MODE_DEFAULT_IS_HID) && (MODE_DEFAULT_IS_HID == 1)
-    #if !USE_DCSBIOS_USB
-      #error "HID mode requires USE_DCSBIOS_USB=1. MODE_DEFAULT_IS_HID is enabled but transport is not USB."
+    #if !USE_DCSBIOS_USB && !USE_DCSBIOS_BLUETOOTH
+      #error "HID mode requires USB or BLE transport. MODE_DEFAULT_IS_HID is enabled but neither USE_DCSBIOS_USB nor USE_DCSBIOS_BLUETOOTH is set."
     #endif
   #endif
 #endif
