@@ -462,7 +462,6 @@ def get_chip_family(fqbn):
     try:
         r = run_cli("board", "details", "--fqbn", fqbn, "--format", "json")
         if r and r.returncode == 0:
-            import json
             data = json.loads(r.stdout)
             for prop in data.get("build_properties", []):
                 if prop.startswith("build.mcu="):

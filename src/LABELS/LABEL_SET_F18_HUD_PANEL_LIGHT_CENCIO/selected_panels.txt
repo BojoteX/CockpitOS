@@ -19,7 +19,7 @@
 # Cockpit Altimeter
 # Comms frequency
 # Communication Panel
-Custom
+# Custom
 # Defog Panel
 # Dispenser/EMC Panel
 # ECM Dispenser Button
@@ -30,7 +30,7 @@ Custom
 # Environment Control Louver
 # Environment Control System Panel
 # Exterior Lights Panel
-External Aircraft Model
+# External Aircraft Model
 # Fire Systems
 # Fire Test Panel
 # Flaps, Landing Gear, Stores Indicator Panel
@@ -58,7 +58,7 @@ External Aircraft Model
 # Left Engine Fire Warning Extinguisher Light
 # Left Essential Circuit Breakers
 # Lock Shoot Lights
-Map Gain/Spin Recovery Panel
+# Map Gain/Spin Recovery Panel
 Master Arm Panel
 # Master Caution Light
 # Metadata

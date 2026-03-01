@@ -199,7 +199,7 @@ Config.h may be edited **only** for the same defines the Compile Tool (`compiler
 ### Advanced
 | Define | Values | Notes |
 |--------|--------|-------|
-| `MODE_DEFAULT_IS_HID` | 0 / 1 | Device acts as gamepad at OS level. Requires USB transport |
+| `MODE_DEFAULT_IS_HID` | 0 / 1 | Device acts as gamepad at OS level. Requires USB or BLE transport |
 
 ### Rules & constraints
 - **Exactly one** transport define must be 1, the rest must be 0. The firmware enforces this with a `#error` directive.
