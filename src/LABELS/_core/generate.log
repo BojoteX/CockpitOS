@@ -29,25 +29,23 @@ Generated: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Generated\Pan
   → 13 total + COUNT
 
 Done!
-Current LABEL SET: LABEL_SET_TEST_ONLY
+Current LABEL SET: LABEL_SET_RS485_WAVESHARE_MANUAL
 
 [INFO] The current target_objects (panel(s) to be processed) are:
-  - Auxiliary Power Unit Panel
-  - Custom
   - Master Arm Panel
 
-[✓] Generated DCSBIOSBridgeData.h with 10 outputs,  11 selectors.
-[✓] Generated InputMapping.h with 11 entries.
-✅ Found 10 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
-🔢 Using TABLE_SIZE = 53 (next prime ≥ 20)
+[✓] Generated DCSBIOSBridgeData.h with 7 outputs,  4 selectors.
+[✓] Generated InputMapping.h with 4 entries.
+✅ Found 7 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
+🔢 Using TABLE_SIZE = 53 (next prime ≥ 14)
 ✅ LEDMapping.h fully regenerated with dynamic enum from KNOWN_DEVICES.
 
 [INFO] Generating DisplayMapping.cpp/h using display_gen.py ...
 ✅ Renamed .cpp files to cpp.DISABLE in the inactive LABEL SETS to avoid linker conflicts
-[✓] Created LabelSetConfig.h with AUTOGEN_USB_PID=0xEC87 (from 'Test Only Uff')
+[✓] Created LabelSetConfig.h with AUTOGEN_USB_PID=0x8C3F (from 'CockpitOS Panel RS485_WAVESHARE_MANUAL')
 [=] LatchedButtons.h exists, preserving
 [=] CoverGates.h exists, preserving
-[✓] Created ../active_set.h with LABEL_SET TEST_ONLY
+[✓] Created ../active_set.h with LABEL_SET RS485_WAVESHARE_MANUAL
 
 ============================================================
 Running generate_panelkind.py to update PanelKind.h...

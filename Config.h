@@ -345,10 +345,6 @@
 // --- BLE allowed chips ---
 #if USE_DCSBIOS_BLUETOOTH
 
-  #if !__has_include("src/Core/Private/BLEManager.cpp")
-      #error "The Open source version of CockpitOS does NOT include BLE support. This is reserved for private use only. Not available upon request or as a paid feature."
-  #endif
-
   #if !( defined(ESP_FAMILY_CLASSIC) || defined(ESP_FAMILY_S3) || \
          defined(ESP_FAMILY_C2)      || defined(ESP_FAMILY_C3) || \
          defined(ESP_FAMILY_C5)      || defined(ESP_FAMILY_C6) || \
