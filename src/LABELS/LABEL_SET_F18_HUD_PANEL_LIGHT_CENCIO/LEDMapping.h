@@ -42,7 +42,7 @@ static const LEDMapping panelLEDs[] = {
   { "MASTER_MODE_AG"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MASTER_MODE_AG_LT"  , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "MC_DISCH"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "MC_READY"           , DEVICE_GPIO    , {.gpioInfo = {15}}, false, false }, // GPIO 15
+  { "MC_READY"           , DEVICE_GPIO    , {.gpioInfo = {16}}, false, false }, // GPIO 16
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);

@@ -566,9 +566,9 @@ void RadarAlt_bitTest()
 
 void RadarAlt_deinit()
 {
-    if (tftTaskHandle) { vTaskDelete(tftTaskHandle); tftTaskHandle = nullptr; }
-
     waitDMADone(); dmaBusy = false;
+
+    if (tftTaskHandle) { vTaskDelete(tftTaskHandle); tftTaskHandle = nullptr; }
 
     needle.deleteSprite();
     pointerSpr.deleteSprite();

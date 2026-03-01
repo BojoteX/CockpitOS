@@ -9,18 +9,19 @@
 #define DCSBIOS_STATE_DATA_LOW 5
 #define DCSBIOS_STATE_DATA_HIGH 6
 
+#include <stdint.h>
 #include "ExportStreamListener.h"
 
 namespace DcsBios {
 	class ProtocolParser {
 	private:
-		volatile unsigned char state;
-		volatile unsigned int address;
-		volatile unsigned int count;
-		volatile unsigned int data;
-		volatile unsigned char sync_byte_count;
+		unsigned char state;
+		uint16_t address;
+		uint16_t count;
+		uint16_t data;
+		unsigned char sync_byte_count;
 		ExportStreamListener* startESL;
-		volatile bool processingData;
+		bool processingData;
 	public:
 		void processChar(unsigned char c);
 		ProtocolParser();

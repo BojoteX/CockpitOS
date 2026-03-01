@@ -14,18 +14,19 @@ struct InputMapping {
     uint16_t    oride_value;  // Override command value (value)
     const char* controlType;  // Control type, e.g., "selector"
     uint16_t    group;        // Group ID for exclusive selectors
+    uint16_t    releaseValue; // DCS-BIOS value sent on momentary release (0 = default)
 };
 
-//  label                       source     port bit hidId  DCSCommand           value   Type        group
+//  label                       source     port bit hidId  DCSCommand           value   Type        group  rel
 static const InputMapping InputMappings[] = {
-    { "MASTER_ARM_SW_SAFE"     , "GPIO" , -1 ,  0 ,   3 , "MASTER_ARM_SW"          ,     0 , "selector"     ,  1 },
-    { "MASTER_ARM_SW_ARM"      , "GPIO" , RS485_TEST_SWITCH_GPIO ,  0 ,   2 , "MASTER_ARM_SW"          ,     1 , "selector"     ,  1 },
-    { "MASTER_MODE_AA"         , "NONE" ,  0 ,  0 ,  -1 , "MASTER_MODE_AA"         ,     1 , "momentary"    ,  0 },
-    { "MASTER_MODE_AG"         , "NONE" ,  0 ,  0 ,  -1 , "MASTER_MODE_AG"         ,     1 , "momentary"    ,  0 },
-    { "MASTER_CAUTION_RESET_SW", "GPIO" , RS485_TEST_BUTTON_GPIO ,  0 ,   1 , "MASTER_CAUTION_RESET_SW",     1 , "momentary"    ,  0 },
-    { "RADALT_HEIGHT_POS0"     , "NONE" ,  0 ,  0 ,   4 , "RADALT_HEIGHT"          ,     0 , "variable_step",  0 },
-    { "RADALT_HEIGHT_POS1"     , "NONE" ,  0 ,  0 ,   5 , "RADALT_HEIGHT"          ,     1 , "variable_step",  0 },
-    { "RADALT_TEST_SW"         , "NONE" ,  0 ,  0 ,  -1 , "RADALT_TEST_SW"         ,     1 , "momentary"    ,  0 },
+    { "MASTER_ARM_SW_SAFE"     , "GPIO" , -1 ,  0 ,   3 , "MASTER_ARM_SW"          ,     0 , "selector"     ,  1 ,  0 },
+    { "MASTER_ARM_SW_ARM"      , "GPIO" , RS485_TEST_SWITCH_GPIO ,  0 ,   2 , "MASTER_ARM_SW"          ,     1 , "selector"     ,  1 ,  0 },
+    { "MASTER_MODE_AA"         , "NONE" ,  0 ,  0 ,  -1 , "MASTER_MODE_AA"         ,     1 , "momentary"    ,  0 ,  0 },
+    { "MASTER_MODE_AG"         , "NONE" ,  0 ,  0 ,  -1 , "MASTER_MODE_AG"         ,     1 , "momentary"    ,  0 ,  0 },
+    { "MASTER_CAUTION_RESET_SW", "GPIO" , RS485_TEST_BUTTON_GPIO ,  0 ,   1 , "MASTER_CAUTION_RESET_SW",     1 , "momentary"    ,  0 ,  0 },
+    { "RADALT_HEIGHT_POS0"     , "NONE" ,  0 ,  0 ,   4 , "RADALT_HEIGHT"          ,     0 , "variable_step",  0 ,  0 },
+    { "RADALT_HEIGHT_POS1"     , "NONE" ,  0 ,  0 ,   5 , "RADALT_HEIGHT"          ,     1 , "variable_step",  0 ,  0 },
+    { "RADALT_TEST_SW"         , "NONE" ,  0 ,  0 ,  -1 , "RADALT_TEST_SW"         ,     1 , "momentary"    ,  0 ,  0 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);
 

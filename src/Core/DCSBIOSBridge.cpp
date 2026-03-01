@@ -178,7 +178,7 @@ bool isPanelsSyncedThisMission() {
 static bool TEMP_DISABLE_LISTENER = false;
 
 // Frame counter for debugging purposes
-uint64_t frameCounter = 0;
+uint32_t frameCounter = 0;
 
 // Init DCS-BIOS previous values on startup
 static uint16_t g_prevValues[DcsOutputTableSize];
@@ -214,14 +214,17 @@ class DcsBiosSniffer : public DcsBios::ExportStreamListener {
 public:
     DcsBiosSniffer(): 
         // DcsBios::ExportStreamListener(0x0000, 0x77FF), // Old version (Hornet Only)
-        DcsBios::ExportStreamListener(0x0000, 0xFFFD),
+        // DcsBios::ExportStreamListener(0x0000, 0x87A6), // Apache
+        // DcsBios::ExportStreamListener(0x0000, 0xFFFD),
+        DcsBios::ExportStreamListener(0x0000, 0xFFFE),
+
         pendingUpdateCount(0),
         pendingUpdateOverflow(0),
         _lastWriteMs(0),
         _streamUp(false)
     {}
 
-    void onDcsBiosWrite(unsigned int addr, unsigned int value) override {
+    void onDcsBiosWrite(uint16_t addr, uint16_t value) override {
 
     #if DEBUG_LISTENERS_AT_STARTUP
         // === DISPATCH DEBUG ===
@@ -265,12 +268,14 @@ public:
         // 2) Dispatch per control type
         for (uint8_t i = 0; i < ae->count; ++i) {
             const DcsOutputEntry* entry = ae->entries[i];
+            if (!entry) continue;
             uint16_t val = (value & entry->mask) >> entry->shift;
             size_t index = entry - DcsOutputTable;
 
             if (entry->controlType != CT_DISPLAY) {
                 if (index >= DcsOutputTableSize || g_prevValues[index] == val) continue;
-                g_prevValues[index] = val;            // admits first 0/1/etc.
+                // g_prevValues updated only after successful queue below,
+                // so dropped updates retry on the next frame.
             }
 
             switch (entry->controlType) {
@@ -278,6 +283,7 @@ public:
                 case CT_LED:
                 case CT_ANALOG:
                     if (pendingUpdateCount < MAX_PENDING_UPDATES) {
+                        g_prevValues[index] = val;
                         pendingUpdates[pendingUpdateCount++] = {entry->label, val, entry->max_value};
                     } else {
                         pendingUpdateOverflow++;
@@ -287,6 +293,7 @@ public:
                 case CT_SELECTOR:
                     onSelectorChange(entry->label, val);
                     if (pendingUpdateCount < MAX_PENDING_UPDATES) {
+                        g_prevValues[index] = val;
                         pendingUpdates[pendingUpdateCount++] = {entry->label, val, entry->max_value};
                     } else {
                         pendingUpdateOverflow++;
@@ -328,6 +335,7 @@ public:
                 */
 
                 case CT_METADATA:
+                    g_prevValues[index] = val;
                     onMetaDataChange(entry->label, val);
                     break;
             }
@@ -451,6 +459,7 @@ void syncCommandHistoryFromInputMapping() {
             if (!m.oride_label || strcmp(e.label, m.oride_label) != 0) continue;
 
             // Track selectors and buttons
+            if (!m.controlType) continue;
             const bool isSel = (strcmp(m.controlType, "selector") == 0);
             const bool isBtn = (strcmp(m.controlType, "momentary") == 0);
 
@@ -748,15 +757,17 @@ void parseDcsBiosUdpPacket(const uint8_t* data, size_t len) {
     // === END DEBUG ===
 #endif
 
+    // Feed each byte to parser AND RS485 relay simultaneously.
+    // This matches the Arduino master's ISR pattern: byte in → byte straight
+    // to RS485 buffer, no delay. Previously we parsed ALL bytes first, then
+    // fed them to RS485 in one batch — which caused rawBuffer overflow on
+    // large UDP packets (state dump ~1954 bytes vs 512-byte buffer).
     for (size_t i = 0; i < len; ++i) {
         DcsBios::parser.processChar(data[i]);
-    }
-    // yield();
-
-    // NEW: Also feed to RS-485 for slave distribution
 #if RS485_MASTER_ENABLED
-    RS485Master_feedExportData(data, len);
+        RS485Master_feedExportByte(data[i]);
 #endif
+    }
 
 }
 
@@ -780,7 +791,7 @@ void onDcsBiosUdpPacket() {
     } frames[MAX_UDP_FRAMES_PER_DRAIN];
 
     size_t frameCount = 0;
-    size_t reassemblyLen = 0;
+    static size_t reassemblyLen = 0;  // MUST be static: multi-chunk packets may span drain calls (producer on core 0, consumer on core 1)
     DcsUdpRingMsg pkt;
 
     // Phase 1: Drain as many complete UDP frames as possible
@@ -924,7 +935,7 @@ size_t dcsbios_getCommandHistorySize() {
 // O(1) hash lookup for commandHistory[] — built at runtime in this TU
 // so all callers (DCSBIOSBridge + HIDManager) share the same instance.
 // ----------------------------------------------------------------------------
-static constexpr size_t CMD_HASH_TABLE_SIZE = 127; // prime, comfortably > 2× MAX_TRACKED_RECORDS typical use
+static constexpr size_t CMD_HASH_TABLE_SIZE = 257; // prime, must exceed commandHistorySize for any label set
 struct CmdHistoryHashEntry { const char* label; CommandHistoryEntry* entry; };
 static CmdHistoryHashEntry cmdHashTable[CMD_HASH_TABLE_SIZE];
 static bool cmdHashBuilt = false;
@@ -1214,7 +1225,7 @@ static volatile bool cdcRxReady = false; // This will be set automatically when 
 bool cdcEnsureTxReady(uint32_t timeoutMs) {
     unsigned long start = millis();
     while (!cdcTxReady) {
-        yield();
+        delay(1);
         if (millis() - start > timeoutMs) {
             return false;
         }
@@ -1225,7 +1236,7 @@ bool cdcEnsureTxReady(uint32_t timeoutMs) {
 bool cdcEnsureRxReady(uint32_t timeoutMs) {
     unsigned long start = millis();
     while (!cdcRxReady) {
-        yield();
+        delay(1);
         if (millis() - start > timeoutMs) {
             return false;
         }
@@ -1582,7 +1593,7 @@ void sendDCSBIOSCommand(const char* label, uint16_t value, bool force) {
     }
 #endif
 
-    static char buf[10];
+    char buf[10];
     snprintf(buf, sizeof(buf), "%u", value);
 
 // #if defined(SELECTOR_DWELL_MS) && (SELECTOR_DWELL_MS > 0)

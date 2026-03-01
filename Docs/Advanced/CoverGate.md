@@ -58,8 +58,8 @@ struct CoverGateDef {
     const char* release_label;     // DCS-BIOS label for the safe/OFF action (Selector only)
     const char* cover_label;       // DCS-BIOS label for the cover open/close
     CoverGateKind kind;            // Selector, ButtonMomentary, or ButtonLatched
-    uint16_t delay_ms;             // Time between cover-open and action (ms)
-    uint16_t close_delay_ms;       // Time between action and cover-close (ms)
+    uint32_t delay_ms;             // Time between cover-open and action (ms)
+    uint32_t close_delay_ms;       // Time between action and cover-close (ms)
 };
 ```
 

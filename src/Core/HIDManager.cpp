@@ -67,7 +67,7 @@
         #include "../CustomDescriptors/BidireccionalNew.h"   // defines GamepadReport_t and hidReportDesc
         struct { bool ready() const { return false; } } HID;
         #if !defined(LOADED_CDC_STACK) && !defined(LOADED_USB_STACK)
-            #if CLOSE_CDC_SERIAL
+            #if defined(CLOSE_CDC_SERIAL)
 		        // No stub for USB as we need to close the serial port AND USB is already defined above
             #else 
                 struct { void begin() {} template<typename...A> void onEvent(A...) {} } USB;
@@ -352,7 +352,7 @@ static void queueDeferredRelease(const char* label, uint16_t value) {
     // Debug print removed — the "fired" message below is sufficient
     // Overwrite any existing pending for the same label
     for (uint8_t i = 0; i < MAX_PENDING_RELEASES; ++i) {
-        if (s_pendingRelease[i].active && s_pendingRelease[i].label == label) {
+        if (s_pendingRelease[i].active && strcmp(s_pendingRelease[i].label, label) == 0) {
             s_pendingRelease[i].value  = value;
             s_pendingRelease[i].due_ms = due;
             return;
@@ -370,22 +370,23 @@ static void queueDeferredRelease(const char* label, uint16_t value) {
     }
     // Buffer full — send directly as fallback (shouldn't happen with 4 slots)
     debugPrintf("[DCS] ⚠️ Deferred release buffer full! Sending immediately: %s = %u\n", label, value);
-    static char fbuf[10];
+    char fbuf[10];
     snprintf(fbuf, sizeof(fbuf), "%u", value);
     sendCommand(label, fbuf, false);
 }
 
 // Used for Axis stabilization and filtering (and reset for initialization)
-static int lastFiltered[40] = { 0 };
-static int lastOutput[40] = { -1 };
-static unsigned int stabCount[40] = { 0 };
-static bool stabilized[40] = { false };
+// Indexed by GPIO pin number (not axis enum), so must match g_bootstrapped[64].
+static int lastFiltered[64] = { 0 };
+static int lastOutput[64] = { -1 };
+static unsigned int stabCount[64] = { 0 };
+static bool stabilized[64] = { false };
 
 // Build HID group bitmasks
 void buildHIDGroupBitmasks() {
   for (size_t i = 0; i < InputMappingSize; ++i) {
       const InputMapping& m = InputMappings[i];
-      if (m.group > 0 && m.hidId > 0) {
+      if (m.group > 0 && m.group < MAX_GROUPS && m.hidId > 0) {
           groupBitmask[m.group] |= (1UL << (m.hidId - 1));
       }
   }
@@ -562,6 +563,7 @@ void HIDManager_sendReport(const char* label, int32_t rawValue) {
         return;
 
     // flip just this bit
+    if (m->hidId <= 0 || m->hidId > 32) return;
     uint32_t mask = (1UL << (m->hidId - 1));
     if (dcsValue)
         report.buttons |= mask;
@@ -581,10 +583,11 @@ void HIDManager_resetAllAxes() {
 	// Re-initialize axis calibration
     axCalibInit();
 
-    for (int i = 0; i < 40; ++i) {
+    for (int i = 0; i < 64; ++i) {
         stabCount[i] = 0;
         stabilized[i] = false;
         lastOutput[i] = -1;
+        lastFiltered[i] = 0;
     }
 }
 
@@ -927,7 +930,7 @@ void HIDManager_setNamedButton(const char* name, bool deferSend, bool pressed) {
             const bool isFixStep = (strcmp(ctype, "fixed_step") == 0);
 
             if (isVarStep || isFixStep) {
-                static char buf[12];
+                char buf[12];
                 if (isVarStep) strcpy(buf, pressed ? "+3200" : "-3200");
                 else           strcpy(buf, pressed ? "INC" : "DEC");
                 sendCommand(m->oride_label, buf, false);
@@ -1140,7 +1143,7 @@ void HIDManager_releaseTick() {
         debugPrintf("[DCS] Custom momentary release: %s = %u (%ums after press)\n",
                     label, value, (unsigned)CUSTOM_RESPONSE_THROTTLE_MS);
 
-        static char buf[10];
+        char buf[10];
         snprintf(buf, sizeof(buf), "%u", value);
         sendCommand(label, buf, false);
 

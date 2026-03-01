@@ -16,11 +16,13 @@ TFT gauges are graphical LCD displays that render instrument faces with animated
 
 | Display Controller | Resolution | Shape | Bus | Typical Use |
 |---|---|---|---|---|
-| GC9A01 | 240x240 | Round | SPI | Battery voltage, brake pressure, hydraulic pressure |
-| ST77916 | 360x360 | Round | QSPI | Waveshare boards |
-| ST77961 | 360x360 | Round | SPI | Cabin pressure, radar altimeter |
-| ST7789 | 240x320 | Rectangular | SPI | General purpose |
-| ILI9341 | 240x320 | Rectangular | SPI | CYD (Cheap Yellow Display) boards |
+| GC9A01 | 240x240 | Round | SPI | Needle gauges (battery, brake, hydraulic) |
+| ST77916 | 360x360 | Round | QSPI | Needle gauges (Waveshare boards) |
+| ST77961 | 360x360 | Round | SPI | Needle gauges (cabin pressure, radar altimeter) |
+| ST7789 | 240x320 | Rectangular | SPI | Text displays (CMWS) |
+| ILI9341 | 240x320 | Rectangular | SPI | Text displays (CYD boards) |
+
+> **Note:** ST7789 and ILI9341 are currently used only for text-based displays (e.g., CMWS), not for animated needle gauges. Use GC9A01, ST77916, or ST77961 for needle gauges.
 
 ---
 

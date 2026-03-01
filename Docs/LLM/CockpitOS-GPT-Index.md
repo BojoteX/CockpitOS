@@ -292,7 +292,7 @@ struct SegmentMap {
 | Setting | Default | Source File |
 |---------|---------|-------------|
 | POLLING_RATE_HZ | 250 | Config.h |
-| SELECTOR_DWELL_MS | 250 | Config.h |
+| SELECTOR_DWELL_MS | 100 | Config.h |
 | SERVO_UPDATE_FREQ_MS | 20 | Config.h |
 | PCA_FAST_MODE | 1 | Config.h |
 | RS485_USE_TASK | 1 | Config.h |
