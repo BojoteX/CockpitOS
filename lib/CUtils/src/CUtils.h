@@ -110,7 +110,7 @@ bool GN1640_detect(uint8_t clkPin, uint8_t dioPin);
 void GN1640_tick();
 
 // —— PCA9555 (I²C expander) —— 
-extern uint8_t PCA9555_cachedPortStates[8][2];  // address 0x20–0x27 → [port0,port1]
+extern uint8_t PCA9555_cachedPortStates[MAX_DEVICES][2];  // indexed by discovery slot → [port0,port1]
 void PCA9555_setAllLEDs(bool state);
 void PCA9555_allLEDsByAddress(uint8_t addr, bool state);
 void PCA9555_allOn(uint8_t addr);
@@ -124,7 +124,7 @@ bool readPCA9555(uint8_t addr, byte &p0, byte &p1);
 void PCA9555_write(uint8_t addr, uint8_t port, uint8_t bit, bool state);
 bool isPCA9555LoggingEnabled();
 void enablePCA9555Logging(bool);
-void logExpanderState(uint8_t p0, uint8_t p1);
+void logExpanderState(uint8_t p0, uint8_t p1, char* buffer, size_t buflen);
 void logPCA9555State(uint8_t addr, byte p0, byte p1);
 void PCA9555_initCache();
 void measureI2Cspeed(uint8_t deviceAddr);
@@ -235,6 +235,7 @@ bool RS485Master_init();
 void RS485Master_loop();
 void RS485Master_stop();
 void RS485Master_feedExportData(const uint8_t* data, size_t len);
+void RS485Master_feedExportByte(uint8_t byte);
 void RS485Master_forceFullSync();
 bool RS485Master_isSlaveOnline(uint8_t address);
 uint8_t RS485Master_getOnlineSlaveCount();

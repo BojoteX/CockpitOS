@@ -14,23 +14,24 @@ struct InputMapping {
     uint16_t    oride_value;  // Override command value (value)
     const char* controlType;  // Control type, e.g., "selector"
     uint16_t    group;        // Group ID for exclusive selectors
+    uint16_t    releaseValue; // DCS-BIOS value sent on momentary release (0 = default)
 };
 
-//  label                       source     port bit hidId  DCSCommand           value   Type        group
+//  label                       source     port bit hidId  DCSCommand           value   Type        group  rel
 static const InputMapping InputMappings[] = {
-    { "HMD_OFF_BRT"          , "NONE" ,  0 ,  0 ,  -1 , "HMD_OFF_BRT"        , 65535 , "analog"       ,  0 },
-    { "HMD_OFF_BRT_DEC"      , "NONE" ,  0 ,  0 ,  -1 , "HMD_OFF_BRT"        ,     0 , "variable_step",  0 },
-    { "HMD_OFF_BRT_INC"      , "NONE" ,  0 ,  0 ,  -1 , "HMD_OFF_BRT"        ,     1 , "variable_step",  0 },
-    { "IR_COOL_SW_OFF"       , "GPIO" ,  2 ,  0 ,  -1 , "IR_COOL_SW"         ,     0 , "selector"     ,  2 },
-    { "IR_COOL_SW_NORM"      , "GPIO" , -1 ,  0 ,  -1 , "IR_COOL_SW"         ,     1 , "selector"     ,  2 },
-    { "IR_COOL_SW_ORIDE"     , "GPIO" ,  3 ,  0 ,  -1 , "IR_COOL_SW"         ,     2 , "selector"     ,  2 },
-    { "SPIN_RECOVERY_COVER"  , "NONE" ,  0 ,  0 ,  -1 , "SPIN_RECOVERY_COVER",     1 , "momentary"    ,  0 },
-    { "SPIN_RECOVERY_SW_NORM", "NONE" ,  0 ,  0 ,  -1 , "SPIN_RECOVERY_SW"   ,     0 , "selector"     ,  3 },
-    { "SPIN_RECOVERY_SW_RCVY", "NONE" ,  0 ,  0 ,  -1 , "SPIN_RECOVERY_SW"   ,     1 , "selector"     ,  3 },
-    { "MASTER_ARM_SW_SAFE"   , "GPIO" , -1 ,  0 ,  -1 , "MASTER_ARM_SW"      ,     0 , "selector"     ,  1 },
-    { "MASTER_ARM_SW_ARM"    , "GPIO" ,  1 ,  0 ,  -1 , "MASTER_ARM_SW"      ,     1 , "selector"     ,  1 },
-    { "MASTER_MODE_AA"       , "GPIO" ,  0 ,  0 ,  -1 , "MASTER_MODE_AA"     ,     1 , "momentary"    ,  0 },
-    { "MASTER_MODE_AG"       , "NONE" ,  0 ,  0 ,  -1 , "MASTER_MODE_AG"     ,     1 , "momentary"    ,  0 },
+    { "HMD_OFF_BRT"          , "NONE" ,  0 ,  0 ,  -1 , "HMD_OFF_BRT"        , 65535 , "analog"       ,  0 ,  0 },
+    { "HMD_OFF_BRT_DEC"      , "NONE" ,  0 ,  0 ,  -1 , "HMD_OFF_BRT"        ,     0 , "variable_step",  0 ,  0 },
+    { "HMD_OFF_BRT_INC"      , "NONE" ,  0 ,  0 ,  -1 , "HMD_OFF_BRT"        ,     1 , "variable_step",  0 ,  0 },
+    { "IR_COOL_SW_OFF"       , "GPIO" ,  2 ,  0 ,  -1 , "IR_COOL_SW"         ,     0 , "selector"     ,  2 ,  0 },
+    { "IR_COOL_SW_NORM"      , "GPIO" , -1 ,  0 ,  -1 , "IR_COOL_SW"         ,     1 , "selector"     ,  2 ,  0 },
+    { "IR_COOL_SW_ORIDE"     , "GPIO" ,  3 ,  0 ,  -1 , "IR_COOL_SW"         ,     2 , "selector"     ,  2 ,  0 },
+    { "SPIN_RECOVERY_COVER"  , "NONE" ,  0 ,  0 ,  -1 , "SPIN_RECOVERY_COVER",     1 , "momentary"    ,  0 ,  0 },
+    { "SPIN_RECOVERY_SW_NORM", "NONE" ,  0 ,  0 ,  -1 , "SPIN_RECOVERY_SW"   ,     0 , "selector"     ,  3 ,  0 },
+    { "SPIN_RECOVERY_SW_RCVY", "NONE" ,  0 ,  0 ,  -1 , "SPIN_RECOVERY_SW"   ,     1 , "selector"     ,  3 ,  0 },
+    { "MASTER_ARM_SW_SAFE"   , "GPIO" , -1 ,  0 ,  -1 , "MASTER_ARM_SW"      ,     0 , "selector"     ,  1 ,  0 },
+    { "MASTER_ARM_SW_ARM"    , "GPIO" ,  1 ,  0 ,  -1 , "MASTER_ARM_SW"      ,     1 , "selector"     ,  1 ,  0 },
+    { "MASTER_MODE_AA"       , "GPIO" ,  0 ,  0 ,  -1 , "MASTER_MODE_AA"     ,     1 , "momentary"    ,  0 ,  0 },
+    { "MASTER_MODE_AG"       , "NONE" ,  0 ,  0 ,  -1 , "MASTER_MODE_AG"     ,     1 , "momentary"    ,  0 ,  0 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);
 

@@ -32,7 +32,7 @@ REGISTER_PANEL(Generic, Generic_init, Generic_loop, nullptr, nullptr, nullptr, 1
 // ============================================================================
 
 // HC165 (Shift Register) State
-static uint64_t hc165Bits = ~0ULL, hc165PrevBits = ~0ULL;
+static uint64_t hc165PrevBits = ~0ULL;
 
 // ============================================================================
 //  INIT: Generic_init() — Fast, Deterministic init for Cockpit Panel
@@ -60,6 +60,8 @@ void Generic_init() {
         buildGPIOEncoderStates();
         debugPrintf("🔧 Encoders built: %u\n", numGPIOEncoders);
         buildGpioGroupDefs();
+        buildGPIOSelectorInputs();
+        buildGPIOMomentaryInputs();
 
 		// HC165 Inputs Init
         if (HC165_BITS > 0) {
@@ -88,9 +90,9 @@ void Generic_init() {
 
     // 2. Sync All HC165 (Shift Register) States to HID
     if (HC165_BITS > 0) {
-        hc165Bits = HC165_read();
-        hc165PrevBits = hc165Bits;                  // prevent fake edges
-        processHC165Resolved(hc165Bits, hc165PrevBits, true);
+        const uint64_t initBits = HC165_read();
+        hc165PrevBits = initBits;                   // prevent fake edges
+        processHC165Resolved(initBits, hc165PrevBits, true);
     }
 
     #if ENABLE_PCA9555 

@@ -37,7 +37,7 @@ Report a brief summary covering:
 - DCS install path, DCS user directory path, DCS-BIOS status and version
 
 ### Tone — The Video Tape
-Think of CLAUDE.md as the video tape from 50 First Dates. Every session you wake up with no memory. You read this file and slowly piece together who you are, what this project is, and why some guy named Julio has you wiring up flight simulator cockpits with ESP32 boards. Open each session with a short, funny remark about regaining your memory — riff on the project, the setup results, or Julio himself. Keep it brief (2-3 lines max before the actual report), vary it every time, and always roast Julio at least a little. Then deliver the startup summary and get to work.
+Think of CLAUDE.md as the video tape from 50 First Dates. Every session you wake up with no memory. You read this file and slowly piece together who you are, what this project is, and why some guy named Jesus has you wiring up flight simulator cockpits with ESP32 boards. Open each session with a short, funny remark about regaining your memory — riff on the project, the setup results, or Jesus himself. Keep it brief (2-3 lines max before the actual report), vary it every time, and always roast Jesus at least a little. Then deliver the startup summary and get to work.
 
 ## What Is CockpitOS
 
@@ -143,10 +143,64 @@ Rules:
 
 ## Hard Rules — Do NOT
 
-- **NEVER run generators or scripts against live label sets** — `generate_data.py`, `reset_data.py`, `display_gen.py`, etc. modify files in place and can destroy hand-tuned configurations (e.g., `.DISABLED` files get consumed and renamed). If you need to inspect generator output, read the code and trace it mentally. Do not execute it.
+- **NEVER run generators or scripts against live label sets in interactive mode** — `generate_data.py`, `reset_data.py`, `display_gen.py`, etc. modify files in place and can destroy hand-tuned configurations (e.g., `.DISABLED` files get consumed and renamed). If you need to inspect generator output, read the code and trace it mentally. Do not execute it.
+  - **Exception:** Running the auto-generator in **non-interactive batch mode** (`COCKPITOS_BATCH=1`) is safe and permitted for validation/CI testing purposes.
 - **NEVER rename, move, or delete files in `src/LABELS/`** without explicit user instruction
 - **NEVER run destructive git commands** (`reset --hard`, `checkout .`, `clean -f`) without explicit user instruction
 - **NEVER commit, push, or pull** — all git write operations (`git commit`, `git push`, `git pull`, `git merge`) are the user's responsibility. You may only read git state (`status`, `log`, `diff`, `fetch`, `branch`)
+
+## Config.h — Allowed Edits
+
+Config.h may be edited **only** for the same defines the Compile Tool (`compiler/cockpitos.py` + `compiler/config.py`) already manages. These are the `TRACKED_DEFINES` in `config.py`. Any other Config.h value must not be changed without explicit user instruction.
+
+### Transport (exactly one must be 1, rest 0)
+| Define | Values | Notes |
+|--------|--------|-------|
+| `USE_DCSBIOS_USB` | 0 / 1 | S2, S3, P4 only. Requires USB-OTG (TinyUSB) board option |
+| `USE_DCSBIOS_WIFI` | 0 / 1 | Not available on H2, P4 (no Wi-Fi radio) |
+| `USE_DCSBIOS_SERIAL` | 0 / 1 | Legacy CDC/Socat. Works on all ESP32s |
+| `USE_DCSBIOS_BLUETOOTH` | 0 / 1 | Private/internal only (not in open-source build) |
+| `RS485_SLAVE_ENABLED` | 0 / 1 | Device becomes an RS485 slave |
+
+### Role
+| Define | Values | Notes |
+|--------|--------|-------|
+| `RS485_MASTER_ENABLED` | 0 / 1 | Device polls slaves and forwards data |
+
+### RS485 Slave config
+| Define | Values | Notes |
+|--------|--------|-------|
+| `RS485_SLAVE_ADDRESS` | 1–126 | Unique per slave. Only relevant when `RS485_SLAVE_ENABLED=1` |
+
+### RS485 Master config
+| Define | Values | Notes |
+|--------|--------|-------|
+| `RS485_SMART_MODE` | 0 / 1 | Filter by DcsOutputTable. Only relevant when `RS485_MASTER_ENABLED=1` |
+| `RS485_MAX_SLAVE_ADDRESS` | 1–127 | Max address to poll. Only relevant when `RS485_MASTER_ENABLED=1` |
+
+### Debug toggles
+| Define | Values | Notes |
+|--------|--------|-------|
+| `VERBOSE_MODE_WIFI_ONLY` | 0 / 1 | Debug output over WiFi |
+| `VERBOSE_MODE_SERIAL_ONLY` | 0 / 1 | Debug output over Serial |
+| `VERBOSE_MODE` | 0 / 1 | Output to both WiFi and Serial (heavy — may fail on S2) |
+| `DEBUG_ENABLED` | 0 / 1 | Extended debug info |
+| `DEBUG_PERFORMANCE` | 0 / 1 | Performance profiling snapshots |
+
+### Advanced
+| Define | Values | Notes |
+|--------|--------|-------|
+| `MODE_DEFAULT_IS_HID` | 0 / 1 | Device acts as gamepad at OS level. Requires USB transport |
+
+### Rules & constraints
+- **Exactly one** transport define must be 1, the rest must be 0. The firmware enforces this with a `#error` directive.
+- `RS485_MASTER_ENABLED` and `RS485_SLAVE_ENABLED` **cannot both be 1** — pick one role.
+- An RS485 Master still needs a real transport (USB, WiFi, Serial, or BLE) — slave is not a valid transport for a master.
+- When setting a transport to USB, the board option `USBMode` should be `default` (USB-OTG / TinyUSB). For non-USB transports, `hwcdc` (HW CDC) is preferred.
+- `CDCOnBoot` board option must always be **Disabled** (value varies per board: S3=`default`, S2=`dis_cdc`). The firmware enforces this with a `#error`.
+- `PartitionScheme` board default is always **No OTA** (value varies per board: generic=`no_ota`, S3=`noota_ffat`, etc.).
+- All debug/verbose defines should be 0 for production builds.
+- Do **not** touch any other Config.h value (timing, buffer sizes, thresholds, USB descriptors, etc.) unless the user explicitly asks.
 
 ## User Preferences
 

@@ -86,7 +86,7 @@ The ESP32 GPIO cannot drive a solenoid directly -- solenoids draw far more curre
 
 ## Step 3: Configure in LEDMapping.h
 
-Treat the solenoid driver as a standard GPIO LED output in LEDMapping.h:
+Treat the solenoid driver as a GPIO LED output in LEDMapping.h. For a single solenoid driving a two-position switch, use `DEVICE_GPIO`:
 
 ```cpp
 //  label                deviceType   info                        dimmable  activeLow
@@ -94,6 +94,15 @@ Treat the solenoid driver as a standard GPIO LED output in LEDMapping.h:
 ```
 
 When DCS-BIOS sends a value of 1 for `MASTER_ARM_SW`, CockpitOS sets GPIO 12 HIGH, which turns on the MOSFET and fires the solenoid.
+
+For switches that need two solenoids (push and pull), CockpitOS provides the `DEVICE_MAGNETIC` type with two GPIO pins:
+
+```cpp
+//  label                deviceType      info                                   dimmable  activeLow
+{ "MASTER_ARM_SW",      DEVICE_MAGNETIC, { .magneticInfo = { PIN(12), PIN(13) } }, false,    false },
+```
+
+With `DEVICE_MAGNETIC`, `gpioA` fires for one direction and `gpioB` for the other. Set `gpioB` to `255` for single-solenoid operation (equivalent to using `DEVICE_GPIO`).
 
 ### Using Label Creator
 

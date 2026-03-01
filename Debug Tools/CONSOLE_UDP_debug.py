@@ -245,6 +245,7 @@ def main():
     # Discover interfaces and let user pick
     interfaces = get_all_interface_ips()
     bind_ip = pick_interface(interfaces)
+    print("\033[2J\033[H", end="", flush=True)
 
     # Resolve display name for header
     if bind_ip == "0.0.0.0":

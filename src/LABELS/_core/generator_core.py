@@ -1610,7 +1610,7 @@ def run():
 
     # Press ENTER to exit (skipped in batch mode)
     _pause()
-    sys.exit(1)
+    sys.exit(0)
 
 if __name__ == "__main__":
     run()

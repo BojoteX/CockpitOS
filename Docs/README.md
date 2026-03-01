@@ -118,7 +118,7 @@ Each tool can launch the others directly from its menu, so you can flow from set
 |---|---|---|---|---|
 | ESP32-S3 | Yes | Yes | Yes | Best all-around choice |
 | ESP32-S2 | Yes | Yes | No | Good budget option |
-| ESP32-P4 | Yes | Yes | No | High performance |
+| ESP32-P4 | Yes | No | No | High performance, USB only |
 | ESP32 Classic | No | Yes | Yes | WiFi/Serial only |
 | ESP32-C3/C5/C6 | No | Yes | Yes | Compact, RISC-V |
 | ESP32-H2 | No | No | Yes | BLE only |
