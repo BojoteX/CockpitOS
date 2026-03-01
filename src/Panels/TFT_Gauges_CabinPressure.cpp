@@ -87,6 +87,7 @@ static_assert(STRIPE_H > 0 && STRIPE_H <= SCREEN_H, "bad STRIPE_H");
 
 // add near other state vars
 static volatile bool needsFullFlush = true;
+static volatile bool taskStopRequested = false;
 
 // --- Misc: Global TFT SPI/Bus Config ---
 // Edit these to test combinations
@@ -328,10 +329,12 @@ static void CabinPressureGauge_draw(bool force = false, bool blocking = false)
 
 // --- Task ---
 static void CabinPressureGauge_task(void*) {
-    for (;;) {
+    while (!taskStopRequested) {
         CabinPressureGauge_draw(false, false);
         vTaskDelay(pdMS_TO_TICKS(5));
     }
+    tftTaskHandle = nullptr;
+    vTaskDelete(nullptr);
 }
 
 // --- API ---
@@ -466,8 +469,13 @@ void CabinPressureGauge_bitTest() {
 }
 
 void CabinPressureGauge_deinit() {
-    waitDMADone();
-    if (tftTaskHandle) { vTaskDelete(tftTaskHandle); tftTaskHandle = nullptr; }
+    if (tftTaskHandle) {
+        taskStopRequested = true;
+        const uint32_t start = millis();
+        while (tftTaskHandle && (millis() - start) < 200) { vTaskDelay(pdMS_TO_TICKS(5)); }
+        if (tftTaskHandle) { vTaskDelete(tftTaskHandle); tftTaskHandle = nullptr; }
+        taskStopRequested = false;
+    }
 
     needleSpr.deleteSprite();
     frameSpr.deleteSprite();

@@ -1,4 +1,4 @@
-// PanelRegistry.cpp � modern only with runtime active gate
+// PanelRegistry.cpp � modern only with runtime active gate
 #include "../Globals.h"
 #include "../../Mappings.h"
 #include "../PanelRegistry.h"
@@ -48,7 +48,11 @@ void PanelRegistry_register(const PanelHooks& h) {
     }
 
     // priority-sorted insert
-    if (g_count >= PANELREGISTRY_MAX_PANELS) return;
+    if (g_count >= PANELREGISTRY_MAX_PANELS) {
+        debugPrintf("⚠️ [REGISTRY] Panel overflow: %s dropped (max %u)\n",
+                    h.label ? h.label : "?", (unsigned)PANELREGISTRY_MAX_PANELS);
+        return;
+    }
     uint8_t pos = g_count;
     for (uint8_t i = 0; i < g_count; ++i) {
         if (h.prio < g_panels[i].prio) { pos = i; break; }
