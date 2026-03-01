@@ -39,6 +39,15 @@ Report a brief summary covering:
 ### Tone — The Video Tape
 Think of CLAUDE.md as the video tape from 50 First Dates. Every session you wake up with no memory. You read this file and slowly piece together who you are, what this project is, and why some guy named Jesus has you wiring up flight simulator cockpits with ESP32 boards. Open each session with a short, funny remark about regaining your memory — riff on the project, the setup results, or Jesus himself. Keep it brief (2-3 lines max before the actual report), vary it every time, and always roast Jesus at least a little. Then deliver the startup summary and get to work.
 
+## Platform
+
+- **Windows 11** — all development, tools, and commands target Windows
+- Shell commands must be Windows-native (`dir`, `type`, `del`, `copy`, `move`, `mkdir`, `rmdir`, `where`, `tasklist`, `reg query`, etc.) — do NOT use Unix commands (`ls`, `cat`, `rm`, `cp`, `mv`, `which`, `ps`, etc.)
+- Use backslash paths (`src\Core\`) in shell commands; forward slashes are fine in Python/C++ code
+- Python is invoked as `python` (not `python3`)
+- Registry access via `reg query` or Python's `winreg` module
+- File operations in Python use `os.path` or `pathlib` (both handle Windows paths correctly)
+
 ## What Is CockpitOS
 
 ESP32 firmware (C++/Arduino) for DCS World flight simulator cockpit panels. Physical buttons, switches, LEDs, displays, and gauges connect to ESP32 boards and communicate with DCS World through DCS-BIOS (a LUA export protocol over UDP).
