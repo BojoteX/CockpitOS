@@ -1,11 +1,24 @@
 # Changelog
 
-## v1.2.2 — 2026-03-01
+## v1.2.3 — 2026-03-01
 
 ### Improved
 - Misc bug fixes
-- Misc bug fixes
 - BLE HID Implementation
+- Small BLE cache fix
+
+## v1.2.2 — 2026-03-01
+
+### Added
+- Implemented BLE mode as transport
+
+### Improved
+- Cleanup BLE Settings
+- Set IFEI as default Label Set
+- Cleanup and misc changes
+
+### Fixed
+- Bug fixing and maintenance
 
 ## v1.2.1 — 2026-02-28
 
