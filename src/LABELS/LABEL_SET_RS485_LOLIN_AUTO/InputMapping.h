@@ -20,7 +20,7 @@ struct InputMapping {
 //  label                       source     port bit hidId  DCSCommand           value   Type        group  rel
 static const InputMapping InputMappings[] = {
     { "PLT_CMWS_ARM_SAFE"      , "GPIO" , -1 ,  0 ,  -1 , "PLT_CMWS_ARM"     ,     0 , "selector"                      ,  1 ,  0 },
-    { "PLT_CMWS_ARM_ARM"       , "GPIO" ,  1 ,  0 ,  -1 , "PLT_CMWS_ARM"     ,     1 , "selector"                      ,  1 ,  0 },
+    { "PLT_CMWS_ARM_ARM"       , "GPIO" ,  0 ,  0 ,  -1 , "PLT_CMWS_ARM"     ,     1 , "selector"                      ,  1 ,  0 },
     { "PLT_CMWS_BYPASS_AUTO"   , "NONE" ,  0 ,  0 ,  -1 , "PLT_CMWS_BYPASS"  ,     0 , "selector"                      ,  2 ,  0 },
     { "PLT_CMWS_BYPASS_BYPASS" , "NONE" ,  0 ,  0 ,  -1 , "PLT_CMWS_BYPASS"  ,     1 , "selector"                      ,  2 ,  0 },
     { "PLT_CMWS_JETT_POS0"     , "NONE" ,  0 ,  0 ,  -1 , "PLT_CMWS_JETT"    ,     0 , "selector"                      ,  3 ,  0 },
@@ -30,8 +30,8 @@ static const InputMapping InputMappings[] = {
     { "PLT_CMWS_LAMP"          , "NONE" ,  0 ,  0 ,  -1 , "PLT_CMWS_LAMP"    , 65535 , "analog"                        ,  0 ,  0 },
     { "PLT_CMWS_LAMP_DEC"      , "NONE" ,  0 ,  0 ,  -1 , "PLT_CMWS_LAMP"    ,     0 , "variable_step"                 ,  0 ,  0 },
     { "PLT_CMWS_LAMP_INC"      , "NONE" ,  0 ,  0 ,  -1 , "PLT_CMWS_LAMP"    ,     1 , "variable_step"                 ,  0 ,  0 },
-    { "PLT_CMWS_MODE_NAV"      , "GPIO" , -1 ,  0 ,  -1 , "PLT_CMWS_MODE"    ,     0 , "selector"                      ,  5 ,  0 },
-    { "PLT_CMWS_MODE_CMWS"     , "GPIO" ,  0 ,  0 ,  -1 , "PLT_CMWS_MODE"    ,     1 , "selector"                      ,  5 ,  0 },
+    { "PLT_CMWS_MODE_NAV"      , "NONE" ,  0 ,  0 ,  -1 , "PLT_CMWS_MODE"    ,     0 , "selector"                      ,  5 ,  0 },
+    { "PLT_CMWS_MODE_CMWS"     , "NONE" ,  0 ,  0 ,  -1 , "PLT_CMWS_MODE"    ,     1 , "selector"                      ,  5 ,  0 },
     { "PLT_CMWS_PW_TEST"       , "NONE" ,  0 ,  0 ,  -1 , "PLT_CMWS_PW"      ,     0 , "3pos_2command_switch_openclose",  6 ,  0 },
     { "PLT_CMWS_PW_ON"         , "NONE" ,  0 ,  0 ,  -1 , "PLT_CMWS_PW"      ,     1 , "3pos_2command_switch_openclose",  6 ,  0 },
     { "PLT_CMWS_PW_OFF"        , "NONE" ,  0 ,  0 ,  -1 , "PLT_CMWS_PW"      ,     2 , "3pos_2command_switch_openclose",  6 ,  0 },

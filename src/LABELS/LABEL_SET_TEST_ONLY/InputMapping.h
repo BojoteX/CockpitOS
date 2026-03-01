@@ -26,7 +26,7 @@ static const InputMapping InputMappings[] = {
     { "ENGINE_CRANK_SW_LEFT"          , "NONE" ,  0 ,  0 ,  -1 , "ENGINE_CRANK_SW",     2 , "selector" ,  2 ,  0 },
     { "MASTER_ARM_SW_SAFE"            , "NONE" ,  0 ,  0 ,  -1 , "MASTER_ARM_SW"  ,     0 , "selector" ,  3 ,  0 },
     { "MASTER_ARM_SW_ARM"             , "NONE" ,  0 ,  0 ,  -1 , "MASTER_ARM_SW"  ,     1 , "selector" ,  3 ,  0 },
-    { "MASTER_MODE_AA"                , "NONE" ,  0 ,  0 ,  -1 , "MASTER_MODE_AA" ,     1 , "momentary",  0 ,  0 },
+    { "MASTER_MODE_AA"                , "GPIO" ,  0 ,  0 ,  -1 , "MASTER_MODE_AA" ,     1 , "momentary",  0 ,  0 },
     { "MASTER_MODE_AG"                , "NONE" ,  0 ,  0 ,  -1 , "MASTER_MODE_AG" ,     1 , "momentary",  0 ,  0 },
     { "ENGINE_CRANK_SW_CUSTOM_PRESS"  , "GPIO" ,  3 ,  0 ,  -1 , "ENGINE_CRANK_SW",     2 , "momentary",  0 ,  1 },
     { "ENGINE_CRANK_SW_CUSTOM_2_PRESS", "GPIO" ,  2 ,  0 ,  -1 , "ENGINE_CRANK_SW",     0 , "momentary",  0 ,  1 },
