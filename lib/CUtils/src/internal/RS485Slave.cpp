@@ -485,7 +485,7 @@ static void IRAM_ATTR uart_isr_handler(void* arg) {
                 if (rxDataType == RXDATA_DCSBIOS_EXPORT) {
                     if (exportBufferAvailableForWrite() == 0) {
                         // Buffer overflow! Force re-sync (match AVR behavior)
-                        statExportOverflows++;
+                        statExportOverflows = statExportOverflows + 1;
                         state = SlaveState::RX_SYNC;
                         lastRxTime = now;
                         exportReadPos = 0;

@@ -14,9 +14,6 @@
 #define RS485_RX_PIN                             18             // GPIO for RX (connect to RS485 board RO)
 #define RS485_DE_PIN                             21             // Direction enable pin (-1 if auto-direction)
 
-// --- RS485 Test Pins --------------------------------------
-#define RS485_TEST_BUTTON_GPIO                   0              // Test button GPIO (-1 to disable)
-
 // --- Preserved (not managed by editor) --------------------
 // Used by PCA9555 expanders, OLED displays, or any I2C peripherals.
 

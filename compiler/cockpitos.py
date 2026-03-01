@@ -368,9 +368,9 @@ def configure_advanced_settings():
         warn("HID mode is configured on the master or standalone device.")
         print()
 
-    if role != "slave" and transport != "usb":
+    if role != "slave" and transport not in ("usb", "ble"):
         print()
-        error("HID mode requires USB transport. "
+        error("HID mode requires USB or BLE transport. "
               "Current config will fail to compile if HID is enabled.")
         print()
 
