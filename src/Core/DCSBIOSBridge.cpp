@@ -215,7 +215,8 @@ public:
     DcsBiosSniffer(): 
         // DcsBios::ExportStreamListener(0x0000, 0x77FF), // Old version (Hornet Only)
         // DcsBios::ExportStreamListener(0x0000, 0x87A6), // Apache
-        DcsBios::ExportStreamListener(0x0000, 0xFFFD),
+        // DcsBios::ExportStreamListener(0x0000, 0xFFFD),
+        DcsBios::ExportStreamListener(0x0000, 0xFFFE),
 
         pendingUpdateCount(0),
         pendingUpdateOverflow(0),
@@ -223,7 +224,7 @@ public:
         _streamUp(false)
     {}
 
-    void onDcsBiosWrite(unsigned int addr, unsigned int value) override {
+    void onDcsBiosWrite(uint16_t addr, uint16_t value) override {
 
     #if DEBUG_LISTENERS_AT_STARTUP
         // === DISPATCH DEBUG ===

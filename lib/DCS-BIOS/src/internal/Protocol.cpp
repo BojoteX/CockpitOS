@@ -31,7 +31,7 @@ namespace DcsBios {
 				break;
 
 			case DCSBIOS_STATE_ADDRESS_HIGH:
-				address = (c << 8) | address;
+				address = ((uint16_t)c << 8) | address;
 				if (address != 0x5555) state = DCSBIOS_STATE_COUNT_LOW;
 				else state = DCSBIOS_STATE_WAIT_FOR_SYNC;
 				break;
@@ -42,7 +42,7 @@ namespace DcsBios {
 				break;
 
 			case DCSBIOS_STATE_COUNT_HIGH:
-				count = (c << 8) | count;
+				count = ((uint16_t)c << 8) | count;
 				state = DCSBIOS_STATE_DATA_LOW;
 				break;
 
@@ -53,7 +53,7 @@ namespace DcsBios {
 				break;
 
 			case DCSBIOS_STATE_DATA_HIGH:
-				data = (c << 8) | data;
+				data = ((uint16_t)c << 8) | data;
 				count = count - 1;
 
 				// We have processed at least one payload word in this frame.
