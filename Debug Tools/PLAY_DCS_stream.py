@@ -21,7 +21,7 @@ export rate, so we don't use it unless explicitly requested via --raw-timing.
 All prompts can be bypassed via CLI flags for scripting:
     python PLAY_DCS_stream.py                    # Interactive (default)
     python PLAY_DCS_stream.py --stream LAST      # Skip stream picker
-    python PLAY_DCS_stream.py --split-frames     # Skip split prompt (use firmware UDP_MAX_SiZE)
+    python PLAY_DCS_stream.py --split-frames     # Skip split prompt (use firmware UDP_MAX_SIZE)
     python PLAY_DCS_stream.py --chunk-size 512   # Split at 512B (implies --split-frames)
     python PLAY_DCS_stream.py --fps 60           # Fixed 60 FPS
     python PLAY_DCS_stream.py --raw-timing       # Use recorded timing
@@ -96,12 +96,12 @@ DEFAULT_CHUNK_SIZE = 1460
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _read_firmware_udp_max_size():
-    """Read UDP_MAX_SiZE from ../Config.h. Returns (value, True) or (fallback, False)."""
+    """Read UDP_MAX_SIZE from ../Config.h. Returns (value, True) or (fallback, False)."""
     config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "Config.h")
     try:
         with open(config_path, "r") as f:
             for line in f:
-                m = _re.match(r'^\s*#define\s+UDP_MAX_SiZE\s+(\d+)', line)
+                m = _re.match(r'^\s*#define\s+UDP_MAX_SIZE\s+(\d+)', line)
                 if m:
                     return int(m.group(1)), True
     except OSError:
@@ -652,7 +652,7 @@ def main():
 
         if split_enabled:
             # Build chunk size options dynamically from detected values
-            fw_label = f"{_FIRMWARE_CHUNK}B — CockpitOS firmware UDP_MAX_SiZE"
+            fw_label = f"{_FIRMWARE_CHUNK}B — CockpitOS firmware UDP_MAX_SIZE"
             if _FIRMWARE_FOUND:
                 fw_label += f" {DIM}(from Config.h, recommended){RESET}"
             else:

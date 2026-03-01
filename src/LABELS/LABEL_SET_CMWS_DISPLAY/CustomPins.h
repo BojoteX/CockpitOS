@@ -9,6 +9,9 @@
 #define ENABLE_TFT_GAUGES                        1              // Enable TFT gauge rendering (only if TFT displays are present)
 #define ENABLE_PCA9555                           0              // Enable PCA9555 I/O expander logic (only if PCA chips are present)
 
+// --- WS2812 Addressable LEDs ------------------------------
+#define WS2812B_PIN                              21             // Data line for WS2812B LED strip
+
 // --- RS485 Communication ----------------------------------
 #define RS485_TX_PIN                             17             // GPIO for TX (connect to RS485 board DI)
 #define RS485_RX_PIN                             18             // GPIO for RX (connect to RS485 board RO)

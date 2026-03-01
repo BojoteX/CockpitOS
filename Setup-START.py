@@ -597,7 +597,7 @@ def get_dcsbios_dev_version():
 # =============================================================================
 #  DCS-BIOS MTU / MAX_PAYLOAD_SIZE patch
 # =============================================================================
-DCSBIOS_RECOMMENDED_MTU = 1460  # Must match Config.h UDP_MAX_SiZE
+DCSBIOS_RECOMMENDED_MTU = 1460  # Must match Config.h UDP_MAX_SIZE
 
 
 def _get_connection_manager_path(dcs_path):
@@ -1242,7 +1242,7 @@ def _find_extracted_bios(extract_dir):
 
 
 def action_fix_dcsbios_mtu():
-    """Patch DCS-BIOS MAX_PAYLOAD_SIZE to match firmware UDP_MAX_SiZE (1460).
+    """Patch DCS-BIOS MAX_PAYLOAD_SIZE to match firmware UDP_MAX_SIZE (1460).
 
     The default DCS-BIOS value (2048) exceeds the ESP32 firmware receive buffer,
     causing IP fragmentation and data loss over WiFi. This patches

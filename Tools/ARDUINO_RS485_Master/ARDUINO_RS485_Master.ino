@@ -236,7 +236,7 @@ public:
     __attribute__((always_inline)) void tx_byte(uint8_t c) { set_txen(); *udr = c; *ucsra |= (1<<TXC0); };
     __attribute__((always_inline)) void set_udrie() { *ucsrb |= (1<<UDRIE0); }
     __attribute__((always_inline)) void clear_udrie() { *ucsrb &= ~(1<<UDRIE0); }
-    DcsBios::RingBuffer<128> exportData;
+    DcsBios::RingBuffer<256> exportData;
     DcsBios::RingBuffer<32> messageBuffer;
     volatile bool slave_present[128];
     volatile uint8_t state;

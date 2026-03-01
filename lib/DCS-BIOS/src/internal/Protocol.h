@@ -15,13 +15,13 @@
 namespace DcsBios {
 	class ProtocolParser {
 	private:
-		volatile unsigned char state;
-		volatile uint16_t address;
-		volatile uint16_t count;
-		volatile uint16_t data;
-		volatile unsigned char sync_byte_count;
+		unsigned char state;
+		uint16_t address;
+		uint16_t count;
+		uint16_t data;
+		unsigned char sync_byte_count;
 		ExportStreamListener* startESL;
-		volatile bool processingData;
+		bool processingData;
 	public:
 		void processChar(unsigned char c);
 		ProtocolParser();

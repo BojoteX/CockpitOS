@@ -38,7 +38,7 @@
 #define RS485_TX_PRE_DE_DELAY_US                   40 // AVR slave sends a phantom 0x00 byte (~40us) with DE low before responding — without this delay the ESP32 responds before the AVR master exits its TXC ISR, causing UDR overrun
 
 // RS485 *** [ Master ] *** (Option only work when RS485_MASTER_ENABLED is set to 1)
-#define RS485_SMART_MODE                            0 // If enabled, filters by DcsOutputTable (only addresses your slaves need). see selected_panels.txt in your panel LABEL SET. Keep in mind SMART mode reduces BANDWIDTH on the RS485 bus at the expense of slightly increased LATENCY (due to filtering)
+#define RS485_SMART_MODE                            0 // If enabled, filters by DcsOutputTable (only addresses your slaves need). see selected_panels.txt in your panel LABEL SET. 
 #define RS485_MAX_SLAVE_ADDRESS                    32 // Maximum slave address to poll (valid range: 1-127).        
 
 // RS485 *** General Setting *** 
@@ -121,7 +121,7 @@
 #define SUPRESS_REBOOT_VIA_CDC                      0 // Enabling this sets Serial.enableReboot(false) so device can NOT be reset via CDC
 #define SEND_HID_AXES_IN_DCS_MODE                   0 // Sends HID Axes even if DCS Mode is active
 #define SCAN_WIFI_NETWORKS                          0 // For debugging and see what networks the device sees (this outputs to Serial interface ONLY, as it can't output to WiFi if it has not connected yet)
-#define UDP_MAX_SiZE                             1460 // Max size for UDP packets (safe for DCS-BIOS UDP communication, which is usually well below this limit)
+#define UDP_MAX_SIZE                             1460 // Max size for UDP packets (safe for DCS-BIOS UDP communication, which is usually well below this limit)
 #define DCSBIOS_USE_LITE_VERSION                    1 // Set to 1 to use a LITE (local) version of the DCSBIOS Library. 0 Uses the Original unmodified Library (you'll need to install it)
 
 // Serial Debug Ring Buffer
@@ -141,7 +141,7 @@
   #define WIFI_DBG_MSG_MAXLEN                      64 // Max size for each slot
 #else
   #define WIFI_DBG_SEND_RINGBUF_SIZE                0 // How many slots in our buffer
-  #define WIFI_DBG_MSG_MAXLEN            UDP_MAX_SiZE // Max size for each slot
+  #define WIFI_DBG_MSG_MAXLEN            UDP_MAX_SIZE // Max size for each slot
 #endif
 
 // DCS Commands USB Send Ring Buffer (outgoing packets) - *MANDATORY* this one is REQUIRED to be set to send via USB pipe for transport (due to 64 byte report size limitation)
@@ -159,11 +159,11 @@
   #if USE_DCSBIOS_WIFI || USE_DCSBIOS_BLUETOOTH
     #define DCS_USE_RINGBUFFER                    1  // Enforces WiFi/BLE use of a ring buffer for the incoming DCS Stream data (otherwise it will crash)
     #define DCS_UDP_RINGBUF_SIZE                 16  // Number of UDP packets buffered (reduced from 64: larger slots need fewer entries)
-    #define DCS_UDP_PACKET_MAXLEN      UDP_MAX_SiZE  // Match full UDP frame size — eliminates multi-chunk ring buffer splits and the cross-core race they cause
+    #define DCS_UDP_PACKET_MAXLEN      UDP_MAX_SIZE  // Match full UDP frame size — eliminates multi-chunk ring buffer splits and the cross-core race they cause
   #else 
     #define DCS_USE_RINGBUFFER                    0  // No need for it as Wi-Fi/BLE for DCS-BIOS is not active.
     #define DCS_UDP_RINGBUF_SIZE                  0  // Number of BLE packets buffered (tune as needed)
-    #define DCS_UDP_PACKET_MAXLEN      UDP_MAX_SiZE  // Max BLE packet size (safe for Incoming BLE from DCS-BIOS)
+    #define DCS_UDP_PACKET_MAXLEN      UDP_MAX_SIZE  // Max BLE packet size (safe for Incoming BLE from DCS-BIOS)
   #endif
 #endif
 
@@ -172,12 +172,12 @@
 #define DEBUGPRINTF_GENERAL_TMP_BUFFER          256 // Buffer size for DEBUG out Serial messages when using DebugPrintf
 #define SERIAL_DEBUG_BUFFER_SIZE                256 // Buffer size for DEBUG out Serial messages when using serialDebugPrintf
 #define WIFI_DEBUG_BUFFER_SIZE                  256 // Buffer size for DEBUG out WiFi messages when using wifiDebugPrintf
-#define UDP_TMPBUF_SIZE                UDP_MAX_SiZE // UDP Out Temp buffer
+#define UDP_TMPBUF_SIZE                UDP_MAX_SIZE // UDP Out Temp buffer
 #define PERF_TMPBUF_SIZE                       1024 // Temp Buffer size for Performance Append logic
 #define SERIAL_DEBUG_FLUSH_BUFFER_SIZE         2048 // Big enough for your largest full message (tune as needed)
 
 #define SERIAL_DEBUG_OUTPUT_CHUNK_SIZE           64 // Final Serial.write will use this value to chunk writes
-#define DCS_UDP_MAX_REASSEMBLED        UDP_MAX_SiZE // Or whatever max UDP/Frame size you want
+#define DCS_UDP_MAX_REASSEMBLED        UDP_MAX_SIZE // Or whatever max UDP/Frame size you want
 
 // Stringize helpers (undef to override any framework defaults)
 #undef _STR

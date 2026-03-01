@@ -7,7 +7,7 @@ namespace DcsBios {
 		uint16_t firstAddressOfInterest;
 		uint16_t lastAddressOfInterest;
 	public:
-		virtual void onDcsBiosWrite(unsigned int address __attribute__((unused)), unsigned int value __attribute__((unused))) {}
+		virtual void onDcsBiosWrite(uint16_t address __attribute__((unused)), uint16_t value __attribute__((unused))) {}
 		virtual void onConsistentData() {}
 		ExportStreamListener* nextExportStreamListener;
 		inline uint16_t getFirstAddressOfInterest() { return firstAddressOfInterest; }
