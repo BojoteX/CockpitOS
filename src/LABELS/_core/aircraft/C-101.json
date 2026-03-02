@@ -5043,7 +5043,7 @@
                                                 "CC_FRONT_HUD_DEPRESS_MODE": {
                                                                                      "category": "Colimador",
                                                                                  "control_type": "selector",
-                                                                                  "description": "C-101CC FRONT HUD Depression AUTO/MAN/TEST",
+                                                                                  "description": "C-101CC FRONT HUD Depression",
                                                                                    "identifier": "CC_FRONT_HUD_DEPRESS_MODE",
                                                                                        "inputs": [ {
                                                                                                      "description": "switch to previous or next state",
@@ -5062,7 +5062,8 @@
                                                                                                                           "shift_by": 14,
                                                                                                                             "suffix": "",
                                                                                                                               "type": "integer"
-                                                                                                 } ]
+                                                                                                 } ],
+                                                                                    "positions": [ "AUTO", "MAN", "TEST" ]
                                                                              },
                                                  "CC_FRONT_HUD_DEPRESS_X0X": {
                                                                                      "category": "Colimador",
@@ -5163,7 +5164,7 @@
                                                        "CC_FRONT_HUD_VIDEO": {
                                                                                      "category": "Colimador",
                                                                                  "control_type": "selector",
-                                                                                  "description": "C-101CC FRONT Video ON/STB/OFF",
+                                                                                  "description": "C-101CC FRONT Video",
                                                                                    "identifier": "CC_FRONT_HUD_VIDEO",
                                                                                        "inputs": [ {
                                                                                                      "description": "switch to previous or next state",
@@ -5182,7 +5183,8 @@
                                                                                                                           "shift_by": 6,
                                                                                                                             "suffix": "",
                                                                                                                               "type": "integer"
-                                                                                                 } ]
+                                                                                                 } ],
+                                                                                    "positions": [ "ON", "STB", "OFF" ]
                                                                              }
                                             },
                         "Electrical Panel": {
@@ -5512,7 +5514,7 @@
                                                           "FRONT_GEN_SW": {
                                                                                   "category": "Electrical Panel",
                                                                               "control_type": "selector",
-                                                                               "description": "FRONT Generator ON/OFF/RESET",
+                                                                               "description": "FRONT Generator",
                                                                                 "identifier": "FRONT_GEN_SW",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",
@@ -5531,7 +5533,8 @@
                                                                                                                        "shift_by": 9,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "ON", "OFF", "RESET" ]
                                                                           },
                                                      "FRONT_GEN_TEST_SW": {
                                                                                   "category": "Electrical Panel",
@@ -6928,7 +6931,7 @@
                                                        "FRONT_LIGHTS_FOR": {
                                                                                    "category": "External Lights",
                                                                                "control_type": "selector",
-                                                                                "description": "FRONT Formation Lights Switch, DIM/OFF/BRIGHT",
+                                                                                "description": "FRONT Formation Lights Switch",
                                                                                  "identifier": "FRONT_LIGHTS_FOR",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -6947,12 +6950,13 @@
                                                                                                                         "shift_by": 0,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "DIM", "OFF", "BRIGHT" ]
                                                                            },
                                                        "FRONT_LIGHTS_NAV": {
                                                                                    "category": "External Lights",
                                                                                "control_type": "selector",
-                                                                                "description": "FRONT Navigation Lights Switch, DIM/OFF/BRIGHT",
+                                                                                "description": "FRONT Navigation Lights Switch",
                                                                                  "identifier": "FRONT_LIGHTS_NAV",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -6971,12 +6975,13 @@
                                                                                                                         "shift_by": 14,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "DIM", "OFF", "BRIGHT" ]
                                                                            },
                                                     "FRONT_LIGHTS_TAXI_L": {
                                                                                    "category": "External Lights",
                                                                                "control_type": "selector",
-                                                                                "description": "FRONT Left Taxi/Landing Lights Switch, RETRACT/TAXI/LAND",
+                                                                                "description": "FRONT Left Taxi/Landing Lights Switch",
                                                                                  "identifier": "FRONT_LIGHTS_TAXI_L",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -6995,12 +7000,13 @@
                                                                                                                         "shift_by": 2,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "RETRACT", "TAXI", "LAND" ]
                                                                            },
                                                     "FRONT_LIGHTS_TAXI_R": {
                                                                                    "category": "External Lights",
                                                                                "control_type": "selector",
-                                                                                "description": "FRONT Right Taxi/Landing Lights Switch, RETRACT/TAXI/LAND",
+                                                                                "description": "FRONT Right Taxi/Landing Lights Switch",
                                                                                  "identifier": "FRONT_LIGHTS_TAXI_R",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -7019,7 +7025,8 @@
                                                                                                                         "shift_by": 4,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "RETRACT", "TAXI", "LAND" ]
                                                                            }
                                             },
                          "Flight Director": {
@@ -15606,7 +15613,7 @@
                                                          "CC_BACK_VHF_COMM_PW": {
                                                                                         "category": "VHF",
                                                                                     "control_type": "selector",
-                                                                                     "description": "C-101CC BACK VHF COMM Switch OFF/PWR/TEST",
+                                                                                     "description": "C-101CC BACK VHF COMM Switch",
                                                                                       "identifier": "CC_BACK_VHF_COMM_PW",
                                                                                           "inputs": [ {
                                                                                                         "description": "switch to previous or next state",
@@ -15625,7 +15632,8 @@
                                                                                                                              "shift_by": 11,
                                                                                                                                "suffix": "",
                                                                                                                                  "type": "integer"
-                                                                                                    } ]
+                                                                                                    } ],
+                                                                                       "positions": [ "OFF", "PWR", "TEST" ]
                                                                                 },
                                                         "CC_BACK_VHF_COMM_VOL": {
                                                                                         "category": "VHF",
@@ -15825,7 +15833,7 @@
                                                         "CC_FRONT_VHF_COMM_PW": {
                                                                                         "category": "VHF",
                                                                                     "control_type": "selector",
-                                                                                     "description": "C-101CC FRONT VHF COMM Switch OFF/PWR/TEST",
+                                                                                     "description": "C-101CC FRONT VHF COMM Switch",
                                                                                       "identifier": "CC_FRONT_VHF_COMM_PW",
                                                                                           "inputs": [ {
                                                                                                         "description": "switch to previous or next state",
@@ -15844,7 +15852,8 @@
                                                                                                                              "shift_by": 13,
                                                                                                                                "suffix": "",
                                                                                                                                  "type": "integer"
-                                                                                                    } ]
+                                                                                                    } ],
+                                                                                       "positions": [ "OFF", "PWR", "TEST" ]
                                                                                 },
                                                        "CC_FRONT_VHF_COMM_VOL": {
                                                                                         "category": "VHF",

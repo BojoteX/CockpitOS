@@ -50,6 +50,10 @@ MANIFEST = {
         "library": "LovyanGFX",
         "version": "1.2.19",
     },
+    "nimble": {
+        "library": "NimBLE-Arduino",
+        "version": "2.3.7",
+    },
     "hid_manager_deps": {
         "packages": {
             "hid":      "hidapi",
@@ -73,6 +77,7 @@ MANIFEST = {
 MANIFEST_DEFAULTS = {
     "esp32_core_version": "3.3.6",
     "lovyangfx_version":  "1.2.19",
+    "nimble_version":     "2.3.7",
     "dcsbios_release":    "latest",
 }
 
@@ -96,6 +101,12 @@ REV      = "\033[7m"
 HIDE_CUR = "\033[?25l"
 SHOW_CUR = "\033[?25h"
 ERASE_LN = "\033[2K"
+
+_ANSI_RE = re.compile(r'\033\[[^m]*m')
+
+def _visible_len(s):
+    """Return the visible length of a string after stripping ANSI codes."""
+    return len(_ANSI_RE.sub('', s))
 
 
 def _enable_ansi():
@@ -691,50 +702,39 @@ def retry(label, fn, retries=MAX_RETRIES):
 #  Status display (shown on main screen, like compiler tool)
 # =============================================================================
 def show_status():
-    """Show current environment state below the banner.
+    """Show current environment state below the banner in two columns.
+
+    Left column:  DCS-BIOS / Platform (cli, core, DCS-BIOS, MTU)
+    Right column: Libraries (LovyanGFX, NimBLE-Arduino, HID Manager deps)
 
     Returns True if any DCS-BIOS installation has a mismatched MTU value
     (i.e. the "Fix DCS-BIOS MTU" menu option should be shown).
     """
     cli_ver = get_cli_version()
     core_ver = get_installed_core_version(MANIFEST["esp32_core"]["platform"])
-    lib_ver = get_installed_lib_version(MANIFEST["lovyangfx"]["library"])
+    lovyan_ver = get_installed_lib_version(MANIFEST["lovyangfx"]["library"])
+    nimble_ver = get_installed_lib_version(MANIFEST["nimble"]["library"])
 
     rec_core = MANIFEST["esp32_core"]["version"]
-    rec_lib = MANIFEST["lovyangfx"]["version"]
+    rec_lovyan = MANIFEST["lovyangfx"]["version"]
+    rec_nimble = MANIFEST["nimble"]["version"]
+
+    # ---- Build left column (Platform / DCS) ----
+    left = []
 
     # CLI
     if cli_ver:
-        _w(f"     \U0001f527 {CYAN}arduino-cli v{cli_ver}{RESET}  {DIM}(bundled){RESET}\n")
+        left.append(f" \U0001f527 {CYAN}arduino-cli v{cli_ver}{RESET}  {DIM}(bundled){RESET}")
     else:
-        _w(f"     \U0001f527 {RED}arduino-cli NOT FOUND{RESET}\n")
+        left.append(f" \U0001f527 {RED}arduino-cli NOT FOUND{RESET}")
 
     # ESP32 Core
     if core_ver is None:
-        _w(f"     \U0001f4e6 {RED}ESP32 Core: NOT INSTALLED{RESET}\n")
+        left.append(f" \U0001f4e6 {RED}ESP32 Core: NOT INSTALLED{RESET}")
     elif version_tuple(core_ver) < version_tuple(rec_core):
-        _w(f"     \U0001f4e6 {YELLOW}ESP32 Core: v{core_ver}{RESET}  {DIM}(update available: {rec_core}){RESET}\n")
+        left.append(f" \U0001f4e6 {YELLOW}ESP32 Core: v{core_ver}{RESET}  {DIM}(update: {rec_core}){RESET}")
     else:
-        _w(f"     \U0001f4e6 {CYAN}ESP32 Core: v{core_ver}{RESET}\n")
-
-    # LovyanGFX
-    if lib_ver is None:
-        _w(f"     \U0001f4da {RED}LovyanGFX: NOT INSTALLED{RESET}\n")
-    elif version_tuple(lib_ver) < version_tuple(rec_lib):
-        _w(f"     \U0001f4da {YELLOW}LovyanGFX: v{lib_ver}{RESET}  {DIM}(update available: {rec_lib}){RESET}\n")
-    else:
-        _w(f"     \U0001f4da {CYAN}LovyanGFX: v{lib_ver}{RESET}\n")
-
-    # HID Manager deps
-    missing_deps = get_missing_hid_deps()
-    total_deps = len(MANIFEST["hid_manager_deps"]["packages"])
-    if not missing_deps:
-        _w(f"     \U0001f517 {CYAN}HID Manager deps: all installed{RESET}\n")
-    elif len(missing_deps) == total_deps:
-        _w(f"     \U0001f517 {RED}HID Manager deps: NOT INSTALLED{RESET}\n")
-    else:
-        names = ", ".join(pip for _, pip in missing_deps)
-        _w(f"     \U0001f517 {YELLOW}HID Manager deps: {len(missing_deps)} missing ({names}){RESET}\n")
+        left.append(f" \U0001f4e6 {CYAN}ESP32 Core: v{core_ver}{RESET}")
 
     # DCS-BIOS + MTU check
     mtu_needs_fix = False
@@ -743,23 +743,65 @@ def show_status():
         for dcs_label, dcs_path in dcs_list:
             ver = get_dcsbios_version(dcs_path)
             if ver:
-                _w(f"     \U0001f3ae {CYAN}DCS-BIOS ({dcs_label}): {ver}{RESET}\n")
-                # MTU check for this installation
+                left.append(f" \U0001f3ae {CYAN}DCS-BIOS ({dcs_label}): {ver}{RESET}")
                 mtu = get_dcsbios_mtu(dcs_path)
                 if mtu is not None:
                     if mtu == DCSBIOS_RECOMMENDED_MTU:
-                        _w(f"     \U0001f4e1 {GREEN}DCS-BIOS MTU: {mtu}{RESET}  {DIM}(OK){RESET}\n")
+                        left.append(f" \U0001f4e1 {GREEN}DCS-BIOS MTU: {mtu}{RESET}  {DIM}(OK){RESET}")
                     else:
-                        _w(f"     \U0001f4e1 {YELLOW}DCS-BIOS MTU: {mtu}{RESET}  {DIM}(should be {DCSBIOS_RECOMMENDED_MTU} — use Fix option below){RESET}\n")
+                        left.append(f" \U0001f4e1 {YELLOW}DCS-BIOS MTU: {mtu}{RESET}  {DIM}(fix below){RESET}")
                         mtu_needs_fix = True
             else:
-                _w(f"     \U0001f3ae {YELLOW}DCS-BIOS ({dcs_label}): not installed{RESET}\n")
+                left.append(f" \U0001f3ae {YELLOW}DCS-BIOS ({dcs_label}): not installed{RESET}")
     else:
         dev_ver = get_dcsbios_dev_version()
         if dev_ver:
-            _w(f"     \U0001f3ae {CYAN}DCS-BIOS (local): {dev_ver}{RESET}  {DIM}(Dev/DCS-BIOS-LUA){RESET}\n")
+            left.append(f" \U0001f3ae {CYAN}DCS-BIOS (local): {dev_ver}{RESET}  {DIM}(Dev){RESET}")
         else:
-            _w(f"     \U0001f3ae {DIM}DCS-BIOS: not installed{RESET}\n")
+            left.append(f" \U0001f3ae {DIM}DCS-BIOS: not installed{RESET}")
+
+    # ---- Build right column (Libraries) ----
+    right = []
+
+    # LovyanGFX
+    if lovyan_ver is None:
+        right.append(f" \U0001f4da {RED}LovyanGFX: NOT INSTALLED{RESET}")
+    elif version_tuple(lovyan_ver) < version_tuple(rec_lovyan):
+        right.append(f" \U0001f4da {YELLOW}LovyanGFX: v{lovyan_ver}{RESET}  {DIM}(update: {rec_lovyan}){RESET}")
+    else:
+        right.append(f" \U0001f4da {CYAN}LovyanGFX: v{lovyan_ver}{RESET}")
+
+    # NimBLE-Arduino
+    if nimble_ver is None:
+        right.append(f" \U0001f4da {RED}NimBLE-Arduino: NOT INSTALLED{RESET}")
+    elif version_tuple(nimble_ver) < version_tuple(rec_nimble):
+        right.append(f" \U0001f4da {YELLOW}NimBLE-Arduino: v{nimble_ver}{RESET}  {DIM}(update: {rec_nimble}){RESET}")
+    else:
+        right.append(f" \U0001f4da {CYAN}NimBLE-Arduino: v{nimble_ver}{RESET}")
+
+    # HID Manager deps
+    missing_deps = get_missing_hid_deps()
+    total_deps = len(MANIFEST["hid_manager_deps"]["packages"])
+    if not missing_deps:
+        right.append(f" \U0001f517 {CYAN}HID Manager deps: OK{RESET}")
+    elif len(missing_deps) == total_deps:
+        right.append(f" \U0001f517 {RED}HID Manager deps: NOT INSTALLED{RESET}")
+    else:
+        names = ", ".join(pip for _, pip in missing_deps)
+        right.append(f" \U0001f517 {YELLOW}HID deps: {len(missing_deps)} missing ({names}){RESET}")
+
+    # ---- Render two columns side by side ----
+    left_w = max((_visible_len(l) for l in left), default=0) + 4  # pad
+    rows = max(len(left), len(right))
+
+    _w(f"     {DIM}{'Platform / DCS':<{left_w}}{'Libraries'}{RESET}\n")
+    _w(f"     {DIM}{'-' * (left_w - 1):<{left_w}}{'-' * 14}{RESET}\n")
+
+    for i in range(rows):
+        lc = left[i] if i < len(left) else ""
+        rc = right[i] if i < len(right) else ""
+        pad = left_w - _visible_len(lc)
+        _w(f"    {lc}{' ' * pad}{rc}\n")
 
     _w("\n")
     return mtu_needs_fix
@@ -851,41 +893,48 @@ def action_setup():
     else:
         success(f"{m['platform']}@{installed}")
 
-    # --- Step 3: LovyanGFX ---
-    step_banner(3, total, "LovyanGFX Library")
-    m = MANIFEST["lovyangfx"]
-    installed = get_installed_lib_version(m["library"])
-    recommended = m["version"]
+    # --- Step 3: Libraries (LovyanGFX + NimBLE-Arduino) ---
+    step_banner(3, total, "Libraries (LovyanGFX + NimBLE-Arduino)")
 
-    if installed is None:
-        info(f"{m['library']} is {BOLD}not installed{RESET}.")
-        if confirm(f"Install {CYAN}{m['library']}@{recommended}{RESET}?"):
-            info(f"Installing {CYAN}{m['library']}@{recommended}{RESET}...")
-            rc, _, err = retry("LovyanGFX install",
-                               lambda: run_cli("lib", "install", f"{m['library']}@{recommended}"))
-            if rc != 0:
-                error(f"Install failed: {err.strip()}")
-                ok = False
+    for lib_key, skip_msg in [
+        ("lovyangfx", "Skipped. LovyanGFX is required for TFT display support."),
+        ("nimble",    "Skipped. NimBLE-Arduino is required for BLE transport."),
+    ]:
+        m = MANIFEST[lib_key]
+        installed = get_installed_lib_version(m["library"])
+        recommended = m["version"]
+
+        lib_spec = f"{m['library']}@{recommended}"
+
+        if installed is None:
+            info(f"{m['library']} is {BOLD}not installed{RESET}.")
+            if confirm(f"Install {CYAN}{lib_spec}{RESET}?"):
+                info(f"Installing {CYAN}{lib_spec}{RESET}...")
+                rc, _, err = retry(f"{m['library']} install",
+                                   lambda _s=lib_spec: run_cli("lib", "install", _s))
+                if rc != 0:
+                    error(f"Install failed: {err.strip()}")
+                    ok = False
+                else:
+                    success(f"{lib_spec} installed")
             else:
-                success(f"{m['library']}@{recommended} installed")
-        else:
-            warn("Skipped. LovyanGFX is required for TFT display support.")
-            ok = False
-    elif version_tuple(installed) < version_tuple(recommended):
-        warn(f"{m['library']}@{installed} is older than recommended {recommended}.")
-        if confirm(f"Update to {CYAN}{m['library']}@{recommended}{RESET}?"):
-            info(f"Installing {CYAN}{m['library']}@{recommended}{RESET}...")
-            rc, _, err = retry("LovyanGFX update",
-                               lambda: run_cli("lib", "install", f"{m['library']}@{recommended}"))
-            if rc != 0:
-                error(f"Update failed: {err.strip()}")
+                warn(skip_msg)
                 ok = False
+        elif version_tuple(installed) < version_tuple(recommended):
+            warn(f"{m['library']}@{installed} is older than recommended {recommended}.")
+            if confirm(f"Update to {CYAN}{lib_spec}{RESET}?"):
+                info(f"Installing {CYAN}{lib_spec}{RESET}...")
+                rc, _, err = retry(f"{m['library']} update",
+                                   lambda _s=lib_spec: run_cli("lib", "install", _s))
+                if rc != 0:
+                    error(f"Update failed: {err.strip()}")
+                    ok = False
+                else:
+                    success(f"{lib_spec} installed")
             else:
-                success(f"{m['library']}@{recommended} installed")
+                info(f"Keeping {m['library']}@{installed}.")
         else:
-            info(f"Keeping {m['library']}@{installed}.")
-    else:
-        success(f"{m['library']}@{installed}")
+            success(f"{m['library']}@{installed}")
 
     # --- Step 4: HID Manager Python Dependencies ---
     step_banner(4, total, "HID Manager Python Dependencies")
@@ -943,9 +992,11 @@ def action_reset_to_manifest():
     info("replacing whatever is currently installed:\n")
 
     m_core = MANIFEST["esp32_core"]
-    m_lib = MANIFEST["lovyangfx"]
+    m_lovyan = MANIFEST["lovyangfx"]
+    m_nimble = MANIFEST["nimble"]
     cur_core = get_installed_core_version(m_core["platform"]) or "none"
-    cur_lib = get_installed_lib_version(m_lib["library"]) or "none"
+    cur_lovyan = get_installed_lib_version(m_lovyan["library"]) or "none"
+    cur_nimble = get_installed_lib_version(m_nimble["library"]) or "none"
 
     missing_deps = get_missing_hid_deps()
     dep_status = f"{len(missing_deps)} missing" if missing_deps else "all installed"
@@ -954,12 +1005,15 @@ def action_reset_to_manifest():
     downgrades = []
     if cur_core != "none" and version_tuple(cur_core) > version_tuple(m_core["version"]):
         downgrades.append(f"ESP32 Core {cur_core} -> {m_core['version']}")
-    if cur_lib != "none" and version_tuple(cur_lib) > version_tuple(m_lib["version"]):
-        downgrades.append(f"LovyanGFX {cur_lib} -> {m_lib['version']}")
+    if cur_lovyan != "none" and version_tuple(cur_lovyan) > version_tuple(m_lovyan["version"]):
+        downgrades.append(f"LovyanGFX {cur_lovyan} -> {m_lovyan['version']}")
+    if cur_nimble != "none" and version_tuple(cur_nimble) > version_tuple(m_nimble["version"]):
+        downgrades.append(f"NimBLE-Arduino {cur_nimble} -> {m_nimble['version']}")
 
-    info(f"  {CYAN}ESP32 Core{RESET}   {cur_core} {DIM}->{RESET} {BOLD}{m_core['version']}{RESET}")
-    info(f"  {CYAN}LovyanGFX{RESET}    {cur_lib} {DIM}->{RESET} {BOLD}{m_lib['version']}{RESET}")
-    info(f"  {CYAN}HID Deps{RESET}     {dep_status} {DIM}-> reinstall all{RESET}")
+    info(f"  {CYAN}ESP32 Core{RESET}      {cur_core} {DIM}->{RESET} {BOLD}{m_core['version']}{RESET}")
+    info(f"  {CYAN}LovyanGFX{RESET}       {cur_lovyan} {DIM}->{RESET} {BOLD}{m_lovyan['version']}{RESET}")
+    info(f"  {CYAN}NimBLE-Arduino{RESET}  {cur_nimble} {DIM}->{RESET} {BOLD}{m_nimble['version']}{RESET}")
+    info(f"  {CYAN}HID Deps{RESET}        {dep_status} {DIM}-> reinstall all{RESET}")
     _w("\n")
 
     if not confirm("Proceed with reset?"):
@@ -996,14 +1050,16 @@ def action_reset_to_manifest():
     else:
         success(f"{m_core['platform']}@{m_core['version']} installed")
 
-    # Library
-    info(f"Installing {CYAN}{m_lib['library']}@{m_lib['version']}{RESET}...")
-    rc, _, err = retry("LovyanGFX install",
-                       lambda: run_cli("lib", "install", f"{m_lib['library']}@{m_lib['version']}"))
-    if rc != 0:
-        error(f"Failed: {err.strip()}")
-    else:
-        success(f"{m_lib['library']}@{m_lib['version']} installed")
+    # Libraries
+    for m_lib in (m_lovyan, m_nimble):
+        lib_spec = f"{m_lib['library']}@{m_lib['version']}"
+        info(f"Installing {CYAN}{lib_spec}{RESET}...")
+        rc, _, err = retry(f"{m_lib['library']} install",
+                           lambda _s=lib_spec: run_cli("lib", "install", _s))
+        if rc != 0:
+            error(f"Failed: {err.strip()}")
+        else:
+            success(f"{lib_spec} installed")
 
     # HID Manager deps
     pip_names = list(MANIFEST["hid_manager_deps"]["packages"].values())
@@ -1017,9 +1073,10 @@ def action_reset_to_manifest():
 
     _w("\n")
     big_success("Reset complete!", [
-        f"  ESP32 Core: {m_core['version']}",
-        f"  LovyanGFX:  {m_lib['version']}",
-        f"  HID Deps:   {' '.join(pip_names)}",
+        f"  ESP32 Core:      {m_core['version']}",
+        f"  LovyanGFX:       {m_lovyan['version']}",
+        f"  NimBLE-Arduino:  {m_nimble['version']}",
+        f"  HID Deps:        {' '.join(pip_names)}",
     ])
 
     _w(f"  {DIM}Press any key to return to menu...{RESET}")
@@ -1548,37 +1605,44 @@ def action_advanced_versions():
     while True:
         show_banner()
 
-        cur_core = MANIFEST["esp32_core"]["version"]
-        cur_lib = MANIFEST["lovyangfx"]["version"]
-        cur_bios = MANIFEST["dcsbios"]["release"]
+        cur_core   = MANIFEST["esp32_core"]["version"]
+        cur_lovyan = MANIFEST["lovyangfx"]["version"]
+        cur_nimble = MANIFEST["nimble"]["version"]
+        cur_bios   = MANIFEST["dcsbios"]["release"]
 
-        def_core = MANIFEST_DEFAULTS["esp32_core_version"]
-        def_lib = MANIFEST_DEFAULTS["lovyangfx_version"]
-        def_bios = MANIFEST_DEFAULTS["dcsbios_release"]
+        def_core   = MANIFEST_DEFAULTS["esp32_core_version"]
+        def_lovyan = MANIFEST_DEFAULTS["lovyangfx_version"]
+        def_nimble = MANIFEST_DEFAULTS["nimble_version"]
+        def_bios   = MANIFEST_DEFAULTS["dcsbios_release"]
 
         # Show current manifest state
         _w(f"  {BOLD}Advanced — Version Pinning{RESET}\n\n")
-        _w(f"     {CYAN}ESP32 Core{RESET}    {BOLD}{cur_core}{RESET}")
+        _w(f"     {CYAN}ESP32 Core{RESET}      {BOLD}{cur_core}{RESET}")
         if cur_core != def_core:
             _w(f"  {DIM}(default: {def_core}){RESET}")
         _w("\n")
-        _w(f"     {CYAN}LovyanGFX{RESET}     {BOLD}{cur_lib}{RESET}")
-        if cur_lib != def_lib:
-            _w(f"  {DIM}(default: {def_lib}){RESET}")
+        _w(f"     {CYAN}LovyanGFX{RESET}       {BOLD}{cur_lovyan}{RESET}")
+        if cur_lovyan != def_lovyan:
+            _w(f"  {DIM}(default: {def_lovyan}){RESET}")
         _w("\n")
-        _w(f"     {CYAN}DCS-BIOS{RESET}      {BOLD}{cur_bios}{RESET}")
+        _w(f"     {CYAN}NimBLE-Arduino{RESET}  {BOLD}{cur_nimble}{RESET}")
+        if cur_nimble != def_nimble:
+            _w(f"  {DIM}(default: {def_nimble}){RESET}")
+        _w("\n")
+        _w(f"     {CYAN}DCS-BIOS{RESET}        {BOLD}{cur_bios}{RESET}")
         if cur_bios != def_bios:
             _w(f"  {DIM}(default: {def_bios}){RESET}")
         _w("\n")
 
         choice = pick_action("Select component to configure:", [
-            ("ESP32 Core version",    "core"),
-            ("LovyanGFX version",     "lib"),
-            ("DCS-BIOS release",      "bios"),
+            ("ESP32 Core version",      "core"),
+            ("LovyanGFX version",       "lovyan"),
+            ("NimBLE-Arduino version",  "nimble"),
+            ("DCS-BIOS release",        "bios"),
             ("",),
-            ("Reset all to defaults", "defaults", "dim"),
+            ("Reset all to defaults",   "defaults", "dim"),
             ("",),
-            ("Back",                  "back",     "dim"),
+            ("Back",                    "back",     "dim"),
         ])
 
         if choice in ("back", None):
@@ -1586,7 +1650,8 @@ def action_advanced_versions():
 
         if choice == "defaults":
             MANIFEST["esp32_core"]["version"] = def_core
-            MANIFEST["lovyangfx"]["version"] = def_lib
+            MANIFEST["lovyangfx"]["version"] = def_lovyan
+            MANIFEST["nimble"]["version"] = def_nimble
             MANIFEST["dcsbios"]["release"] = def_bios
             show_banner()
             success("All versions reset to defaults")
@@ -1596,8 +1661,10 @@ def action_advanced_versions():
 
         if choice == "core":
             _edit_core_version()
-        elif choice == "lib":
-            _edit_lib_version()
+        elif choice == "lovyan":
+            _edit_lib_version("lovyangfx", "LovyanGFX", "lovyangfx_version")
+        elif choice == "nimble":
+            _edit_lib_version("nimble", "NimBLE-Arduino", "nimble_version")
         elif choice == "bios":
             _edit_bios_release()
 
@@ -1648,16 +1715,16 @@ def _edit_core_version():
             _w("\n")
 
 
-def _edit_lib_version():
-    """Sub-menu for LovyanGFX version."""
-    cur = MANIFEST["lovyangfx"]["version"]
-    default = MANIFEST_DEFAULTS["lovyangfx_version"]
+def _edit_lib_version(manifest_key="lovyangfx", display_name="LovyanGFX", defaults_key="lovyangfx_version"):
+    """Sub-menu for editing an Arduino library version."""
+    cur = MANIFEST[manifest_key]["version"]
+    default = MANIFEST_DEFAULTS[defaults_key]
 
     show_banner()
-    _w(f"  {BOLD}LovyanGFX Version{RESET}\n\n")
+    _w(f"  {BOLD}{display_name} Version{RESET}\n\n")
     _w(f"     Current: {BOLD}{cur}{RESET}\n")
     _w(f"     Default: {DIM}{default}{RESET}\n")
-    _w(f"     Format:  {DIM}X.Y.Z  (e.g. 1.2.19, 1.1.16){RESET}\n")
+    _w(f"     Format:  {DIM}X.Y.Z  (e.g. {default}){RESET}\n")
 
     action = pick_action("Choose version strategy:", [
         (f"Keep current ({cur})",   "keep"),
@@ -1669,8 +1736,8 @@ def _edit_lib_version():
         return
 
     if action == "default":
-        MANIFEST["lovyangfx"]["version"] = default
-        success(f"LovyanGFX version set to {BOLD}{default}{RESET}")
+        MANIFEST[manifest_key]["version"] = default
+        success(f"{display_name} version set to {BOLD}{default}{RESET}")
         _w(f"\n  {DIM}Press any key...{RESET}")
         msvcrt.getwch()
         return
@@ -1678,13 +1745,13 @@ def _edit_lib_version():
     # Custom version input
     _w("\n")
     while True:
-        text = _input_text("Enter LovyanGFX version", default=cur)
+        text = _input_text(f"Enter {display_name} version", default=cur)
         if text is None:
             return
         ver = _validate_semver(text)
         if ver:
-            MANIFEST["lovyangfx"]["version"] = ver
-            success(f"LovyanGFX version set to {BOLD}{ver}{RESET}")
+            MANIFEST[manifest_key]["version"] = ver
+            success(f"{display_name} version set to {BOLD}{ver}{RESET}")
             _w(f"\n  {DIM}Press any key...{RESET}")
             msvcrt.getwch()
             return

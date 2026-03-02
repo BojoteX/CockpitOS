@@ -19175,7 +19175,7 @@
                                                        "P_BARAX_STATE_SEL": {
                                                                                     "category": "EE BARAX",
                                                                                 "control_type": "selector",
-                                                                                 "description": "Pilot BARAX State Selector OFF/ON/TEST",
+                                                                                 "description": "Pilot BARAX State Selector",
                                                                                   "identifier": "P_BARAX_STATE_SEL",
                                                                                       "inputs": [ {
                                                                                                     "description": "switch to previous or next state",
@@ -19194,7 +19194,8 @@
                                                                                                                          "shift_by": 13,
                                                                                                                            "suffix": "",
                                                                                                                              "type": "integer"
-                                                                                                } ]
+                                                                                                } ],
+                                                                                   "positions": [ "OFF", "ON", "TEST" ]
                                                                             }
                                                    },
                                      "EE Cockpit": {

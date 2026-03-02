@@ -558,7 +558,7 @@
                                                "APC_ENABLE": {
                                                                      "category": "ApproachPowerCompensator",
                                                                  "control_type": "selector",
-                                                                  "description": "APC Enable/Stby/Off",
+                                                                  "description": "APC",
                                                                    "identifier": "APC_ENABLE",
                                                                        "inputs": [ {
                                                                                      "description": "switch to previous or next state",
@@ -577,7 +577,8 @@
                                                                                                           "shift_by": 3,
                                                                                                             "suffix": "",
                                                                                                               "type": "integer"
-                                                                                 } ]
+                                                                                 } ],
+                                                                    "positions": [ "Enable", "Stby", "Off" ]
                                                              },
                                                 "APC_LIGHT": {
                                                                      "category": "ApproachPowerCompensator",
@@ -600,7 +601,7 @@
                                          "APS_COLD_STD_HOT": {
                                                                      "category": "ApproachPowerCompensator",
                                                                  "control_type": "selector",
-                                                                  "description": "APC Cold/Std/Hot",
+                                                                  "description": "APC",
                                                                    "identifier": "APS_COLD_STD_HOT",
                                                                        "inputs": [ {
                                                                                      "description": "switch to previous or next state",
@@ -619,7 +620,8 @@
                                                                                                           "shift_by": 5,
                                                                                                             "suffix": "",
                                                                                                               "type": "integer"
-                                                                                 } ]
+                                                                                 } ],
+                                                                    "positions": [ "Cold", "Std", "Hot" ]
                                                              }
                                      },
                    "Armament Panel": {
@@ -4138,7 +4140,7 @@
                                          "GUNPOD_CLEAR": {
                                                                  "category": "Gunpods",
                                                              "control_type": "selector",
-                                                              "description": "Gunpod Charge/Off/Clear",
+                                                              "description": "Gunpod",
                                                                "identifier": "GUNPOD_CLEAR",
                                                                    "inputs": [ {
                                                                                  "description": "switch to previous or next state",
@@ -4157,7 +4159,8 @@
                                                                                                       "shift_by": 6,
                                                                                                         "suffix": "",
                                                                                                           "type": "integer"
-                                                                             } ]
+                                                                             } ],
+                                                                "positions": [ "Charge", "Off", "Clear" ]
                                                          },
                                              "GUNPOD_L": {
                                                                  "category": "Gunpods",
@@ -4494,7 +4497,7 @@
                                              "LIGHT_EXT_MASTER": {
                                                                          "category": "Lights",
                                                                      "control_type": "selector",
-                                                                      "description": "Master Lighting ON/OFF/Momentary",
+                                                                      "description": "Master Lighting",
                                                                        "identifier": "LIGHT_EXT_MASTER",
                                                                            "inputs": [ {
                                                                                          "description": "switch to previous or next state",
@@ -4513,7 +4516,8 @@
                                                                                                               "shift_by": 13,
                                                                                                                 "suffix": "",
                                                                                                                   "type": "integer"
-                                                                                     } ]
+                                                                                     } ],
+                                                                        "positions": [ "ON", "OFF", "Momentary" ]
                                                                  },
                                                 "LIGHT_EXT_NAV": {
                                                                          "category": "Lights",
@@ -5740,7 +5744,7 @@
                                            "THROTTLE_CLICK": {
                                                                      "category": "Mechanical Systems",
                                                                  "control_type": "selector",
-                                                                  "description": "Throttle Cutoff/Start/Idle",
+                                                                  "description": "Throttle",
                                                                    "identifier": "THROTTLE_CLICK",
                                                                        "inputs": [ {
                                                                                      "description": "switch to previous or next state",
@@ -5759,7 +5763,8 @@
                                                                                                           "shift_by": 0,
                                                                                                             "suffix": "",
                                                                                                               "type": "integer"
-                                                                                 } ]
+                                                                                 } ],
+                                                                    "positions": [ "Cutoff", "Start", "Idle" ]
                                                              }
                                      },
     "Mechanical Systems Indicators": {

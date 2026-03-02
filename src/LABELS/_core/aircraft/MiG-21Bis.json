@@ -1085,7 +1085,7 @@
                                              "NAV_LIGHTS": {
                                                                    "category": "Avionics Power Panel",
                                                                "control_type": "selector",
-                                                                "description": "Nav Lights Off/Dim/Med/Bright",
+                                                                "description": "Nav Lights",
                                                                  "identifier": "NAV_LIGHTS",
                                                                      "inputs": [ {
                                                                                    "description": "switch to previous or next state",
@@ -1104,7 +1104,8 @@
                                                                                                         "shift_by": 11,
                                                                                                           "suffix": "",
                                                                                                             "type": "integer"
-                                                                               } ]
+                                                                               } ],
+                                                                  "positions": [ "Off", "Dim", "Med", "Bright" ]
                                                            },
                                                 "NPP_PWR": {
                                                                    "category": "Avionics Power Panel",
@@ -4714,7 +4715,7 @@
                                                       "GEAR_LVR": {
                                                                           "category": "Landing Gear Control",
                                                                       "control_type": "selector",
-                                                                       "description": "Gear Down/Neutral/Up",
+                                                                       "description": "Gear",
                                                                         "identifier": "GEAR_LVR",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -4733,7 +4734,8 @@
                                                                                                                "shift_by": 12,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "Down", "Neutral", "Up" ]
                                                                   },
                                                 "GEAR_NOSE_DOWN": {
                                                                           "category": "Landing Gear Control",
@@ -4867,7 +4869,7 @@
                                                      "LND_LIGHT": {
                                                                           "category": "Landing Gear Control",
                                                                       "control_type": "selector",
-                                                                       "description": "Landing Lights Land/Taxi/Off/Dim/Med/Bright",
+                                                                       "description": "Landing Lights",
                                                                         "identifier": "LND_LIGHT",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -4886,7 +4888,8 @@
                                                                                                                "shift_by": 13,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "Off", "Taxi", "Landing" ]
                                                                   }
                                       },
                    "Left Horizontal": {
@@ -6982,7 +6985,7 @@
                                                "RADAR_LOW_ALT": {
                                                                         "category": "RADAR Power",
                                                                     "control_type": "selector",
-                                                                     "description": "RADAR Low Altitude Off/Comp/On",
+                                                                     "description": "RADAR Low Altitude",
                                                                       "identifier": "RADAR_LOW_ALT",
                                                                           "inputs": [ {
                                                                                         "description": "switch to previous or next state",
@@ -7001,7 +7004,8 @@
                                                                                                              "shift_by": 0,
                                                                                                                "suffix": "",
                                                                                                                  "type": "integer"
-                                                                                    } ]
+                                                                                    } ],
+                                                                       "positions": [ "Off", "Comp", "On" ]
                                                                 },
                                              "RADAR_LOW_LIGHT": {
                                                                         "category": "RADAR Power",
@@ -7024,7 +7028,7 @@
                                                    "RADAR_PWR": {
                                                                         "category": "RADAR Power",
                                                                     "control_type": "selector",
-                                                                     "description": "RADAR On/Standby/Off",
+                                                                     "description": "RADAR",
                                                                       "identifier": "RADAR_PWR",
                                                                           "inputs": [ {
                                                                                         "description": "switch to previous or next state",
@@ -7043,7 +7047,8 @@
                                                                                                              "shift_by": 14,
                                                                                                                "suffix": "",
                                                                                                                  "type": "integer"
-                                                                                    } ]
+                                                                                    } ],
+                                                                       "positions": [ "On", "Standby", "Off" ]
                                                                 }
                                       },
            "RADAR Scope, Interrupts": {
@@ -8517,7 +8522,7 @@
                                              "SOD_WAVE": {
                                                                  "category": "SOD Panel",
                                                              "control_type": "selector",
-                                                              "description": "SOD Wave Selector 3/1/2",
+                                                              "description": "SOD Wave Selector",
                                                                "identifier": "SOD_WAVE",
                                                                    "inputs": [ {
                                                                                  "description": "switch to previous or next state",
@@ -8536,7 +8541,8 @@
                                                                                                       "shift_by": 9,
                                                                                                         "suffix": "",
                                                                                                           "type": "integer"
-                                                                             } ]
+                                                                             } ],
+                                                                "positions": [ "3", "1", "2" ]
                                                          },
                                               "SPO_PWR": {
                                                                  "category": "SOD Panel",
@@ -8914,7 +8920,7 @@
                                           "SPS141_MODE": {
                                                                  "category": "SPS-141-100 Panel",
                                                              "control_type": "selector",
-                                                              "description": "SPS-141-100 Off/Parallel/Full",
+                                                              "description": "SPS-141-100",
                                                                "identifier": "SPS141_MODE",
                                                                    "inputs": [ {
                                                                                  "description": "switch to previous or next state",
@@ -8933,7 +8939,8 @@
                                                                                                       "shift_by": 7,
                                                                                                         "suffix": "",
                                                                                                           "type": "integer"
-                                                                             } ]
+                                                                             } ],
+                                                                "positions": [ "Off", "Parallel", "Full" ]
                                                          },
                                           "SPS141_PROG": {
                                                                  "category": "SPS-141-100 Panel",

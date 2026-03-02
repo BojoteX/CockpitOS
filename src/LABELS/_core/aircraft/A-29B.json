@@ -546,7 +546,7 @@
                                                    "AUTO_RUDDER": {
                                                                           "category": "Avionics",
                                                                       "control_type": "selector",
-                                                                       "description": "Auto Rudder (Engage/Power/Off)",
+                                                                       "description": "Auto Rudder",
                                                                         "identifier": "AUTO_RUDDER",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -565,7 +565,8 @@
                                                                                                                "shift_by": 2,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "Engage", "Power", "Off" ]
                                                                   },
                                                  "AVI_MASTER_PW": {
                                                                           "category": "Avionics",
@@ -653,7 +654,7 @@
                                                  "EMERG_AILERON": {
                                                                           "category": "Avionics",
                                                                       "control_type": "selector",
-                                                                       "description": "Aileron Emergency (Left/Stop/Right)",
+                                                                       "description": "Aileron Emergency",
                                                                         "identifier": "EMERG_AILERON",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -672,12 +673,13 @@
                                                                                                                "shift_by": 13,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "Left", "Stop", "Right" ]
                                                                   },
                                                 "EMERG_ELEVATOR": {
                                                                           "category": "Avionics",
                                                                       "control_type": "selector",
-                                                                       "description": "Elevator Emergency (Down/Stop/Up)",
+                                                                       "description": "Elevator Emergency",
                                                                         "identifier": "EMERG_ELEVATOR",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -696,7 +698,8 @@
                                                                                                                "shift_by": 0,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "Down", "Stop", "Up" ]
                                                                   },
                                                       "MDP_1_PW": {
                                                                           "category": "Avionics",
@@ -783,7 +786,7 @@
                                                     "PNAV_SLAVE": {
                                                                           "category": "Avionics",
                                                                       "control_type": "selector",
-                                                                       "description": "PIC NAV Slave (Free/Slave/Fast Slave)",
+                                                                       "description": "PIC NAV Slave",
                                                                         "identifier": "PNAV_SLAVE",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -802,7 +805,8 @@
                                                                                                                "shift_by": 9,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "Free", "Slave", "Fast Slave" ]
                                                                   },
                                                         "SMS_PW": {
                                                                           "category": "Avionics",
@@ -2898,7 +2902,7 @@
                                                  "EMERG_SPD_BRK": {
                                                                           "category": "Cockpit Mechanics",
                                                                       "control_type": "selector",
-                                                                       "description": "Emergency Speed Break (Close/Off/Normal)",
+                                                                       "description": "Emergency Speed Break",
                                                                         "identifier": "EMERG_SPD_BRK",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -2917,7 +2921,8 @@
                                                                                                                "shift_by": 13,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "Close", "Off", "Normal" ]
                                                                   },
                                                       "FLAPS_SW": {
                                                                           "category": "Cockpit Mechanics",
@@ -2980,7 +2985,7 @@
                                                     "SEAT_UP_DN": {
                                                                           "category": "Cockpit Mechanics",
                                                                       "control_type": "selector",
-                                                                       "description": "Seat (Up/Stop/Down)",
+                                                                       "description": "Seat",
                                                                         "identifier": "SEAT_UP_DN",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -2999,7 +3004,8 @@
                                                                                                                "shift_by": 11,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "Up", "Stop", "Down" ]
                                                                   },
                                                      "SUIT_TEST": {
                                                                        "api_variant": "momentary_last_position",
@@ -3087,7 +3093,7 @@
                                                 "AIR_INTERCON_SW": {
                                                                            "category": "Electric System",
                                                                        "control_type": "selector",
-                                                                        "description": "Aircraft Interconnect (On/Off/Off)",
+                                                                        "description": "Aircraft Interconnect",
                                                                          "identifier": "AIR_INTERCON_SW",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -3106,7 +3112,8 @@
                                                                                                                 "shift_by": 7,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "On", "Off", "Off" ]
                                                                    },
                                                       "BACKUP_SW": {
                                                                            "category": "Electric System",
@@ -3140,7 +3147,7 @@
                                                      "BATTERY_SW": {
                                                                            "category": "Electric System",
                                                                        "control_type": "selector",
-                                                                        "description": "Battery (Reset/On/Off)",
+                                                                        "description": "Battery",
                                                                          "identifier": "BATTERY_SW",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -3159,12 +3166,13 @@
                                                                                                                 "shift_by": 0,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "Reset", "On", "Off" ]
                                                                    },
                                                   "EMERG_OVER_SW": {
                                                                            "category": "Electric System",
                                                                        "control_type": "selector",
-                                                                        "description": "Emergency Override (Emergency/Auto/Auto)",
+                                                                        "description": "Emergency Override",
                                                                          "identifier": "EMERG_OVER_SW",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -3183,7 +3191,8 @@
                                                                                                                 "shift_by": 5,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "Emergency", "Auto", "Auto" ]
                                                                    },
                                                       "EXT_PW_SW": {
                                                                            "category": "Electric System",
@@ -3248,7 +3257,7 @@
                                                 "IGNITION_SW": {
                                                                        "category": "Engine",
                                                                    "control_type": "selector",
-                                                                    "description": "Ignition (On/Auto/Off)",
+                                                                    "description": "Ignition",
                                                                      "identifier": "IGNITION_SW",
                                                                          "inputs": [ {
                                                                                        "description": "switch to previous or next state",
@@ -3267,7 +3276,8 @@
                                                                                                             "shift_by": 0,
                                                                                                               "suffix": "",
                                                                                                                 "type": "integer"
-                                                                                   } ]
+                                                                                   } ],
+                                                                      "positions": [ "On", "Auto", "Off" ]
                                                                },
                                                  "INT_SEP_SW": {
                                                                        "category": "Engine",
@@ -3330,7 +3340,7 @@
                                                     "SHUTOFF": {
                                                                        "category": "Engine",
                                                                    "control_type": "selector",
-                                                                    "description": "Fuel/Hydraulic/Bleed Shutoff (Open/Close/Close)",
+                                                                    "description": "Fuel/Hydraulic/Bleed Shutoff",
                                                                      "identifier": "SHUTOFF",
                                                                          "inputs": [ {
                                                                                        "description": "switch to previous or next state",
@@ -3349,12 +3359,13 @@
                                                                                                             "shift_by": 5,
                                                                                                               "suffix": "",
                                                                                                                 "type": "integer"
-                                                                                   } ]
+                                                                                   } ],
+                                                                      "positions": [ "Open", "Close", "Close" ]
                                                                },
                                                    "START_SW": {
                                                                        "category": "Engine",
                                                                    "control_type": "selector",
-                                                                    "description": "Start (Start/No Function/Interrupt)",
+                                                                    "description": "Start",
                                                                      "identifier": "START_SW",
                                                                          "inputs": [ {
                                                                                        "description": "switch to previous or next state",
@@ -3373,7 +3384,8 @@
                                                                                                             "shift_by": 2,
                                                                                                               "suffix": "",
                                                                                                                 "type": "integer"
-                                                                                   } ]
+                                                                                   } ],
+                                                                      "positions": [ "Start", "No Function", "Interrupt" ]
                                                                }
                                             },
             "Environmental Control System": {
@@ -3664,7 +3676,7 @@
                                                    "FORMATION_L_SW": {
                                                                              "category": "External Lights",
                                                                          "control_type": "selector",
-                                                                          "description": "Formation Normal Lights (Brt/Dim/Off)",
+                                                                          "description": "Formation Normal Lights",
                                                                            "identifier": "FORMATION_L_SW",
                                                                                "inputs": [ {
                                                                                              "description": "switch to previous or next state",
@@ -3683,7 +3695,8 @@
                                                                                                                   "shift_by": 9,
                                                                                                                     "suffix": "",
                                                                                                                       "type": "integer"
-                                                                                         } ]
+                                                                                         } ],
+                                                                            "positions": [ "Brt", "Dim", "Off" ]
                                                                      },
                                                         "LAND_L_SW": {
                                                                              "category": "External Lights",
@@ -3804,7 +3817,7 @@
                                                         "TAXI_L_SW": {
                                                                              "category": "External Lights",
                                                                          "control_type": "selector",
-                                                                          "description": "Taxi Lights (On/Auto/Off)",
+                                                                          "description": "Taxi Lights",
                                                                            "identifier": "TAXI_L_SW",
                                                                                "inputs": [ {
                                                                                              "description": "switch to previous or next state",
@@ -3823,7 +3836,8 @@
                                                                                                                   "shift_by": 12,
                                                                                                                     "suffix": "",
                                                                                                                       "type": "integer"
-                                                                                         } ]
+                                                                                         } ],
+                                                                            "positions": [ "On", "Auto", "Off" ]
                                                                      }
                                             },
                       "Flight Instruments": {
@@ -3970,7 +3984,7 @@
                                                  "FUEL_PUMP_AUX": {
                                                                           "category": "Fuel",
                                                                       "control_type": "selector",
-                                                                       "description": "Fuel Aux Pump (LH/Auto/RH/Both)",
+                                                                       "description": "Fuel Aux Pump",
                                                                         "identifier": "FUEL_PUMP_AUX",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -4023,7 +4037,7 @@
                                                     "FUEL_TRANS": {
                                                                           "category": "Fuel",
                                                                       "control_type": "selector",
-                                                                       "description": "Fuel Transfer (U-Wing/Ventral-Auto/Off)",
+                                                                       "description": "Fuel Transfer",
                                                                         "identifier": "FUEL_TRANS",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -4042,7 +4056,8 @@
                                                                                                                "shift_by": 0,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "U-Wing", "Ventral-Auto", "Off" ]
                                                                   }
                                             },
                                   "Gauges": {
@@ -5079,7 +5094,7 @@
                                                  "UFCP_DAY_NIGHT": {
                                                                            "category": "UFCP",
                                                                        "control_type": "selector",
-                                                                        "description": "UFCP Day/Night/Auto",
+                                                                        "description": "UFCP",
                                                                          "identifier": "UFCP_DAY_NIGHT",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -5098,7 +5113,8 @@
                                                                                                                 "shift_by": 10,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "Day", "Night", "Auto" ]
                                                                    },
                                                         "UFCP_DN": {
                                                                         "api_variant": "momentary_last_position",
@@ -5133,7 +5149,7 @@
                                                    "UFCP_DVR_REC": {
                                                                            "category": "UFCP",
                                                                        "control_type": "selector",
-                                                                        "description": "UFCP DVR Rec/Standby/Off",
+                                                                        "description": "UFCP DVR",
                                                                          "identifier": "UFCP_DVR_REC",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -5152,12 +5168,13 @@
                                                                                                                 "shift_by": 13,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "Rec", "Standby", "Off" ]
                                                                    },
                                                        "UFCP_EGI": {
                                                                            "category": "UFCP",
                                                                        "control_type": "selector",
-                                                                        "description": "UFCP EGI Nav/Align/Storage Heading/Off/Test",
+                                                                        "description": "UFCP EGI",
                                                                          "identifier": "UFCP_EGI",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -5176,7 +5193,8 @@
                                                                                                                 "shift_by": 0,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "Nav", "Align", "Storage Heading", "Off", "Test" ]
                                                                    },
                                                        "UFCP_ENT": {
                                                                         "api_variant": "momentary_last_position",
@@ -6145,7 +6163,7 @@
                                                  "WPN_MASS": {
                                                                      "category": "Weapon System",
                                                                  "control_type": "selector",
-                                                                  "description": "Mass (Sim/Save/Live)",
+                                                                  "description": "Mass",
                                                                    "identifier": "WPN_MASS",
                                                                        "inputs": [ {
                                                                                      "description": "switch to previous or next state",
@@ -6164,7 +6182,8 @@
                                                                                                           "shift_by": 2,
                                                                                                             "suffix": "",
                                                                                                               "type": "integer"
-                                                                                 } ]
+                                                                                 } ],
+                                                                    "positions": [ "Sim", "Save", "Live" ]
                                                              },
                                                 "WPN_SALVO": {
                                                                   "api_variant": "momentary_last_position",

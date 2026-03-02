@@ -784,7 +784,7 @@
                                   "AVS_ON": {
                                                     "category": "AN/AVS-7 HUD",
                                                 "control_type": "selector",
-                                                 "description": "AN/AVS-7 OFF/ON/ADJ",
+                                                 "description": "AN/AVS-7",
                                                   "identifier": "AVS_ON",
                                                       "inputs": [ {
                                                                     "description": "switch to previous or next state",
@@ -803,7 +803,8 @@
                                                                                          "shift_by": 3,
                                                                                            "suffix": "",
                                                                                              "type": "integer"
-                                                                } ]
+                                                                } ],
+                                                   "positions": [ "OFF", "ON", "ADJ" ]
                                             }
                              },
            "APU Extinguish": {
@@ -837,7 +838,7 @@
                                    "ENG1_FSS": {
                                                        "category": "APU Extinguish",
                                                    "control_type": "selector",
-                                                    "description": "Engine 1 FSS OFF/DIR/XFD",
+                                                    "description": "Engine 1 FSS",
                                                      "identifier": "ENG1_FSS",
                                                          "inputs": [ {
                                                                        "description": "switch to previous or next state",
@@ -856,7 +857,8 @@
                                                                                             "shift_by": 7,
                                                                                               "suffix": "",
                                                                                                 "type": "integer"
-                                                                   } ]
+                                                                   } ],
+                                                      "positions": [ "OFF", "DIR", "XFD" ]
                                                },
                                  "ENG1_START": {
                                                        "category": "APU Extinguish",
@@ -917,7 +919,7 @@
                                    "ENG2_FSS": {
                                                        "category": "APU Extinguish",
                                                    "control_type": "selector",
-                                                    "description": "Engine 2 FSS OFF/DIR/XFD",
+                                                    "description": "Engine 2 FSS",
                                                      "identifier": "ENG2_FSS",
                                                          "inputs": [ {
                                                                        "description": "switch to previous or next state",
@@ -936,7 +938,8 @@
                                                                                             "shift_by": 9,
                                                                                               "suffix": "",
                                                                                                 "type": "integer"
-                                                                   } ]
+                                                                   } ],
+                                                      "positions": [ "OFF", "DIR", "XFD" ]
                                                },
                                  "ENG2_START": {
                                                        "category": "APU Extinguish",
@@ -1088,7 +1091,7 @@
                                     "SNR_WNCH": {
                                                         "category": "Aux System Panel",
                                                     "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                     "description": "Winch Sonar DOWN/STOP/UP",
+                                                     "description": "Winch Sonar",
                                                       "identifier": "SNR_WNCH",
                                                           "inputs": [ {
                                                                         "description": "set the switch position",
@@ -1104,7 +1107,8 @@
                                                                                              "shift_by": 9,
                                                                                                "suffix": "",
                                                                                                  "type": "integer"
-                                                                    } ]
+                                                                    } ],
+                                                       "positions": [ "DOWN", "STOP", "UP" ]
                                                 },
                                    "SONO_DISP": {
                                                         "category": "Aux System Panel",
@@ -1910,7 +1914,7 @@
                                  "APU_GEN_SW": {
                                                        "category": "Electric System",
                                                    "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                    "description": "APU GEN Switch TEST/OFF/ON",
+                                                    "description": "APU GEN Switch",
                                                      "identifier": "APU_GEN_SW",
                                                          "inputs": [ {
                                                                        "description": "set the switch position",
@@ -1926,7 +1930,8 @@
                                                                                             "shift_by": 11,
                                                                                               "suffix": "",
                                                                                                 "type": "integer"
-                                                                   } ]
+                                                                   } ],
+                                                      "positions": [ "TEST", "OFF", "ON" ]
                                                },
                                     "BATT_SW": {
                                                        "category": "Electric System",
@@ -1960,7 +1965,7 @@
                                  "EXT_PWR_SW": {
                                                        "category": "Electric System",
                                                    "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                    "description": "External Power Switch RESET/OFF/ON",
+                                                    "description": "External Power Switch",
                                                      "identifier": "EXT_PWR_SW",
                                                          "inputs": [ {
                                                                        "description": "set the switch position",
@@ -1976,12 +1981,13 @@
                                                                                             "shift_by": 9,
                                                                                               "suffix": "",
                                                                                                 "type": "integer"
-                                                                   } ]
+                                                                   } ],
+                                                      "positions": [ "RESET", "OFF", "ON" ]
                                                },
                                     "GEN1_SW": {
                                                        "category": "Electric System",
                                                    "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                    "description": "GEN 1 Switch TEST/OFF/ON",
+                                                    "description": "GEN 1 Switch",
                                                      "identifier": "GEN1_SW",
                                                          "inputs": [ {
                                                                        "description": "set the switch position",
@@ -1997,12 +2003,13 @@
                                                                                             "shift_by": 13,
                                                                                               "suffix": "",
                                                                                                 "type": "integer"
-                                                                   } ]
+                                                                   } ],
+                                                      "positions": [ "TEST", "OFF", "ON" ]
                                                },
                                     "GEN2_SW": {
                                                        "category": "Electric System",
                                                    "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                    "description": "GEN 2 Switch TEST/OFF/ON",
+                                                    "description": "GEN 2 Switch",
                                                      "identifier": "GEN2_SW",
                                                          "inputs": [ {
                                                                        "description": "set the switch position",
@@ -2018,14 +2025,15 @@
                                                                                             "shift_by": 0,
                                                                                               "suffix": "",
                                                                                                 "type": "integer"
-                                                                   } ]
+                                                                   } ],
+                                                      "positions": [ "TEST", "OFF", "ON" ]
                                                }
                              },
          "Fuel and Engines": {
                                     "AIR_SRC_SW": {
                                                           "category": "Fuel and Engines",
                                                       "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                       "description": "Air Source APU/OFF/ENG",
+                                                       "description": "Air Source",
                                                         "identifier": "AIR_SRC_SW",
                                                             "inputs": [ {
                                                                           "description": "set the switch position",
@@ -2041,7 +2049,8 @@
                                                                                                "shift_by": 4,
                                                                                                  "suffix": "",
                                                                                                    "type": "integer"
-                                                                      } ]
+                                                                      } ],
+                                                         "positions": [ "APU", "OFF", "ENG" ]
                                                   },
                                    "APU_CTRL_SW": {
                                                           "category": "Fuel and Engines",
@@ -2104,7 +2113,7 @@
                                    "FUEL_PMP_SW": {
                                                           "category": "Fuel and Engines",
                                                       "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                       "description": "FUEL PRIME/OFF/APU BOOST",
+                                                       "description": "FUEL",
                                                         "identifier": "FUEL_PMP_SW",
                                                             "inputs": [ {
                                                                           "description": "set the switch position",
@@ -2120,7 +2129,8 @@
                                                                                                "shift_by": 2,
                                                                                                  "suffix": "",
                                                                                                    "type": "integer"
-                                                                      } ]
+                                                                      } ],
+                                                         "positions": [ "PRIME", "OFF", "APU BOOST" ]
                                                   }
                              },
                   "General": {
@@ -2353,7 +2363,7 @@
                                  "ANTI_LGHT_DAY": {
                                                           "category": "Lights",
                                                       "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                       "description": "Anticollision Lights DAY/OFF/NIGHT",
+                                                       "description": "Anticollision Lights",
                                                         "identifier": "ANTI_LGHT_DAY",
                                                             "inputs": [ {
                                                                           "description": "set the switch position",
@@ -2369,12 +2379,13 @@
                                                                                                "shift_by": 12,
                                                                                                  "suffix": "",
                                                                                                    "type": "integer"
-                                                                      } ]
+                                                                      } ],
+                                                         "positions": [ "DAY", "OFF", "NIGHT" ]
                                                   },
                                   "ANTI_LGHT_UP": {
                                                           "category": "Lights",
                                                       "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                       "description": "Anticollision Lights UPPER/BOTH/LOWER",
+                                                       "description": "Anticollision Lights",
                                                         "identifier": "ANTI_LGHT_UP",
                                                             "inputs": [ {
                                                                           "description": "set the switch position",
@@ -2390,12 +2401,13 @@
                                                                                                "shift_by": 10,
                                                                                                  "suffix": "",
                                                                                                    "type": "integer"
-                                                                      } ]
+                                                                      } ],
+                                                         "positions": [ "UPPER", "BOTH", "LOWER" ]
                                                   },
                                  "CKPT_LGHT_DAY": {
                                                           "category": "Lights",
                                                       "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                       "description": "Cockpit Lights BLUE/OFF/WHITE",
+                                                       "description": "Cockpit Lights",
                                                         "identifier": "CKPT_LGHT_DAY",
                                                             "inputs": [ {
                                                                           "description": "set the switch position",
@@ -2411,7 +2423,8 @@
                                                                                                "shift_by": 5,
                                                                                                  "suffix": "",
                                                                                                    "type": "integer"
-                                                                      } ]
+                                                                      } ],
+                                                         "positions": [ "BLUE", "OFF", "WHITE" ]
                                                   },
                                   "CMP_LGTH_MOD": {
                                                           "category": "Lights",
@@ -2472,7 +2485,7 @@
                                      "FORM_LGHT": {
                                                           "category": "Lights",
                                                       "control_type": "selector",
-                                                       "description": "Formation Lights OFF/1/2/3/4/5",
+                                                       "description": "Formation Lights",
                                                         "identifier": "FORM_LGHT",
                                                             "inputs": [ {
                                                                           "description": "switch to previous or next state",
@@ -2491,7 +2504,8 @@
                                                                                                "shift_by": 2,
                                                                                                  "suffix": "",
                                                                                                    "type": "integer"
-                                                                      } ]
+                                                                      } ],
+                                                         "positions": [ "OFF", "1", "2", "3", "4", "5" ]
                                                   },
                                       "GLR_SHLD": {
                                                           "category": "Lights",
@@ -2678,7 +2692,7 @@
                                       "POS_LGHT": {
                                                           "category": "Lights",
                                                       "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                       "description": "Cabin Lights BLUE/OFF/WHITE",
+                                                       "description": "Cabin Lights",
                                                         "identifier": "POS_LGHT",
                                                             "inputs": [ {
                                                                           "description": "set the switch position",
@@ -2694,12 +2708,13 @@
                                                                                                "shift_by": 0,
                                                                                                  "suffix": "",
                                                                                                    "type": "integer"
-                                                                      } ]
+                                                                      } ],
+                                                         "positions": [ "BLUE", "OFF", "WHITE" ]
                                                   },
                                   "POS_LGHT_DIM": {
                                                           "category": "Lights",
                                                       "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                       "description": "Position Lights DIM/OFF/BRT",
+                                                       "description": "Position Lights",
                                                         "identifier": "POS_LGHT_DIM",
                                                             "inputs": [ {
                                                                           "description": "set the switch position",
@@ -2715,7 +2730,8 @@
                                                                                                "shift_by": 7,
                                                                                                  "suffix": "",
                                                                                                    "type": "integer"
-                                                                      } ]
+                                                                      } ],
+                                                         "positions": [ "DIM", "OFF", "BRT" ]
                                                   },
                                   "POS_LGTH_MOD": {
                                                           "category": "Lights",
@@ -3189,7 +3205,7 @@
                                          "WPRS": {
                                                          "category": "Misc",
                                                      "control_type": "selector",
-                                                      "description": "Wipers PARK/OFF/LOW/HI",
+                                                      "description": "Wipers",
                                                        "identifier": "WPRS",
                                                            "inputs": [ {
                                                                          "description": "switch to previous or next state",
@@ -3208,7 +3224,8 @@
                                                                                               "shift_by": 3,
                                                                                                 "suffix": "",
                                                                                                   "type": "integer"
-                                                                     } ]
+                                                                     } ],
+                                                        "positions": [ "PARK", "OFF", "LOW", "HI" ]
                                                  }
                              },
                     "Radar": {
@@ -3244,7 +3261,7 @@
                                   "COAL_SELC": {
                                                        "category": "Radar",
                                                    "control_type": "selector",
-                                                    "description": "Coalition Select ALL/NEUTRAL/FRIENDLY/ENEMY",
+                                                    "description": "Coalition Select",
                                                      "identifier": "COAL_SELC",
                                                          "inputs": [ {
                                                                        "description": "switch to previous or next state",
@@ -3263,7 +3280,8 @@
                                                                                             "shift_by": 2,
                                                                                               "suffix": "",
                                                                                                 "type": "integer"
-                                                                   } ]
+                                                                   } ],
+                                                      "positions": [ "ALL", "NEUTRAL", "FRIENDLY", "ENEMY" ]
                                                },
                                   "FAC_RANGE": {
                                                        "category": "Radar",
@@ -3461,7 +3479,7 @@
                                    "SON_SELC": {
                                                        "category": "Radar",
                                                    "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                    "description": "Sonobuoys SURFACE/OFF/IMMERSION",
+                                                    "description": "Sonobuoys",
                                                      "identifier": "SON_SELC",
                                                          "inputs": [ {
                                                                        "description": "set the switch position",
@@ -3477,7 +3495,8 @@
                                                                                             "shift_by": 0,
                                                                                               "suffix": "",
                                                                                                 "type": "integer"
-                                                                   } ]
+                                                                   } ],
+                                                      "positions": [ "SURFACE", "OFF", "IMMERSION" ]
                                                }
                              },
                "STAB Panel": {

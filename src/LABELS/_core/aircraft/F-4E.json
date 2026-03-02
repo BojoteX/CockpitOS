@@ -4430,7 +4430,7 @@
                                                   "PLT_EXT_LIGHT_FLASH_MODE": {
                                                                                       "category": "PLT Exterior Lights Panel",
                                                                                   "control_type": "selector",
-                                                                                   "description": "Set Flasher Mode (only Tail/Anti-Col/Fus)",
+                                                                                   "description": "Set Flasher Mode",
                                                                                     "identifier": "PLT_EXT_LIGHT_FLASH_MODE",
                                                                                         "inputs": [ {
                                                                                                       "description": "switch to previous or next state",
@@ -4449,7 +4449,8 @@
                                                                                                                            "shift_by": 8,
                                                                                                                              "suffix": "",
                                                                                                                                "type": "integer"
-                                                                                                  } ]
+                                                                                                  } ],
+                                                                                     "positions": [ "only Tail", "Anti-Col", "Fus" ]
                                                                               },
                                              "PLT_EXT_LIGHT_TAIL_BRIGHTNESS": {
                                                                                       "category": "PLT Exterior Lights Panel",
@@ -13466,7 +13467,7 @@
                                                        "PLT_WPN_MISSILE_REJECT": {
                                                                                          "category": "PLT Weapons",
                                                                                      "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                                      "description": "Missile Reject/Norm/Direction Finding Reject",
+                                                                                      "description": "Missile Reject",
                                                                                        "identifier": "PLT_WPN_MISSILE_REJECT",
                                                                                            "inputs": [ {
                                                                                                          "description": "set the switch position",
@@ -13482,7 +13483,8 @@
                                                                                                                               "shift_by": 11,
                                                                                                                                 "suffix": "",
                                                                                                                                   "type": "integer"
-                                                                                                     } ]
+                                                                                                     } ],
+                                                                                        "positions": [ "Reject", "Norm", "Direction Finding Reject" ]
                                                                                  },
                                                             "PLT_WPN_PANEL_DIM": {
                                                                                          "category": "PLT Weapons",

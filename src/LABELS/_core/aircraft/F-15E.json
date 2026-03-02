@@ -883,7 +883,7 @@
                                                    "F_AC_AUTO_MAN_OFF": {
                                                                                 "category": "Front Air Condition",
                                                                             "control_type": "selector",
-                                                                             "description": "FRONT Air Condition Auto/Manual/Off",
+                                                                             "description": "FRONT Air Condition",
                                                                               "identifier": "F_AC_AUTO_MAN_OFF",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -902,7 +902,8 @@
                                                                                                                      "shift_by": 13,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "Auto", "Manual", "Off" ]
                                                                         },
                                                        "F_AC_COLD_HOT": {
                                                                                 "category": "Front Air Condition",
@@ -934,7 +935,7 @@
                                                    "F_AC_MAX_NORM_MIN": {
                                                                                 "category": "Front Air Condition",
                                                                             "control_type": "selector",
-                                                                             "description": "FRONT Air Condition Max/Norm/Min",
+                                                                             "description": "FRONT Air Condition",
                                                                               "identifier": "F_AC_MAX_NORM_MIN",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -953,7 +954,8 @@
                                                                                                                      "shift_by": 0,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "Max", "Norm", "Min" ]
                                                                         },
                                                          "F_AC_SOURCE": {
                                                                                 "category": "Front Air Condition",
@@ -4959,7 +4961,7 @@
                                                     "F_HUD_D_A_N_MODE": {
                                                                                 "category": "Front HUD Control Panel",
                                                                             "control_type": "selector",
-                                                                             "description": "FRONT HUD DAY/AUTO/NIGHT Mode Selector",
+                                                                             "description": "FRONT HUD Mode Selector",
                                                                               "identifier": "F_HUD_D_A_N_MODE",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -4978,7 +4980,8 @@
                                                                                                                      "shift_by": 3,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "DAY", "AUTO", "NIGHT" ]
                                                                         },
                                                      "F_HUD_MM_AA_SEL": {
                                                                              "api_variant": "momentary_last_position",
@@ -11822,7 +11825,7 @@
                                                    "R_CMD_DISP_SEL": {
                                                                              "category": "Rear CMD Control Panel",
                                                                          "control_type": "selector",
-                                                                          "description": "REAR CMD Dispenser Selection Switch FLARE/BOTH/CHAFF",
+                                                                          "description": "REAR CMD Dispenser Selection Switch",
                                                                            "identifier": "R_CMD_DISP_SEL",
                                                                                "inputs": [ {
                                                                                              "description": "switch to previous or next state",
@@ -11841,12 +11844,13 @@
                                                                                                                   "shift_by": 3,
                                                                                                                     "suffix": "",
                                                                                                                       "type": "integer"
-                                                                                         } ]
+                                                                                         } ],
+                                                                            "positions": [ "FLARE", "BOTH", "CHAFF" ]
                                                                      },
                                                     "R_CMD_OP_MODE": {
                                                                              "category": "Rear CMD Control Panel",
                                                                          "control_type": "selector",
-                                                                          "description": "REAR CMD Operational Mode OFF/STBY/MAN/SEMI/AUTO",
+                                                                          "description": "REAR CMD Operational Mode",
                                                                            "identifier": "R_CMD_OP_MODE",
                                                                                "inputs": [ {
                                                                                              "description": "switch to previous or next state",
@@ -11865,7 +11869,8 @@
                                                                                                                   "shift_by": 5,
                                                                                                                     "suffix": "",
                                                                                                                       "type": "integer"
-                                                                                         } ]
+                                                                                         } ],
+                                                                            "positions": [ "OFF", "STBY", "MAN", "SEMI", "AUTO" ]
                                                                      }
                                                },
                               "Rear EW Panel": {
@@ -11960,7 +11965,7 @@
                                                       "R_EW_ICS_OP_MODE": {
                                                                                   "category": "Rear EW Panel",
                                                                               "control_type": "selector",
-                                                                               "description": "REAR ICS Operational Mode Switch STBY/AUTO/MAN",
+                                                                               "description": "REAR ICS Operational Mode Switch",
                                                                                 "identifier": "R_EW_ICS_OP_MODE",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",
@@ -11979,7 +11984,8 @@
                                                                                                                        "shift_by": 3,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "STBY", "AUTO", "MAN" ]
                                                                           },
                                                      "R_EW_RWR_ICS_MODE": {
                                                                                   "category": "Rear EW Panel",
@@ -18231,7 +18237,7 @@
                                                       "R_TGP_PW": {
                                                                           "category": "Rear TPOD Panel",
                                                                       "control_type": "selector",
-                                                                       "description": "REAR TGP Power Switch OFF/STBY/ON",
+                                                                       "description": "REAR TGP Power Switch",
                                                                         "identifier": "R_TGP_PW",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -18250,7 +18256,8 @@
                                                                                                                "shift_by": 14,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "OFF", "STBY", "ON" ]
                                                                   }
                                                },
                      "Rear Throttle Quadrant": {

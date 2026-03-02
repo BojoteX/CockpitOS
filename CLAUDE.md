@@ -65,6 +65,7 @@ All tools are Windows-only, Python 3.12+, ANSI TUI, and switch between each othe
 |-------|----------|
 | **Documentation (current)** | `Docs/` — structured docs (Getting-Started, Tools, Hardware, How-To, Reference, Advanced, LLM) |
 | **LLM master reference** | `Docs/LLM/CockpitOS-LLM-Reference.md` — start here for any CockpitOS question |
+| **Known issues & warnings** | `Docs/Reference/Known-Issues.md` — **read before touching generators or updating DCS-BIOS** |
 | **Config.h reference** | `Docs/Reference/Config.md` |
 | **Label Creator internals** | `label_creator/LLM/` — three files: LLM_GUIDE.md, ARCHITECTURE.md, EDITOR_FEATURES.md |
 | **Pending work items** | `TODO.md` (root) + `TODO/` directory (older items, RS485 fixes, perf, DCS-BIOS) |

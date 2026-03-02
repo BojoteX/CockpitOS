@@ -266,7 +266,7 @@
                                                           "OP_ARC_MODE": {
                                                                                  "category": "ARC-15 OP",
                                                                              "control_type": "selector",
-                                                                              "description": "OPERATOR ARC-15 mode OFF/COMPASS/ANT/FRAME",
+                                                                              "description": "OPERATOR ARC-15 mode",
                                                                                "identifier": "OP_ARC_MODE",
                                                                                    "inputs": [ {
                                                                                                  "description": "switch to previous or next state",
@@ -285,7 +285,8 @@
                                                                                                                       "shift_by": 0,
                                                                                                                         "suffix": "",
                                                                                                                           "type": "integer"
-                                                                                             } ]
+                                                                                             } ],
+                                                                                "positions": [ "OFF", "COMPASS", "ANT", "FRAME" ]
                                                                          },
                                                          "OP_ARC_MODUL": {
                                                                                  "category": "ARC-15 OP",
@@ -611,7 +612,7 @@
                                                           "PLT_ARC_MODE": {
                                                                                   "category": "ARC-15 PLT",
                                                                               "control_type": "selector",
-                                                                               "description": "PILOT ARC-15 mode OFF/COMPASS/ANT/FRAME",
+                                                                               "description": "PILOT ARC-15 mode",
                                                                                 "identifier": "PLT_ARC_MODE",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",
@@ -630,7 +631,8 @@
                                                                                                                        "shift_by": 13,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "OFF", "COMPASS", "ANT", "FRAME" ]
                                                                           },
                                                          "PLT_ARC_MODUL": {
                                                                                   "category": "ARC-15 PLT",
@@ -948,7 +950,7 @@
                                                                 "OP_ASO2V_SET": {
                                                                                         "category": "ASO-2V",
                                                                                     "control_type": "selector",
-                                                                                     "description": "OPERATOR Set I/II/III",
+                                                                                     "description": "OPERATOR Set",
                                                                                       "identifier": "OP_ASO2V_SET",
                                                                                           "inputs": [ {
                                                                                                         "description": "switch to previous or next state",
@@ -967,7 +969,8 @@
                                                                                                                              "shift_by": 3,
                                                                                                                                "suffix": "",
                                                                                                                                  "type": "integer"
-                                                                                                    } ]
+                                                                                                    } ],
+                                                                                       "positions": [ "OFF", "I", "II", "III" ]
                                                                                 },
                                                               "OP_ASO2V_SNARS": {
                                                                                      "api_variant": "momentary_last_position",
@@ -1688,7 +1691,7 @@
                                                      "OP_DEICER_WSHIELD": {
                                                                                   "category": "AntiIce Interface",
                                                                               "control_type": "selector",
-                                                                               "description": "OPERATOR Windshield Antiice LOW/OFF/HIGH",
+                                                                               "description": "OPERATOR Windshield Antiice",
                                                                                 "identifier": "OP_DEICER_WSHIELD",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",
@@ -1707,7 +1710,8 @@
                                                                                                                        "shift_by": 13,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "LOW", "OFF", "HIGH" ]
                                                                           },
                                                       "PLT_DEICER_ENG_L": {
                                                                                   "category": "AntiIce Interface",
@@ -1853,7 +1857,7 @@
                                                     "PLT_DEICER_WSHIELD": {
                                                                                   "category": "AntiIce Interface",
                                                                               "control_type": "selector",
-                                                                               "description": "PILOT Windshield Antiice LOW/OFF/HIGH",
+                                                                               "description": "PILOT Windshield Antiice",
                                                                                 "identifier": "PLT_DEICER_WSHIELD",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",
@@ -1872,7 +1876,8 @@
                                                                                                                        "shift_by": 11,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "LOW", "OFF", "HIGH" ]
                                                                           }
                                                 },
                         "Barometric Altimeter": {
@@ -3643,7 +3648,7 @@
                                                        "PLT_STATIC_VALVE": {
                                                                                    "category": "Cockpit Mechanics PLT",
                                                                                "control_type": "selector",
-                                                                                "description": "PILOT Static valve sensor select LEFT/BOTH/RIGHT",
+                                                                                "description": "PILOT Static valve sensor select",
                                                                                  "identifier": "PLT_STATIC_VALVE",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -3662,7 +3667,8 @@
                                                                                                                         "shift_by": 7,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "LEFT", "BOTH", "RIGHT" ]
                                                                            },
                                                           "PLT_WIN_SPRAY": {
                                                                                 "api_variant": "momentary_last_position",
@@ -4117,7 +4123,7 @@
                                                           "PLT_DISS_SEL_KNB": {
                                                                                       "category": "DISS",
                                                                                   "control_type": "selector",
-                                                                                   "description": "PILOT DISS-15 select mode IDK/IDK/IDK/MEM/OPER",
+                                                                                   "description": "PILOT DISS-15 select mode",
                                                                                     "identifier": "PLT_DISS_SEL_KNB",
                                                                                         "inputs": [ {
                                                                                                       "description": "switch to previous or next state",
@@ -4136,7 +4142,8 @@
                                                                                                                            "shift_by": 11,
                                                                                                                              "suffix": "",
                                                                                                                                "type": "integer"
-                                                                                                  } ]
+                                                                                                  } ],
+                                                                                     "positions": [ "FWD 17/SIDE 0/UPWD 4.5", "REAR 17/UPWD 3/RGHT 17", "SPEED 136/DRIFT 0", "MEM", "OPER" ]
                                                                               }
                                                 },
                                  "DISS Gauges": {
@@ -4702,7 +4709,7 @@
                                                     "PLT_AC_HEAT_MODE_2": {
                                                                                   "category": "EC System",
                                                                               "control_type": "selector",
-                                                                               "description": "PILOT Automatic Hot Cold Switch, OFF/COLD/HOT/AUTO",
+                                                                               "description": "PILOT Automatic Hot Cold Switch",
                                                                                 "identifier": "PLT_AC_HEAT_MODE_2",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",
@@ -4721,12 +4728,13 @@
                                                                                                                        "shift_by": 14,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "OFF", "COLD", "HOT", "AUTO" ]
                                                                           },
                                                            "PLT_AC_MODE": {
                                                                                   "category": "EC System",
                                                                               "control_type": "selector",
-                                                                               "description": "PILOT Blowdown Conditioning Switch, CONDITIONING/OFF/BLOWDOWN",
+                                                                               "description": "PILOT Blowdown Conditioning Switch",
                                                                                 "identifier": "PLT_AC_MODE",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",
@@ -4745,7 +4753,8 @@
                                                                                                                        "shift_by": 10,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "CONDITIONING", "OFF", "BLOWDOWN" ]
                                                                           },
                                                            "PLT_AC_TEMP": {
                                                                                   "category": "EC System",
@@ -5324,7 +5333,7 @@
                                                         "PLT_A_TRANS_115": {
                                                                                    "category": "Electric Interface",
                                                                                "control_type": "selector",
-                                                                                "description": "PILOT AC Transformer 115V, MAIN/AUTO/BACKUP",
+                                                                                "description": "PILOT AC Transformer 115V",
                                                                                  "identifier": "PLT_A_TRANS_115",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -5343,12 +5352,13 @@
                                                                                                                         "shift_by": 7,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "MAIN", "AUTO", "BACKUP" ]
                                                                            },
                                                          "PLT_A_TRANS_36": {
                                                                                    "category": "Electric Interface",
                                                                                "control_type": "selector",
-                                                                                "description": "PILOT AC Transformer 36V, MAIN/AUTO/BACKUP",
+                                                                                "description": "PILOT AC Transformer 36V",
                                                                                  "identifier": "PLT_A_TRANS_36",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -5367,7 +5377,8 @@
                                                                                                                         "shift_by": 9,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "MAIN", "AUTO", "BACKUP" ]
                                                                            },
                                                          "PLT_A_VOLT_KNB": {
                                                                                    "category": "Electric Interface",
@@ -7564,7 +7575,7 @@
                                                      "PLT_FREE_TURB_RPM": {
                                                                                   "category": "Engine",
                                                                               "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                               "description": "PILOT Readjust Free Turbine RPM, RIGHT/NEUTRAL/LEFT",
+                                                                               "description": "PILOT Readjust Free Turbine RPM",
                                                                                 "identifier": "PLT_FREE_TURB_RPM",
                                                                                     "inputs": [ {
                                                                                                   "description": "set the switch position",
@@ -7580,7 +7591,8 @@
                                                                                                                        "shift_by": 3,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "RIGHT", "NEUTRAL", "LEFT" ]
                                                                           },
                                                        "PLT_ROTOR_BRAKE": {
                                                                                   "category": "Engine",
@@ -8176,7 +8188,7 @@
                                                          "PLT_APU_CRANK": {
                                                                                   "category": "Engine Interface",
                                                                               "control_type": "selector",
-                                                                               "description": "PILOT APU Launch Method START/CRANK/FALSE",
+                                                                               "description": "PILOT APU Launch Method",
                                                                                 "identifier": "PLT_APU_CRANK",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",
@@ -8195,7 +8207,8 @@
                                                                                                                        "shift_by": 13,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "START", "CRANK", "FALSE" ]
                                                                           },
                                                          "PLT_APU_START": {
                                                                                "api_variant": "momentary_last_position",
@@ -8963,7 +8976,7 @@
                                                     "PLT_FORMATION_L_SW": {
                                                                                   "category": "Ext Light System",
                                                                               "control_type": "selector",
-                                                                               "description": "PILOT Formation Lights Switch, BRIGHT/OFF/DIM",
+                                                                               "description": "PILOT Formation Lights Switch",
                                                                                 "identifier": "PLT_FORMATION_L_SW",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",
@@ -8982,7 +8995,8 @@
                                                                                                                        "shift_by": 3,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "BRIGHT", "OFF", "DIM" ]
                                                                           },
                                                           "PLT_LND_L_SW": {
                                                                                   "category": "Ext Light System",
@@ -9041,7 +9055,7 @@
                                                           "PLT_NAV_L_SW": {
                                                                                   "category": "Ext Light System",
                                                                               "control_type": "selector",
-                                                                               "description": "PILOT Navigation Lights Switch, BRIGHT/OFF/DIM",
+                                                                               "description": "PILOT Navigation Lights Switch",
                                                                                 "identifier": "PLT_NAV_L_SW",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",
@@ -9060,7 +9074,8 @@
                                                                                                                        "shift_by": 0,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "BRIGHT", "OFF", "DIM" ]
                                                                           },
                                                        "PLT_STROBE_L_SW": {
                                                                                   "category": "Ext Light System",
@@ -9901,7 +9916,7 @@
                                                     "PLT_FIRE_EX_SENSOR_CHAN": {
                                                                                        "category": "Fire Extinguisher",
                                                                                    "control_type": "selector",
-                                                                                    "description": "PILOT Fire Extinguisher Sensor Channel OFF/1/2/3",
+                                                                                    "description": "PILOT Fire Extinguisher Sensor Channel",
                                                                                      "identifier": "PLT_FIRE_EX_SENSOR_CHAN",
                                                                                          "inputs": [ {
                                                                                                        "description": "switch to previous or next state",
@@ -9920,7 +9935,8 @@
                                                                                                                             "shift_by": 4,
                                                                                                                               "suffix": "",
                                                                                                                                 "type": "integer"
-                                                                                                   } ]
+                                                                                                   } ],
+                                                                                      "positions": [ "OFF", "1", "2", "3" ]
                                                                                },
                                                           "PLT_FIRE_EX_SQUIB": {
                                                                                        "category": "Fire Extinguisher",
@@ -10590,7 +10606,7 @@
                                                        "PLT_GREB_MODE": {
                                                                                 "category": "GREBEN",
                                                                             "control_type": "selector",
-                                                                             "description": "PILOT Greben Mode ZK/GPK/MK",
+                                                                             "description": "PILOT Greben Mode",
                                                                               "identifier": "PLT_GREB_MODE",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -10609,7 +10625,8 @@
                                                                                                                      "shift_by": 12,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "ZK", "GPK", "MK" ]
                                                                         },
                                                          "PLT_GREB_PW": {
                                                                                 "category": "GREBEN",
@@ -12946,7 +12963,7 @@
                                                           "PLT_IFF_MODE": {
                                                                                   "category": "IFF",
                                                                               "control_type": "selector",
-                                                                               "description": "PILOT IFF Transponder Mode Selector Switch, AUTO/KD/+-15/KP",
+                                                                               "description": "PILOT IFF Transponder Mode Selector Switch",
                                                                                 "identifier": "PLT_IFF_MODE",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",
@@ -12965,7 +12982,8 @@
                                                                                                                        "shift_by": 14,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "AUTO", "KD", "+-15", "KP" ]
                                                                           },
                                                       "PLT_IFF_MODE_1_2": {
                                                                                   "category": "IFF",
@@ -13126,7 +13144,7 @@
                                                             "OP_CABIN_L_SW": {
                                                                                      "category": "Int Light System",
                                                                                  "control_type": "selector",
-                                                                                  "description": "OPERATOR Cabin Lighting Switch, WHITE/OFF/RED",
+                                                                                  "description": "OPERATOR Cabin Lighting Switch",
                                                                                    "identifier": "OP_CABIN_L_SW",
                                                                                        "inputs": [ {
                                                                                                      "description": "switch to previous or next state",
@@ -13145,7 +13163,8 @@
                                                                                                                           "shift_by": 3,
                                                                                                                             "suffix": "",
                                                                                                                               "type": "integer"
-                                                                                                 } ]
+                                                                                                 } ],
+                                                                                    "positions": [ "WHITE", "OFF", "RED" ]
                                                                              },
                                                          "OP_TRANSFROM_1_L": {
                                                                                      "category": "Int Light System",
@@ -13286,7 +13305,7 @@
                                                            "PLT_CABIN_L_SW": {
                                                                                      "category": "Int Light System",
                                                                                  "control_type": "selector",
-                                                                                  "description": "PILOT Cabin Lighting Switch, WHITE/OFF/RED",
+                                                                                  "description": "PILOT Cabin Lighting Switch",
                                                                                    "identifier": "PLT_CABIN_L_SW",
                                                                                        "inputs": [ {
                                                                                                      "description": "switch to previous or next state",
@@ -13305,12 +13324,13 @@
                                                                                                                           "shift_by": 5,
                                                                                                                             "suffix": "",
                                                                                                                               "type": "integer"
-                                                                                                 } ]
+                                                                                                 } ],
+                                                                                    "positions": [ "WHITE", "OFF", "RED" ]
                                                                              },
                                                      "PLT_CARGO_COLOR_L_SW": {
                                                                                      "category": "Int Light System",
                                                                                  "control_type": "selector",
-                                                                                  "description": "PILOT Cargo Lighting Switch, WHITE/OFF/BLUE",
+                                                                                  "description": "PILOT Cargo Lighting Switch",
                                                                                    "identifier": "PLT_CARGO_COLOR_L_SW",
                                                                                        "inputs": [ {
                                                                                                      "description": "switch to previous or next state",
@@ -13329,7 +13349,8 @@
                                                                                                                           "shift_by": 9,
                                                                                                                             "suffix": "",
                                                                                                                               "type": "integer"
-                                                                                                 } ]
+                                                                                                 } ],
+                                                                                    "positions": [ "WHITE", "OFF", "BLUE" ]
                                                                              },
                                                            "PLT_CARGO_L_CV": {
                                                                                      "category": "Int Light System",
@@ -13826,7 +13847,7 @@
                                                          "PLT_JADRO_MODUL": {
                                                                                     "category": "Jadro-1I",
                                                                                 "control_type": "selector",
-                                                                                 "description": "PILOT Jadro-1I Mode OFF/AM/OM",
+                                                                                 "description": "PILOT Jadro-1I Mode",
                                                                                   "identifier": "PLT_JADRO_MODUL",
                                                                                       "inputs": [ {
                                                                                                     "description": "switch to previous or next state",
@@ -13845,7 +13866,8 @@
                                                                                                                          "shift_by": 12,
                                                                                                                            "suffix": "",
                                                                                                                              "type": "integer"
-                                                                                                } ]
+                                                                                                } ],
+                                                                                   "positions": [ "OFF", "AM", "OM" ]
                                                                             },
                                                             "PLT_JADRO_PW": {
                                                                                     "category": "Jadro-1I",
@@ -14313,7 +14335,7 @@
                                                        "PLT_MAP_LIGHT": {
                                                                                 "category": "MAP DISPLAY",
                                                                             "control_type": "selector",
-                                                                             "description": "PILOT Map Highlight  BRIGHT/OFF/DIM",
+                                                                             "description": "PILOT Map Highlight ",
                                                                               "identifier": "PLT_MAP_LIGHT",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -14332,7 +14354,8 @@
                                                                                                                      "shift_by": 7,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "BRIGHT", "OFF", "DIM" ]
                                                                         },
                                                           "PLT_MAP_PW": {
                                                                                 "category": "MAP DISPLAY",
@@ -15175,7 +15198,7 @@
                                                          "PLT_PUVL_BURST_LENGTH": {
                                                                                           "category": "PUVL",
                                                                                       "control_type": "selector",
-                                                                                       "description": "PILOT Burst Length, SHORT/LONG/MEDIUM",
+                                                                                       "description": "PILOT Burst Length",
                                                                                         "identifier": "PLT_PUVL_BURST_LENGTH",
                                                                                             "inputs": [ {
                                                                                                           "description": "switch to previous or next state",
@@ -15194,7 +15217,8 @@
                                                                                                                                "shift_by": 7,
                                                                                                                                  "suffix": "",
                                                                                                                                    "type": "integer"
-                                                                                                      } ]
+                                                                                                      } ],
+                                                                                         "positions": [ "SHORT", "LONG", "MEDIUM" ]
                                                                                   },
                                                      "PLT_PUVL_CANNON_FIRE_RATE": {
                                                                                           "category": "PUVL",
@@ -15490,7 +15514,7 @@
                                                      "PLT_PUVL_REL_LEFT_GONDOLA": {
                                                                                           "category": "PUVL",
                                                                                       "control_type": "selector",
-                                                                                       "description": "PILOT Reload Left Gondola, OFF/1/2/3",
+                                                                                       "description": "PILOT Reload Left Gondola",
                                                                                         "identifier": "PLT_PUVL_REL_LEFT_GONDOLA",
                                                                                             "inputs": [ {
                                                                                                           "description": "switch to previous or next state",
@@ -15509,12 +15533,13 @@
                                                                                                                                "shift_by": 9,
                                                                                                                                  "suffix": "",
                                                                                                                                    "type": "integer"
-                                                                                                      } ]
+                                                                                                      } ],
+                                                                                         "positions": [ "OFF", "1", "2", "3" ]
                                                                                   },
                                                     "PLT_PUVL_REL_RIGHT_GONDOLA": {
                                                                                           "category": "PUVL",
                                                                                       "control_type": "selector",
-                                                                                       "description": "PILOT Reload Right Gondola, OFF/1/2/3",
+                                                                                       "description": "PILOT Reload Right Gondola",
                                                                                         "identifier": "PLT_PUVL_REL_RIGHT_GONDOLA",
                                                                                             "inputs": [ {
                                                                                                           "description": "switch to previous or next state",
@@ -15533,12 +15558,13 @@
                                                                                                                                "shift_by": 11,
                                                                                                                                  "suffix": "",
                                                                                                                                    "type": "integer"
-                                                                                                      } ]
+                                                                                                      } ],
+                                                                                         "positions": [ "OFF", "1", "2", "3" ]
                                                                                   },
                                                            "PLT_PUVL_ROCKET_SEL": {
                                                                                           "category": "PUVL",
                                                                                       "control_type": "selector",
-                                                                                       "description": "PILOT Rocket Select, LEFT/BOTH/RIGHT",
+                                                                                       "description": "PILOT Rocket Select",
                                                                                         "identifier": "PLT_PUVL_ROCKET_SEL",
                                                                                             "inputs": [ {
                                                                                                           "description": "switch to previous or next state",
@@ -15557,7 +15583,8 @@
                                                                                                                                "shift_by": 4,
                                                                                                                                  "suffix": "",
                                                                                                                                    "type": "integer"
-                                                                                                      } ]
+                                                                                                      } ],
+                                                                                         "positions": [ "LEFT", "BOTH", "RIGHT" ]
                                                                                   },
                                                            "PLT_PUVL_SIGHT_DIST": {
                                                                                           "category": "PUVL",
@@ -19553,7 +19580,7 @@
                                                           "PLT_SPUU_CONTROL": {
                                                                                       "category": "SPUU",
                                                                                   "control_type": "selector",
-                                                                                   "description": "PILOT SPUU Control Switch, P/NONE/T",
+                                                                                   "description": "PILOT SPUU Control Switch",
                                                                                     "identifier": "PLT_SPUU_CONTROL",
                                                                                         "inputs": [ {
                                                                                                       "description": "set the switch position -- 0 = held left/down, 1 = centered, 2 = held right/up",
@@ -19569,7 +19596,8 @@
                                                                                                                            "shift_by": 11,
                                                                                                                              "suffix": "",
                                                                                                                                "type": "integer"
-                                                                                                  } ]
+                                                                                                  } ],
+                                                                                     "positions": [ "P", "NONE", "T" ]
                                                                               },
                                                               "PLT_SPUU_OFF": {
                                                                                       "category": "SPUU",
@@ -21715,7 +21743,7 @@
                                                         "OP_BURST_LENGTH": {
                                                                                    "category": "Weapon Systems",
                                                                                "control_type": "selector",
-                                                                                "description": "OPERATOR Burst Length SHORT/MED/LONG",
+                                                                                "description": "OPERATOR Burst Length",
                                                                                  "identifier": "OP_BURST_LENGTH",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -21734,7 +21762,8 @@
                                                                                                                         "shift_by": 0,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "SHORT", "MED", "LONG" ]
                                                                            },
                                                             "OP_CAN_RATE": {
                                                                                    "category": "Weapon Systems",

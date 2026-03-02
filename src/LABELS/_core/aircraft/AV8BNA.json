@@ -206,7 +206,7 @@
                                                  "KY58_CODE_LOAD": {
                                                                            "category": "ACNIP",
                                                                        "control_type": "selector",
-                                                                        "description": "KY-58 Remote Codes Load Switch  RV1/OPR/RV2",
+                                                                        "description": "KY-58 Remote Codes Load Switch ",
                                                                          "identifier": "KY58_CODE_LOAD",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -225,7 +225,8 @@
                                                                                                                 "shift_by": 0,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "RV1", "OPR", "RV2" ]
                                                                    }
                                             },
                                      "ACP": {
@@ -309,7 +310,7 @@
                                                             "JETT_MODE": {
                                                                                  "category": "ACP",
                                                                              "control_type": "selector",
-                                                                              "description": "Jettison Mode Selector STA/STOR/SAFE/CMBT/Fuel",
+                                                                              "description": "Jettison Mode Selector",
                                                                                "identifier": "JETT_MODE",
                                                                                    "inputs": [ {
                                                                                                  "description": "switch to previous or next state",
@@ -328,7 +329,8 @@
                                                                                                                       "shift_by": 10,
                                                                                                                         "suffix": "",
                                                                                                                           "type": "integer"
-                                                                                             } ]
+                                                                                             } ],
+                                                                                "positions": [ "STA", "STOR", "SAFE", "CMBT", "Fuel" ]
                                                                          },
                                                        "JETT_STATION_1": {
                                                                               "api_variant": "momentary_last_position",
@@ -645,7 +647,7 @@
                                                       "RELEASE_CONTROL": {
                                                                                  "category": "ACP",
                                                                              "control_type": "selector",
-                                                                              "description": "Manual Release Control Knob NORM/N+T/N/T",
+                                                                              "description": "Manual Release Control Knob",
                                                                                "identifier": "RELEASE_CONTROL",
                                                                                    "inputs": [ {
                                                                                                  "description": "switch to previous or next state",
@@ -664,7 +666,8 @@
                                                                                                                       "shift_by": 8,
                                                                                                                         "suffix": "",
                                                                                                                           "type": "integer"
-                                                                                             } ]
+                                                                                             } ],
+                                                                                "positions": [ "NORM", "N+T", "N", "T" ]
                                                                          },
                                                       "RELEASE_INT_001": {
                                                                                  "category": "ACP",
@@ -1271,7 +1274,7 @@
                                                  "DECOY_CONTROL": {
                                                                           "category": "ECM",
                                                                       "control_type": "selector",
-                                                                       "description": "Decoy Dispenser Control OFF/AUT/UP/DWN/RWR",
+                                                                       "description": "Decoy Dispenser Control",
                                                                         "identifier": "DECOY_CONTROL",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -1290,12 +1293,13 @@
                                                                                                                "shift_by": 0,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "OFF", "AUT", "UP", "DWN", "RWR" ]
                                                                   },
                                                 "JAMMER_CONTROL": {
                                                                           "category": "ECM",
                                                                       "control_type": "selector",
-                                                                       "description": "Jammer Control OFF/STBY/BIT/RCV/RPT",
+                                                                       "description": "Jammer Control",
                                                                         "identifier": "JAMMER_CONTROL",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -1314,7 +1318,8 @@
                                                                                                                "shift_by": 3,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "OFF", "STBY", "BIT", "RCV", "RPT" ]
                                                                   },
                                                        "RWR_VOL": {
                                                                           "category": "ECM",
@@ -1348,7 +1353,7 @@
                                                        "CABIN_DEFOG": {
                                                                               "category": "ECS",
                                                                           "control_type": "selector",
-                                                                           "description": "Cabin Defog Switch NORM/DFOG/MAX",
+                                                                           "description": "Cabin Defog Switch",
                                                                             "identifier": "CABIN_DEFOG",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -1367,12 +1372,13 @@
                                                                                                                    "shift_by": 9,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "NORM", "DFOG", "MAX" ]
                                                                       },
                                                 "CABIN_PRESS_SWITCH": {
                                                                               "category": "ECS",
                                                                           "control_type": "selector",
-                                                                           "description": "Cabin Pressure Switch NORM/DUMP/RAM",
+                                                                           "description": "Cabin Pressure Switch",
                                                                             "identifier": "CABIN_PRESS_SWITCH",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -1391,12 +1397,13 @@
                                                                                                                    "shift_by": 13,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "NORM", "DUMP", "RAM" ]
                                                                       },
                                                            "ECS_AFT": {
                                                                               "category": "ECS",
                                                                           "control_type": "selector",
-                                                                           "description": "Aft Equipment Bay ECS Switch RESET/ON/OFF",
+                                                                           "description": "Aft Equipment Bay ECS Switch",
                                                                             "identifier": "ECS_AFT",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -1415,7 +1422,8 @@
                                                                                                                    "shift_by": 11,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "RESET", "ON", "OFF" ]
                                                                       },
                                                            "ECS_FWD": {
                                                                               "category": "ECS",
@@ -1478,7 +1486,7 @@
                                                   "APU_GEN_SW": {
                                                                         "category": "Electric Panel",
                                                                     "control_type": "selector",
-                                                                     "description": "APU Generator Switch OFF/ON/RESET",
+                                                                     "description": "APU Generator Switch",
                                                                       "identifier": "APU_GEN_SW",
                                                                           "inputs": [ {
                                                                                         "description": "switch to previous or next state",
@@ -1497,12 +1505,13 @@
                                                                                                              "shift_by": 8,
                                                                                                                "suffix": "",
                                                                                                                  "type": "integer"
-                                                                                    } ]
+                                                                                    } ],
+                                                                       "positions": [ "OFF", "ON", "RESET" ]
                                                                 },
                                                      "BATT_SW": {
                                                                         "category": "Electric Panel",
                                                                     "control_type": "selector",
-                                                                     "description": "Battery Switch  ALERT/OFF/ON",
+                                                                     "description": "Battery Switch ",
                                                                       "identifier": "BATT_SW",
                                                                           "inputs": [ {
                                                                                         "description": "switch to previous or next state",
@@ -1521,7 +1530,8 @@
                                                                                                              "shift_by": 13,
                                                                                                                "suffix": "",
                                                                                                                  "type": "integer"
-                                                                                    } ]
+                                                                                    } ],
+                                                                       "positions": [ "ALERT", "OFF", "ON" ]
                                                                 },
                                                   "DC_TEST_SW": {
                                                                         "category": "Electric Panel",
@@ -1584,7 +1594,7 @@
                                                       "GEN_SW": {
                                                                         "category": "Electric Panel",
                                                                     "control_type": "selector",
-                                                                     "description": "Generator Switch  TEST/OFF/ON",
+                                                                     "description": "Generator Switch ",
                                                                       "identifier": "GEN_SW",
                                                                           "inputs": [ {
                                                                                         "description": "switch to previous or next state",
@@ -1603,7 +1613,8 @@
                                                                                                              "shift_by": 11,
                                                                                                                "suffix": "",
                                                                                                                  "type": "integer"
-                                                                                    } ]
+                                                                                    } ],
+                                                                       "positions": [ "TEST", "OFF", "ON" ]
                                                                 }
                                             },
                           "Engine Display": {
@@ -1872,7 +1883,7 @@
                                                          "EXT_LIGHTS": {
                                                                                "category": "External Lights",
                                                                            "control_type": "selector",
-                                                                            "description": "External Lights Mode Switch NORM/NVG/OFF",
+                                                                            "description": "External Lights Mode Switch",
                                                                              "identifier": "EXT_LIGHTS",
                                                                                  "inputs": [ {
                                                                                                "description": "switch to previous or next state",
@@ -1891,7 +1902,8 @@
                                                                                                                     "shift_by": 8,
                                                                                                                       "suffix": "",
                                                                                                                         "type": "integer"
-                                                                                           } ]
+                                                                                           } ],
+                                                                              "positions": [ "NORM", "NVG", "OFF" ]
                                                                        },
                                                    "FORMATION_LIGHTS": {
                                                                                "category": "External Lights",
@@ -1923,7 +1935,7 @@
                                                 "LANDING_TAXI_LIGHTS": {
                                                                                "category": "External Lights",
                                                                            "control_type": "selector",
-                                                                            "description": "Landing/Taxi Lights Switch OFF/HVR/APRCH",
+                                                                            "description": "Landing/Taxi Lights Switch",
                                                                              "identifier": "LANDING_TAXI_LIGHTS",
                                                                                  "inputs": [ {
                                                                                                "description": "switch to previous or next state",
@@ -1942,12 +1954,13 @@
                                                                                                                     "shift_by": 6,
                                                                                                                       "suffix": "",
                                                                                                                         "type": "integer"
-                                                                                           } ]
+                                                                                           } ],
+                                                                              "positions": [ "OFF", "HVR", "APRCH" ]
                                                                        },
                                                          "POS_LIGHTS": {
                                                                                "category": "External Lights",
                                                                            "control_type": "selector",
-                                                                            "description": "Position Lights Switch OFF/DIM/BRT",
+                                                                            "description": "Position Lights Switch",
                                                                              "identifier": "POS_LIGHTS",
                                                                                  "inputs": [ {
                                                                                                "description": "switch to previous or next state",
@@ -1966,7 +1979,8 @@
                                                                                                                     "shift_by": 10,
                                                                                                                       "suffix": "",
                                                                                                                         "type": "integer"
-                                                                                           } ]
+                                                                                           } ],
+                                                                              "positions": [ "OFF", "DIM", "BRT" ]
                                                                        }
                                             },
                       "Flight Instruments": {
@@ -2463,7 +2477,7 @@
                                                 "FUEL_PUMP_L": {
                                                                        "category": "Fuel Panel",
                                                                    "control_type": "selector",
-                                                                    "description": "Fuel Pump L Switch DC OPEN/OFF/NORM",
+                                                                    "description": "Fuel Pump L Switch DC",
                                                                      "identifier": "FUEL_PUMP_L",
                                                                          "inputs": [ {
                                                                                        "description": "switch to previous or next state",
@@ -2482,12 +2496,13 @@
                                                                                                             "shift_by": 14,
                                                                                                               "suffix": "",
                                                                                                                 "type": "integer"
-                                                                                   } ]
+                                                                                   } ],
+                                                                      "positions": [ "OPEN", "OFF", "NORM" ]
                                                                },
                                                 "FUEL_PUMP_R": {
                                                                        "category": "Fuel Panel",
                                                                    "control_type": "selector",
-                                                                    "description": "Fuel Pump R Switch DC OPEN/OFF/NORM",
+                                                                    "description": "Fuel Pump R Switch DC",
                                                                      "identifier": "FUEL_PUMP_R",
                                                                          "inputs": [ {
                                                                                        "description": "switch to previous or next state",
@@ -2506,12 +2521,13 @@
                                                                                                             "shift_by": 0,
                                                                                                               "suffix": "",
                                                                                                                 "type": "integer"
-                                                                                   } ]
+                                                                                   } ],
+                                                                      "positions": [ "OPEN", "OFF", "NORM" ]
                                                                },
                                                    "FUEL_SEL": {
                                                                        "category": "Fuel Panel",
                                                                    "control_type": "selector",
-                                                                    "description": "Fuel Totalizer Selector OUTBD/INBD/WING/INT/TOT/FEED/BIT",
+                                                                    "description": "Fuel Totalizer Selector",
                                                                      "identifier": "FUEL_SEL",
                                                                          "inputs": [ {
                                                                                        "description": "switch to previous or next state",
@@ -2530,12 +2546,13 @@
                                                                                                             "shift_by": 13,
                                                                                                               "suffix": "",
                                                                                                                 "type": "integer"
-                                                                                   } ]
+                                                                                   } ],
+                                                                      "positions": [ "OUTBD", "INBD", "WING", "INT", "TOT", "FEED", "BIT" ]
                                                                },
                                                       "PROBE": {
                                                                        "category": "Fuel Panel",
                                                                    "control_type": "selector",
-                                                                    "description": "Air Refueling Probe Switch IN/OUT/PRESS",
+                                                                    "description": "Air Refueling Probe Switch",
                                                                      "identifier": "PROBE",
                                                                          "inputs": [ {
                                                                                        "description": "switch to previous or next state",
@@ -2554,7 +2571,8 @@
                                                                                                             "shift_by": 2,
                                                                                                               "suffix": "",
                                                                                                                 "type": "integer"
-                                                                                   } ]
+                                                                                   } ],
+                                                                      "positions": [ "IN", "OUT", "PRESS" ]
                                                                }
                                             },
                                   "Gauges": {
@@ -4327,7 +4345,7 @@
                                                          "ANTI_SKID": {
                                                                               "category": "Gear/Flaps Control Panel",
                                                                           "control_type": "selector",
-                                                                           "description": "Anti-Skid Switch TEST/ON/NWS",
+                                                                           "description": "Anti-Skid Switch",
                                                                             "identifier": "ANTI_SKID",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -4346,7 +4364,8 @@
                                                                                                                    "shift_by": 12,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "TEST", "ON", "NWS" ]
                                                                       },
                                                             "EFC_SW": {
                                                                               "category": "Gear/Flaps Control Panel",
@@ -4440,7 +4459,7 @@
                                                          "FLAP_MODE": {
                                                                               "category": "Gear/Flaps Control Panel",
                                                                           "control_type": "selector",
-                                                                           "description": "Flaps Mode Switch CRUISE/AUTO/STOL",
+                                                                           "description": "Flaps Mode Switch",
                                                                             "identifier": "FLAP_MODE",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -4459,12 +4478,13 @@
                                                                                                                    "shift_by": 7,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "CRUISE", "AUTO", "STOL" ]
                                                                       },
                                                         "FLAP_POWER": {
                                                                               "category": "Gear/Flaps Control Panel",
                                                                           "control_type": "selector",
-                                                                           "description": "Flaps Power Switch RESET/ON/OFF",
+                                                                           "description": "Flaps Power Switch",
                                                                             "identifier": "FLAP_POWER",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -4483,7 +4503,8 @@
                                                                                                                    "shift_by": 9,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "RESET", "ON", "OFF" ]
                                                                       },
                                                           "H2O_DUMP": {
                                                                               "category": "Gear/Flaps Control Panel",
@@ -4899,7 +4920,7 @@
                                                 "H2O_MODE": {
                                                                     "category": "H2O",
                                                                 "control_type": "selector",
-                                                                 "description": "H2O Mode Switch  LDG/OFF/TO",
+                                                                 "description": "H2O Mode Switch ",
                                                                   "identifier": "H2O_MODE",
                                                                       "inputs": [ {
                                                                                     "description": "switch to previous or next state",
@@ -4918,7 +4939,8 @@
                                                                                                          "shift_by": 2,
                                                                                                            "suffix": "",
                                                                                                              "type": "integer"
-                                                                                } ]
+                                                                                } ],
+                                                                   "positions": [ "LDG", "OFF", "TO" ]
                                                             }
                                             },
                              "HUD Control": {
@@ -4981,7 +5003,7 @@
                                                         "HUD_MODE": {
                                                                             "category": "HUD Control",
                                                                         "control_type": "selector",
-                                                                         "description": "HUD Display Mode Switch DAY/AUTO/NIGHT",
+                                                                         "description": "HUD Display Mode Switch",
                                                                           "identifier": "HUD_MODE",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -5000,12 +5022,13 @@
                                                                                                                  "shift_by": 6,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "DAY", "AUTO", "NIGHT" ]
                                                                     },
                                                       "HUD_SYMBOL": {
                                                                             "category": "HUD Control",
                                                                         "control_type": "selector",
-                                                                         "description": "HUD Symbology Reject Switch NORM/REJ1/REJ2",
+                                                                         "description": "HUD Symbology Reject Switch",
                                                                           "identifier": "HUD_SYMBOL",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -5024,7 +5047,8 @@
                                                                                                                  "shift_by": 4,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "NORM", "REJ1", "REJ2" ]
                                                                     },
                                                 "HUD_VIDEO_BRIGHT": {
                                                                             "category": "HUD Control",
@@ -5139,7 +5163,7 @@
                                                 "ICS_MIC_MODE": {
                                                                         "category": "ICS",
                                                                     "control_type": "selector",
-                                                                     "description": "ICS Mic Operational Mode Switch  COLD/HOT/TEL",
+                                                                     "description": "ICS Mic Operational Mode Switch ",
                                                                       "identifier": "ICS_MIC_MODE",
                                                                           "inputs": [ {
                                                                                         "description": "switch to previous or next state",
@@ -5158,14 +5182,15 @@
                                                                                                              "shift_by": 2,
                                                                                                                "suffix": "",
                                                                                                                  "type": "integer"
-                                                                                    } ]
+                                                                                    } ],
+                                                                       "positions": [ "COLD", "HOT", "TEL" ]
                                                                 }
                                             },
                                      "IFF": {
                                                 "IFF_CRYPT_MODE": {
                                                                           "category": "IFF",
                                                                       "control_type": "selector",
-                                                                       "description": "IFF Crypto Mode Switch  ZERO/NORM/HOLD",
+                                                                       "description": "IFF Crypto Mode Switch ",
                                                                         "identifier": "IFF_CRYPT_MODE",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -5184,7 +5209,8 @@
                                                                                                                "shift_by": 4,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "ZERO", "NORM", "HOLD" ]
                                                                   },
                                                  "IFF_OPER_MODE": {
                                                                           "category": "IFF",
@@ -5220,7 +5246,7 @@
                                                 "INS_MODE": {
                                                                     "category": "INS",
                                                                 "control_type": "selector",
-                                                                 "description": "INS Mode Knob OFF/SEA/GND/NAV/IFA/GYRO/GB/TEST",
+                                                                 "description": "INS Mode Knob",
                                                                   "identifier": "INS_MODE",
                                                                       "inputs": [ {
                                                                                     "description": "switch to previous or next state",
@@ -5239,7 +5265,8 @@
                                                                                                          "shift_by": 4,
                                                                                                            "suffix": "",
                                                                                                              "type": "integer"
-                                                                                } ]
+                                                                                } ],
+                                                                   "positions": [ "OFF", "SEA", "GND", "NAV", "IFA", "GYRO", "GB", "TEST" ]
                                                             }
                                             },
                                "Int Light": {
@@ -5273,7 +5300,7 @@
                                                         "COMP_LIGHT": {
                                                                               "category": "Int Light",
                                                                           "control_type": "selector",
-                                                                           "description": "Compass Light/Test Lights  COPM/OFF/LTS TEST",
+                                                                           "description": "Compass Light/Test Lights ",
                                                                             "identifier": "COMP_LIGHT",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -5292,7 +5319,8 @@
                                                                                                                    "shift_by": 6,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "COPM", "OFF", "LTS TEST" ]
                                                                       },
                                                     "CONSOLE_LIGHTS": {
                                                                               "category": "Int Light",
@@ -7050,7 +7078,7 @@
                                                      "DUAL_CPU_MODE": {
                                                                               "category": "Misc",
                                                                           "control_type": "selector",
-                                                                           "description": "Display Computer Mode Selector Switch PRIM/AUTO/ALTER",
+                                                                           "description": "Display Computer Mode Selector Switch",
                                                                             "identifier": "DUAL_CPU_MODE",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -7069,7 +7097,8 @@
                                                                                                                    "shift_by": 14,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "PRIM", "AUTO", "ALTER" ]
                                                                       },
                                                               "FLIR": {
                                                                               "category": "Misc",
@@ -7103,7 +7132,7 @@
                                                       "MISS_PC_MODE": {
                                                                               "category": "Misc",
                                                                           "control_type": "selector",
-                                                                           "description": "Mission Computer Mode Switch OVRD/AUTO/OFF",
+                                                                           "description": "Mission Computer Mode Switch",
                                                                             "identifier": "MISS_PC_MODE",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -7122,7 +7151,8 @@
                                                                                                                    "shift_by": 1,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "OVRD", "AUTO", "OFF" ]
                                                                       },
                                                    "PROBE_HEAT_MODE": {
                                                                               "category": "Misc",
@@ -7556,7 +7586,7 @@
                                                      "AFC_SW": {
                                                                        "category": "SAAHS",
                                                                    "control_type": "selector",
-                                                                    "description": "AFC Switch ON/OFF/RESET",
+                                                                    "description": "AFC Switch",
                                                                      "identifier": "AFC_SW",
                                                                          "inputs": [ {
                                                                                        "description": "switch to previous or next state",
@@ -7575,7 +7605,8 @@
                                                                                                             "shift_by": 13,
                                                                                                               "suffix": "",
                                                                                                                 "type": "integer"
-                                                                                   } ]
+                                                                                   } ],
+                                                                      "positions": [ "ON", "OFF", "RESET" ]
                                                                },
                                                 "ALT_HOLD_SW": {
                                                                        "category": "SAAHS",
@@ -8035,7 +8066,7 @@
                                                   "TRIM_MODE": {
                                                                        "category": "Trim",
                                                                    "control_type": "selector",
-                                                                    "description": "Trim Mode Switch APRCH/HVR/OFF",
+                                                                    "description": "Trim Mode Switch",
                                                                      "identifier": "TRIM_MODE",
                                                                          "inputs": [ {
                                                                                        "description": "switch to previous or next state",
@@ -8054,12 +8085,13 @@
                                                                                                             "shift_by": 9,
                                                                                                               "suffix": "",
                                                                                                                 "type": "integer"
-                                                                                   } ]
+                                                                                   } ],
+                                                                      "positions": [ "APRCH", "HVR", "OFF" ]
                                                                },
                                                 "YAW_TRIM_SW": {
                                                                        "category": "Trim",
                                                                    "control_type": "selector",
-                                                                    "description": "RPS/YAW Trim Switch TEST/ON/OFF",
+                                                                    "description": "RPS/YAW Trim Switch",
                                                                      "identifier": "YAW_TRIM_SW",
                                                                          "inputs": [ {
                                                                                        "description": "switch to previous or next state",
@@ -8078,7 +8110,8 @@
                                                                                                             "shift_by": 7,
                                                                                                               "suffix": "",
                                                                                                                 "type": "integer"
-                                                                                   } ]
+                                                                                   } ],
+                                                                      "positions": [ "TEST", "ON", "OFF" ]
                                                                }
                                             },
                                      "UFC": {
@@ -8974,7 +9007,12 @@
                                                  "BOMBS_ARM_SW": {
                                                                          "category": "UHF Radio",
                                                                      "control_type": "selector",
-                                                                      "description": "V/UHF RSC Frequency Mode Switch AJ-M/AJ/MAR/PRST/MAN/243/121",
+                                                                       "deprecated": {
+                                                                                         "description": "Incorrect control ID",
+                                                                                               "since": "0.11.1",
+                                                                                         "use_instead": "UHF_FREQ_MODE"
+                                                                                     },
+                                                                      "description": "V/UHF RSC Frequency Mode Switch",
                                                                        "identifier": "BOMBS_ARM_SW",
                                                                            "inputs": [ {
                                                                                          "description": "switch to previous or next state",
@@ -8993,7 +9031,8 @@
                                                                                                               "shift_by": 4,
                                                                                                                 "suffix": "",
                                                                                                                   "type": "integer"
-                                                                                     } ]
+                                                                                     } ],
+                                                                        "positions": [ "AJ-M", "AJ", "MAR", "PRST", "MAN", "243", "121" ]
                                                                  },
                                                    "UFC_BRIGHT": {
                                                                          "category": "UHF Radio",
@@ -9244,6 +9283,21 @@
                                                                                                                   "type": "integer"
                                                                                      } ]
                                                                  },
+                                                  "UHF_CHANNEL": {
+                                                                         "category": "UHF Radio",
+                                                                     "control_type": "display",
+                                                                      "description": "V/UHF Channel",
+                                                                       "identifier": "UHF_CHANNEL",
+                                                                           "inputs": [  ],
+                                                                          "outputs": [ {
+                                                                                                    "address": 31122,
+                                                                                         "address_identifier": "AV8BNA_UHF_CHANNEL_A",
+                                                                                                "description": "V/UHF Channel",
+                                                                                                 "max_length": 2,
+                                                                                                     "suffix": "",
+                                                                                                       "type": "string"
+                                                                                     } ]
+                                                                 },
                                                      "UHF_FREQ": {
                                                                       "api_variant": "multiturn",
                                                                          "category": "UHF Radio",
@@ -9267,6 +9321,46 @@
                                                                                                                 "suffix": "_KNOB_POS",
                                                                                                                   "type": "integer"
                                                                                      } ]
+                                                                 },
+                                                "UHF_FREQUENCY": {
+                                                                         "category": "UHF Radio",
+                                                                     "control_type": "display",
+                                                                      "description": "V/UHF Frequency",
+                                                                       "identifier": "UHF_FREQUENCY",
+                                                                           "inputs": [  ],
+                                                                          "outputs": [ {
+                                                                                                    "address": 31124,
+                                                                                         "address_identifier": "AV8BNA_UHF_FREQUENCY_A",
+                                                                                                "description": "V/UHF Frequency",
+                                                                                                 "max_length": 8,
+                                                                                                     "suffix": "",
+                                                                                                       "type": "string"
+                                                                                     } ]
+                                                                 },
+                                                "UHF_FREQ_MODE": {
+                                                                         "category": "UHF Radio",
+                                                                     "control_type": "selector",
+                                                                      "description": "V/UHF RSC Frequency Mode Switch",
+                                                                       "identifier": "UHF_FREQ_MODE",
+                                                                           "inputs": [ {
+                                                                                         "description": "switch to previous or next state",
+                                                                                           "interface": "fixed_step"
+                                                                                     }, {
+                                                                                         "description": "set position",
+                                                                                           "interface": "set_state",
+                                                                                           "max_value": 6
+                                                                                     } ],
+                                                                          "outputs": [ {
+                                                                                                               "address": 31058,
+                                                                                         "address_mask_shift_identifier": "AV8BNA_UHF_FREQ_MODE",
+                                                                                                           "description": "selector position",
+                                                                                                                  "mask": 3584,
+                                                                                                             "max_value": 6,
+                                                                                                              "shift_by": 9,
+                                                                                                                "suffix": "",
+                                                                                                                  "type": "integer"
+                                                                                     } ],
+                                                                        "positions": [ "AJ-M", "AJ", "MAR", "PRST", "MAN", "243", "121" ]
                                                                  },
                                                   "UHF_LOAD_SW": {
                                                                       "api_variant": "momentary_last_position",
@@ -9301,7 +9395,7 @@
                                                      "UHF_MODE": {
                                                                          "category": "UHF Radio",
                                                                      "control_type": "selector",
-                                                                      "description": "V/UHF RSC Operational Mode Switch ZRO/OFF/TEST/TR+G/TR/ADF/CHNG PRST",
+                                                                      "description": "V/UHF RSC Operational Mode Switch",
                                                                        "identifier": "UHF_MODE",
                                                                            "inputs": [ {
                                                                                          "description": "switch to previous or next state",
@@ -9320,7 +9414,8 @@
                                                                                                               "shift_by": 0,
                                                                                                                 "suffix": "",
                                                                                                                   "type": "integer"
-                                                                                     } ]
+                                                                                     } ],
+                                                                        "positions": [ "ZRO", "OFF", "TEST", "TR+G", "TR", "ADF", "CHNG PRST" ]
                                                                  },
                                                       "UHF_VOL": {
                                                                          "category": "UHF Radio",
