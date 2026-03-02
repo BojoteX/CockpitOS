@@ -9,9 +9,9 @@
 
 **1.** [**Download CockpitOS**](https://github.com/BojoteX/CockpitOS/releases/latest/download/CockpitOS.zip) -- unzip anywhere
 
-**2.** Double-click `Setup-START.py` -- this installs everything you need
+**2.** Double-click `Setup-START.py`
 
-**3.** Double-click `CockpitOS-START.py` -- compile and upload to your ESP32
+That's it. The Setup tool installs everything and connects you to the rest of the workflow.
 
 > Don't have Python? [Download it here](https://www.python.org/downloads/) (check **"Add to PATH"** during install). Windows will also prompt you automatically if you try to run a .py file without it.
 
