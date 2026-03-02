@@ -141,7 +141,8 @@ def main():
                 "hash": h,
                 "entry_count": len(entry_list),
             }
-            print(f"  {name}: {len(entry_list)} entries, hash={h[:12]}...")
+            h_short = h[:12] if h else "none"
+            print(f"  {name}: {len(entry_list)} entries, hash={h_short}...")
         with open(snap_file, "w", encoding="utf-8") as f:
             json.dump(baselines, f, indent=2)
         print(f"\nBaseline saved to {snap_file}")
