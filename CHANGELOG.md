@@ -1,10 +1,16 @@
 # Changelog
 
-## v1.2.3 — 2026-03-01
+## v1.2.4 — 2026-03-01
 
 ### Improved
 - Misc bug fixes
 - BLE HID Implementation
+- Small BLE cache fix
+- Unit Tests for Auto-Generator
+
+## v1.2.3 — 2026-03-01
+
+### Improved
 - Small BLE cache fix
 
 ## v1.2.2 — 2026-03-01
