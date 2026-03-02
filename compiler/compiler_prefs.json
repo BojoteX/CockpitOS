@@ -1,16 +1,27 @@
 {
-  "fqbn": "esp32:esp32:lolin_s2_mini",
+  "fqbn": "esp32:esp32:esp32s3",
   "options": {
-    "CDCOnBoot": "dis_cdc",
+    "UploadSpeed": "921600",
+    "USBMode": "hwcdc",
+    "CDCOnBoot": "default",
     "MSCOnBoot": "default",
     "DFUOnBoot": "default",
+    "UploadMode": "default",
+    "CPUFreq": "240",
+    "FlashMode": "qio",
+    "FlashSize": "4M",
     "PartitionScheme": "no_ota",
     "DebugLevel": "none",
-    "EraseFlash": "none"
+    "PSRAM": "disabled",
+    "LoopCore": "1",
+    "EventsCore": "1",
+    "EraseFlash": "none",
+    "JTAGAdapter": "default",
+    "ZigbeeMode": "default"
   },
-  "transport": "wifi",
-  "role": "standalone",
+  "transport": "ble",
+  "role": "master",
   "usb_mode": null,
-  "board_name": "LOLIN S2 Mini",
+  "board_name": "ESP32S3 Dev Module",
   "show_detailed_warnings": false
 }
