@@ -260,7 +260,7 @@
                                                "RIO_RWR_ALR45_HIGH_BAND": {
                                                                                   "category": "ALR-45/50 RWR Control Panel",
                                                                               "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                               "description": "HIGH Band Switch (DEFEAT/NORM/BYPASS)",
+                                                                               "description": "HIGH Band Switch",
                                                                                 "identifier": "RIO_RWR_ALR45_HIGH_BAND",
                                                                                     "inputs": [ {
                                                                                                   "description": "set the switch position",
@@ -276,7 +276,8 @@
                                                                                                                        "shift_by": 10,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "DEFEAT", "NORM", "BYPASS" ]
                                                                           },
                                           "RIO_RWR_ALR45_HIGH_BAND_TEST": {
                                                                                   "category": "ALR-45/50 RWR Control Panel",
@@ -310,7 +311,7 @@
                                                 "RIO_RWR_ALR45_LOW_BAND": {
                                                                                   "category": "ALR-45/50 RWR Control Panel",
                                                                               "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                               "description": "LOW Band Switch (DEFEAT/NORM/BYPASS)",
+                                                                               "description": "LOW Band Switch",
                                                                                 "identifier": "RIO_RWR_ALR45_LOW_BAND",
                                                                                     "inputs": [ {
                                                                                                   "description": "set the switch position",
@@ -326,12 +327,13 @@
                                                                                                                        "shift_by": 13,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "DEFEAT", "NORM", "BYPASS" ]
                                                                           },
                                        "RIO_RWR_ALR45_LOW_MID_BAND_TEST": {
                                                                                   "category": "ALR-45/50 RWR Control Panel",
                                                                               "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                               "description": "LOW/MID Band Test Switch (LOW/OFF/MID)",
+                                                                               "description": "LOW/MID Band Test Switch",
                                                                                 "identifier": "RIO_RWR_ALR45_LOW_MID_BAND_TEST",
                                                                                     "inputs": [ {
                                                                                                   "description": "set the switch position",
@@ -347,12 +349,13 @@
                                                                                                                        "shift_by": 13,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "LOW", "OFF", "MID" ]
                                                                           },
                                                 "RIO_RWR_ALR45_MID_BAND": {
                                                                                   "category": "ALR-45/50 RWR Control Panel",
                                                                               "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                               "description": "MID Band Switch (DEFEAT/NORM/BYPASS)",
+                                                                               "description": "MID Band Switch",
                                                                                 "identifier": "RIO_RWR_ALR45_MID_BAND",
                                                                                     "inputs": [ {
                                                                                                   "description": "set the switch position",
@@ -368,7 +371,8 @@
                                                                                                                        "shift_by": 8,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "DEFEAT", "NORM", "BYPASS" ]
                                                                           },
                                                  "RIO_RWR_ALR45_ML_TEST": {
                                                                                   "category": "ALR-45/50 RWR Control Panel",
@@ -22030,7 +22034,7 @@
                                               "PLT_UHF1_FREQ_MODE": {
                                                                             "category": "UHF 1",
                                                                         "control_type": "selector",
-                                                                         "description": "PILOT UHF ARC-159 Freq Mode GUARD/MANUAL/PRESET",
+                                                                         "description": "PILOT UHF ARC-159 Freq Mode",
                                                                           "identifier": "PLT_UHF1_FREQ_MODE",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -22049,12 +22053,13 @@
                                                                                                                  "shift_by": 8,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "GUARD", "MANUAL", "PRESET" ]
                                                                     },
                                                "PLT_UHF1_FUNCTION": {
                                                                             "category": "UHF 1",
                                                                         "control_type": "selector",
-                                                                         "description": "PILOT UHF ARC-159 Function ADF/BOTH/MAIN/OFF",
+                                                                         "description": "PILOT UHF ARC-159 Function",
                                                                           "identifier": "PLT_UHF1_FUNCTION",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -22073,7 +22078,8 @@
                                                                                                                  "shift_by": 10,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "ADF", "BOTH", "MAIN", "OFF" ]
                                                                     },
                                                    "PLT_UHF1_LOAD": {
                                                                          "api_variant": "momentary_last_position",
@@ -22741,7 +22747,7 @@
                                                "RIO_VUHF_FREQ_MODE": {
                                                                              "category": "VUHF",
                                                                          "control_type": "selector",
-                                                                          "description": "RIO VHF/UHF ARC-182 Frequency Mode 243 MAN G PRESET READ LOAD",
+                                                                          "description": "RIO VHF/UHF ARC-182 Frequency Mode",
                                                                            "identifier": "RIO_VUHF_FREQ_MODE",
                                                                                "inputs": [ {
                                                                                              "description": "switch to previous or next state",
@@ -22760,7 +22766,8 @@
                                                                                                                   "shift_by": 0,
                                                                                                                     "suffix": "",
                                                                                                                       "type": "integer"
-                                                                                         } ]
+                                                                                         } ],
+                                                                            "positions": [ "243", "MAN", "G", "PRESET", "READ", "LOAD" ]
                                                                      },
                                                "RIO_VUHF_HIGH_FREQ": {
                                                                              "category": "VUHF",
@@ -22782,7 +22789,7 @@
                                                     "RIO_VUHF_MODE": {
                                                                              "category": "VUHF",
                                                                          "control_type": "selector",
-                                                                          "description": "RIO VHF/UHF ARC-182 MODE OFF T/R T/R&G DF TEST",
+                                                                          "description": "RIO VHF/UHF ARC-182 MODE",
                                                                            "identifier": "RIO_VUHF_MODE",
                                                                                "inputs": [ {
                                                                                              "description": "switch to previous or next state",
@@ -22801,7 +22808,8 @@
                                                                                                                   "shift_by": 3,
                                                                                                                     "suffix": "",
                                                                                                                       "type": "integer"
-                                                                                         } ]
+                                                                                         } ],
+                                                                            "positions": [ "OFF", "T/R", "T/R&G", "DF", "TEST" ]
                                                                      },
                                                  "RIO_VUHF_PRESETS": {
                                                                              "category": "VUHF",

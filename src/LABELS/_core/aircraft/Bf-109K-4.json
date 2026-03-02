@@ -1575,7 +1575,7 @@
                                            "MAGNETOS": {
                                                                "category": "Engine",
                                                            "control_type": "selector",
-                                                            "description": "Magnetos Off/M1/M2/M1+M2",
+                                                            "description": "Magnetos",
                                                              "identifier": "MAGNETOS",
                                                                  "inputs": [ {
                                                                                "description": "switch to previous or next state",
@@ -1594,7 +1594,8 @@
                                                                                                     "shift_by": 3,
                                                                                                       "suffix": "",
                                                                                                         "type": "integer"
-                                                                           } ]
+                                                                           } ],
+                                                              "positions": [ "Off", "M1", "M2", "M1+M2" ]
                                                        },
                                          "MW50_BOOST": {
                                                                "category": "Engine",

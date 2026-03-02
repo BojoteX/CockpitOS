@@ -33,7 +33,7 @@
                                                 "AHRS_FAST_SLAVE": {
                                                                            "category": "AHRS",
                                                                        "control_type": "selector",
-                                                                        "description": "Compass Switch, DIR GYRO/MAG/FAST SLAVE",
+                                                                        "description": "Compass Switch",
                                                                          "identifier": "AHRS_FAST_SLAVE",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -52,7 +52,8 @@
                                                                                                                 "shift_by": 11,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "DIR GYRO", "MAG", "FAST SLAVE" ]
                                                                    },
                                                   "AHRS_NAV_MODE": {
                                                                            "category": "AHRS",
@@ -289,7 +290,7 @@
                                                          "CHAFF_MODE": {
                                                                                "category": "CMDS",
                                                                            "control_type": "selector",
-                                                                            "description": "Chaff Mode Selector, OFF/SINGLE/PRGM/MULT",
+                                                                            "description": "Chaff Mode Selector",
                                                                              "identifier": "CHAFF_MODE",
                                                                                  "inputs": [ {
                                                                                                "description": "switch to previous or next state",
@@ -308,7 +309,8 @@
                                                                                                                     "shift_by": 14,
                                                                                                                       "suffix": "",
                                                                                                                         "type": "integer"
-                                                                                           } ]
+                                                                                           } ],
+                                                                              "positions": [ "OFF", "SINGLE", "PRGM", "MULT" ]
                                                                        },
                                                 "CM_CHAFFCNT_DISPLAY": {
                                                                                "category": "CMDS",
@@ -347,7 +349,7 @@
                                                      "FLARE_MODE_SEL": {
                                                                                "category": "CMDS",
                                                                            "control_type": "selector",
-                                                                            "description": "Flare Mode Selector, OFF/SINGLE/PRGM",
+                                                                            "description": "Flare Mode Selector",
                                                                              "identifier": "FLARE_MODE_SEL",
                                                                                  "inputs": [ {
                                                                                                "description": "switch to previous or next state",
@@ -366,7 +368,8 @@
                                                                                                                     "shift_by": 0,
                                                                                                                       "suffix": "",
                                                                                                                         "type": "integer"
-                                                                                           } ]
+                                                                                           } ],
+                                                                              "positions": [ "OFF", "SINGLE", "PRGM" ]
                                                                        },
                                                         "FL_CHAFF_BT": {
                                                                             "api_variant": "momentary_last_position",
@@ -547,7 +550,7 @@
                                                 "CAMERA_OVERRUN": {
                                                                           "category": "Camera",
                                                                       "control_type": "selector",
-                                                                       "description": "Sight Camera Overrun Selector, 0/3/10/20",
+                                                                       "description": "Sight Camera Overrun Selector",
                                                                         "identifier": "CAMERA_OVERRUN",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -566,7 +569,8 @@
                                                                                                                "shift_by": 13,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "0", "3", "10", "20" ]
                                                                   },
                                                     "CAMERA_RUN": {
                                                                        "api_variant": "momentary_last_position",
@@ -803,7 +807,7 @@
                                                          "A_FLAPS": {
                                                                             "category": "Control Interface",
                                                                         "control_type": "selector",
-                                                                         "description": "Auto Flap System Thumb Switch, UP/FIXED/AUTO",
+                                                                         "description": "Auto Flap System Thumb Switch",
                                                                           "identifier": "A_FLAPS",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -822,12 +826,13 @@
                                                                                                                  "shift_by": 0,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "UP", "FIXED", "AUTO" ]
                                                                     },
                                                            "FLAPS": {
                                                                             "category": "Control Interface",
                                                                         "control_type": "selector",
-                                                                         "description": "Flaps Lever, EMER UP/THUMB SW/FULL",
+                                                                         "description": "Flaps Lever",
                                                                           "identifier": "FLAPS",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -846,7 +851,8 @@
                                                                                                                  "shift_by": 14,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "EMER UP", "THUMB SW", "FULL" ]
                                                                     },
                                                     "PITCH_DAMPER": {
                                                                             "category": "Control Interface",
@@ -966,7 +972,7 @@
                                                            "SPEED": {
                                                                             "category": "Control Interface",
                                                                         "control_type": "selector",
-                                                                         "description": "Speed Brake Switch, OUT/OFF/IN",
+                                                                         "description": "Speed Brake Switch",
                                                                           "identifier": "SPEED",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -985,7 +991,8 @@
                                                                                                                  "shift_by": 2,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "OUT", "OFF", "IN" ]
                                                                     },
                                                       "YAW_DAMPER": {
                                                                             "category": "Control Interface",
@@ -1077,7 +1084,7 @@
                                                    "CABIN_P_SW": {
                                                                          "category": "EC Interface",
                                                                      "control_type": "selector",
-                                                                      "description": "Cabin Press Switch, DEFOG ONLY/NORMAL/RAM DUMP",
+                                                                      "description": "Cabin Press Switch",
                                                                        "identifier": "CABIN_P_SW",
                                                                            "inputs": [ {
                                                                                          "description": "switch to previous or next state",
@@ -1096,7 +1103,8 @@
                                                                                                               "shift_by": 13,
                                                                                                                 "suffix": "",
                                                                                                                   "type": "integer"
-                                                                                     } ]
+                                                                                     } ],
+                                                                        "positions": [ "DEFOG ONLY", "NORMAL", "RAM DUMP" ]
                                                                  },
                                                    "CABIN_TEMP": {
                                                                          "category": "EC Interface",
@@ -1154,7 +1162,7 @@
                                                      "F_O2_SW": {
                                                                         "category": "Electric",
                                                                     "control_type": "selector",
-                                                                     "description": "Fuel & Oxygen Switch, GAGE TEST/OFF/QTY CHECK",
+                                                                     "description": "Fuel & Oxygen Switch",
                                                                       "identifier": "F_O2_SW",
                                                                           "inputs": [ {
                                                                                         "description": "switch to previous or next state",
@@ -1173,7 +1181,8 @@
                                                                                                              "shift_by": 9,
                                                                                                                "suffix": "",
                                                                                                                  "type": "integer"
-                                                                                    } ]
+                                                                                    } ],
+                                                                       "positions": [ "GAGE TEST", "OFF", "QTY CHECK" ]
                                                                 },
                                                  "L_GENERATOR": {
                                                                         "category": "Electric",
@@ -1647,7 +1656,7 @@
                                                       "AUTOBAL": {
                                                                          "category": "Fuel",
                                                                      "control_type": "selector",
-                                                                      "description": "Autobalance Switch, LEFT/NEUT/RIGHT",
+                                                                      "description": "Autobalance Switch",
                                                                        "identifier": "AUTOBAL",
                                                                            "inputs": [ {
                                                                                          "description": "set the switch position -- 0 = held left/down, 1 = centered, 2 = held right/up",
@@ -1663,7 +1672,8 @@
                                                                                                               "shift_by": 0,
                                                                                                                 "suffix": "",
                                                                                                                   "type": "integer"
-                                                                                     } ]
+                                                                                     } ],
+                                                                        "positions": [ "LEFT", "NEUT", "RIGHT" ]
                                                                  },
                                                     "CROSSFEED": {
                                                                          "category": "Fuel",
@@ -3948,7 +3958,7 @@
                                                        "IFF4_CODE_SEL": {
                                                                                 "category": "IFF",
                                                                             "control_type": "selector",
-                                                                             "description": "IFF MODE 4 CODE Selector, ZERO/B/A/HOLD",
+                                                                             "description": "IFF MODE 4 CODE Selector",
                                                                               "identifier": "IFF4_CODE_SEL",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -3967,7 +3977,8 @@
                                                                                                                      "shift_by": 2,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "ZERO", "B", "A", "HOLD" ]
                                                                         },
                                                   "IFF4_CODE_SEL_PULL": {
                                                                                 "category": "IFF",
@@ -4030,7 +4041,7 @@
                                                           "IFF4_IDENT": {
                                                                                 "category": "IFF",
                                                                             "control_type": "selector",
-                                                                             "description": "IFF Identification of Position (IP) Switch, IDENT/OUT/MIC",
+                                                                             "description": "IFF Identification of Position (IP) Switch",
                                                                               "identifier": "IFF4_IDENT",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -4049,12 +4060,13 @@
                                                                                                                      "shift_by": 4,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "IDENT", "OUT", "MIC" ]
                                                                         },
                                                              "IFF4_M1": {
                                                                                 "category": "IFF",
                                                                             "control_type": "selector",
-                                                                             "description": "IFF Mode Select/TEST Switch, M-1 /ON/OUT",
+                                                                             "description": "IFF Mode Select/TEST Switch",
                                                                               "identifier": "IFF4_M1",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -4073,12 +4085,13 @@
                                                                                                                      "shift_by": 9,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "M-1", "ON", "OUT" ]
                                                                         },
                                                              "IFF4_M2": {
                                                                                 "category": "IFF",
                                                                             "control_type": "selector",
-                                                                             "description": "IFF Mode Select/TEST Switch, M-2 /ON/OUT",
+                                                                             "description": "IFF Mode Select/TEST Switch",
                                                                               "identifier": "IFF4_M2",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -4097,12 +4110,13 @@
                                                                                                                      "shift_by": 11,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "M-2", "ON", "OUT" ]
                                                                         },
                                                              "IFF4_M3": {
                                                                                 "category": "IFF",
                                                                             "control_type": "selector",
-                                                                             "description": "IFF Mode Select/TEST Switch, M-3/A /ON/OUT",
+                                                                             "description": "IFF Mode Select/TEST Switch",
                                                                               "identifier": "IFF4_M3",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -4121,12 +4135,13 @@
                                                                                                                      "shift_by": 13,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "M-3/A", "ON", "OUT" ]
                                                                         },
                                                          "IFF4_MASTER": {
                                                                                 "category": "IFF",
                                                                             "control_type": "selector",
-                                                                             "description": "IFF MASTER Control Selector, EMER/NORM/LOW/STBY/OFF",
+                                                                             "description": "IFF MASTER Control Selector",
                                                                               "identifier": "IFF4_MASTER",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -4145,7 +4160,8 @@
                                                                                                                      "shift_by": 4,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "EMER", "NORM", "LOW", "STBY", "OFF" ]
                                                                         },
                                                     "IFF4_MASTER_PULL": {
                                                                                 "category": "IFF",
@@ -4179,7 +4195,7 @@
                                                              "IFF4_MC": {
                                                                                 "category": "IFF",
                                                                             "control_type": "selector",
-                                                                             "description": "IFF Mode Select/TEST Switch, M-C /ON/OUT",
+                                                                             "description": "IFF Mode Select/TEST Switch",
                                                                               "identifier": "IFF4_MC",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -4198,7 +4214,8 @@
                                                                                                                      "shift_by": 0,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "M-C", "ON", "OUT" ]
                                                                         },
                                                 "IFF4_MODE1_SELECTOR1": {
                                                                                 "category": "IFF",
@@ -4347,7 +4364,7 @@
                                                       "IFF4_MON_CONTR": {
                                                                                 "category": "IFF",
                                                                             "control_type": "selector",
-                                                                             "description": "IFF MODE 4 Monitor Control Switch, AUDIO/OUT/LIGHT",
+                                                                             "description": "IFF MODE 4 Monitor Control Switch",
                                                                               "identifier": "IFF4_MON_CONTR",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -4366,12 +4383,13 @@
                                                                                                                      "shift_by": 7,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "AUDIO", "OUT", "LIGHT" ]
                                                                         },
                                                             "IFF4_RAD": {
                                                                                 "category": "IFF",
                                                                             "control_type": "selector",
-                                                                             "description": "IFF RAD TEST/MON Switch, RAD TEST/OUT/MON",
+                                                                             "description": "IFF RAD TEST/MON Switch",
                                                                               "identifier": "IFF4_RAD",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -4390,7 +4408,8 @@
                                                                                                                      "shift_by": 2,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "RAD TEST", "OUT", "MON" ]
                                                                         },
                                                      "IFF4_RAD_TEST_L": {
                                                                              "api_variant": "momentary_last_position",
@@ -4520,7 +4539,7 @@
                                                     "BRI_DIM_SW": {
                                                                           "category": "Internal Lights",
                                                                       "control_type": "selector",
-                                                                       "description": "Bright/Dim Switch, BRT/NEUT/DIM",
+                                                                       "description": "Bright/Dim Switch",
                                                                         "identifier": "BRI_DIM_SW",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -4539,7 +4558,8 @@
                                                                                                                "shift_by": 11,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "BRT", "NEUT", "DIM" ]
                                                                   },
                                                    "COMPAS_L_SW": {
                                                                           "category": "Internal Lights",
@@ -4861,7 +4881,7 @@
                                                         "JETT_SW": {
                                                                            "category": "Jettison",
                                                                        "control_type": "selector",
-                                                                        "description": "Select Jettison Switch, SELECT POSITION/OFF/ALL PYLONS",
+                                                                        "description": "Select Jettison Switch",
                                                                          "identifier": "JETT_SW",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -4880,7 +4900,8 @@
                                                                                                                 "shift_by": 6,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "SELECT POSITION", "OFF", "ALL PYLONS" ]
                                                                    }
                                             },
                             "O2 Interface": {
@@ -4916,7 +4937,7 @@
                                                        "EMER_L": {
                                                                          "category": "O2 Interface",
                                                                      "control_type": "selector",
-                                                                      "description": "Emergency Lever, EMERGENCY/NORMAL/TEST MASK",
+                                                                      "description": "Emergency Lever",
                                                                        "identifier": "EMER_L",
                                                                            "inputs": [ {
                                                                                          "description": "switch to previous or next state",
@@ -4935,7 +4956,8 @@
                                                                                                               "shift_by": 11,
                                                                                                                 "suffix": "",
                                                                                                                   "type": "integer"
-                                                                                     } ]
+                                                                                     } ],
+                                                                        "positions": [ "EMERGENCY", "NORMAL", "TEST MASK" ]
                                                                  },
                                                      "O2_LEVER": {
                                                                          "category": "O2 Interface",
@@ -5438,7 +5460,7 @@
                                                      "RADAR_MODE": {
                                                                            "category": "Radar",
                                                                        "control_type": "selector",
-                                                                        "description": "AN/APQ-159 Radar Mode Selector Switch, OFF/STBY/OPER/TEST",
+                                                                        "description": "AN/APQ-159 Radar Mode Selector Switch",
                                                                          "identifier": "RADAR_MODE",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -5457,7 +5479,8 @@
                                                                                                                 "shift_by": 0,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "OFF", "STBY", "OPER", "TEST" ]
                                                                    },
                                                    "RADAR_PERSIS": {
                                                                            "category": "Radar",
@@ -5516,7 +5539,7 @@
                                                     "RADAR_RANGE": {
                                                                            "category": "Radar",
                                                                        "control_type": "selector",
-                                                                        "description": "AN/APQ-159 Radar Range Selector Switch [nm], 5/10/20/40",
+                                                                        "description": "AN/APQ-159 Radar Range Selector Switch [nm]",
                                                                          "identifier": "RADAR_RANGE",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -5535,7 +5558,8 @@
                                                                                                                 "shift_by": 14,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "5", "10", "20", "40" ]
                                                                    },
                                                     "RADAR_SCALE": {
                                                                            "category": "Radar",
@@ -5596,7 +5620,7 @@
                                                     "SIGHT_BIT": {
                                                                          "category": "Sight",
                                                                      "control_type": "selector",
-                                                                      "description": "AN/ASG-31 Sight BIT Switch, BIT 1/OFF/BIT 2",
+                                                                      "description": "AN/ASG-31 Sight BIT Switch",
                                                                        "identifier": "SIGHT_BIT",
                                                                            "inputs": [ {
                                                                                          "description": "switch to previous or next state",
@@ -5615,7 +5639,8 @@
                                                                                                               "shift_by": 0,
                                                                                                                 "suffix": "",
                                                                                                                   "type": "integer"
-                                                                                     } ]
+                                                                                     } ],
+                                                                        "positions": [ "BIT 1", "OFF", "BIT 2" ]
                                                                  },
                                                    "SIGHT_CAGE": {
                                                                       "api_variant": "momentary_last_position",
@@ -5701,7 +5726,7 @@
                                                    "SIGHT_MODE": {
                                                                          "category": "Sight",
                                                                      "control_type": "selector",
-                                                                      "description": "AN/ASG-31 Sight Mode Selector, OFF/MSL/A/A1 GUNS/A/A2 GUNS/MAN",
+                                                                      "description": "AN/ASG-31 Sight Mode Selector",
                                                                        "identifier": "SIGHT_MODE",
                                                                            "inputs": [ {
                                                                                          "description": "switch to previous or next state",
@@ -5720,7 +5745,8 @@
                                                                                                               "shift_by": 12,
                                                                                                                 "suffix": "",
                                                                                                                   "type": "integer"
-                                                                                     } ]
+                                                                                     } ],
+                                                                        "positions": [ "OFF", "MSL", "A/A1 GUNS", "A/A2 GUNS", "MAN" ]
                                                                  }
                                             },
               "Standby Attitude Indicator": {
@@ -6123,7 +6149,7 @@
                                                         "UHF_ANT": {
                                                                            "category": "UHF Radio",
                                                                        "control_type": "selector",
-                                                                        "description": "UHF Radio Antenna Selector Switch, UPPER/AUTO/LOWER",
+                                                                        "description": "UHF Radio Antenna Selector Switch",
                                                                          "identifier": "UHF_ANT",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -6142,7 +6168,8 @@
                                                                                                                 "shift_by": 8,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "UPPER", "AUTO", "LOWER" ]
                                                                    },
                                                        "UHF_DOOR": {
                                                                            "category": "UHF Radio",
@@ -6176,7 +6203,7 @@
                                                        "UHF_FREQ": {
                                                                            "category": "UHF Radio",
                                                                        "control_type": "selector",
-                                                                        "description": "UHF Radio Frequency Mode Selector Switch, MANUAL/PRESET/GUARD",
+                                                                        "description": "UHF Radio Frequency Mode Selector Switch",
                                                                          "identifier": "UHF_FREQ",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -6195,12 +6222,13 @@
                                                                                                                 "shift_by": 13,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "MANUAL", "PRESET", "GUARD" ]
                                                                    },
                                                        "UHF_FUNC": {
                                                                            "category": "UHF Radio",
                                                                        "control_type": "selector",
-                                                                        "description": "UHF Radio Function Selector Switch, OFF/MAIN/BOTH/ADF",
+                                                                        "description": "UHF Radio Function Selector Switch",
                                                                          "identifier": "UHF_FUNC",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -6219,7 +6247,8 @@
                                                                                                                 "shift_by": 11,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "OFF", "MAIN", "BOTH", "ADF" ]
                                                                    },
                                                      "UHF_MIC_BT": {
                                                                         "api_variant": "momentary_last_position",
@@ -7274,7 +7303,7 @@
                                                     "BOMBS_ARM_SW": {
                                                                             "category": "Weapons Control",
                                                                         "control_type": "selector",
-                                                                         "description": "Bombs Arm Switch, SAFE/TAIL/NOSE & TAIL/NOSE",
+                                                                         "description": "Bombs Arm Switch",
                                                                           "identifier": "BOMBS_ARM_SW",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -7293,12 +7322,13 @@
                                                                                                                  "shift_by": 2,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "SAFE", "TAIL", "NOSE & TAIL", "NOSE" ]
                                                                     },
                                                        "EXT_STORE": {
                                                                             "category": "Weapons Control",
                                                                         "control_type": "selector",
-                                                                         "description": "External Stores Selector RIPL/BOMB/SAFE/RKT DISP",
+                                                                         "description": "External Stores Selector",
                                                                           "identifier": "EXT_STORE",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -7317,7 +7347,8 @@
                                                                                                                  "shift_by": 6,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "RIPL", "BOMB", "SAFE", "RKT DISP" ]
                                                                     },
                                                           "INT_SW": {
                                                                             "category": "Weapons Control",
@@ -7346,7 +7377,7 @@
                                                       "MASTER_ARM": {
                                                                             "category": "Weapons Control",
                                                                         "control_type": "selector",
-                                                                         "description": "Master Arm Guns, GUNS MSL & CAMR/OFF/CAMR ONLY",
+                                                                         "description": "Master Arm Guns",
                                                                           "identifier": "MASTER_ARM",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -7365,7 +7396,8 @@
                                                                                                                  "shift_by": 4,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "GUNS MSL & CAMR", "OFF", "CAMR ONLY" ]
                                                                     },
                                                 "MASTER_ARM_GUARD": {
                                                                             "category": "Weapons Control",

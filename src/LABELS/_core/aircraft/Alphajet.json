@@ -808,7 +808,7 @@
                                                        "ENG_START_L": {
                                                                               "category": "Engine Panel",
                                                                           "control_type": "selector",
-                                                                           "description": "Left Engine Start, START/VENT/OFF",
+                                                                           "description": "Left Engine Start",
                                                                             "identifier": "ENG_START_L",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -827,12 +827,13 @@
                                                                                                                    "shift_by": 0,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "START", "VENT", "OFF" ]
                                                                       },
                                                        "ENG_START_R": {
                                                                               "category": "Engine Panel",
                                                                           "control_type": "selector",
-                                                                           "description": "Right Engine Start, START/VENT/OFF",
+                                                                           "description": "Right Engine Start",
                                                                             "identifier": "ENG_START_R",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -851,7 +852,8 @@
                                                                                                                    "shift_by": 2,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "START", "VENT", "OFF" ]
                                                                       },
                                                         "FUEL_CUT_L": {
                                                                               "category": "Engine Panel",
@@ -1803,7 +1805,7 @@
                                                   "LIGHTS_A_ALARM": {
                                                                             "category": "Light System",
                                                                         "control_type": "selector",
-                                                                         "description": "High Alpha Alarm, HIDRAG/OFF/LOWDRAG",
+                                                                         "description": "High Alpha Alarm",
                                                                           "identifier": "LIGHTS_A_ALARM",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -1822,7 +1824,8 @@
                                                                                                                  "shift_by": 0,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "HIDRAG", "OFF", "LOWDRAG" ]
                                                                     },
                                                 "LIGHTS_FORMATION": {
                                                                             "category": "Light System",
@@ -1885,7 +1888,7 @@
                                                      "LIGHTS_LAND": {
                                                                             "category": "Light System",
                                                                         "control_type": "selector",
-                                                                         "description": "Lights, OFF/TAXI/LANDING",
+                                                                         "description": "Lights",
                                                                           "identifier": "LIGHTS_LAND",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -1904,12 +1907,13 @@
                                                                                                                  "shift_by": 13,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "OFF", "TAXI", "LANDING" ]
                                                                     },
                                                       "LIGHTS_NAV": {
                                                                             "category": "Light System",
                                                                         "control_type": "selector",
-                                                                         "description": "Navigation Lights, FLASH/OFF/STEADY",
+                                                                         "description": "Navigation Lights",
                                                                           "identifier": "LIGHTS_NAV",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -1928,7 +1932,8 @@
                                                                                                                  "shift_by": 8,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "FLASH", "OFF", "STEADY" ]
                                                                     }
                                             },
                            "Oxygen System": {

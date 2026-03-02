@@ -2694,7 +2694,7 @@
                                                 "NOSE_LIGHTS": {
                                                                        "category": "Exterior Lights Panel",
                                                                    "control_type": "selector",
-                                                                    "description": "Nose Lights Switch, LANDING/OFF/TAXI",
+                                                                    "description": "Nose Lights Switch",
                                                                      "identifier": "NOSE_LIGHTS",
                                                                          "inputs": [ {
                                                                                        "description": "switch to previous or next state",
@@ -2713,7 +2713,8 @@
                                                                                                             "shift_by": 13,
                                                                                                               "suffix": "",
                                                                                                                 "type": "integer"
-                                                                                   } ]
+                                                                                   } ],
+                                                                      "positions": [ "LANDING", "OFF", "TAXI" ]
                                                                }
                                             },
                  "External Aircraft Model": {
@@ -5022,7 +5023,7 @@
                                                      "GEAR_LEVER": {
                                                                            "category": "Landing Gear Panel",
                                                                        "control_type": "selector",
-                                                                        "description": "Landing Gear Lever, Down/Neutral/Up",
+                                                                        "description": "Landing Gear Lever",
                                                                          "identifier": "GEAR_LEVER",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -5041,7 +5042,8 @@
                                                                                                                 "shift_by": 4,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "Down", "Neutral", "Up" ]
                                                                    },
                                                 "GEAR_LIGHT_TEST": {
                                                                         "api_variant": "momentary_last_position",
@@ -5255,7 +5257,7 @@
                                                       "RADAR_MODE": {
                                                                             "category": "Radar Control Panel",
                                                                         "control_type": "selector",
-                                                                         "description": "RP-5 Radar Mode Control Switch, ON/STANDBY/OFF",
+                                                                         "description": "RP-5 Radar Mode Control Switch",
                                                                           "identifier": "RADAR_MODE",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -5263,18 +5265,19 @@
                                                                                         }, {
                                                                                             "description": "set position",
                                                                                               "interface": "set_state",
-                                                                                              "max_value": 3
+                                                                                              "max_value": 2
                                                                                         } ],
                                                                              "outputs": [ {
                                                                                                                   "address": 5662,
                                                                                             "address_mask_shift_identifier": "MiG_19P_RADAR_MODE",
                                                                                                               "description": "selector position",
                                                                                                                      "mask": 384,
-                                                                                                                "max_value": 3,
+                                                                                                                "max_value": 2,
                                                                                                                  "shift_by": 7,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "ON", "STANDBY", "OFF" ]
                                                                     },
                                                 "RADAR_SCR_BRIGHT": {
                                                                             "category": "Radar Control Panel",

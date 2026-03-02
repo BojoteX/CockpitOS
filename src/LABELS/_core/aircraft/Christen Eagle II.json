@@ -470,7 +470,7 @@
                                       "MAGNETS": {
                                                          "category": "Engine",
                                                      "control_type": "selector",
-                                                      "description": "Magnets, OFF/RIGHT/LEFT/BOTH/START",
+                                                      "description": "Magnets",
                                                        "identifier": "MAGNETS",
                                                            "inputs": [ {
                                                                          "description": "switch to previous or next state",
@@ -489,7 +489,8 @@
                                                                                               "shift_by": 7,
                                                                                                 "suffix": "",
                                                                                                   "type": "integer"
-                                                                     } ]
+                                                                     } ],
+                                                        "positions": [ "OFF", "RIGHT", "LEFT", "BOTH", "START" ]
                                                  },
                                       "MIXTURE": {
                                                       "api_variant": "multiturn",

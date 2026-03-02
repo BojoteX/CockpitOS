@@ -10620,7 +10620,7 @@
                                                          "CPLT_MFD_IB_PWR": {
                                                                                     "category": "CPLT Inboard MFD",
                                                                                 "control_type": "selector",
-                                                                                 "description": "Power Switch (OFF/NVG/NORM)",
+                                                                                 "description": "Power Switch",
                                                                                   "identifier": "CPLT_MFD_IB_PWR",
                                                                                       "inputs": [ {
                                                                                                     "description": "switch to previous or next state",
@@ -10639,7 +10639,8 @@
                                                                                                                          "shift_by": 0,
                                                                                                                            "suffix": "",
                                                                                                                              "type": "integer"
-                                                                                                } ]
+                                                                                                } ],
+                                                                                   "positions": [ "OFF", "NVG", "NORM" ]
                                                                             },
                                                           "CPLT_MFD_IB_R1": {
                                                                                  "api_variant": "momentary_last_position",
@@ -13277,7 +13278,7 @@
                                                          "CPLT_MFD_OB_PWR": {
                                                                                     "category": "CPLT Outboard MFD",
                                                                                 "control_type": "selector",
-                                                                                 "description": "Power Switch (OFF/NVG/NORM)",
+                                                                                 "description": "Power Switch",
                                                                                   "identifier": "CPLT_MFD_OB_PWR",
                                                                                       "inputs": [ {
                                                                                                     "description": "switch to previous or next state",
@@ -13296,7 +13297,8 @@
                                                                                                                          "shift_by": 0,
                                                                                                                            "suffix": "",
                                                                                                                              "type": "integer"
-                                                                                                } ]
+                                                                                                } ],
+                                                                                   "positions": [ "OFF", "NVG", "NORM" ]
                                                                             },
                                                           "CPLT_MFD_OB_R1": {
                                                                                  "api_variant": "momentary_last_position",
@@ -14192,7 +14194,7 @@
                                                     "CABIN_RAMP_LIGHTS_MODE": {
                                                                                       "category": "Cabin and Ramp Lights Control",
                                                                                   "control_type": "selector",
-                                                                                   "description": "Light Mode (NVG/OFF/WHITE)",
+                                                                                   "description": "Light Mode",
                                                                                     "identifier": "CABIN_RAMP_LIGHTS_MODE",
                                                                                         "inputs": [ {
                                                                                                       "description": "switch to previous or next state",
@@ -14211,7 +14213,8 @@
                                                                                                                            "shift_by": 3,
                                                                                                                              "suffix": "",
                                                                                                                                "type": "integer"
-                                                                                                  } ]
+                                                                                                  } ],
+                                                                                     "positions": [ "NVG", "OFF", "WHITE" ]
                                                                               }
                                                 },
     "Canted Console Misc Switch Control Panel": {
@@ -14999,7 +15002,7 @@
                                                          "MFD_CENTER_PWR": {
                                                                                    "category": "Center MFD",
                                                                                "control_type": "selector",
-                                                                                "description": "Power Switch (OFF/NVG/NORM)",
+                                                                                "description": "Power Switch",
                                                                                  "identifier": "MFD_CENTER_PWR",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -15018,7 +15021,8 @@
                                                                                                                         "shift_by": 8,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "OFF", "NVG", "NORM" ]
                                                                            },
                                                           "MFD_CENTER_R1": {
                                                                                 "api_variant": "momentary_last_position",
@@ -15899,7 +15903,7 @@
                                                                  "ELECTRICAL_APU": {
                                                                                            "category": "Electrical Power Panel",
                                                                                        "control_type": "selector",
-                                                                                        "description": "APU (OFF/RUN/START)",
+                                                                                        "description": "APU",
                                                                                          "identifier": "ELECTRICAL_APU",
                                                                                              "inputs": [ {
                                                                                                            "description": "switch to previous or next state",
@@ -15918,7 +15922,8 @@
                                                                                                                                 "shift_by": 7,
                                                                                                                                   "suffix": "",
                                                                                                                                     "type": "integer"
-                                                                                                       } ]
+                                                                                                       } ],
+                                                                                          "positions": [ "OFF", "RUN", "START" ]
                                                                                    },
                                                            "ELECTRICAL_APU_READY": {
                                                                                            "category": "Electrical Power Panel",
@@ -15970,7 +15975,7 @@
                                                                "ELECTRICAL_GEN_1": {
                                                                                            "category": "Electrical Power Panel",
                                                                                        "control_type": "selector",
-                                                                                        "description": "Generator 1 Switch (TEST/OFF RESET/ON)",
+                                                                                        "description": "Generator 1 Switch",
                                                                                          "identifier": "ELECTRICAL_GEN_1",
                                                                                              "inputs": [ {
                                                                                                            "description": "switch to previous or next state",
@@ -15989,12 +15994,13 @@
                                                                                                                                 "shift_by": 0,
                                                                                                                                   "suffix": "",
                                                                                                                                     "type": "integer"
-                                                                                                       } ]
+                                                                                                       } ],
+                                                                                          "positions": [ "TEST", "OFF RESET", "ON" ]
                                                                                    },
                                                                "ELECTRICAL_GEN_2": {
                                                                                            "category": "Electrical Power Panel",
                                                                                        "control_type": "selector",
-                                                                                        "description": "Generator 2 Switch (TEST/OFF RESET/ON)",
+                                                                                        "description": "Generator 2 Switch",
                                                                                          "identifier": "ELECTRICAL_GEN_2",
                                                                                              "inputs": [ {
                                                                                                            "description": "switch to previous or next state",
@@ -16013,12 +16019,13 @@
                                                                                                                                 "shift_by": 2,
                                                                                                                                   "suffix": "",
                                                                                                                                     "type": "integer"
-                                                                                                       } ]
+                                                                                                       } ],
+                                                                                          "positions": [ "TEST", "OFF RESET", "ON" ]
                                                                                    },
                                                              "ELECTRICAL_GEN_APU": {
                                                                                            "category": "Electrical Power Panel",
                                                                                        "control_type": "selector",
-                                                                                        "description": "APU Generator Switch (TEST/OFF RESET/ON)",
+                                                                                        "description": "APU Generator Switch",
                                                                                          "identifier": "ELECTRICAL_GEN_APU",
                                                                                              "inputs": [ {
                                                                                                            "description": "switch to previous or next state",
@@ -16037,7 +16044,8 @@
                                                                                                                                 "shift_by": 4,
                                                                                                                                   "suffix": "",
                                                                                                                                     "type": "integer"
-                                                                                                       } ]
+                                                                                                       } ],
+                                                                                          "positions": [ "TEST", "OFF RESET", "ON" ]
                                                                                    },
                                                     "ELECTRICAL_UTILITY_PRESSURE": {
                                                                                            "category": "Electrical Power Panel",
@@ -16091,7 +16099,7 @@
                                                            "EMERG_AUX_IFF": {
                                                                                     "category": "Emergency/Auxiliary Control Panel",
                                                                                 "control_type": "selector",
-                                                                                 "description": "IFF Mode (HOLD/OFF/EMER)",
+                                                                                 "description": "IFF Mode",
                                                                                   "identifier": "EMERG_AUX_IFF",
                                                                                       "inputs": [ {
                                                                                                     "description": "switch to previous or next state",
@@ -16110,12 +16118,13 @@
                                                                                                                          "shift_by": 8,
                                                                                                                            "suffix": "",
                                                                                                                              "type": "integer"
-                                                                                                } ]
+                                                                                                } ],
+                                                                                   "positions": [ "HOLD", "OFF", "EMER" ]
                                                                             },
                                                     "EMERG_AUX_RADIO_MODE": {
                                                                                     "category": "Emergency/Auxiliary Control Panel",
                                                                                 "control_type": "selector",
-                                                                                 "description": "Radio Mode (MAN/NORM/GUARD)",
+                                                                                 "description": "Radio Mode",
                                                                                   "identifier": "EMERG_AUX_RADIO_MODE",
                                                                                       "inputs": [ {
                                                                                                     "description": "switch to previous or next state",
@@ -16134,7 +16143,8 @@
                                                                                                                          "shift_by": 5,
                                                                                                                            "suffix": "",
                                                                                                                              "type": "integer"
-                                                                                                } ]
+                                                                                                } ],
+                                                                                   "positions": [ "MAN", "NORM", "GUARD" ]
                                                                             },
                                                        "EMERG_AUX_ZEROIZE": {
                                                                                     "category": "Emergency/Auxiliary Control Panel",
@@ -16388,7 +16398,7 @@
                                                                    "EXT_LIGHT_FORM_MODE": {
                                                                                                   "category": "Exterior Lighting Panel",
                                                                                               "control_type": "selector",
-                                                                                               "description": "Formation Lights Mode (NVG/OFF/NORM)",
+                                                                                               "description": "Formation Lights Mode",
                                                                                                 "identifier": "EXT_LIGHT_FORM_MODE",
                                                                                                     "inputs": [ {
                                                                                                                   "description": "switch to previous or next state",
@@ -16407,7 +16417,8 @@
                                                                                                                                        "shift_by": 12,
                                                                                                                                          "suffix": "",
                                                                                                                                            "type": "integer"
-                                                                                                              } ]
+                                                                                                              } ],
+                                                                                                 "positions": [ "NVG", "OFF", "NORM" ]
                                                                                           },
                                                                 "EXT_LIGHT_FORM_PATTERN": {
                                                                                                   "category": "Exterior Lighting Panel",
@@ -16441,7 +16452,7 @@
                                                          "EXT_LIGHT_POSITION_BRIGHTNESS": {
                                                                                                   "category": "Exterior Lighting Panel",
                                                                                               "control_type": "selector",
-                                                                                               "description": "Position Lights Brightness (DIM/OFF/BRT)",
+                                                                                               "description": "Position Lights Brightness",
                                                                                                 "identifier": "EXT_LIGHT_POSITION_BRIGHTNESS",
                                                                                                     "inputs": [ {
                                                                                                                   "description": "switch to previous or next state",
@@ -16460,7 +16471,8 @@
                                                                                                                                        "shift_by": 0,
                                                                                                                                          "suffix": "",
                                                                                                                                            "type": "integer"
-                                                                                                              } ]
+                                                                                                              } ],
+                                                                                                 "positions": [ "DIM", "OFF", "BRT" ]
                                                                                           },
                                                             "EXT_LIGHT_POSITION_PATTERN": {
                                                                                                   "category": "Exterior Lighting Panel",
@@ -19549,7 +19561,7 @@
                                                                     "HOIST_CONTROL": {
                                                                                              "category": "Hoist Control Panel",
                                                                                          "control_type": "selector",
-                                                                                          "description": "Hoist Control (REMOTE/OFF/PLT)",
+                                                                                          "description": "Hoist Control",
                                                                                            "identifier": "HOIST_CONTROL",
                                                                                                "inputs": [ {
                                                                                                              "description": "switch to previous or next state",
@@ -19568,7 +19580,8 @@
                                                                                                                                   "shift_by": 14,
                                                                                                                                     "suffix": "",
                                                                                                                                       "type": "integer"
-                                                                                                         } ]
+                                                                                                         } ],
+                                                                                            "positions": [ "REMOTE", "OFF", "PLT" ]
                                                                                      },
                                                                "HOIST_CONTROL_KNOB": {
                                                                                              "category": "Hoist Control Panel",
@@ -19658,7 +19671,7 @@
                                                                "HOIST_HOOK_CONTROL": {
                                                                                              "category": "Hoist Control Panel",
                                                                                          "control_type": "selector",
-                                                                                          "description": "Hook Control (RESET/OFF/ARM)",
+                                                                                          "description": "Hook Control",
                                                                                            "identifier": "HOIST_HOOK_CONTROL",
                                                                                                "inputs": [ {
                                                                                                              "description": "switch to previous or next state",
@@ -19677,12 +19690,13 @@
                                                                                                                                   "shift_by": 0,
                                                                                                                                     "suffix": "",
                                                                                                                                       "type": "integer"
-                                                                                                         } ]
+                                                                                                         } ],
+                                                                                            "positions": [ "RESET", "OFF", "ARM" ]
                                                                                      },
                                                                 "HOIST_HOOK_SELECT": {
                                                                                              "category": "Hoist Control Panel",
                                                                                          "control_type": "selector",
-                                                                                          "description": "Hook Select (FWD/MID/AFT/TANDEM/ALL)",
+                                                                                          "description": "Hook Select",
                                                                                            "identifier": "HOIST_HOOK_SELECT",
                                                                                                "inputs": [ {
                                                                                                              "description": "switch to previous or next state",
@@ -19701,14 +19715,15 @@
                                                                                                                                   "shift_by": 2,
                                                                                                                                     "suffix": "",
                                                                                                                                       "type": "integer"
-                                                                                                         } ]
+                                                                                                         } ],
+                                                                                            "positions": [ "FWD", "MID", "AFT", "TANDEM", "ALL" ]
                                                                                      }
                                                 },
                      "Hydraulic Control Panel": {
                                                            "HYD_FLT_CONT": {
                                                                                    "category": "Hydraulic Control Panel",
                                                                                "control_type": "selector",
-                                                                                "description": "Flight Control (2 ON/BOTH/1 ON)",
+                                                                                "description": "Flight Control",
                                                                                  "identifier": "HYD_FLT_CONT",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -19727,7 +19742,8 @@
                                                                                                                         "shift_by": 5,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "2 ON", "BOTH", "1 ON" ]
                                                                            },
                                                           "HYD_PWR_STEER": {
                                                                                    "category": "Hydraulic Control Panel",
@@ -19848,7 +19864,7 @@
                                                           "HYD_RAMP_EMER": {
                                                                                    "category": "Hydraulic Control Panel",
                                                                                "control_type": "selector",
-                                                                                "description": "Ramp Emergency (UP/HOLD/DOWN)",
+                                                                                "description": "Ramp Emergency",
                                                                                  "identifier": "HYD_RAMP_EMER",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -19867,7 +19883,8 @@
                                                                                                                         "shift_by": 14,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "UP", "HOLD", "DOWN" ]
                                                                            },
                                                     "HYD_RAMP_EMER_COVER": {
                                                                                    "category": "Hydraulic Control Panel",
@@ -19901,7 +19918,7 @@
                                                            "HYD_RAMP_PWR": {
                                                                                    "category": "Hydraulic Control Panel",
                                                                                "control_type": "selector",
-                                                                                "description": "Ramp Power (OFF/ON/EMERG)",
+                                                                                "description": "Ramp Power",
                                                                                  "identifier": "HYD_RAMP_PWR",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -19920,7 +19937,8 @@
                                                                                                                         "shift_by": 11,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "OFF", "ON", "EMERG" ]
                                                                            }
                                                 },
                      "Interior Lighting Panel": {
@@ -19954,7 +19972,7 @@
                                                          "INT_LIGHT_DOME": {
                                                                                    "category": "Interior Lighting Panel",
                                                                                "control_type": "selector",
-                                                                                "description": "Dome Light (WHT/OFF/NVG)",
+                                                                                "description": "Dome Light",
                                                                                  "identifier": "INT_LIGHT_DOME",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -19973,12 +19991,13 @@
                                                                                                                         "shift_by": 6,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "WHT", "OFF", "NVG" ]
                                                                            },
                                                     "INT_LIGHT_EMER_EXIT": {
                                                                                    "category": "Interior Lighting Panel",
                                                                                "control_type": "selector",
-                                                                                "description": "Emergency Exit Light (DISARM/TEST/ARM)",
+                                                                                "description": "Emergency Exit Light",
                                                                                  "identifier": "INT_LIGHT_EMER_EXIT",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -19997,7 +20016,8 @@
                                                                                                                         "shift_by": 4,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "DISARM", "TEST", "ARM" ]
                                                                            },
                                                          "INT_LIGHT_INST": {
                                                                                    "category": "Interior Lighting Panel",
@@ -30936,7 +30956,7 @@
                                                          "PLT_MFD_IB_PWR": {
                                                                                    "category": "PLT Inboard MFD",
                                                                                "control_type": "selector",
-                                                                                "description": "Power Switch (OFF/NVG/NORM)",
+                                                                                "description": "Power Switch",
                                                                                  "identifier": "PLT_MFD_IB_PWR",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -30955,7 +30975,8 @@
                                                                                                                         "shift_by": 8,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "OFF", "NVG", "NORM" ]
                                                                            },
                                                           "PLT_MFD_IB_R1": {
                                                                                 "api_variant": "momentary_last_position",
@@ -31821,7 +31842,7 @@
                                                               "PLT_LIGHT_MODE": {
                                                                                         "category": "PLT Lighting Panel",
                                                                                     "control_type": "selector",
-                                                                                     "description": "Mode Select (DAY/NIGHT/NVG)",
+                                                                                     "description": "Mode Select",
                                                                                       "identifier": "PLT_LIGHT_MODE",
                                                                                           "inputs": [ {
                                                                                                         "description": "switch to previous or next state",
@@ -31840,7 +31861,8 @@
                                                                                                                              "shift_by": 9,
                                                                                                                                "suffix": "",
                                                                                                                                  "type": "integer"
-                                                                                                    } ]
+                                                                                                    } ],
+                                                                                       "positions": [ "DAY", "NIGHT", "NVG" ]
                                                                                 },
                                                        "PLT_LIGHT_SEARCHLIGHT": {
                                                                                         "category": "PLT Lighting Panel",
@@ -33617,7 +33639,7 @@
                                                          "PLT_MFD_OB_PWR": {
                                                                                    "category": "PLT Outboard MFD",
                                                                                "control_type": "selector",
-                                                                                "description": "Power Switch (OFF/NVG/NORM)",
+                                                                                "description": "Power Switch",
                                                                                  "identifier": "PLT_MFD_OB_PWR",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -33636,7 +33658,8 @@
                                                                                                                         "shift_by": 8,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "OFF", "NVG", "NORM" ]
                                                                            },
                                                           "PLT_MFD_OB_R1": {
                                                                                 "api_variant": "momentary_last_position",
@@ -36670,7 +36693,7 @@
                                                                     "RAMP_MAINT_LIGHT_MODE": {
                                                                                                      "category": "Ramp Maintenance Panel",
                                                                                                  "control_type": "selector",
-                                                                                                  "description": "Light Mode (DAY/NIGHT BRT/NIGHT DIM)",
+                                                                                                  "description": "Light Mode",
                                                                                                    "identifier": "RAMP_MAINT_LIGHT_MODE",
                                                                                                        "inputs": [ {
                                                                                                                      "description": "switch to previous or next state",
@@ -36689,7 +36712,8 @@
                                                                                                                                           "shift_by": 8,
                                                                                                                                             "suffix": "",
                                                                                                                                               "type": "integer"
-                                                                                                                 } ]
+                                                                                                                 } ],
+                                                                                                    "positions": [ "DAY", "NIGHT BRT", "NIGHT DIM" ]
                                                                                              },
                                                                     "RAMP_MAINT_L_GND_CONT": {
                                                                                                      "category": "Ramp Maintenance Panel",
@@ -37974,7 +37998,7 @@
                                                                  "HEAT_MODE": {
                                                                                       "category": "Troop Warn/Heating/Wiper Control Panel",
                                                                                   "control_type": "selector",
-                                                                                   "description": "Heat Mode (BLWR ONLY/OFF/HTR ON)",
+                                                                                   "description": "Heat Mode",
                                                                                     "identifier": "HEAT_MODE",
                                                                                         "inputs": [ {
                                                                                                       "description": "switch to previous or next state",
@@ -37993,7 +38017,8 @@
                                                                                                                            "shift_by": 10,
                                                                                                                              "suffix": "",
                                                                                                                                "type": "integer"
-                                                                                                  } ]
+                                                                                                  } ],
+                                                                                     "positions": [ "BLWR ONLY", "OFF", "HTR ON" ]
                                                                               },
                                                                 "HEAT_START": {
                                                                                    "api_variant": "momentary_last_position",
@@ -38057,7 +38082,7 @@
                                                           "TROOP_JUMP_LIGHT": {
                                                                                       "category": "Troop Warn/Heating/Wiper Control Panel",
                                                                                   "control_type": "selector",
-                                                                                   "description": "Jump Light (GREEN/OFF/RED)",
+                                                                                   "description": "Jump Light",
                                                                                     "identifier": "TROOP_JUMP_LIGHT",
                                                                                         "inputs": [ {
                                                                                                       "description": "switch to previous or next state",
@@ -38076,7 +38101,8 @@
                                                                                                                            "shift_by": 7,
                                                                                                                              "suffix": "",
                                                                                                                                "type": "integer"
-                                                                                                  } ]
+                                                                                                  } ],
+                                                                                     "positions": [ "GREEN", "OFF", "RED" ]
                                                                               },
                                                     "TROOP_JUMP_LIGHT_GREEN": {
                                                                                       "category": "Troop Warn/Heating/Wiper Control Panel",
@@ -38117,7 +38143,7 @@
                                                                 "WIPER_MODE": {
                                                                                       "category": "Troop Warn/Heating/Wiper Control Panel",
                                                                                   "control_type": "selector",
-                                                                                   "description": "Wiper Mode (PARK/OFF/SLOW/MED/FAST)",
+                                                                                   "description": "Wiper Mode",
                                                                                     "identifier": "WIPER_MODE",
                                                                                         "inputs": [ {
                                                                                                       "description": "switch to previous or next state",
@@ -38136,7 +38162,8 @@
                                                                                                                            "shift_by": 13,
                                                                                                                              "suffix": "",
                                                                                                                                "type": "integer"
-                                                                                                  } ]
+                                                                                                  } ],
+                                                                                     "positions": [ "PARK", "OFF", "SLOW", "MED", "FAST" ]
                                                                               }
                                                 }
 }

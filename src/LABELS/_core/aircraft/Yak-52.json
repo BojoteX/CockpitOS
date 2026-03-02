@@ -1691,7 +1691,7 @@
                                                     "FRONT_PRIMER_PUMP": {
                                                                                  "category": "Fore Main Panel",
                                                                              "control_type": "selector",
-                                                                              "description": "Fore Primer Pump Selector OFF/Trunk/Cylinders",
+                                                                              "description": "Fore Primer Pump Selector",
                                                                                "identifier": "FRONT_PRIMER_PUMP",
                                                                                    "inputs": [ {
                                                                                                  "description": "switch to previous or next state",
@@ -1710,7 +1710,8 @@
                                                                                                                       "shift_by": 14,
                                                                                                                         "suffix": "",
                                                                                                                           "type": "integer"
-                                                                                             } ]
+                                                                                             } ],
+                                                                                "positions": [ "OFF", "Trunk", "Cylinders" ]
                                                                          },
                                                           "FRONT_SMOKE": {
                                                                                  "category": "Fore Main Panel",
@@ -1924,7 +1925,7 @@
                                                 "FRONT_SDG_CONTROL": {
                                                                              "category": "GMK-1A",
                                                                          "control_type": "selector",
-                                                                          "description": "Fore Gyro Test Switch, 0 deg/OFF/300deg",
+                                                                          "description": "Fore Gyro Test Switch",
                                                                            "identifier": "FRONT_SDG_CONTROL",
                                                                                "inputs": [ {
                                                                                              "description": "switch to previous or next state",
@@ -1943,12 +1944,13 @@
                                                                                                                   "shift_by": 10,
                                                                                                                     "suffix": "",
                                                                                                                       "type": "integer"
-                                                                                         } ]
+                                                                                         } ],
+                                                                            "positions": [ "0 deg", "OFF", "300deg" ]
                                                                      },
                                                  "FRONT_SDG_COURSE": {
                                                                              "category": "GMK-1A",
                                                                          "control_type": "selector",
-                                                                          "description": "Fore Gyro Heading Selector, Counter-Clockwise/OFF/Clockwise",
+                                                                          "description": "Fore Gyro Heading Selector",
                                                                            "identifier": "FRONT_SDG_COURSE",
                                                                                "inputs": [ {
                                                                                              "description": "switch to previous or next state",
@@ -1967,7 +1969,8 @@
                                                                                                                   "shift_by": 12,
                                                                                                                     "suffix": "",
                                                                                                                       "type": "integer"
-                                                                                         } ]
+                                                                                         } ],
+                                                                            "positions": [ "Counter-Clockwise", "OFF", "Clockwise" ]
                                                                      },
                                                    "FRONT_SDG_HEMI": {
                                                                              "category": "GMK-1A",

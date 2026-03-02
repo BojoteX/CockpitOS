@@ -1304,7 +1304,7 @@
                                    "SUPERCHARGER_AUTO_LOW_HIGH": {
                                                                          "category": "Engine Control Panel",
                                                                      "control_type": "selector",
-                                                                      "description": "Supercharger Auto/Low/High",
+                                                                      "description": "Supercharger",
                                                                        "identifier": "SUPERCHARGER_AUTO_LOW_HIGH",
                                                                            "inputs": [ {
                                                                                          "description": "switch to previous or next state",
@@ -1323,7 +1323,8 @@
                                                                                                               "shift_by": 0,
                                                                                                                 "suffix": "",
                                                                                                                   "type": "integer"
-                                                                                     } ]
+                                                                                     } ],
+                                                                        "positions": [ "Auto", "Low", "High" ]
                                                                  },
                                     "SUPERCHARGER_SWITCH_COVER": {
                                                                          "category": "Engine Control Panel",
@@ -2113,7 +2114,7 @@
                                               "IGNITION": {
                                                                   "category": "Front Switch Box",
                                                               "control_type": "selector",
-                                                               "description": "Ignition Off/Right/Left/Both",
+                                                               "description": "Ignition",
                                                                 "identifier": "IGNITION",
                                                                     "inputs": [ {
                                                                                   "description": "switch to previous or next state",
@@ -2132,7 +2133,8 @@
                                                                                                        "shift_by": 3,
                                                                                                          "suffix": "",
                                                                                                            "type": "integer"
-                                                                              } ]
+                                                                              } ],
+                                                                 "positions": [ "Off", "Right", "Left", "Both" ]
                                                           },
                                     "LEFT_BOMB_ARM_CHEM": {
                                                                   "category": "Front Switch Box",
@@ -2970,7 +2972,7 @@
                                    "IFF_TIME_OFF_ON": {
                                                               "category": "IFF",
                                                           "control_type": "selector",
-                                                           "description": "IFF Time/Off/On",
+                                                           "description": "IFF",
                                                             "identifier": "IFF_TIME_OFF_ON",
                                                                 "inputs": [ {
                                                                               "description": "switch to previous or next state",
@@ -2989,7 +2991,8 @@
                                                                                                    "shift_by": 3,
                                                                                                      "suffix": "",
                                                                                                        "type": "integer"
-                                                                          } ]
+                                                                          } ],
+                                                             "positions": [ "Time", "Off", "On" ]
                                                       },
                                          "OFF_POWER": {
                                                               "category": "IFF",
@@ -3489,7 +3492,7 @@
                                     "AMBR_REC_LT": {
                                                            "category": "Right Switch Panel",
                                                        "control_type": "selector",
-                                                        "description": "Amber Recognition Light Key/Off/Steady",
+                                                        "description": "Amber Recognition Light",
                                                          "identifier": "AMBR_REC_LT",
                                                              "inputs": [ {
                                                                            "description": "switch to previous or next state",
@@ -3508,7 +3511,8 @@
                                                                                                 "shift_by": 12,
                                                                                                   "suffix": "",
                                                                                                     "type": "integer"
-                                                                       } ]
+                                                                       } ],
+                                                          "positions": [ "Key", "Off", "Steady" ]
                                                    },
                                             "BAT": {
                                                            "category": "Right Switch Panel",
@@ -3601,7 +3605,7 @@
                                      "GRN_REC_LT": {
                                                            "category": "Right Switch Panel",
                                                        "control_type": "selector",
-                                                        "description": "Green Recognition Light Key/Off/Steady",
+                                                        "description": "Green Recognition Light",
                                                          "identifier": "GRN_REC_LT",
                                                              "inputs": [ {
                                                                            "description": "switch to previous or next state",
@@ -3620,7 +3624,8 @@
                                                                                                 "shift_by": 10,
                                                                                                   "suffix": "",
                                                                                                     "type": "integer"
-                                                                       } ]
+                                                                       } ],
+                                                          "positions": [ "Key", "Off", "Steady" ]
                                                    },
                                        "GUN_HEAT": {
                                                            "category": "Right Switch Panel",
@@ -3713,7 +3718,7 @@
                                      "RED_REC_LT": {
                                                            "category": "Right Switch Panel",
                                                        "control_type": "selector",
-                                                        "description": "Red Recognition Light Key/Off/Steady",
+                                                        "description": "Red Recognition Light",
                                                          "identifier": "RED_REC_LT",
                                                              "inputs": [ {
                                                                            "description": "switch to previous or next state",
@@ -3732,7 +3737,8 @@
                                                                                                 "shift_by": 8,
                                                                                                   "suffix": "",
                                                                                                     "type": "integer"
-                                                                       } ]
+                                                                       } ],
+                                                          "positions": [ "Key", "Off", "Steady" ]
                                                    },
                                     "RT_FLRES_LT": {
                                                            "category": "Right Switch Panel",
@@ -3764,7 +3770,7 @@
                                        "TAIL_LTS": {
                                                            "category": "Right Switch Panel",
                                                        "control_type": "selector",
-                                                        "description": "Tail Position Lights Bright/Off/Dim",
+                                                        "description": "Tail Position Lights",
                                                          "identifier": "TAIL_LTS",
                                                              "inputs": [ {
                                                                            "description": "switch to previous or next state",
@@ -3783,12 +3789,13 @@
                                                                                                 "shift_by": 6,
                                                                                                   "suffix": "",
                                                                                                     "type": "integer"
-                                                                       } ]
+                                                                       } ],
+                                                          "positions": [ "Bright", "Off", "Dim" ]
                                                    },
                                        "WING_LTS": {
                                                            "category": "Right Switch Panel",
                                                        "control_type": "selector",
-                                                        "description": "Wing Position Lights Bright/Off/Dim",
+                                                        "description": "Wing Position Lights",
                                                          "identifier": "WING_LTS",
                                                              "inputs": [ {
                                                                            "description": "switch to previous or next state",
@@ -3807,7 +3814,8 @@
                                                                                                 "shift_by": 4,
                                                                                                   "suffix": "",
                                                                                                     "type": "integer"
-                                                                       } ]
+                                                                       } ],
+                                                          "positions": [ "Bright", "Off", "Dim" ]
                                                    }
                                },
          "Tail Warning Radar": {
