@@ -7,21 +7,13 @@
 
 ## Quick Start
 
-**1. Install Python** -- [Download Python for Windows](https://www.python.org/downloads/) (click the big yellow button, check **"Add Python to PATH"** during install)
+**1.** [**Download CockpitOS**](https://github.com/BojoteX/CockpitOS/releases/latest/download/CockpitOS.zip) -- unzip anywhere
 
-**2. Download CockpitOS** -- [Download Latest Release](https://github.com/BojoteX/CockpitOS/releases/latest/download/CockpitOS.zip)
+**2.** Double-click `Setup-START.py` -- this installs everything you need
 
-**3. Unzip anywhere, then double-click:**
+**3.** Double-click `CockpitOS-START.py` -- compile and upload to your ESP32
 
-| Step | Script | What it does |
-|------|--------|-------------|
-| First time | `Setup-START.py` | Installs ESP32 core, libraries, and DCS-BIOS |
-| Configure | `LabelCreator-START.py` | Create a label set for your aircraft and panels |
-| Build | `CockpitOS-START.py` | Compile and upload firmware to your ESP32 |
-
-> For USB mode, also run `HID Manager/HID_Manager.py` on your PC to bridge USB to DCS-BIOS.
-
-No Arduino IDE required. All three tools are guided and switch between each other.
+> Don't have Python? [Download it here](https://www.python.org/downloads/) (check **"Add to PATH"** during install). Windows will also prompt you automatically if you try to run a .py file without it.
 
 ---
 
