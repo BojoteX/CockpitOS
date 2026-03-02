@@ -192,6 +192,13 @@ def main():
 
         issues = []
 
+        # Check: did the generator even succeed?
+        gen_ok, gen_output = gen_results[name]
+        if not gen_ok:
+            issues.append(f"  GENERATOR FAILED (non-zero exit code)")
+            for line in gen_output.strip().splitlines()[-5:]:
+                issues.append(f"    {line}")
+
         # Check: did any wiring get lost?
         # For each entry BEFORE, find the corresponding entry AFTER
         # Match by (cmd, value) - label may have changed (POS -> named)
