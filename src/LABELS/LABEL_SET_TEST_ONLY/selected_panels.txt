@@ -73,7 +73,7 @@ Master Arm Panel
 # Right Essential Circuit Breakers
 # Rudder Pedal Adjust Level
 # Select Jettison Button
-# Sensor Panel
+Sensor Panel
 # Speed
 # Standby Airspeed Indicator
 # Standby Altimeter

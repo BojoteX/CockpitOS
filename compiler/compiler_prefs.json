@@ -8,7 +8,7 @@
     "DebugLevel": "none",
     "EraseFlash": "none"
   },
-  "transport": "usb",
+  "transport": "wifi",
   "role": "standalone",
   "usb_mode": null,
   "board_name": "LOLIN S2 Mini",
