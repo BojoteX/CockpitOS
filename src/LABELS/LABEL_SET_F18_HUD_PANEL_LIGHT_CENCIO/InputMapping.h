@@ -21,7 +21,7 @@ struct InputMapping {
 static const InputMapping InputMappings[] = {
     { "MASTER_ARM_SW_SAFE", "NONE" ,  0 ,  0 ,  -1 , "MASTER_ARM_SW" ,     0 , "selector" ,  1 ,  0 },
     { "MASTER_ARM_SW_ARM" , "NONE" ,  0 ,  0 ,  -1 , "MASTER_ARM_SW" ,     1 , "selector" ,  1 ,  0 },
-    { "MASTER_MODE_AA"    , "GPIO" ,  0 ,  0 ,   1 , "MASTER_MODE_AA",     1 , "momentary",  0 ,  0 },
+    { "MASTER_MODE_AA"    , "NONE" ,  0 ,  0 ,   1 , "MASTER_MODE_AA",     1 , "momentary",  0 ,  0 },
     { "MASTER_MODE_AG"    , "NONE" ,  0 ,  0 ,  -1 , "MASTER_MODE_AG",     1 , "momentary",  0 ,  0 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);

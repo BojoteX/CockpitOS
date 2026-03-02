@@ -21,6 +21,7 @@ CYAN     = "\033[96m"
 GREEN    = "\033[92m"
 YELLOW   = "\033[93m"
 RED      = "\033[91m"
+BLUE     = "\033[94m"
 BOLD     = "\033[1m"
 DIM      = "\033[2m"
 RESET    = "\033[0m"
@@ -425,11 +426,12 @@ _HELP_MAIN_LIST = [
     f"  {CYAN}HID{RESET}     HID joystick button/axis ID (-1 = none/auto)",
     f"  {CYAN}Type{RESET}    Control type: selector, momentary, fixed_step, etc.",
     "",
-    f"  {GREEN}Green{RESET} rows are wired.  {DIM}Gray rows are unwired (NONE).{RESET}",
+    f"  {GREEN}Green{RESET} = wired    {BLUE}Blue{RESET} = HID ID assigned    {DIM}Gray{RESET} = unwired",
     "",
     f"{BOLD}Navigation:{RESET}",
     f"  {CYAN}\u2191\u2193{RESET}         Move selection up/down",
     f"  {CYAN}\u2192 / Enter{RESET}  Edit the selected record",
+    f"  {CYAN}I{RESET}           Edit HID ID only (skips source/port/bit)",
     f"  {CYAN}\u2190 / Esc{RESET}    Go back to the main menu",
     f"  {CYAN}H{RESET}           Show this help screen",
     "",
@@ -1413,6 +1415,20 @@ def edit_input_mapping(filepath, label_set_name="", aircraft_name=""):
     def _wired_count():
         return sum(1 for r in records if r["source"] != "NONE")
 
+    def _hid_only_count():
+        """Count records with HID ID assigned but source=NONE."""
+        n = 0
+        for r in records:
+            if r["source"] != "NONE":
+                continue
+            if r["controlType"] == "analog":
+                if r["hidId"] >= 0:
+                    n += 1
+            else:
+                if r["hidId"] > 0:
+                    n += 1
+        return n
+
     def _scroll_bar_positions():
         if not needs_scroll:
             return (0, list_height)
@@ -1446,6 +1462,8 @@ def edit_input_mapping(filepath, label_set_name="", aircraft_name=""):
         type_trunc  = r["controlType"][:type_w]
 
         wired = r["source"] != "NONE"
+        # Analog axes use hidId >= 0 (0=AXIS_X); buttons use hidId > 0 (1-32)
+        has_hid = (r["hidId"] >= 0) if r["controlType"] == "analog" else (r["hidId"] > 0)
 
         if is_highlighted and _flash_active[0]:
             return (f"{_SEL_BG} {YELLOW}> {label_trunc:<{label_w}}  "
@@ -1454,7 +1472,7 @@ def edit_input_mapping(filepath, label_set_name="", aircraft_name=""):
                     f"{type_trunc:<{type_w}}"
                     f" {scroll_char}{RESET}")
         elif is_highlighted:
-            color = GREEN if wired else DIM
+            color = GREEN if wired else BLUE if has_hid else DIM
             return (f"{_SEL_BG} {CYAN}>{RESET}{_SEL_BG} "
                     f"{color}{label_trunc:<{label_w}}{RESET}{_SEL_BG}  "
                     f"{color}{src_trunc:<{src_w}}{RESET}{_SEL_BG}  "
@@ -1466,6 +1484,8 @@ def edit_input_mapping(filepath, label_set_name="", aircraft_name=""):
 
         if wired:
             color = GREEN
+        elif has_hid:
+            color = BLUE
         else:
             color = DIM
 
@@ -1506,13 +1526,20 @@ def edit_input_mapping(filepath, label_set_name="", aircraft_name=""):
         parts = [label_set_name, aircraft_name]
         ctx = "  (" + ", ".join(p for p in parts if p) + ")" if any(parts) else ""
         wired = _wired_count()
+        hid_only = _hid_only_count()
         title = f"Input Mapping{ctx}"
         counter = f"{wired} / {total} wired"
+        if hid_only:
+            counter += f"  {hid_only} HID"
+        # Plain length for spacing: counter has color codes in the output line
         spacing = header_w - len(title) - len(counter) - 4
         if spacing < 1:
             spacing = 1
         _w(f"  {CYAN}{BOLD}{'=' * header_w}{RESET}\n")
-        _w(f"  {CYAN}{BOLD}  {title}{' ' * spacing}{GREEN}{counter}{RESET}\n")
+        counter_colored = f"{GREEN}{wired} / {total} wired{RESET}"
+        if hid_only:
+            counter_colored += f"  {BLUE}{hid_only} HID{RESET}"
+        _w(f"  {CYAN}{BOLD}  {title}{RESET}{' ' * spacing}{counter_colored}\n")
         _w(f"  {CYAN}{BOLD}{'=' * header_w}{RESET}\n")
 
         # Column header
@@ -1536,7 +1563,7 @@ def edit_input_mapping(filepath, label_set_name="", aircraft_name=""):
                 _w(ERASE_LN + "\n")
 
         # Footer
-        _w(f"\n  {DIM}\u2191\u2193=move  \u2192/Enter=edit  \u2190/Esc=back  H=help{RESET}")
+        _w(f"\n  {DIM}\u2191\u2193=move  \u2192/Enter=edit  I=HID ID  \u2190/Esc=back  H=help{RESET}")
 
     _clamp_scroll()
     _draw()
@@ -1607,6 +1634,19 @@ def edit_input_mapping(filepath, label_set_name="", aircraft_name=""):
                 _clamp_scroll()
                 _draw()
 
+            elif ch in ("i", "I"):      # Edit HID ID only
+                _w(SHOW_CUR)
+                modified = _edit_hid_id(records, idx)
+                if modified:
+                    write_input_mapping(filepath, records, raw_lines)
+                    records, raw_lines = parse_input_mapping(filepath)
+                    total = len(records)
+                    if idx >= total:
+                        idx = max(0, total - 1)
+                    needs_scroll = total > list_height
+                _clamp_scroll()
+                _draw()
+
     except KeyboardInterrupt:
         if _flash_timer[0]:
             _flash_timer[0].cancel()
@@ -1669,3 +1709,85 @@ def _do_edit(records, idx):
 
     # Standalone record
     return _edit_standalone(record)
+
+
+def _edit_hid_id(records, idx):
+    """Edit only the HID ID field for the record at idx.
+
+    - Selector records (group > 0): prompts for HID IDs for all positions
+    - Encoder pairs (fixed_step/variable_step): not applicable (no HID IDs)
+    - Everything else: prompts for a single HID ID
+
+    Does NOT modify source, port, bit, or any other field.
+    Returns True if any record was modified.
+    """
+    record = records[idx]
+    ctype = record["controlType"]
+    group = record["group"]
+
+    # Encoder pair — HID IDs not applicable
+    if ctype in ("fixed_step", "variable_step"):
+        ui.header("Edit HID ID")
+        print()
+        ui.warn("Encoders do not use HID IDs.")
+        input(f"\n  {DIM}Press Enter to continue...{RESET}")
+        return False
+
+    # Selector group — edit HID IDs for all positions
+    if ctype == "selector" and group > 0:
+        group_records = [r for r in records if r["group"] == group
+                         and r["controlType"] == "selector"]
+        cmd = group_records[0]["cmd"]
+
+        ui.header(f"Edit HID IDs: {cmd}")
+        print()
+        ui.info(f"  Group {group} — {len(group_records)} positions")
+        print()
+
+        # Show current state
+        for r in group_records:
+            suffix = _pos_suffix(r, cmd)
+            print(f"    {suffix:<20} HID ID = {r['hidId']:>3}")
+        print()
+
+        modified = False
+        for r in group_records:
+            suffix = _pos_suffix(r, cmd)
+            hid_val = ui.text_input(f"  {suffix} HID ID", default=str(r["hidId"]))
+            if hid_val is None:
+                break
+            try:
+                new_hid = int(hid_val)
+            except ValueError:
+                new_hid = -1
+            if new_hid != r["hidId"]:
+                modified = True
+            r["hidId"] = new_hid
+
+        return modified
+
+    # Standalone record — single HID ID
+    label = record["label"]
+    ui.header(f"Edit HID ID: {label}")
+    print()
+    ui.info(f"  Type: {CYAN}{ctype}{RESET}    Source: {record['source']}")
+    ui.info(f"  Current HID ID: {record['hidId']}")
+    print()
+
+    if ctype == "analog":
+        hid_val = ui.text_input("  HID axis (-1 = auto)", default=str(record["hidId"]))
+    else:
+        hid_val = ui.text_input("  HID ID (-1 = none)", default=str(record["hidId"]))
+
+    if hid_val is None:
+        return False
+    try:
+        new_hid = int(hid_val)
+    except ValueError:
+        new_hid = -1
+
+    if new_hid == record["hidId"]:
+        return False
+
+    record["hidId"] = new_hid
+    return True

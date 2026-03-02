@@ -4,6 +4,14 @@
 
 #if USE_DCSBIOS_BLUETOOTH
 
+// Arduino Core 3.3.7+ releases BT controller memory in initArduino() if btInUse()
+// returns false.  Including this header registers a __attribute__((constructor)) that
+// sets the flag *before* initArduino() runs, keeping BT memory alive for NimBLE.
+// Without this, NimBLEDevice::init() crashes with LoadProhibited on Core >= 3.3.7.
+#if __has_include("esp32-hal-bt-mem.h")
+  #include "esp32-hal-bt-mem.h"
+#endif
+
 // ===== USER CONFIGURATION =====
 // Adjust these settings before compiling to optimize for your use case
 
