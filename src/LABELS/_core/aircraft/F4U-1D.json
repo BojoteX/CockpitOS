@@ -321,7 +321,7 @@
                                                         "BAT_BOMB_RADAR_ON_OFF": {
                                                                                          "category": "Bat Bomb Panel",
                                                                                      "control_type": "selector",
-                                                                                      "description": "Bat Bomb Radar (OFF/MIN/RUN)",
+                                                                                      "description": "Bat Bomb Radar",
                                                                                        "identifier": "BAT_BOMB_RADAR_ON_OFF",
                                                                                            "inputs": [ {
                                                                                                          "description": "switch to previous or next state",
@@ -340,7 +340,8 @@
                                                                                                                               "shift_by": 12,
                                                                                                                                 "suffix": "",
                                                                                                                                   "type": "integer"
-                                                                                                     } ]
+                                                                                                     } ],
+                                                                                        "positions": [ "OFF", "MIN", "RUN" ]
                                                                                  },
                                                     "BAT_BOMB_SCOPE_BRIGHTNESS": {
                                                                                          "category": "Bat Bomb Panel",
@@ -422,7 +423,7 @@
                                                      "BOMB_BOX_ARMING": {
                                                                                 "category": "Bomb Switch Box",
                                                                             "control_type": "selector",
-                                                                             "description": "Arming (NOSE/SAFE/TAIL)",
+                                                                             "description": "Arming",
                                                                               "identifier": "BOMB_BOX_ARMING",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -441,7 +442,8 @@
                                                                                                                      "shift_by": 11,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "NOSE", "SAFE", "TAIL" ]
                                                                         },
                                                   "BOMB_BOX_RELEASE_L": {
                                                                                 "category": "Bomb Switch Box",
@@ -535,7 +537,7 @@
                                               "C30A_CHANNEL_SELECTOR": {
                                                                                "category": "C-30A/ARC-5 Control Unit",
                                                                            "control_type": "selector",
-                                                                            "description": "Channel Selector (1/2/3/4)",
+                                                                            "description": "Channel Selector",
                                                                              "identifier": "C30A_CHANNEL_SELECTOR",
                                                                                  "inputs": [ {
                                                                                                "description": "switch to previous or next state",
@@ -554,12 +556,13 @@
                                                                                                                     "shift_by": 0,
                                                                                                                       "suffix": "",
                                                                                                                         "type": "integer"
-                                                                                           } ]
+                                                                                           } ],
+                                                                              "positions": [ "1", "2", "3", "4" ]
                                                                        },
                                                "C30A_CW_VOICE_SWITCH": {
                                                                                "category": "C-30A/ARC-5 Control Unit",
                                                                            "control_type": "selector",
-                                                                            "description": "CW/Voice Switch (A/B/C/D)",
+                                                                            "description": "CW/Voice Switch",
                                                                              "identifier": "C30A_CW_VOICE_SWITCH",
                                                                                  "inputs": [ {
                                                                                                "description": "switch to previous or next state",
@@ -578,7 +581,8 @@
                                                                                                                     "shift_by": 2,
                                                                                                                       "suffix": "",
                                                                                                                         "type": "integer"
-                                                                                           } ]
+                                                                                           } ],
+                                                                              "positions": [ "A", "B", "C", "D" ]
                                                                        },
                                                  "C30A_ON_OFF_SWITCH": {
                                                                                "category": "C-30A/ARC-5 Control Unit",
@@ -826,7 +830,7 @@
                                                          "CLOCK_ADJUSTMENT_BUTTON": {
                                                                                             "category": "Clock",
                                                                                         "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                                         "description": "Clock Adjustment Button (Reset/Norm/Adjust)",
+                                                                                         "description": "Clock Adjustment Button",
                                                                                           "identifier": "CLOCK_ADJUSTMENT_BUTTON",
                                                                                               "inputs": [ {
                                                                                                             "description": "set the switch position",
@@ -842,7 +846,8 @@
                                                                                                                                  "shift_by": 2,
                                                                                                                                    "suffix": "",
                                                                                                                                      "type": "integer"
-                                                                                                        } ]
+                                                                                                        } ],
+                                                                                           "positions": [ "Reset", "Norm", "Adjust" ]
                                                                                     },
                                                          "CLOCK_ADJUSTMENT_ROTARY": {
                                                                                          "api_variant": "multiturn",
@@ -1457,7 +1462,7 @@
                                                    "ECU_MIXTURE": {
                                                                           "category": "Engine Control Unit",
                                                                       "control_type": "selector",
-                                                                       "description": "Mixture (CUTOFF/AUTO LEAN/AUTO RICH/FULL RICH)",
+                                                                       "description": "Mixture",
                                                                         "identifier": "ECU_MIXTURE",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -1476,7 +1481,8 @@
                                                                                                                "shift_by": 11,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "CUTOFF", "AUTO LEAN", "AUTO RICH", "FULL RICH" ]
                                                                   },
                                                        "ECU_RPM": {
                                                                           "category": "Engine Control Unit",
@@ -1508,7 +1514,7 @@
                                               "ECU_SUPERCHARGER": {
                                                                           "category": "Engine Control Unit",
                                                                       "control_type": "selector",
-                                                                       "description": "Supercharger (NEUTRAL/LOW/HIGH)",
+                                                                       "description": "Supercharger",
                                                                         "identifier": "ECU_SUPERCHARGER",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -1527,7 +1533,8 @@
                                                                                                                "shift_by": 13,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "NEUTRAL", "LOW", "HIGH" ]
                                                                   },
                                                   "ECU_THROTTLE": {
                                                                           "category": "Engine Control Unit",
@@ -2726,7 +2733,7 @@
                                               "FUEL_SELECTOR": {
                                                                        "category": "Fuel Selector",
                                                                    "control_type": "selector",
-                                                                    "description": "Fuel Selector (OFF/MAIN/RESERVE/RIGHT/LEFT/CENTER)",
+                                                                    "description": "Fuel Selector",
                                                                      "identifier": "FUEL_SELECTOR",
                                                                          "inputs": [ {
                                                                                        "description": "switch to previous or next state",
@@ -2745,7 +2752,8 @@
                                                                                                             "shift_by": 7,
                                                                                                               "suffix": "",
                                                                                                                 "type": "integer"
-                                                                                   } ]
+                                                                                   } ],
+                                                                      "positions": [ "OFF", "MAIN", "RESERVE", "RIGHT", "LEFT", "CENTER" ]
                                                                }
                                           },
                           "Gun Charging": {
@@ -2832,7 +2840,7 @@
                                                        "GUN_BOX_CAMERA": {
                                                                                  "category": "Gun Switch Box",
                                                                              "control_type": "selector",
-                                                                              "description": "Gun Camera (GUN/OFF/FWD)",
+                                                                              "description": "Gun Camera",
                                                                                "identifier": "GUN_BOX_CAMERA",
                                                                                    "inputs": [ {
                                                                                                  "description": "switch to previous or next state",
@@ -2851,7 +2859,8 @@
                                                                                                                       "shift_by": 1,
                                                                                                                         "suffix": "",
                                                                                                                           "type": "integer"
-                                                                                             } ]
+                                                                                             } ],
+                                                                                "positions": [ "GUN", "OFF", "FWD" ]
                                                                          },
                                                        "GUN_BOX_CENTER": {
                                                                                  "category": "Gun Switch Box",
@@ -2885,7 +2894,7 @@
                                                      "GUN_BOX_GUNSIGHT": {
                                                                                  "category": "Gun Switch Box",
                                                                              "control_type": "selector",
-                                                                              "description": "Gunsight (ALT/OFF/LIMIT)",
+                                                                              "description": "Gunsight",
                                                                                "identifier": "GUN_BOX_GUNSIGHT",
                                                                                    "inputs": [ {
                                                                                                  "description": "switch to previous or next state",
@@ -2904,7 +2913,8 @@
                                                                                                                       "shift_by": 7,
                                                                                                                         "suffix": "",
                                                                                                                           "type": "integer"
-                                                                                             } ]
+                                                                                             } ],
+                                                                                "positions": [ "ALT", "OFF", "LIMIT" ]
                                                                          },
                                                       "GUN_BOX_INBOARD": {
                                                                                  "category": "Gun Switch Box",
@@ -3175,7 +3185,7 @@
                                               "IGNITION_MAGS": {
                                                                        "category": "Ignition Switch",
                                                                    "control_type": "selector",
-                                                                    "description": "Ignition Switch (OFF/RIGHT/LEFT/BOTH)",
+                                                                    "description": "Ignition Switch",
                                                                      "identifier": "IGNITION_MAGS",
                                                                          "inputs": [ {
                                                                                        "description": "switch to previous or next state",
@@ -3194,7 +3204,8 @@
                                                                                                             "shift_by": 3,
                                                                                                               "suffix": "",
                                                                                                                 "type": "integer"
-                                                                                   } ]
+                                                                                   } ],
+                                                                      "positions": [ "OFF", "RIGHT", "LEFT", "BOTH" ]
                                                                }
                                           },
                        "Interior Lights": {
@@ -3619,7 +3630,7 @@
                                               "GEAR_BRAKE_HANDLE": {
                                                                            "category": "Landing Gear/Dive Brake",
                                                                        "control_type": "selector",
-                                                                        "description": "Landing Gear/Dive Brake Handle (GEAR DOWN/GEAR UP BRAKES UP/BRAKES DOWN)",
+                                                                        "description": "Landing Gear/Dive Brake Handle",
                                                                          "identifier": "GEAR_BRAKE_HANDLE",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -3638,7 +3649,8 @@
                                                                                                                 "shift_by": 0,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "GEAR DOWN", "GEAR UP BRAKES UP", "BRAKES DOWN" ]
                                                                    },
                                                  "GEAR_L_POS_IND": {
                                                                            "category": "Landing Gear/Dive Brake",
@@ -3871,7 +3883,7 @@
                                                          "PILOT_DISTRO_EXTERIOR_LIGHTS_SWITCH": {
                                                                                                         "category": "Pilot's Distribution Box",
                                                                                                     "control_type": "selector",
-                                                                                                     "description": "Exterior Lights (Flash/Off/Steady)",
+                                                                                                     "description": "Exterior Lights",
                                                                                                       "identifier": "PILOT_DISTRO_EXTERIOR_LIGHTS_SWITCH",
                                                                                                           "inputs": [ {
                                                                                                                         "description": "switch to previous or next state",
@@ -3890,12 +3902,13 @@
                                                                                                                                              "shift_by": 8,
                                                                                                                                                "suffix": "",
                                                                                                                                                  "type": "integer"
-                                                                                                                    } ]
+                                                                                                                    } ],
+                                                                                                       "positions": [ "Flash", "Off", "Steady" ]
                                                                                                 },
                                                         "PILOT_DISTRO_FORMATION_LIGHTS_SWITCH": {
                                                                                                         "category": "Pilot's Distribution Box",
                                                                                                     "control_type": "selector",
-                                                                                                     "description": "Formation Lights (Dim/Off/Bright)",
+                                                                                                     "description": "Formation Lights",
                                                                                                       "identifier": "PILOT_DISTRO_FORMATION_LIGHTS_SWITCH",
                                                                                                           "inputs": [ {
                                                                                                                         "description": "switch to previous or next state",
@@ -3914,7 +3927,8 @@
                                                                                                                                              "shift_by": 14,
                                                                                                                                                "suffix": "",
                                                                                                                                                  "type": "integer"
-                                                                                                                    } ]
+                                                                                                                    } ],
+                                                                                                       "positions": [ "Dim", "Off", "Bright" ]
                                                                                                 },
                                                                "PILOT_DISTRO_FUEL_PUMP_SWITCH": {
                                                                                                         "category": "Pilot's Distribution Box",
@@ -4032,7 +4046,7 @@
                                                  "PILOT_DISTRO_RECOGNITION_LIGHT_SWITCH_AMBER": {
                                                                                                         "category": "Pilot's Distribution Box",
                                                                                                     "control_type": "selector",
-                                                                                                     "description": "Amber Recognition Light (Steady/Off/Flash)",
+                                                                                                     "description": "Amber Recognition Light",
                                                                                                       "identifier": "PILOT_DISTRO_RECOGNITION_LIGHT_SWITCH_AMBER",
                                                                                                           "inputs": [ {
                                                                                                                         "description": "switch to previous or next state",
@@ -4051,12 +4065,13 @@
                                                                                                                                              "shift_by": 5,
                                                                                                                                                "suffix": "",
                                                                                                                                                  "type": "integer"
-                                                                                                                    } ]
+                                                                                                                    } ],
+                                                                                                       "positions": [ "Steady", "Off", "Flash" ]
                                                                                                 },
                                                  "PILOT_DISTRO_RECOGNITION_LIGHT_SWITCH_GREEN": {
                                                                                                         "category": "Pilot's Distribution Box",
                                                                                                     "control_type": "selector",
-                                                                                                     "description": "Green Recognition Light (Steady/Off/Flash)",
+                                                                                                     "description": "Green Recognition Light",
                                                                                                       "identifier": "PILOT_DISTRO_RECOGNITION_LIGHT_SWITCH_GREEN",
                                                                                                           "inputs": [ {
                                                                                                                         "description": "switch to previous or next state",
@@ -4075,12 +4090,13 @@
                                                                                                                                              "shift_by": 3,
                                                                                                                                                "suffix": "",
                                                                                                                                                  "type": "integer"
-                                                                                                                    } ]
+                                                                                                                    } ],
+                                                                                                       "positions": [ "Steady", "Off", "Flash" ]
                                                                                                 },
                                                    "PILOT_DISTRO_RECOGNITION_LIGHT_SWITCH_RED": {
                                                                                                         "category": "Pilot's Distribution Box",
                                                                                                     "control_type": "selector",
-                                                                                                     "description": "Red Recognition Light (Steady/Off/Flash)",
+                                                                                                     "description": "Red Recognition Light",
                                                                                                       "identifier": "PILOT_DISTRO_RECOGNITION_LIGHT_SWITCH_RED",
                                                                                                           "inputs": [ {
                                                                                                                         "description": "switch to previous or next state",
@@ -4099,7 +4115,8 @@
                                                                                                                                              "shift_by": 1,
                                                                                                                                                "suffix": "",
                                                                                                                                                  "type": "integer"
-                                                                                                                    } ]
+                                                                                                                    } ],
+                                                                                                       "positions": [ "Steady", "Off", "Flash" ]
                                                                                                 },
                                               "PILOT_DISTRO_RIGHT_INSTRUMENT_BOARD_LIGHT_KNOB": {
                                                                                                         "category": "Pilot's Distribution Box",
@@ -4158,7 +4175,7 @@
                                                           "PILOT_DISTRO_SECTION_LIGHTS_SWITCH": {
                                                                                                         "category": "Pilot's Distribution Box",
                                                                                                     "control_type": "selector",
-                                                                                                     "description": "Section Lights (Dim/Off/Bright)",
+                                                                                                     "description": "Section Lights",
                                                                                                       "identifier": "PILOT_DISTRO_SECTION_LIGHTS_SWITCH",
                                                                                                           "inputs": [ {
                                                                                                                         "description": "switch to previous or next state",
@@ -4177,7 +4194,8 @@
                                                                                                                                              "shift_by": 0,
                                                                                                                                                "suffix": "",
                                                                                                                                                  "type": "integer"
-                                                                                                                    } ]
+                                                                                                                    } ],
+                                                                                                       "positions": [ "Dim", "Off", "Bright" ]
                                                                                                 },
                                                                  "PILOT_DISTRO_STARTER_SWITCH": {
                                                                                                      "api_variant": "momentary_last_position",
@@ -4241,7 +4259,7 @@
                                                              "PILOT_DISTRO_TAIL_LIGHTS_SWITCH": {
                                                                                                         "category": "Pilot's Distribution Box",
                                                                                                     "control_type": "selector",
-                                                                                                     "description": "Tail Lights (Dim/Off/Bright)",
+                                                                                                     "description": "Tail Lights",
                                                                                                       "identifier": "PILOT_DISTRO_TAIL_LIGHTS_SWITCH",
                                                                                                           "inputs": [ {
                                                                                                                         "description": "switch to previous or next state",
@@ -4260,12 +4278,13 @@
                                                                                                                                              "shift_by": 12,
                                                                                                                                                "suffix": "",
                                                                                                                                                  "type": "integer"
-                                                                                                                    } ]
+                                                                                                                    } ],
+                                                                                                       "positions": [ "Dim", "Off", "Bright" ]
                                                                                                 },
                                                              "PILOT_DISTRO_WING_LIGHTS_SWITCH": {
                                                                                                         "category": "Pilot's Distribution Box",
                                                                                                     "control_type": "selector",
-                                                                                                     "description": "Wing Lights (Dim/Off/Bright)",
+                                                                                                     "description": "Wing Lights",
                                                                                                       "identifier": "PILOT_DISTRO_WING_LIGHTS_SWITCH",
                                                                                                           "inputs": [ {
                                                                                                                         "description": "switch to previous or next state",
@@ -4284,7 +4303,8 @@
                                                                                                                                              "shift_by": 10,
                                                                                                                                                "suffix": "",
                                                                                                                                                  "type": "integer"
-                                                                                                                    } ]
+                                                                                                                    } ],
+                                                                                                       "positions": [ "Dim", "Off", "Bright" ]
                                                                                                 }
                                           },
                      "Radio Frequencies": {
@@ -5369,7 +5389,7 @@
                                               "WING_FOLD": {
                                                                    "category": "Wing Fold",
                                                                "control_type": "selector",
-                                                                "description": "Wing Fold (SPREAD/NEUTRAL/FOLD)",
+                                                                "description": "Wing Fold",
                                                                  "identifier": "WING_FOLD",
                                                                      "inputs": [ {
                                                                                    "description": "switch to previous or next state",
@@ -5388,7 +5408,8 @@
                                                                                                         "shift_by": 1,
                                                                                                           "suffix": "",
                                                                                                             "type": "integer"
-                                                                               } ]
+                                                                               } ],
+                                                                  "positions": [ "SPREAD", "NEUTRAL", "FOLD" ]
                                                            },
                                               "WING_LOCK": {
                                                                    "category": "Wing Fold",

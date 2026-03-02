@@ -1076,7 +1076,7 @@
                                     "FUEL_GAUGE_SEL": {
                                                               "category": "Cockpit",
                                                           "control_type": "selector",
-                                                           "description": "Fuel Gauge Selector (FORWARD/NONE/AFT)",
+                                                           "description": "Fuel Gauge Selector",
                                                             "identifier": "FUEL_GAUGE_SEL",
                                                                 "inputs": [ {
                                                                               "description": "switch to previous or next state",
@@ -1095,7 +1095,8 @@
                                                                                                    "shift_by": 0,
                                                                                                      "suffix": "",
                                                                                                        "type": "integer"
-                                                                          } ]
+                                                                          } ],
+                                                             "positions": [ "FORWARD", "NONE", "AFT" ]
                                                       },
                                      "FUEL_MWB4_SEL": {
                                                               "category": "Cockpit",
@@ -1159,7 +1160,7 @@
                                       "FUEL_TNK_SEL": {
                                                               "category": "Cockpit",
                                                           "control_type": "selector",
-                                                           "description": "Fuel Tank Selector Valve (CLOSE/FORWARD/AFT/BOTH)",
+                                                           "description": "Fuel Tank Selector Valve",
                                                             "identifier": "FUEL_TNK_SEL",
                                                                 "inputs": [ {
                                                                               "description": "switch to previous or next state",
@@ -1178,7 +1179,8 @@
                                                                                                    "shift_by": 14,
                                                                                                      "suffix": "",
                                                                                                        "type": "integer"
-                                                                          } ]
+                                                                          } ],
+                                                             "positions": [ "CLOSE", "FORWARD", "AFT", "BOTH" ]
                                                       },
                                           "HOR_CAGE": {
                                                               "category": "Cockpit",

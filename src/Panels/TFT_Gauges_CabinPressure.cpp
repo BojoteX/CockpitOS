@@ -95,7 +95,7 @@ static constexpr bool                   shared_bus    = false;              // f
 static constexpr bool                   use_lock      = false;              // false = no mutex/lock (recommended)
 static constexpr spi_host_device_t      spi_host      = SPI2_HOST;          // SPI2_HOST or SPI3_HOST
 static constexpr uint8_t                dma_channel   = SPI_DMA_CH_AUTO;    // SPI_DMA_CH_AUTO, 1, or 2
-static constexpr uint32_t               freq_write    = 80000000;           // Write clock (Hz)
+static constexpr uint32_t               freq_write    = 60000000;           // Write clock (Hz)
 
 // --- Panel binding ---
 class LGFX_CabPress final : public lgfx::LGFX_Device {

@@ -1495,7 +1495,7 @@
                                                         "MAGNETO": {
                                                                            "category": "Motor",
                                                                        "control_type": "selector",
-                                                                        "description": "Magneto 0/1/2/1+2",
+                                                                        "description": "Magneto",
                                                                          "identifier": "MAGNETO",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -1514,7 +1514,8 @@
                                                                                                                 "shift_by": 13,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "0", "1", "2", "1+2" ]
                                                                    },
                                                     "MAN_RATCHET": {
                                                                         "api_variant": "momentary_last_position",
@@ -1813,7 +1814,7 @@
                                                    "SUPERCHARGER": {
                                                                            "category": "Motor",
                                                                        "control_type": "selector",
-                                                                        "description": "Supercharge Speed 1/0/2",
+                                                                        "description": "Supercharge Speed",
                                                                          "identifier": "SUPERCHARGER",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -1832,7 +1833,8 @@
                                                                                                                 "shift_by": 5,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "1", "0", "2" ]
                                                                    },
                                                        "THROTTLE": {
                                                                         "api_variant": "multiturn",

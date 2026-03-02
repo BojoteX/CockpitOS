@@ -424,7 +424,7 @@
                                                             "ALT_MODE_LV": {
                                                                                    "category": "Altimeter",
                                                                                "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                                "description": "Altimeter Mode Lever, ELEC/OFF/PNEU",
+                                                                                "description": "Altimeter Mode Lever",
                                                                                  "identifier": "ALT_MODE_LV",
                                                                                      "inputs": [ {
                                                                                                    "description": "set the switch position",
@@ -440,7 +440,8 @@
                                                                                                                         "shift_by": 0,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "ELEC", "OFF", "PNEU" ]
                                                                            },
                                                           "ALT_PNEU_FLAG": {
                                                                                    "category": "Altimeter",
@@ -659,7 +660,7 @@
                                                     "HOT_MIC_SW": {
                                                                           "category": "Audio Panel",
                                                                       "control_type": "selector",
-                                                                       "description": "HOT MIC CIPHER Switch, HOT MIC / OFF / CIPHER",
+                                                                       "description": "HOT MIC CIPHER Switch",
                                                                         "identifier": "HOT_MIC_SW",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -678,12 +679,13 @@
                                                                                                                "shift_by": 12,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "HOT MIC", "OFF", "CIPHER" ]
                                                                   },
                                                 "IFF_ANT_SEL_SW": {
                                                                           "category": "Audio Panel",
                                                                       "control_type": "selector",
-                                                                       "description": "IFF ANT SEL Switch, LOWER/NORM/UPPER",
+                                                                       "description": "IFF ANT SEL Switch",
                                                                         "identifier": "IFF_ANT_SEL_SW",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -702,7 +704,8 @@
                                                                                                                "shift_by": 14,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "LOWER", "NORM", "UPPER" ]
                                                                   },
                                                    "ILS_PWR_KNB": {
                                                                           "category": "Audio Panel",
@@ -896,7 +899,7 @@
                                                 "UHF_ANT_SEL_SW": {
                                                                           "category": "Audio Panel",
                                                                       "control_type": "selector",
-                                                                       "description": "UHF ANT SEL Switch, LOWER/NORM/UPPER",
+                                                                       "description": "UHF ANT SEL Switch",
                                                                         "identifier": "UHF_ANT_SEL_SW",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -915,7 +918,8 @@
                                                                                                                "shift_by": 0,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "LOWER", "NORM", "UPPER" ]
                                                                   },
                                                 "VMS_INHIBIT_SW": {
                                                                           "category": "Audio Panel",
@@ -1009,7 +1013,7 @@
                                                      "INS_KNB": {
                                                                         "category": "Avionic Panel",
                                                                     "control_type": "selector",
-                                                                     "description": "INS Knob, OFF/STOR HDG/NORM/NAV/CAL/INFLT ALIGN/ATT",
+                                                                     "description": "INS Knob",
                                                                       "identifier": "INS_KNB",
                                                                           "inputs": [ {
                                                                                         "description": "switch to previous or next state",
@@ -1028,7 +1032,8 @@
                                                                                                              "shift_by": 9,
                                                                                                                "suffix": "",
                                                                                                                  "type": "integer"
-                                                                                    } ]
+                                                                                    } ],
+                                                                       "positions": [ "OFF", "STOR HDG", "NORM", "NAV", "CAL", "INFLT ALIGN", "ATT" ]
                                                                 },
                                                       "MAP_SW": {
                                                                         "category": "Avionic Panel",
@@ -1091,7 +1096,7 @@
                                                 "MIDS_LVT_KNB": {
                                                                         "category": "Avionic Panel",
                                                                     "control_type": "selector",
-                                                                     "description": "MIDS LVT Knob, ZERO/OFF/ON",
+                                                                     "description": "MIDS LVT Knob",
                                                                       "identifier": "MIDS_LVT_KNB",
                                                                           "inputs": [ {
                                                                                         "description": "switch to previous or next state",
@@ -1110,7 +1115,8 @@
                                                                                                              "shift_by": 7,
                                                                                                                "suffix": "",
                                                                                                                  "type": "integer"
-                                                                                    } ]
+                                                                                    } ],
+                                                                       "positions": [ "ZERO", "OFF", "ON" ]
                                                                 },
                                                   "MMC_PWR_SW": {
                                                                         "category": "Avionic Panel",
@@ -1438,7 +1444,7 @@
                                                       "CMDS_MODE_KNB": {
                                                                                "category": "CMDS",
                                                                            "control_type": "selector",
-                                                                            "description": "CMDS MODE Knob, OFF/STBY/MAN/SEMI/AUTO/BYP",
+                                                                            "description": "CMDS MODE Knob",
                                                                              "identifier": "CMDS_MODE_KNB",
                                                                                  "inputs": [ {
                                                                                                "description": "switch to previous or next state",
@@ -1457,7 +1463,8 @@
                                                                                                                     "shift_by": 5,
                                                                                                                       "suffix": "",
                                                                                                                         "type": "integer"
-                                                                                           } ]
+                                                                                           } ],
+                                                                              "positions": [ "OFF", "STBY", "MAN", "SEMI", "AUTO", "BYP" ]
                                                                        },
                                                 "CMDS_MWS_SOURCHE_SW": {
                                                                                "category": "CMDS",
@@ -1521,7 +1528,7 @@
                                                       "CMDS_PROG_KNB": {
                                                                                "category": "CMDS",
                                                                            "control_type": "selector",
-                                                                            "description": "CMDS PROGRAM Knob, BIT/1/2/3/4",
+                                                                            "description": "CMDS PROGRAM Knob",
                                                                              "identifier": "CMDS_PROG_KNB",
                                                                                  "inputs": [ {
                                                                                                "description": "switch to previous or next state",
@@ -1540,7 +1547,8 @@
                                                                                                                     "shift_by": 2,
                                                                                                                       "suffix": "",
                                                                                                                         "type": "integer"
-                                                                                           } ]
+                                                                                           } ],
+                                                                              "positions": [ "BIT", "1", "2", "3", "4" ]
                                                                        },
                                                 "CMDS_PWR_SOURCHE_SW": {
                                                                                "category": "CMDS",
@@ -1828,7 +1836,7 @@
                                                           "CANOPY_SW": {
                                                                                "category": "Cockpit Mechanics",
                                                                            "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                            "description": "Canopy Switch, OPEN/HOLD/CLOSE",
+                                                                            "description": "Canopy Switch",
                                                                              "identifier": "CANOPY_SW",
                                                                                  "inputs": [ {
                                                                                                "description": "set the switch position",
@@ -1844,7 +1852,8 @@
                                                                                                                     "shift_by": 13,
                                                                                                                       "suffix": "",
                                                                                                                         "type": "integer"
-                                                                                           } ]
+                                                                                           } ],
+                                                                              "positions": [ "OPEN", "HOLD", "CLOSE" ]
                                                                        },
                                                          "HIDE_STICK": {
                                                                                "category": "Cockpit Mechanics",
@@ -1878,7 +1887,7 @@
                                                            "SEAT_ADJ": {
                                                                                "category": "Cockpit Mechanics",
                                                                            "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                            "description": "SEAT ADJ Switch, UP/OFF/DOWN",
+                                                                            "description": "SEAT ADJ Switch",
                                                                              "identifier": "SEAT_ADJ",
                                                                                  "inputs": [ {
                                                                                                "description": "set the switch position",
@@ -1894,7 +1903,8 @@
                                                                                                                     "shift_by": 9,
                                                                                                                       "suffix": "",
                                                                                                                         "type": "integer"
-                                                                                           } ]
+                                                                                           } ],
+                                                                              "positions": [ "UP", "OFF", "DOWN" ]
                                                                        },
                                                   "SEAT_EJECT_HANDLE": {
                                                                                "category": "Cockpit Mechanics",
@@ -2035,7 +2045,7 @@
                                                      "AP_PITCH_SW": {
                                                                             "category": "Control Interface",
                                                                         "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                         "description": "Autopilot PITCH Switch, ATT HOLD/ A/P OFF/ ALT HOLD",
+                                                                         "description": "Autopilot PITCH Switch",
                                                                           "identifier": "AP_PITCH_SW",
                                                                               "inputs": [ {
                                                                                             "description": "set the switch position",
@@ -2051,12 +2061,13 @@
                                                                                                                  "shift_by": 8,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "ATT HOLD", "A/P OFF", "ALT HOLD" ]
                                                                     },
                                                       "AP_ROLL_SW": {
                                                                             "category": "Control Interface",
                                                                         "control_type": "selector",
-                                                                         "description": "Autopilot ROLL Switch, STRG SEL/ATT HOLD/HDG SEL",
+                                                                         "description": "Autopilot ROLL Switch",
                                                                           "identifier": "AP_ROLL_SW",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -2075,7 +2086,8 @@
                                                                                                                  "shift_by": 10,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "STRG SEL", "ATT HOLD", "HDG SEL" ]
                                                                     },
                                                           "BIT_SW": {
                                                                             "category": "Control Interface",
@@ -2547,6 +2559,10 @@
                                                 "DED_LINE_1": {
                                                                       "category": "DED Output Data (Deprecated)",
                                                                   "control_type": "display",
+                                                                    "deprecated": {
+                                                                                            "since": "0.11.0",
+                                                                                      "use_instead": "DED_L1"
+                                                                                  },
                                                                    "description": "DED Display Line 1",
                                                                     "identifier": "DED_LINE_1",
                                                                         "inputs": [  ],
@@ -2562,6 +2578,10 @@
                                                 "DED_LINE_2": {
                                                                       "category": "DED Output Data (Deprecated)",
                                                                   "control_type": "display",
+                                                                    "deprecated": {
+                                                                                            "since": "0.11.0",
+                                                                                      "use_instead": "DED_L2"
+                                                                                  },
                                                                    "description": "DED Display Line 2",
                                                                     "identifier": "DED_LINE_2",
                                                                         "inputs": [  ],
@@ -2577,6 +2597,10 @@
                                                 "DED_LINE_3": {
                                                                       "category": "DED Output Data (Deprecated)",
                                                                   "control_type": "display",
+                                                                    "deprecated": {
+                                                                                            "since": "0.11.0",
+                                                                                      "use_instead": "DED_L3"
+                                                                                  },
                                                                    "description": "DED Display Line 3",
                                                                     "identifier": "DED_LINE_3",
                                                                         "inputs": [  ],
@@ -2592,6 +2616,10 @@
                                                 "DED_LINE_4": {
                                                                       "category": "DED Output Data (Deprecated)",
                                                                   "control_type": "display",
+                                                                    "deprecated": {
+                                                                                            "since": "0.11.0",
+                                                                                      "use_instead": "DED_L4"
+                                                                                  },
                                                                    "description": "DED Display Line 4",
                                                                     "identifier": "DED_LINE_4",
                                                                         "inputs": [  ],
@@ -2607,6 +2635,10 @@
                                                 "DED_LINE_5": {
                                                                       "category": "DED Output Data (Deprecated)",
                                                                   "control_type": "display",
+                                                                    "deprecated": {
+                                                                                            "since": "0.11.0",
+                                                                                      "use_instead": "DED_L5"
+                                                                                  },
                                                                    "description": "DED Display Line 5",
                                                                     "identifier": "DED_LINE_5",
                                                                         "inputs": [  ],
@@ -2990,81 +3022,111 @@
                                                                  }
                                             },
                                      "ECS": {
-                                                "AIR_SOURCE_KNB": {
-                                                                          "category": "ECS",
-                                                                      "control_type": "selector",
-                                                                       "description": "AIR SOURCE Knob, OFF/NORM/DUMP/RAM",
-                                                                        "identifier": "AIR_SOURCE_KNB",
-                                                                            "inputs": [ {
-                                                                                          "description": "switch to previous or next state",
-                                                                                            "interface": "fixed_step"
-                                                                                      }, {
-                                                                                          "description": "set position",
-                                                                                            "interface": "set_state",
-                                                                                            "max_value": 4
-                                                                                      } ],
-                                                                           "outputs": [ {
-                                                                                                                "address": 17438,
-                                                                                          "address_mask_shift_identifier": "F_16C_50_AIR_SOURCE_KNB",
-                                                                                                            "description": "selector position",
-                                                                                                                   "mask": 3584,
-                                                                                                              "max_value": 4,
-                                                                                                               "shift_by": 9,
-                                                                                                                 "suffix": "",
-                                                                                                                   "type": "integer"
-                                                                                      } ]
-                                                                  },
-                                                   "DEFOG_LEVER": {
-                                                                          "category": "ECS",
-                                                                      "control_type": "selector",
-                                                                       "description": "DEFOG Lever",
-                                                                        "identifier": "DEFOG_LEVER",
-                                                                            "inputs": [ {
-                                                                                          "description": "switch to previous or next state",
-                                                                                            "interface": "fixed_step"
-                                                                                      }, {
-                                                                                          "description": "set position",
-                                                                                            "interface": "set_state",
-                                                                                            "max_value": 20
-                                                                                      } ],
-                                                                           "outputs": [ {
-                                                                                                                "address": 17440,
-                                                                                          "address_mask_shift_identifier": "F_16C_50_DEFOG_LEVER",
-                                                                                                            "description": "selector position",
-                                                                                                                   "mask": 7936,
-                                                                                                              "max_value": 20,
-                                                                                                               "shift_by": 8,
-                                                                                                                 "suffix": "",
-                                                                                                                   "type": "integer"
-                                                                                      } ]
-                                                                  },
-                                                      "TEMP_KNB": {
-                                                                          "category": "ECS",
-                                                                      "control_type": "limited_dial",
-                                                                       "description": "TEMP Knob",
-                                                                        "identifier": "TEMP_KNB",
-                                                                            "inputs": [ {
-                                                                                          "description": "set the position of the dial",
-                                                                                            "interface": "set_state",
-                                                                                            "max_value": 65535
-                                                                                      }, {
-                                                                                             "description": "turn the dial left or right",
-                                                                                               "interface": "variable_step",
-                                                                                               "max_value": 65535,
-                                                                                          "suggested_step": 3200
-                                                                                      } ],
-                                                                           "outputs": [ {
-                                                                                                                "address": 17442,
-                                                                                                     "address_identifier": "F_16C_50_TEMP_KNB_A",
-                                                                                          "address_mask_shift_identifier": "F_16C_50_TEMP_KNB",
-                                                                                                            "description": "position of the potentiometer",
-                                                                                                                   "mask": 65535,
-                                                                                                              "max_value": 65535,
-                                                                                                               "shift_by": 0,
-                                                                                                                 "suffix": "",
-                                                                                                                   "type": "integer"
-                                                                                      } ]
-                                                                  }
+                                                 "AIR_SOURCE_KNB": {
+                                                                           "category": "ECS",
+                                                                       "control_type": "selector",
+                                                                         "deprecated": {
+                                                                                           "description": "This control has 5 positions, but the actual knob only has 4 positions",
+                                                                                                 "since": "0.11.1",
+                                                                                           "use_instead": "AIR_SOURCE_KNOB"
+                                                                                       },
+                                                                        "description": "AIR SOURCE Knob",
+                                                                         "identifier": "AIR_SOURCE_KNB",
+                                                                             "inputs": [ {
+                                                                                           "description": "switch to previous or next state",
+                                                                                             "interface": "fixed_step"
+                                                                                       }, {
+                                                                                           "description": "set position",
+                                                                                             "interface": "set_state",
+                                                                                             "max_value": 4
+                                                                                       } ],
+                                                                            "outputs": [ {
+                                                                                                                 "address": 17438,
+                                                                                           "address_mask_shift_identifier": "F_16C_50_AIR_SOURCE_KNB",
+                                                                                                             "description": "selector position",
+                                                                                                                    "mask": 3584,
+                                                                                                               "max_value": 4,
+                                                                                                                "shift_by": 9,
+                                                                                                                  "suffix": "",
+                                                                                                                    "type": "integer"
+                                                                                       } ]
+                                                                   },
+                                                "AIR_SOURCE_KNOB": {
+                                                                           "category": "ECS",
+                                                                       "control_type": "selector",
+                                                                        "description": "AIR SOURCE Knob",
+                                                                         "identifier": "AIR_SOURCE_KNOB",
+                                                                             "inputs": [ {
+                                                                                           "description": "switch to previous or next state",
+                                                                                             "interface": "fixed_step"
+                                                                                       }, {
+                                                                                           "description": "set position",
+                                                                                             "interface": "set_state",
+                                                                                             "max_value": 3
+                                                                                       } ],
+                                                                            "outputs": [ {
+                                                                                                                 "address": 17792,
+                                                                                           "address_mask_shift_identifier": "F_16C_50_AIR_SOURCE_KNOB",
+                                                                                                             "description": "selector position",
+                                                                                                                    "mask": 6144,
+                                                                                                               "max_value": 3,
+                                                                                                                "shift_by": 11,
+                                                                                                                  "suffix": "",
+                                                                                                                    "type": "integer"
+                                                                                       } ],
+                                                                          "positions": [ "OFF", "NORM", "DUMP", "RAM" ]
+                                                                   },
+                                                    "DEFOG_LEVER": {
+                                                                           "category": "ECS",
+                                                                       "control_type": "selector",
+                                                                        "description": "DEFOG Lever",
+                                                                         "identifier": "DEFOG_LEVER",
+                                                                             "inputs": [ {
+                                                                                           "description": "switch to previous or next state",
+                                                                                             "interface": "fixed_step"
+                                                                                       }, {
+                                                                                           "description": "set position",
+                                                                                             "interface": "set_state",
+                                                                                             "max_value": 20
+                                                                                       } ],
+                                                                            "outputs": [ {
+                                                                                                                 "address": 17440,
+                                                                                           "address_mask_shift_identifier": "F_16C_50_DEFOG_LEVER",
+                                                                                                             "description": "selector position",
+                                                                                                                    "mask": 7936,
+                                                                                                               "max_value": 20,
+                                                                                                                "shift_by": 8,
+                                                                                                                  "suffix": "",
+                                                                                                                    "type": "integer"
+                                                                                       } ]
+                                                                   },
+                                                       "TEMP_KNB": {
+                                                                           "category": "ECS",
+                                                                       "control_type": "limited_dial",
+                                                                        "description": "TEMP Knob",
+                                                                         "identifier": "TEMP_KNB",
+                                                                             "inputs": [ {
+                                                                                           "description": "set the position of the dial",
+                                                                                             "interface": "set_state",
+                                                                                             "max_value": 65535
+                                                                                       }, {
+                                                                                              "description": "turn the dial left or right",
+                                                                                                "interface": "variable_step",
+                                                                                                "max_value": 65535,
+                                                                                           "suggested_step": 3200
+                                                                                       } ],
+                                                                            "outputs": [ {
+                                                                                                                 "address": 17442,
+                                                                                                      "address_identifier": "F_16C_50_TEMP_KNB_A",
+                                                                                           "address_mask_shift_identifier": "F_16C_50_TEMP_KNB",
+                                                                                                             "description": "position of the potentiometer",
+                                                                                                                    "mask": 65535,
+                                                                                                               "max_value": 65535,
+                                                                                                                "shift_by": 0,
+                                                                                                                  "suffix": "",
+                                                                                                                    "type": "integer"
+                                                                                       } ]
+                                                                   }
                                             },
                                     "EHSI": {
                                                        "EHSI_COURSE": {
@@ -3288,7 +3350,7 @@
                                                           "EPU_SW": {
                                                                             "category": "EPU",
                                                                         "control_type": "selector",
-                                                                         "description": "EPU Switch, ON/NORM/OFF",
+                                                                         "description": "EPU Switch",
                                                                           "identifier": "EPU_SW",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -3307,7 +3369,8 @@
                                                                                                                  "shift_by": 14,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "ON", "NORM", "OFF" ]
                                                                     },
                                                 "EPU_SW_COVER_OFF": {
                                                                             "category": "EPU",
@@ -3449,7 +3512,7 @@
                                                 "FLCS_PWR_TEST_SW": {
                                                                             "category": "Electric System",
                                                                         "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                         "description": "FLCS PWR TEST Switch, MAINT/NORM/TEST",
+                                                                         "description": "FLCS PWR TEST Switch",
                                                                           "identifier": "FLCS_PWR_TEST_SW",
                                                                               "inputs": [ {
                                                                                             "description": "set the switch position",
@@ -3465,12 +3528,13 @@
                                                                                                                  "shift_by": 5,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "MAINT", "NORM", "TEST" ]
                                                                     },
                                                      "MAIN_PWR_SW": {
                                                                             "category": "Electric System",
                                                                         "control_type": "selector",
-                                                                         "description": "MAIN PWR Switch, MAIN PWR/BATT/OFF",
+                                                                         "description": "MAIN PWR Switch",
                                                                           "identifier": "MAIN_PWR_SW",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -3489,12 +3553,13 @@
                                                                                                                  "shift_by": 0,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "MAIN PWR", "BATT", "OFF" ]
                                                                     },
                                                    "PROBE_HEAT_SW": {
                                                                             "category": "Electric System",
                                                                         "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                         "description": "PROBE HEAT Switch, PROBE HEAT/OFF/TEST",
+                                                                         "description": "PROBE HEAT Switch",
                                                                           "identifier": "PROBE_HEAT_SW",
                                                                               "inputs": [ {
                                                                                             "description": "set the switch position",
@@ -3510,14 +3575,15 @@
                                                                                                                  "shift_by": 3,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "PROBE HEAT", "OFF", "TEST" ]
                                                                     }
                                             },
                                   "Engine": {
                                                            "AB_RESET_SW": {
                                                                                   "category": "Engine",
                                                                               "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                               "description": "AB RESET Switch, AB RESET/NORM/ENG DATA",
+                                                                               "description": "AB RESET Switch",
                                                                                 "identifier": "AB_RESET_SW",
                                                                                     "inputs": [ {
                                                                                                   "description": "set the switch position",
@@ -3533,7 +3599,8 @@
                                                                                                                        "shift_by": 4,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "AB RESET", "NORM", "ENG DATA" ]
                                                                           },
                                                            "ENGINE_FTIT": {
                                                                                   "category": "Engine",
@@ -3610,7 +3677,7 @@
                                                           "ENG_ANTI_ICE": {
                                                                                   "category": "Engine",
                                                                               "control_type": "selector",
-                                                                               "description": "Engine ANTI ICE Switch, ON/AUTO/OFF",
+                                                                               "description": "Engine ANTI ICE Switch",
                                                                                 "identifier": "ENG_ANTI_ICE",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",
@@ -3629,7 +3696,8 @@
                                                                                                                        "shift_by": 13,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "ON", "AUTO", "OFF" ]
                                                                           },
                                                            "ENG_CONT_SW": {
                                                                                   "category": "Engine",
@@ -3722,7 +3790,7 @@
                                                                 "JFS_SW": {
                                                                                   "category": "Engine",
                                                                               "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                               "description": "JFS Switch, START 1/OFF/START 2",
+                                                                               "description": "JFS Switch",
                                                                                 "identifier": "JFS_SW",
                                                                                     "inputs": [ {
                                                                                                   "description": "set the switch position",
@@ -3738,7 +3806,8 @@
                                                                                                                        "shift_by": 0,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "START 1", "OFF", "START 2" ]
                                                                           },
                                                             "MAX_PWR_SW": {
                                                                                   "category": "Engine",
@@ -3983,7 +4052,7 @@
                                                    "ANTI_COLL_LIGHT_KNB": {
                                                                                   "category": "External Lights",
                                                                               "control_type": "selector",
-                                                                               "description": "ANTI-COLL Knob, OFF/1/2/3/4/A/B/C",
+                                                                               "description": "ANTI-COLL Knob",
                                                                                 "identifier": "ANTI_COLL_LIGHT_KNB",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",
@@ -4002,12 +4071,13 @@
                                                                                                                        "shift_by": 0,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "OFF", "1", "2", "3", "4", "A", "B", "C" ]
                                                                           },
                                                        "ENGINE_FEED_KNB": {
                                                                                   "category": "External Lights",
                                                                               "control_type": "selector",
-                                                                               "description": "ENGINE FEED Knob, OFF/NORM/AFT/FWD",
+                                                                               "description": "ENGINE FEED Knob",
                                                                                 "identifier": "ENGINE_FEED_KNB",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",
@@ -4026,7 +4096,8 @@
                                                                                                                        "shift_by": 10,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "OFF", "NORM", "AFT", "FWD" ]
                                                                           },
                                                         "FORM_LIGHT_KNB": {
                                                                                   "category": "External Lights",
@@ -4058,7 +4129,7 @@
                                                     "LAND_TAXI_LIGHT_SW": {
                                                                                   "category": "External Lights",
                                                                               "control_type": "selector",
-                                                                               "description": "LANDING TAXI LIGHTS Switch, LANDING/OFF/TAXI",
+                                                                               "description": "LANDING TAXI LIGHTS Switch",
                                                                                 "identifier": "LAND_TAXI_LIGHT_SW",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",
@@ -4077,12 +4148,13 @@
                                                                                                                        "shift_by": 10,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "LANDING", "OFF", "TAXI" ]
                                                                           },
                                                     "MAL_IND_LTS_BRT_SW": {
                                                                                   "category": "External Lights",
                                                                               "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                               "description": "MAL & IND LTS Switch, BRT/Center/DIM",
+                                                                               "description": "MAL & IND LTS Switch",
                                                                                 "identifier": "MAL_IND_LTS_BRT_SW",
                                                                                     "inputs": [ {
                                                                                                   "description": "set the switch position",
@@ -4098,12 +4170,13 @@
                                                                                                                        "shift_by": 13,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "BRT", "Center", "DIM" ]
                                                                           },
                                                        "MASTER_LIGHT_SW": {
                                                                                   "category": "External Lights",
                                                                               "control_type": "selector",
-                                                                               "description": "MASTER Light Switch, OFF/ALL/A-C/FORM/NORM",
+                                                                               "description": "MASTER Light Switch",
                                                                                 "identifier": "MASTER_LIGHT_SW",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",
@@ -4122,7 +4195,8 @@
                                                                                                                        "shift_by": 7,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "OFF", "ALL", "A-C", "FORM", "NORM" ]
                                                                           },
                                                     "POS_FLASH_LIGHT_SW": {
                                                                                   "category": "External Lights",
@@ -4156,7 +4230,7 @@
                                                  "POS_FUSELAGE_LIGHT_SW": {
                                                                                   "category": "External Lights",
                                                                               "control_type": "selector",
-                                                                               "description": "FUSELAGE Light Switch, BRT/OFF/DIM",
+                                                                               "description": "FUSELAGE Light Switch",
                                                                                 "identifier": "POS_FUSELAGE_LIGHT_SW",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",
@@ -4175,12 +4249,13 @@
                                                                                                                        "shift_by": 5,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "BRT", "OFF", "DIM" ]
                                                                           },
                                                 "POS_WING_TAIL_LIGHT_SW": {
                                                                                   "category": "External Lights",
                                                                               "control_type": "selector",
-                                                                               "description": "WING/TAIL Light Switch, BRT/OFF/DIM",
+                                                                               "description": "WING/TAIL Light Switch",
                                                                                 "identifier": "POS_WING_TAIL_LIGHT_SW",
                                                                                     "inputs": [ {
                                                                                                   "description": "switch to previous or next state",
@@ -4199,7 +4274,8 @@
                                                                                                                        "shift_by": 3,
                                                                                                                          "suffix": "",
                                                                                                                            "type": "integer"
-                                                                                              } ]
+                                                                                              } ],
+                                                                                 "positions": [ "BRT", "OFF", "DIM" ]
                                                                           }
                                             },
                              "Fuel System": {
@@ -4466,7 +4542,7 @@
                                                    "FUEL_QTY_SEL_KNB": {
                                                                                "category": "Fuel System",
                                                                            "control_type": "selector",
-                                                                            "description": "FUEL QTY SEL Knob, NORM/RSVR/INT WING/EXT WING/EXT CTR",
+                                                                            "description": "FUEL QTY SEL Knob",
                                                                              "identifier": "FUEL_QTY_SEL_KNB",
                                                                                  "inputs": [ {
                                                                                                "description": "switch to previous or next state",
@@ -4485,7 +4561,8 @@
                                                                                                                     "shift_by": 0,
                                                                                                                       "suffix": "",
                                                                                                                         "type": "integer"
-                                                                                           } ]
+                                                                                           } ],
+                                                                              "positions": [ "NORM", "RSVR", "INT WING", "EXT WING", "EXT CTR" ]
                                                                        },
                                                  "FUEL_QTY_SEL_T_KNB": {
                                                                                "category": "Fuel System",
@@ -4553,7 +4630,7 @@
                                                     "ANTI_SKID_SW": {
                                                                             "category": "Gear System",
                                                                         "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                         "description": "ANTI-SKID Switch, PARKING BRAKE/ANTI-SKID/OFF",
+                                                                         "description": "ANTI-SKID Switch",
                                                                           "identifier": "ANTI_SKID_SW",
                                                                               "inputs": [ {
                                                                                             "description": "set the switch position",
@@ -4569,7 +4646,8 @@
                                                                                                                  "shift_by": 7,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "PARKING BRAKE", "ANTI-SKID", "OFF" ]
                                                                     },
                                                    "BRAKE_CHAN_SW": {
                                                                             "category": "Gear System",
@@ -4811,7 +4889,7 @@
                                                         "HUD_ALT_SW": {
                                                                               "category": "HUD Control Panel",
                                                                           "control_type": "selector",
-                                                                           "description": "HUD Altitude Switch, RADAR / BARO / AUTO",
+                                                                           "description": "HUD Altitude Switch",
                                                                             "identifier": "HUD_ALT_SW",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -4830,12 +4908,13 @@
                                                                                                                    "shift_by": 2,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "RADAR", "BARO", "AUTO" ]
                                                                       },
                                                         "HUD_BRT_SW": {
                                                                               "category": "HUD Control Panel",
                                                                           "control_type": "selector",
-                                                                           "description": "HUD Brightness Control Switch, DAY / AUTO BRT / NIGHT",
+                                                                           "description": "HUD Brightness Control Switch",
                                                                             "identifier": "HUD_BRT_SW",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -4854,12 +4933,13 @@
                                                                                                                    "shift_by": 4,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "DAY", "AUTO BRT", "NIGHT" ]
                                                                       },
                                                    "HUD_DED_DATA_SW": {
                                                                               "category": "HUD Control Panel",
                                                                           "control_type": "selector",
-                                                                           "description": "HUD DED/PFLD Data Switch, DED / PFL / OFF",
+                                                                           "description": "HUD DED/PFLD Data Switch",
                                                                             "identifier": "HUD_DED_DATA_SW",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -4878,12 +4958,13 @@
                                                                                                                    "shift_by": 11,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "DED", "PFL", "OFF" ]
                                                                       },
                                                 "HUD_DEPRESS_RET_SW": {
                                                                               "category": "HUD Control Panel",
                                                                           "control_type": "selector",
-                                                                           "description": "HUD Depressible Reticle Switch, STBY / PRI / OFF",
+                                                                           "description": "HUD Depressible Reticle Switch",
                                                                             "identifier": "HUD_DEPRESS_RET_SW",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -4902,12 +4983,13 @@
                                                                                                                    "shift_by": 13,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "STBY", "PRI", "OFF" ]
                                                                       },
                                                   "HUD_FP_MARKER_SW": {
                                                                               "category": "HUD Control Panel",
                                                                           "control_type": "selector",
-                                                                           "description": "HUD Flightpath Marker Switch, ATT/FPM / FPM / OFF",
+                                                                           "description": "HUD Flightpath Marker Switch",
                                                                             "identifier": "HUD_FP_MARKER_SW",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -4926,12 +5008,13 @@
                                                                                                                    "shift_by": 9,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "ATT/FPM", "FPM", "OFF" ]
                                                                       },
                                                      "HUD_SCALES_SW": {
                                                                               "category": "HUD Control Panel",
                                                                           "control_type": "selector",
-                                                                           "description": "HUD Scales Switch, VV/VAH / VAH / OFF",
+                                                                           "description": "HUD Scales Switch",
                                                                             "identifier": "HUD_SCALES_SW",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -4950,12 +5033,13 @@
                                                                                                                    "shift_by": 7,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "VV/VAH", "VAH", "OFF" ]
                                                                       },
                                                       "HUD_SPEED_SW": {
                                                                               "category": "HUD Control Panel",
                                                                           "control_type": "selector",
-                                                                           "description": "HUD Velocity Switch, CAS / TAS / GND SPD",
+                                                                           "description": "HUD Velocity Switch",
                                                                             "identifier": "HUD_SPEED_SW",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -4974,12 +5058,13 @@
                                                                                                                    "shift_by": 0,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "CAS", "TAS", "GND SPD" ]
                                                                       },
                                                        "HUD_TEST_SW": {
                                                                               "category": "HUD Control Panel",
                                                                           "control_type": "selector",
-                                                                           "description": "HUD TEST Switch, STEP / ON / OFF",
+                                                                           "description": "HUD TEST Switch",
                                                                             "identifier": "HUD_TEST_SW",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -4998,7 +5083,8 @@
                                                                                                                    "shift_by": 6,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "STEP", "ON", "OFF" ]
                                                                       }
                                             },
            "Hydraulic Pressure Indicators": {
@@ -5144,7 +5230,7 @@
                                                         "IFF_ENABLE_SW": {
                                                                                  "category": "IFF",
                                                                              "control_type": "selector",
-                                                                              "description": "IFF ENABLE Switch, M1/M3 /OFF/ M3/MS",
+                                                                              "description": "IFF ENABLE Switch",
                                                                                "identifier": "IFF_ENABLE_SW",
                                                                                    "inputs": [ {
                                                                                                  "description": "switch to previous or next state",
@@ -5163,7 +5249,8 @@
                                                                                                                       "shift_by": 9,
                                                                                                                         "suffix": "",
                                                                                                                           "type": "integer"
-                                                                                             } ]
+                                                                                             } ],
+                                                                                "positions": [ "M1/M3", "OFF", "M3/MS" ]
                                                                          },
                                                          "IFF_M1_SEL_1": {
                                                                                  "category": "IFF",
@@ -5252,7 +5339,7 @@
                                                        "IFF_M4_CODE_SW": {
                                                                                  "category": "IFF",
                                                                              "control_type": "selector",
-                                                                              "description": "IFF M-4 CODE Switch, HOLD/ A/B /ZERO",
+                                                                              "description": "IFF M-4 CODE Switch",
                                                                                "identifier": "IFF_M4_CODE_SW",
                                                                                    "inputs": [ {
                                                                                                  "description": "switch to previous or next state",
@@ -5271,7 +5358,8 @@
                                                                                                                       "shift_by": 4,
                                                                                                                         "suffix": "",
                                                                                                                           "type": "integer"
-                                                                                             } ]
+                                                                                             } ],
+                                                                                "positions": [ "HOLD", "A/B", "ZERO" ]
                                                                          },
                                                     "IFF_M4_MONITOR_SW": {
                                                                                  "category": "IFF",
@@ -5305,7 +5393,7 @@
                                                       "IFF_M4_REPLY_SW": {
                                                                                  "category": "IFF",
                                                                              "control_type": "selector",
-                                                                              "description": "IFF MODE 4 REPLY Switch, OUT/A/B",
+                                                                              "description": "IFF MODE 4 REPLY Switch",
                                                                                "identifier": "IFF_M4_REPLY_SW",
                                                                                    "inputs": [ {
                                                                                                  "description": "switch to previous or next state",
@@ -5324,12 +5412,13 @@
                                                                                                                       "shift_by": 6,
                                                                                                                         "suffix": "",
                                                                                                                           "type": "integer"
-                                                                                             } ]
+                                                                                             } ],
+                                                                                "positions": [ "OUT", "A", "B" ]
                                                                          },
                                                        "IFF_MASTER_KNB": {
                                                                                  "category": "IFF",
                                                                              "control_type": "selector",
-                                                                              "description": "IFF MASTER Knob, OFF/STBY/LOW/NORM/EMER",
+                                                                              "description": "IFF MASTER Knob",
                                                                                "identifier": "IFF_MASTER_KNB",
                                                                                    "inputs": [ {
                                                                                                  "description": "switch to previous or next state",
@@ -5348,7 +5437,8 @@
                                                                                                                       "shift_by": 1,
                                                                                                                         "suffix": "",
                                                                                                                           "type": "integer"
-                                                                                             } ]
+                                                                                             } ],
+                                                                                "positions": [ "OFF", "STBY", "LOW", "NORM", "EMER" ]
                                                                          }
                                             },
                          "Interior Lights": {
@@ -5680,7 +5770,7 @@
                                                    "KY58_FILL_KNB": {
                                                                             "category": "KY-58",
                                                                         "control_type": "selector",
-                                                                         "description": "KY-58 FILL Knob, Z 1-5/1/2/3/4/5/6/Z ALL",
+                                                                         "description": "KY-58 FILL Knob",
                                                                           "identifier": "KY58_FILL_KNB",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -5699,12 +5789,13 @@
                                                                                                                  "shift_by": 6,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "Z 1-5", "1", "2", "3", "4", "5", "6", "Z ALL" ]
                                                                     },
                                                    "KY58_MODE_KNB": {
                                                                             "category": "KY-58",
                                                                         "control_type": "selector",
-                                                                         "description": "KY-58 MODE Knob, P/C/LD/RV",
+                                                                         "description": "KY-58 MODE Knob",
                                                                           "identifier": "KY58_MODE_KNB",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -5723,12 +5814,13 @@
                                                                                                                  "shift_by": 4,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "P", "C", "LD", "RV" ]
                                                                     },
                                                     "KY58_PWR_KNB": {
                                                                             "category": "KY-58",
                                                                         "control_type": "selector",
-                                                                         "description": "KY-58 Power Knob, OFF/ON/TD",
+                                                                         "description": "KY-58 Power Knob",
                                                                           "identifier": "KY58_PWR_KNB",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -5747,7 +5839,8 @@
                                                                                                                  "shift_by": 9,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "OFF", "ON", "TD" ]
                                                                     },
                                                     "KY58_VOL_KNB": {
                                                                             "category": "KY-58",
@@ -5779,7 +5872,7 @@
                                                  "PLAIN_CIPHER_SW": {
                                                                             "category": "KY-58",
                                                                         "control_type": "selector",
-                                                                         "description": "PLAIN Cipher Switch, CRAD 1/PLAIN/CRAD 2",
+                                                                         "description": "PLAIN Cipher Switch",
                                                                           "identifier": "PLAIN_CIPHER_SW",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -5798,12 +5891,13 @@
                                                                                                                  "shift_by": 11,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "CRAD 1", "PLAIN", "CRAD 2" ]
                                                                     },
                                                       "ZEROIZE_SW": {
                                                                             "category": "KY-58",
                                                                         "control_type": "selector",
-                                                                         "description": "ZEROIZE Switch, OFP/OFF/DATA",
+                                                                         "description": "ZEROIZE Switch",
                                                                           "identifier": "ZEROIZE_SW",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -5822,7 +5916,8 @@
                                                                                                                  "shift_by": 13,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "OFP", "OFF", "DATA" ]
                                                                     },
                                                 "ZEROIZE_SW_COVER": {
                                                                             "category": "KY-58",
@@ -7348,7 +7443,7 @@
                                                      "MASTER_ARM_SW": {
                                                                               "category": "MMC",
                                                                           "control_type": "selector",
-                                                                           "description": "MASTER ARM Switch, MASTER ARM/OFF/SIMULATE",
+                                                                           "description": "MASTER ARM Switch",
                                                                             "identifier": "MASTER_ARM_SW",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -7367,7 +7462,8 @@
                                                                                                                    "shift_by": 14,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "MASTER ARM", "OFF", "SIMULATE" ]
                                                                       }
                                             },
                            "Oxygen System": {
@@ -7504,7 +7600,7 @@
                                                        "OXY_EMERG_LVR": {
                                                                                 "category": "Oxygen System",
                                                                             "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                             "description": "Emergency Lever, EMERGENCY/NORMAL/TEST MASK",
+                                                                             "description": "Emergency Lever",
                                                                               "identifier": "OXY_EMERG_LVR",
                                                                                   "inputs": [ {
                                                                                                 "description": "set the switch position",
@@ -7520,12 +7616,13 @@
                                                                                                                      "shift_by": 10,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "EMERGENCY", "NORMAL", "TEST MASK" ]
                                                                         },
                                                       "OXY_SUPPLY_LVR": {
                                                                                 "category": "Oxygen System",
                                                                             "control_type": "selector",
-                                                                             "description": "Supply Lever, PBG/ON/OFF",
+                                                                             "description": "Supply Lever",
                                                                               "identifier": "OXY_SUPPLY_LVR",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -7544,7 +7641,8 @@
                                                                                                                      "shift_by": 7,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "PBG", "ON", "OFF" ]
                                                                         }
                                             },
                                      "RWR": {
@@ -8198,7 +8296,7 @@
                                                 "RDR_ALT_PWR_SW": {
                                                                           "category": "Sensor Panel",
                                                                       "control_type": "selector",
-                                                                       "description": "RDR ALT Switch, RDR ALT/STBY/OFF",
+                                                                       "description": "RDR ALT Switch",
                                                                         "identifier": "RDR_ALT_PWR_SW",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -8217,7 +8315,8 @@
                                                                                                                "shift_by": 0,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "RDR ALT", "STBY", "OFF" ]
                                                                   }
                                             },
                              "Speed Brake": {
@@ -8883,7 +8982,7 @@
                                                            "ICP_DRIFT_SW": {
                                                                                    "category": "UFC",
                                                                                "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                                "description": "ICP DRIFT CUTOUT/WARN RESET Switch, DRIFT C/O /NORM/WARN RESET",
+                                                                                "description": "ICP DRIFT CUTOUT/WARN RESET Switch",
                                                                                  "identifier": "ICP_DRIFT_SW",
                                                                                      "inputs": [ {
                                                                                                    "description": "set the switch position",
@@ -8899,7 +8998,8 @@
                                                                                                                         "shift_by": 13,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "DRIFT C/O", "NORM", "WARN RESET" ]
                                                                            },
                                                            "ICP_ENTR_BTN": {
                                                                                 "api_variant": "momentary_last_position",
@@ -8934,7 +9034,7 @@
                                                        "ICP_FLIR_GAIN_SW": {
                                                                                    "category": "UFC",
                                                                                "control_type": "selector",
-                                                                                "description": "ICP FLIR GAIN/LEVEL Switch, GAIN/LVL/AUTO",
+                                                                                "description": "ICP FLIR GAIN/LEVEL Switch",
                                                                                  "identifier": "ICP_FLIR_GAIN_SW",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -8953,7 +9053,8 @@
                                                                                                                         "shift_by": 7,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "GAIN", "LVL", "AUTO" ]
                                                                            },
                                                             "ICP_FLIR_SW": {
                                                                                    "category": "UFC",
@@ -9237,7 +9338,7 @@
                                                                   "RF_SW": {
                                                                                    "category": "UFC",
                                                                                "control_type": "selector",
-                                                                                "description": "RF Switch, SILENT/QUIET/NORM",
+                                                                                "description": "RF Switch",
                                                                                  "identifier": "RF_SW",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -9256,7 +9357,8 @@
                                                                                                                         "shift_by": 5,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "SILENT", "QUIET", "NORM" ]
                                                                            }
                                             },
                                      "UHF": {

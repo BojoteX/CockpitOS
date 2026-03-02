@@ -803,7 +803,7 @@
                                                      "GEN_SW": {
                                                                        "category": "Electric System",
                                                                    "control_type": "selector",
-                                                                    "description": "Generator Switch, ON/OFF/RESET",
+                                                                    "description": "Generator Switch",
                                                                      "identifier": "GEN_SW",
                                                                          "inputs": [ {
                                                                                        "description": "switch to previous or next state",
@@ -822,14 +822,15 @@
                                                                                                             "shift_by": 12,
                                                                                                               "suffix": "",
                                                                                                                 "type": "integer"
-                                                                                   } ]
+                                                                                   } ],
+                                                                      "positions": [ "ON", "OFF", "RESET" ]
                                                                }
                                             },
                                   "Engine": {
                                                             "ENG_SW": {
                                                                               "category": "Engine",
                                                                           "control_type": "selector",
-                                                                           "description": "Engine Switch, OFF/ON/START",
+                                                                           "description": "Engine Switch",
                                                                             "identifier": "ENG_SW",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -848,7 +849,8 @@
                                                                                                                    "shift_by": 0,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "OFF", "ON", "START" ]
                                                                       },
                                                        "FINGER_LIFT": {
                                                                               "category": "Engine",
@@ -1132,7 +1134,7 @@
                                                 "ANTI_COL_STROBE_L_SW": {
                                                                                 "category": "External Lighting",
                                                                             "control_type": "selector",
-                                                                             "description": "Anti-Collision/Strobe Lights, BOTH/OFF/A-COLL",
+                                                                             "description": "Anti-Collision/Strobe Lights",
                                                                               "identifier": "ANTI_COL_STROBE_L_SW",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -1151,7 +1153,8 @@
                                                                                                                      "shift_by": 14,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "BOTH", "OFF", "A-COLL" ]
                                                                         },
                                                      "EXT_L_MASTER_SW": {
                                                                                 "category": "External Lighting",
@@ -1185,7 +1188,7 @@
                                                       "FORMATION_L_SW": {
                                                                                 "category": "External Lighting",
                                                                             "control_type": "selector",
-                                                                             "description": "Formation Lights, BRIGHT/OFF/DIM",
+                                                                             "description": "Formation Lights",
                                                                               "identifier": "FORMATION_L_SW",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -1204,7 +1207,8 @@
                                                                                                                      "shift_by": 4,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "BRIGHT", "OFF", "DIM" ]
                                                                         },
                                                       "LAND_TAXI_L_SW": {
                                                                                 "category": "External Lighting",
@@ -1267,7 +1271,7 @@
                                                            "TAIL_L_SW": {
                                                                                 "category": "External Lighting",
                                                                             "control_type": "selector",
-                                                                             "description": "Tail Lights, BRIGHT/OFF/DIM",
+                                                                             "description": "Tail Lights",
                                                                               "identifier": "TAIL_L_SW",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -1286,12 +1290,13 @@
                                                                                                                      "shift_by": 0,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "BRIGHT", "OFF", "DIM" ]
                                                                         },
                                                            "WING_L_SW": {
                                                                                 "category": "External Lighting",
                                                                             "control_type": "selector",
-                                                                             "description": "Wing Lights, BRIGHT/OFF/DIM",
+                                                                             "description": "Wing Lights",
                                                                               "identifier": "WING_L_SW",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -1310,7 +1315,8 @@
                                                                                                                      "shift_by": 2,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "BRIGHT", "OFF", "DIM" ]
                                                                         }
                                             },
                                   "Gauges": {
@@ -2300,7 +2306,7 @@
                                                        "FLAPS_LVR": {
                                                                             "category": "General",
                                                                         "control_type": "selector",
-                                                                         "description": "Flaps Lever, UP/ 1/2 /DOWN",
+                                                                         "description": "Flaps Lever",
                                                                           "identifier": "FLAPS_LVR",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -2319,7 +2325,8 @@
                                                                                                                  "shift_by": 0,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "UP", "1/2", "DOWN" ]
                                                                     },
                                                   "HYD2_RESET_BTN": {
                                                                          "api_variant": "momentary_last_position",
@@ -4330,7 +4337,7 @@
                                                      "REAR_GEN_SW": {
                                                                             "category": "Rear Electric System",
                                                                         "control_type": "selector",
-                                                                         "description": "REAR Generator Switch, ON/OFF/RESET",
+                                                                         "description": "REAR Generator Switch",
                                                                           "identifier": "REAR_GEN_SW",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -4349,7 +4356,8 @@
                                                                                                                  "shift_by": 9,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "ON", "OFF", "RESET" ]
                                                                     }
                                             },
                         "Rear Gear System": {
@@ -4615,7 +4623,7 @@
                                                    "REAR_ENG_SW": {
                                                                           "category": "Rear Misc",
                                                                       "control_type": "selector",
-                                                                       "description": "REAR Engine Switch, OFF/ON/START",
+                                                                       "description": "REAR Engine Switch",
                                                                         "identifier": "REAR_ENG_SW",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -4634,12 +4642,13 @@
                                                                                                                "shift_by": 14,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "OFF", "ON", "START" ]
                                                                   },
                                                 "REAR_FLAPS_LVR": {
                                                                           "category": "Rear Misc",
                                                                       "control_type": "selector",
-                                                                       "description": "REAR Flaps Lever, UP/ 1/2 /DOWN",
+                                                                       "description": "REAR Flaps Lever",
                                                                         "identifier": "REAR_FLAPS_LVR",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -4658,7 +4667,8 @@
                                                                                                                "shift_by": 5,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "UP", "1/2", "DOWN" ]
                                                                   }
                                             },
                                    "TACAN": {
@@ -4947,7 +4957,7 @@
                                                       "COMM_1_MODE": {
                                                                              "category": "V/UHF 1",
                                                                          "control_type": "selector",
-                                                                          "description": "COMM 1 Mode Control Selector, OFF/T+R/T+R&G",
+                                                                          "description": "COMM 1 Mode Control Selector",
                                                                            "identifier": "COMM_1_MODE",
                                                                                "inputs": [ {
                                                                                              "description": "switch to previous or next state",
@@ -4966,7 +4976,8 @@
                                                                                                                   "shift_by": 5,
                                                                                                                     "suffix": "",
                                                                                                                       "type": "integer"
-                                                                                         } ]
+                                                                                         } ],
+                                                                            "positions": [ "OFF", "T+R", "T+R&G" ]
                                                                      },
                                                        "COMM_1_VOL": {
                                                                              "category": "V/UHF 1",
@@ -5256,7 +5267,7 @@
                                                       "COMM_2_MODE": {
                                                                              "category": "V/UHF 2",
                                                                          "control_type": "selector",
-                                                                          "description": "COMM 2 Mode Control Selector, OFF/T+R/T+R&G",
+                                                                          "description": "COMM 2 Mode Control Selector",
                                                                            "identifier": "COMM_2_MODE",
                                                                                "inputs": [ {
                                                                                              "description": "switch to previous or next state",
@@ -5275,7 +5286,8 @@
                                                                                                                   "shift_by": 6,
                                                                                                                     "suffix": "",
                                                                                                                       "type": "integer"
-                                                                                         } ]
+                                                                                         } ],
+                                                                            "positions": [ "OFF", "T+R", "T+R&G" ]
                                                                      },
                                                        "COMM_2_VOL": {
                                                                              "category": "V/UHF 2",

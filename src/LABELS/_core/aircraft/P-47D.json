@@ -414,7 +414,7 @@
                                                      "CANOPY_SW": {
                                                                           "category": "Canopy Controls",
                                                                       "control_type": "selector",
-                                                                       "description": "Canopy Switch, OPEN/OFF/CLOSE",
+                                                                       "description": "Canopy Switch",
                                                                         "identifier": "CANOPY_SW",
                                                                             "inputs": [ {
                                                                                           "description": "switch to previous or next state",
@@ -433,7 +433,8 @@
                                                                                                                "shift_by": 2,
                                                                                                                  "suffix": "",
                                                                                                                    "type": "integer"
-                                                                                      } ]
+                                                                                      } ],
+                                                                         "positions": [ "OPEN", "OFF", "CLOSE" ]
                                                                   },
                                                      "HATCH_KNB": {
                                                                        "api_variant": "momentary_last_position",
