@@ -35,7 +35,7 @@
                                                         "BACK_AIR_COND": {
                                                                                  "category": "Air System",
                                                                              "control_type": "selector",
-                                                                              "description": "Back Conditioning Shutoff Switch, OPEN/FRONT PILOT CONTROL/CLOSE",
+                                                                              "description": "Back Conditioning Shutoff Switch",
                                                                                "identifier": "BACK_AIR_COND",
                                                                                    "inputs": [ {
                                                                                                  "description": "switch to previous or next state",
@@ -54,7 +54,8 @@
                                                                                                                       "shift_by": 8,
                                                                                                                         "suffix": "",
                                                                                                                           "type": "integer"
-                                                                                             } ]
+                                                                                             } ],
+                                                                                "positions": [ "OPEN", "FRONT PILOT CONTROL", "CLOSE" ]
                                                                          },
                                                   "BACK_AIR_COND_COVER": {
                                                                                  "category": "Air System",
@@ -112,7 +113,7 @@
                                                 "FRONT_CABIN_HEAT_MODE": {
                                                                                  "category": "Air System",
                                                                              "control_type": "selector",
-                                                                              "description": "Front Cabin Air Conditioning Control Switch, OFF/HEAT/COOL/AUTOMATIC",
+                                                                              "description": "Front Cabin Air Conditioning Control Switch",
                                                                                "identifier": "FRONT_CABIN_HEAT_MODE",
                                                                                    "inputs": [ {
                                                                                                  "description": "switch to previous or next state",
@@ -240,7 +241,7 @@
                                                 "FRONT_ANTI_ICING": {
                                                                             "category": "AntiICE",
                                                                         "control_type": "selector",
-                                                                         "description": "Front De-Icing Mode Switch, MANUAL/AUTOMATIC/OFF",
+                                                                         "description": "Front De-Icing Mode Switch",
                                                                           "identifier": "FRONT_ANTI_ICING",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -259,7 +260,8 @@
                                                                                                                  "shift_by": 10,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "MANUAL", "AUTOMATIC", "OFF" ]
                                                                     },
                                                     "FRONT_DE_ICE": {
                                                                          "api_variant": "momentary_last_position",
@@ -973,7 +975,7 @@
                                                        "BACK_PRESS_STATIC": {
                                                                                     "category": "Control System",
                                                                                 "control_type": "selector",
-                                                                                 "description": "Back Static Pressure Failure Lever, ON/STBY/FAILURE",
+                                                                                 "description": "Back Static Pressure Failure Lever",
                                                                                   "identifier": "BACK_PRESS_STATIC",
                                                                                       "inputs": [ {
                                                                                                     "description": "switch to previous or next state",
@@ -992,12 +994,13 @@
                                                                                                                          "shift_by": 13,
                                                                                                                            "suffix": "",
                                                                                                                              "type": "integer"
-                                                                                                } ]
+                                                                                                } ],
+                                                                                   "positions": [ "ON", "STBY", "FAILURE" ]
                                                                             },
                                                         "BACK_PRESS_TOTAL": {
                                                                                     "category": "Control System",
                                                                                 "control_type": "selector",
-                                                                                 "description": "Back Full Pressure Failure Lever, ON/STBY/FAILURE",
+                                                                                 "description": "Back Full Pressure Failure Lever",
                                                                                   "identifier": "BACK_PRESS_TOTAL",
                                                                                       "inputs": [ {
                                                                                                     "description": "switch to previous or next state",
@@ -1016,7 +1019,8 @@
                                                                                                                          "shift_by": 11,
                                                                                                                            "suffix": "",
                                                                                                                              "type": "integer"
-                                                                                                } ]
+                                                                                                } ],
+                                                                                   "positions": [ "ON", "STBY", "FAILURE" ]
                                                                             },
                                                      "BACK_THROTTLE_LIMIT": {
                                                                                     "category": "Control System",
@@ -3749,7 +3753,7 @@
                                                      "FRONT_RT12_TEST": {
                                                                                 "category": "Engine Systems",
                                                                             "control_type": "selector",
-                                                                             "description": "Front RT-12 JPT Regulator Test Switch I/OFF/II",
+                                                                             "description": "Front RT-12 JPT Regulator Test Switch",
                                                                               "identifier": "FRONT_RT12_TEST",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -3768,12 +3772,13 @@
                                                                                                                      "shift_by": 0,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "I", "OFF", "II" ]
                                                                         },
                                                       "FRONT_TEST_SSP": {
                                                                                 "category": "Engine Systems",
                                                                             "control_type": "selector",
-                                                                             "description": "Front Fire Warning Signal Test Switch I/OFF/II",
+                                                                             "description": "Front Fire Warning Signal Test Switch",
                                                                               "identifier": "FRONT_TEST_SSP",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -3792,7 +3797,8 @@
                                                                                                                      "shift_by": 11,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "I", "OFF", "II" ]
                                                                         }
                                             },
                  "External Aircraft Model": {
@@ -4035,7 +4041,7 @@
                                                  "FRONT_GMK_CRS_SEL": {
                                                                               "category": "GMK",
                                                                           "control_type": "selector",
-                                                                           "description": "Front GMK-1AE GMC Course Selector Switch, CCW/OFF/CW",
+                                                                           "description": "Front GMK-1AE GMC Course Selector Switch",
                                                                             "identifier": "FRONT_GMK_CRS_SEL",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -4054,7 +4060,8 @@
                                                                                                                    "shift_by": 9,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "CCW", "OFF", "CW" ]
                                                                       },
                                                 "FRONT_GMK_LATITUDE": {
                                                                               "category": "GMK",
@@ -4201,7 +4208,7 @@
                                                     "FRONT_GMK_TEST": {
                                                                               "category": "GMK",
                                                                           "control_type": "selector",
-                                                                           "description": "Front GMK-1AE GMC Test Switch, 0/OFF/300",
+                                                                           "description": "Front GMK-1AE GMC Test Switch",
                                                                             "identifier": "FRONT_GMK_TEST",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -4220,7 +4227,8 @@
                                                                                                                    "shift_by": 7,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "0", "OFF", "300" ]
                                                                       }
                                             },
                                   "Gauges": {
@@ -7108,7 +7116,7 @@
                                                  "FRONT_HELMET_MODE": {
                                                                               "category": "Helm Heat",
                                                                           "control_type": "selector",
-                                                                           "description": "Front Helmet Heating Mode Switch, AUTO/OFF/ON",
+                                                                           "description": "Front Helmet Heating Mode Switch",
                                                                             "identifier": "FRONT_HELMET_MODE",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -7127,7 +7135,8 @@
                                                                                                                    "shift_by": 14,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "AUTO", "OFF", "ON" ]
                                                                       },
                                                 "FRONT_HELMET_QUICK": {
                                                                            "api_variant": "momentary_last_position",
@@ -7413,7 +7422,7 @@
                                                           "FRONT_RSBN_MODE": {
                                                                                      "category": "ISKRA",
                                                                                  "control_type": "selector",
-                                                                                  "description": "Front RSBN Mode Switch, LANDING/NAVIGATION/GLIDE PATH",
+                                                                                  "description": "Front RSBN Mode Switch",
                                                                                    "identifier": "FRONT_RSBN_MODE",
                                                                                        "inputs": [ {
                                                                                                      "description": "switch to previous or next state",
@@ -7432,7 +7441,8 @@
                                                                                                                           "shift_by": 4,
                                                                                                                             "suffix": "",
                                                                                                                               "type": "integer"
-                                                                                                 } ]
+                                                                                                 } ],
+                                                                                    "positions": [ "LANDING", "NAVIGATION", "GLIDE PATH" ]
                                                                              },
                                                         "FRONT_RSBN_SET_AZ": {
                                                                                      "category": "ISKRA",
@@ -7777,7 +7787,7 @@
                                                        "BACK_INST_LIGHTS": {
                                                                                    "category": "Lights System",
                                                                                "control_type": "selector",
-                                                                                "description": "Back Instrument Lighting Switch, Red/OFF/White",
+                                                                                "description": "Back Instrument Lighting Switch",
                                                                                  "identifier": "BACK_INST_LIGHTS",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -7796,7 +7806,8 @@
                                                                                                                         "shift_by": 4,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "Red", "OFF", "White" ]
                                                                            },
                                                    "BACK_INST_LIGHTS_CON": {
                                                                                    "category": "Lights System",
@@ -7828,7 +7839,7 @@
                                                        "BACK_LAND_LIGHTS": {
                                                                                    "category": "Lights System",
                                                                                "control_type": "selector",
-                                                                                "description": "Back Taxi and Landing Lights Control Switch, TAXI/OFF/LANDING",
+                                                                                "description": "Back Taxi and Landing Lights Control Switch",
                                                                                  "identifier": "BACK_LAND_LIGHTS",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -7847,7 +7858,8 @@
                                                                                                                         "shift_by": 0,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "TAXI", "OFF", "LANDING" ]
                                                                            },
                                                    "BACK_WARN_LIGHTS_CON": {
                                                                                    "category": "Lights System",
@@ -7938,7 +7950,7 @@
                                                       "FRONT_INST_LIGHTS": {
                                                                                    "category": "Lights System",
                                                                                "control_type": "selector",
-                                                                                "description": "Front Instrument Lighting Switch, Red/OFF/White",
+                                                                                "description": "Front Instrument Lighting Switch",
                                                                                  "identifier": "FRONT_INST_LIGHTS",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -7957,7 +7969,8 @@
                                                                                                                         "shift_by": 2,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "Red", "OFF", "White" ]
                                                                            },
                                                   "FRONT_INST_LIGHTS_CON": {
                                                                                    "category": "Lights System",
@@ -7989,7 +8002,7 @@
                                                       "FRONT_LAND_LIGHTS": {
                                                                                    "category": "Lights System",
                                                                                "control_type": "selector",
-                                                                                "description": "Front Taxi and Landing Lights Control Switch, TAXI/OFF/LANDING",
+                                                                                "description": "Front Taxi and Landing Lights Control Switch",
                                                                                  "identifier": "FRONT_LAND_LIGHTS",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -8008,7 +8021,8 @@
                                                                                                                         "shift_by": 14,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "TAXI", "OFF", "LANDING" ]
                                                                            },
                                                 "FRONT_NAV_LIGHTS_BRIGHT": {
                                                                                    "category": "Lights System",
@@ -8037,7 +8051,7 @@
                                                  "FRONT_NAV_LIGHTS_FLASH": {
                                                                                    "category": "Lights System",
                                                                                "control_type": "selector",
-                                                                                "description": "Front Navigation Lights Mode Control Switch, FLICKER/OFF/FIXED",
+                                                                                "description": "Front Navigation Lights Mode Control Switch",
                                                                                  "identifier": "FRONT_NAV_LIGHTS_FLASH",
                                                                                      "inputs": [ {
                                                                                                    "description": "switch to previous or next state",
@@ -8056,7 +8070,8 @@
                                                                                                                         "shift_by": 10,
                                                                                                                           "suffix": "",
                                                                                                                             "type": "integer"
-                                                                                               } ]
+                                                                                               } ],
+                                                                                  "positions": [ "FLICKER", "OFF", "FIXED" ]
                                                                            },
                                                   "FRONT_WARN_LIGHTS_CON": {
                                                                                    "category": "Lights System",
@@ -8754,7 +8769,7 @@
                                                      "BACK_RKL_LOOP_SW": {
                                                                                  "category": "RKL41",
                                                                              "control_type": "selector",
-                                                                              "description": "Back RKL-41 ADF Loop Switch, LEFT/OFF/RIGHT",
+                                                                              "description": "Back RKL-41 ADF Loop Switch",
                                                                                "identifier": "BACK_RKL_LOOP_SW",
                                                                                    "inputs": [ {
                                                                                                  "description": "switch to previous or next state",
@@ -8773,7 +8788,8 @@
                                                                                                                       "shift_by": 10,
                                                                                                                         "suffix": "",
                                                                                                                           "type": "integer"
-                                                                                             } ]
+                                                                                             } ],
+                                                                                "positions": [ "LEFT", "OFF", "RIGHT" ]
                                                                          },
                                                         "BACK_RKL_MODE": {
                                                                                  "category": "RKL41",
@@ -9093,7 +9109,7 @@
                                                     "FRONT_RKL_LOOP_SW": {
                                                                                  "category": "RKL41",
                                                                              "control_type": "selector",
-                                                                              "description": "Front RKL-41 ADF Loop Switch, LEFT/OFF/RIGHT",
+                                                                              "description": "Front RKL-41 ADF Loop Switch",
                                                                                "identifier": "FRONT_RKL_LOOP_SW",
                                                                                    "inputs": [ {
                                                                                                  "description": "switch to previous or next state",
@@ -9112,7 +9128,8 @@
                                                                                                                       "shift_by": 0,
                                                                                                                         "suffix": "",
                                                                                                                           "type": "integer"
-                                                                                             } ]
+                                                                                             } ],
+                                                                                "positions": [ "LEFT", "OFF", "RIGHT" ]
                                                                          },
                                                        "FRONT_RKL_MODE": {
                                                                                  "category": "RKL41",
@@ -12323,7 +12340,7 @@
                                                             "BACK_BOMB_EMERG_JETT": {
                                                                                             "category": "Weapon System",
                                                                                         "control_type": "selector",
-                                                                                         "description": "Back Arm/Safe Bombs Emergency Jettison Switch, LIVE/BOMBS/BLANK",
+                                                                                         "description": "Back Arm/Safe Bombs Emergency Jettison Switch",
                                                                                           "identifier": "BACK_BOMB_EMERG_JETT",
                                                                                               "inputs": [ {
                                                                                                             "description": "switch to previous or next state",
@@ -12342,7 +12359,8 @@
                                                                                                                                  "shift_by": 3,
                                                                                                                                    "suffix": "",
                                                                                                                                      "type": "integer"
-                                                                                                        } ]
+                                                                                                        } ],
+                                                                                           "positions": [ "LIVE", "BOMBS", "BLANK" ]
                                                                                     },
                                                       "BACK_BOMB_EMERG_JETT_COVER": {
                                                                                             "category": "Weapon System",

@@ -7944,6 +7944,60 @@
                                                                                } ]
                                                            }
                                },
+                  "Flaps AFT": {
+                                   "AFT_FLAPS_LVR": {
+                                                            "category": "Flaps AFT",
+                                                        "control_type": "action",
+                                                         "description": "Aft Flaps Lever",
+                                                          "identifier": "AFT_FLAPS_LVR",
+                                                              "inputs": [ {
+                                                                            "description": "switch to previous or next state",
+                                                                              "interface": "fixed_step"
+                                                                        }, {
+                                                                            "description": "set position",
+                                                                              "interface": "set_state",
+                                                                              "max_value": 2
+                                                                        } ],
+                                                             "outputs": [ {
+                                                                                                  "address": 33788,
+                                                                            "address_mask_shift_identifier": "MB_339_AFT_FLAPS_LVR",
+                                                                                              "description": "selector position",
+                                                                                                     "mask": 49152,
+                                                                                                "max_value": 2,
+                                                                                                 "shift_by": 14,
+                                                                                                   "suffix": "",
+                                                                                                     "type": "integer"
+                                                                        } ],
+                                                           "positions": [ "DOWN", "TAKE OFF", "UP" ]
+                                                    }
+                               },
+                   "Flaps FW": {
+                                   "FW_FLAPS_LVR": {
+                                                           "category": "Flaps FW",
+                                                       "control_type": "action",
+                                                        "description": "Forward Flaps Lever",
+                                                         "identifier": "FW_FLAPS_LVR",
+                                                             "inputs": [ {
+                                                                           "description": "switch to previous or next state",
+                                                                             "interface": "fixed_step"
+                                                                       }, {
+                                                                           "description": "set position",
+                                                                             "interface": "set_state",
+                                                                             "max_value": 2
+                                                                       } ],
+                                                            "outputs": [ {
+                                                                                                 "address": 33788,
+                                                                           "address_mask_shift_identifier": "MB_339_FW_FLAPS_LVR",
+                                                                                             "description": "selector position",
+                                                                                                    "mask": 12288,
+                                                                                               "max_value": 2,
+                                                                                                "shift_by": 12,
+                                                                                                  "suffix": "",
+                                                                                                    "type": "integer"
+                                                                       } ],
+                                                          "positions": [ "DOWN", "TAKE OFF", "UP" ]
+                                                   }
+                               },
         "Flight Controls AFT": {
                                       "AFT_FC_AILERON_SERVO": {
                                                                       "category": "Flight Controls AFT",
@@ -9371,14 +9425,14 @@
                                                          },
                                       "AFT_LG_GEAR_LVR": {
                                                                  "category": "Gear AFT",
-                                                             "control_type": "selector",
+                                                             "control_type": "action",
                                                               "description": "Aft Gear Lever",
                                                                "identifier": "AFT_LG_GEAR_LVR",
                                                                    "inputs": [ {
                                                                                  "description": "switch to previous or next state",
                                                                                    "interface": "fixed_step"
                                                                              }, {
-                                                                                 "description": "set position",
+                                                                                 "description": "set the switch position -- 0 = off, 1 = on",
                                                                                    "interface": "set_state",
                                                                                    "max_value": 1
                                                                              }, {
@@ -9511,14 +9565,14 @@
                                                         },
                                       "FW_LG_GEAR_LVR": {
                                                                 "category": "Gear FW",
-                                                            "control_type": "selector",
+                                                            "control_type": "action",
                                                              "description": "Foreward Gear Lever",
                                                               "identifier": "FW_LG_GEAR_LVR",
                                                                   "inputs": [ {
                                                                                 "description": "switch to previous or next state",
                                                                                   "interface": "fixed_step"
                                                                             }, {
-                                                                                "description": "set position",
+                                                                                "description": "set the switch position -- 0 = off, 1 = on",
                                                                                   "interface": "set_state",
                                                                                   "max_value": 1
                                                                             }, {

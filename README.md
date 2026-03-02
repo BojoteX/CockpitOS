@@ -5,8 +5,29 @@
 
 ![CockpitOS Logo](./CockpitOS_logo_small.png)
 
+## Quick Start
 
-CockpitOS connects physical cockpit hardware/panels to DCS World via the [DCS-BIOS protocol](https://github.com/DCS-Skunkworks/dcs-bios). It runs natively across the entire ESP32 family—Classic, C3, C5, C6, P4, S2, and S3—supporting buttons, switches, encoders, LEDs, TFT displays, and segment displays out of the box. With transport options spanning legacy Serial (socat), Wi-Fi, and native USB, CockpitOS delivers the flexibility modern cockpit builders demand. Think of it as the [DCS-BIOS Arduino Library](https://github.com/DCS-Skunkworks/dcs-bios-arduino-library)—reimagined for performance and scale on ESP32 devices with native USB support or Wi-Fi
+**1. Install Python** -- [Download Python for Windows](https://www.python.org/downloads/) (click the big yellow button, check **"Add Python to PATH"** during install)
+
+**2. Download CockpitOS** -- [Download Latest Release](https://github.com/BojoteX/CockpitOS/releases/latest/download/CockpitOS.zip)
+
+**3. Unzip anywhere, then double-click:**
+
+| Step | Script | What it does |
+|------|--------|-------------|
+| First time | `Setup-START.py` | Installs ESP32 core, libraries, and DCS-BIOS |
+| Configure | `LabelCreator-START.py` | Create a label set for your aircraft and panels |
+| Build | `CockpitOS-START.py` | Compile and upload firmware to your ESP32 |
+
+> For USB mode, also run `HID Manager/HID_Manager.py` on your PC to bridge USB to DCS-BIOS.
+
+No Arduino IDE required. All three tools are guided and switch between each other.
+
+---
+
+## What is CockpitOS?
+
+CockpitOS connects physical cockpit hardware/panels to DCS World via the [DCS-BIOS protocol](https://github.com/DCS-Skunkworks/dcs-bios). It runs natively across the entire ESP32 family -- Classic, C3, C5, C6, P4, S2, and S3 -- supporting buttons, switches, encoders, LEDs, TFT displays, and segment displays out of the box. With transport options spanning legacy Serial (socat), Wi-Fi, BLE, and native USB, CockpitOS delivers the flexibility modern cockpit builders demand. Think of it as the [DCS-BIOS Arduino Library](https://github.com/DCS-Skunkworks/dcs-bios-arduino-library) -- reimagined for performance and scale on ESP32 devices.
 
 ---
 
@@ -15,7 +36,7 @@ CockpitOS connects physical cockpit hardware/panels to DCS World via the [DCS-BI
 **Inputs**
 - Buttons, toggle switches, rotary encoders, multi-position selectors
 - Analog axes with self-calibration
-- I²C expanders (PCA9555) and shift registers (74HC165) for high pin counts
+- I2C expanders (PCA9555) and shift registers (74HC165) for high pin counts
 - Matrix scanning for rotary switches
 - Debouncing and edge detection built-in
 
@@ -27,12 +48,13 @@ CockpitOS connects physical cockpit hardware/panels to DCS World via the [DCS-BI
 - SPI TFT gauges via LovyanGFX
 
 **Connectivity**
-- USB HID (recommended) — works with included HID Manager
-- WiFi UDP — for wireless panels
-- Serial — legacy support (socat)
+- USB HID (recommended) -- works with included HID Manager
+- WiFi UDP -- for wireless panels
+- BLE -- Bluetooth Low Energy transport
+- Serial -- legacy support (socat)
 
 **Architecture**
-- Static memory allocation — no heap fragmentation
+- Static memory allocation -- no heap fragmentation
 - Non-blocking I/O throughout
 - O(1) label lookups via perfect hashing
 - 250 Hz input polling, 30-60 Hz display refresh
@@ -44,23 +66,12 @@ CockpitOS connects physical cockpit hardware/panels to DCS World via the [DCS-BI
 
 | MCU | Status |
 |-----|--------|
-| ESP32-S2 | ✅ Recommended (native USB) |
-| ESP32-S3 | ✅ Recommended (native USB) |
-| ESP32 (original) | ✅ Works (Serial/WiFi only) |
-| ESP32-C3 and C6  | ✅ Works (Serial/WiFi only) |
+| ESP32-S2 | Recommended (native USB) |
+| ESP32-S3 | Recommended (native USB) |
+| ESP32 (original) | Works (Serial/WiFi only) |
+| ESP32-C3 and C6  | Works (Serial/WiFi only) |
 
 Popular boards: LOLIN S2 Mini, LOLIN S3 Mini (or any other Classic, S2 or S3 dev board from Amazon)
-
----
-
-## Quick Start
-
-1. **Run `Setup-START.py`** to install ESP32 core, libraries, and arduino-cli
-2. **Run `LabelCreator-START.py`** to create a label set for your aircraft and panels
-3. **Run `CockpitOS-START.py`** to compile and upload firmware to your ESP32
-4. **For USB mode**, run `HID Manager/HID_Manager.py` on your PC to bridge to DCS-BIOS
-
-No Arduino IDE required. All three Python tools guide you through the entire workflow.
 
 ---
 
@@ -78,31 +89,15 @@ No Arduino IDE required. All three Python tools guide you through the entire wor
 | [DCS-BIOS Integration](Docs/Reference/DCS-BIOS.md) | Protocol details and debug tools |
 | [Advanced Topics](Docs/Advanced/Custom-Panels.md) | Custom panels, CoverGate, display pipeline |
 | [FAQ & Troubleshooting](Docs/Reference/FAQ.md) | Common questions and solutions |
-| [AI Assistant](https://go.bojote.com/CockpitOS) | Interactive help for any CockpitOS task |
 
 ---
 
-## Firmware Uploader
+## Need Help?
 
-Need help uploading code to your device? 
-
-**[Firmware Uploader](https://cockpitos.bojote.com/upload/?v=1)**
-
----
-
-## AI Assistant
-
-Need help building your first panel? Stuck on a wiring issue? Want to understand the code?
-
-**[💬 Chat with CockpitOS Assistant](https://go.bojote.com/CockpitOS)**
-
-Our AI assistant knows the entire CockpitOS codebase, all APIs, and common pitfalls. It can:
-- Guide you through creating a new panel from scratch
-- Generate InputMapping.h and LEDMapping.h entries
-- Explain any part of the architecture
-- Troubleshoot connection and configuration issues
-
-*Works for beginners and experts alike.*
+| Resource | Link |
+|----------|------|
+| AI Assistant | [Chat with CockpitOS Assistant](https://go.bojote.com/CockpitOS) -- knows the entire codebase, can guide you through any task |
+| Firmware Uploader | [Web-based uploader](https://cockpitos.bojote.com/upload/?v=1) -- flash firmware directly from the browser |
 
 ---
 
@@ -147,11 +142,11 @@ DCS-BIOS exports cockpit state from the simulator. CockpitOS receives this data 
 
 Label Sets define your panel's configuration. Each label set lives in `src/LABELS/LABEL_SET_<name>/` and contains:
 
-- **InputMapping.h** — Buttons, switches, encoders, their GPIO pins, and DCS-BIOS commands
-- **LEDMapping.h** — LEDs, their hardware type, and which DCS-BIOS indicators they represent
-- **DisplayMapping.cpp/h** — Display field definitions for segment LCDs and TFTs
-- **CustomPins.h** — Pin assignments and feature enables
-- **LabelSetConfig.h** — Device name, USB PID, panel metadata
+- **InputMapping.h** -- Buttons, switches, encoders, their GPIO pins, and DCS-BIOS commands
+- **LEDMapping.h** -- LEDs, their hardware type, and which DCS-BIOS indicators they represent
+- **DisplayMapping.cpp/h** -- Display field definitions for segment LCDs and TFTs
+- **CustomPins.h** -- Pin assignments and feature enables
+- **LabelSetConfig.h** -- Device name, USB PID, panel metadata
 
 Label sets are created and edited using the **Label Creator** tool. Auto-generation handles all hash tables and runtime data.
 
@@ -160,13 +155,10 @@ Label sets are created and edited using the **Label Creator** tool. Auto-generat
 ## Requirements
 
 - Windows 10/11
-- Python 3.12+
-- DCS World with DCS-BIOS installed
+- [Python 3.12+](https://www.python.org/downloads/)
+- [DCS World](https://www.digitalcombatsimulator.com/) with [DCS-BIOS](https://github.com/DCS-Skunkworks/dcs-bios/releases) installed
 
-The Setup Tool (`Setup-START.py`) automatically installs:
-- ESP32 Arduino Core 3.3.6
-- LovyanGFX 1.2.19
-- arduino-cli 1.4.1
+Everything else is installed automatically by the Setup Tool.
 
 ---
 
@@ -174,10 +166,10 @@ The Setup Tool (`Setup-START.py`) automatically installs:
 
 CockpitOS follows embedded best practices:
 
-- **No dynamic memory** — All buffers statically allocated
-- **No blocking calls** — State machines and interrupts instead of delays
-- **Bounded execution** — All loops have iteration limits
-- **Fail-safe defaults** — Graceful handling of disconnections and errors
+- **No dynamic memory** -- All buffers statically allocated
+- **No blocking calls** -- State machines and interrupts instead of delays
+- **Bounded execution** -- All loops have iteration limits
+- **Fail-safe defaults** -- Graceful handling of disconnections and errors
 
 This isn't certified avionics software, but it's built with reliability in mind for long simulation sessions.
 
@@ -189,30 +181,30 @@ This isn't certified avionics software, but it's built with reliability in mind 
 
 ### Protocol Implementation
 
-CockpitOS adapts to DCS-BIOS, it doesn't reinvent it. We kept the original `protocol.cpp` state machine intact — the same sync-frame detection, address parsing, and delta-compressed 16-bit word handling. The wire format is efficient; we saw no reason to change it.
+CockpitOS adapts to DCS-BIOS, it doesn't reinvent it. We kept the original `protocol.cpp` state machine intact -- the same sync-frame detection, address parsing, and delta-compressed 16-bit word handling. The wire format is efficient; we saw no reason to change it.
 
 ### Transport Abstraction
 
 Panel logic (inputs, LEDs, displays) is fully decoupled from the data transport:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                      PANEL LOGIC                                │
-│         (subscriptions, callbacks, hardware drivers)            │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │
-        ┌─────────────────┼─────────────────┐
-        ▼                 ▼                 ▼
-   ┌─────────┐      ┌───────────┐     ┌──────────┐
-   │ USB HID │      │ WiFi UDP  │     │  Serial  │
-   └─────────┘      └───────────┘     └──────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            PANEL LOGIC                                      │
+│             (subscriptions, callbacks, hardware drivers)                     │
+└──────────────────────────────┬──────────────────────────────────────────────┘
+                               │
+        ┌──────────┬───────────┼───────────┬──────────┐
+        ▼          ▼           ▼           ▼          ▼
+   ┌─────────┐ ┌───────┐ ┌───────────┐ ┌──────┐ ┌──────────┐
+   │ USB HID │ │  BLE  │ │ WiFi UDP  │ │Serial│ │  RS485   │
+   └─────────┘ └───────┘ └───────────┘ └──────┘ └──────────┘
 ```
 
-Swapping transports requires no panel code changes. This also means the architecture could theoretically adapt to different protocols — if another sim exposed a binary stream with address/value pairs, we'd swap the transport layer, not rewrite panels.
+Swapping transports requires no panel code changes. This also means the architecture could theoretically adapt to different protocols -- if another sim exposed a binary stream with address/value pairs, we'd swap the transport layer, not rewrite panels.
 
 ### Selective Subscriptions (Label Sets)
 
-Traditional DCS-BIOS clients receive the entire aircraft state — every address, every update, whether you need it or not. CockpitOS inverts this:
+Traditional DCS-BIOS clients receive the entire aircraft state -- every address, every update, whether you need it or not. CockpitOS inverts this:
 
 - Each **Label Set** defines which DCS-BIOS addresses the panel cares about
 - At compile time, we generate hash tables for O(1) address lookup
@@ -241,13 +233,13 @@ The [DCS-BIOS Arduino Library](https://github.com/DCS-Skunkworks/dcs-bios-arduin
 - Static memory model for long session stability
 - Per-panel address filtering at scale
 
-We're not replacing DCS-BIOS — we're providing an alternative client implementation that respects the protocol while expanding hardware and transport options.
+We're not replacing DCS-BIOS -- we're providing an alternative client implementation that respects the protocol while expanding hardware and transport options.
 
 ---
 
 ## License
 
-MIT — See [LICENSE](LICENSE)
+MIT -- See [LICENSE](LICENSE)
 
 Free for personal and commercial use. Not certified for actual aircraft.
 
@@ -255,9 +247,10 @@ Free for personal and commercial use. Not certified for actual aircraft.
 
 ## Acknowledgments
 
-- [DCS-BIOS Skunkworks](https://github.com/DCS-Skunkworks/dcs-bios) — The protocol that makes this possible
-- [LovyanGFX](https://github.com/lovyan03/LovyanGFX) — The TFT library that powers our displays
-- [DCS-BIOS Arduino Library](https://github.com/DCS-Skunkworks/dcs-bios-arduino-library) — The library that inspired our project
+- [DCS-BIOS Skunkworks](https://github.com/DCS-Skunkworks/dcs-bios) -- The protocol that makes this possible
+- [LovyanGFX](https://github.com/lovyan03/LovyanGFX) -- The TFT library that powers our displays
+- [NimBLE-Arduino](https://github.com/h2zero/NimBLE-Arduino) -- Lightweight BLE stack for ESP32
+- [DCS-BIOS Arduino Library](https://github.com/DCS-Skunkworks/dcs-bios-arduino-library) -- The library that inspired our project
 
 ---
 

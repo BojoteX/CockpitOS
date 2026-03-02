@@ -8032,7 +8032,7 @@
                                                         "ENVCP_AC_OPER": {
                                                                                  "category": "Environment Control Panel",
                                                                              "control_type": "selector",
-                                                                              "description": "Air Conditioner MAN/AUTO/COLD/HOT",
+                                                                              "description": "Air Conditioner",
                                                                                "identifier": "ENVCP_AC_OPER",
                                                                                    "inputs": [ {
                                                                                                  "description": "switch to previous or next state",
@@ -8051,7 +8051,8 @@
                                                                                                                       "shift_by": 8,
                                                                                                                         "suffix": "",
                                                                                                                           "type": "integer"
-                                                                                             } ]
+                                                                                             } ],
+                                                                                "positions": [ "MAN", "AUTO", "COLD", "HOT" ]
                                                                          },
                                                      "ENVCP_AIR_SUPPLY": {
                                                                                  "category": "Environment Control Panel",
@@ -9380,7 +9381,7 @@
                                                     "FIRE_EXT_DISCH": {
                                                                               "category": "Glare Shield",
                                                                           "control_type": "selector",
-                                                                           "description": "Fire Extinguisher Discharge Left/Off/Right",
+                                                                           "description": "Fire Extinguisher Discharge",
                                                                             "identifier": "FIRE_EXT_DISCH",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -9399,7 +9400,8 @@
                                                                                                                    "shift_by": 4,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "Left", "Off", "Right" ]
                                                                       },
                                                     "FIRE_LENG_PULL": {
                                                                               "category": "Glare Shield",
@@ -11203,7 +11205,7 @@
                                                      "INT_MODE": {
                                                                          "category": "Intercom Panel",
                                                                      "control_type": "selector",
-                                                                      "description": "Intercom Selector Switch INT/FM/VHF/HF/Blank",
+                                                                      "description": "Intercom Selector Switch",
                                                                        "identifier": "INT_MODE",
                                                                            "inputs": [ {
                                                                                          "description": "switch to previous or next state",
@@ -11222,7 +11224,8 @@
                                                                                                               "shift_by": 7,
                                                                                                                 "suffix": "",
                                                                                                                   "type": "integer"
-                                                                                     } ]
+                                                                                     } ],
+                                                                        "positions": [ "INT", "FM", "VHF", "HF", "Blank" ]
                                                                  },
                                                "INT_TCN_UNMUTE": {
                                                                          "category": "Intercom Panel",
@@ -11768,7 +11771,7 @@
                                                     "LANDING_LIGHTS": {
                                                                               "category": "Landing Gear and Flap Control Panel",
                                                                           "control_type": "selector",
-                                                                           "description": "Landing Lights TAXI/OFF/LAND",
+                                                                           "description": "Landing Lights",
                                                                             "identifier": "LANDING_LIGHTS",
                                                                                 "inputs": [ {
                                                                                               "description": "switch to previous or next state",
@@ -11787,7 +11790,8 @@
                                                                                                                    "shift_by": 11,
                                                                                                                      "suffix": "",
                                                                                                                        "type": "integer"
-                                                                                          } ]
+                                                                                          } ],
+                                                                             "positions": [ "TAXI", "OFF", "LAND" ]
                                                                       }
                                            },
                               "Left MFCD": {
@@ -12878,7 +12882,7 @@
                                                         "LCP_POSITION": {
                                                                                 "category": "Light System Control Panel",
                                                                             "control_type": "selector",
-                                                                             "description": "Position Lights FLASH/OFF/STEADY",
+                                                                             "description": "Position Lights",
                                                                               "identifier": "LCP_POSITION",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -12897,7 +12901,8 @@
                                                                                                                      "shift_by": 2,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "FLASH", "OFF", "STEADY" ]
                                                                         },
                                                    "LCP_SIGNAL_LIGHTS": {
                                                                                 "category": "Light System Control Panel",
@@ -13835,7 +13840,7 @@
                                                "OXY_EMERGENCY": {
                                                                         "category": "Oxygen Regulator Panel",
                                                                     "control_type": "3Pos_2Command_Switch_OpenClose",
-                                                                     "description": "Oxygen Flow: Emergency / Normal / Test",
+                                                                     "description": "Oxygen Flow",
                                                                       "identifier": "OXY_EMERGENCY",
                                                                           "inputs": [ {
                                                                                         "description": "set the switch position",
@@ -13851,7 +13856,8 @@
                                                                                                              "shift_by": 7,
                                                                                                                "suffix": "",
                                                                                                                  "type": "integer"
-                                                                                    } ]
+                                                                                    } ],
+                                                                       "positions": [ "Emergency", "Normal", "Test" ]
                                                                 },
                                                     "OXY_FLOW": {
                                                                         "category": "Oxygen Regulator Panel",
@@ -17203,7 +17209,7 @@
                                                     "UHF_FUNCTION": {
                                                                             "category": "UHF Radio",
                                                                         "control_type": "selector",
-                                                                         "description": "UHF Function Dial OFF/MAIN/BOTH/ADF",
+                                                                         "description": "UHF Function Dial",
                                                                           "identifier": "UHF_FUNCTION",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -17222,7 +17228,8 @@
                                                                                                                  "shift_by": 2,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "OFF", "MAIN", "BOTH", "ADF" ]
                                                                     },
                                                         "UHF_LOAD": {
                                                                          "api_variant": "momentary_last_position",
@@ -17257,7 +17264,7 @@
                                                         "UHF_MODE": {
                                                                             "category": "UHF Radio",
                                                                         "control_type": "selector",
-                                                                         "description": "Frequency Mode Dial MNL/PRESET/GRD",
+                                                                         "description": "Frequency Mode Dial",
                                                                           "identifier": "UHF_MODE",
                                                                               "inputs": [ {
                                                                                             "description": "switch to previous or next state",
@@ -17276,7 +17283,8 @@
                                                                                                                  "shift_by": 0,
                                                                                                                    "suffix": "",
                                                                                                                      "type": "integer"
-                                                                                        } ]
+                                                                                        } ],
+                                                                           "positions": [ "MNL", "PRESET", "GRD" ]
                                                                     },
                                                "UHF_POINT1MHZ_SEL": {
                                                                             "category": "UHF Radio",
@@ -17686,7 +17694,7 @@
                                                    "VHFAM_FREQEMER": {
                                                                              "category": "VHF AM Radio",
                                                                          "control_type": "selector",
-                                                                          "description": "Frequency Selection Dial FM/AM/MAN/PRE",
+                                                                          "description": "Frequency Selection Dial",
                                                                            "identifier": "VHFAM_FREQEMER",
                                                                                "inputs": [ {
                                                                                              "description": "switch to previous or next state",
@@ -17705,7 +17713,8 @@
                                                                                                                   "shift_by": 10,
                                                                                                                     "suffix": "",
                                                                                                                       "type": "integer"
-                                                                                         } ]
+                                                                                         } ],
+                                                                            "positions": [ "FM", "AM", "MAN", "PRE" ]
                                                                      },
                                                        "VHFAM_LOAD": {
                                                                           "api_variant": "momentary_last_position",
@@ -17740,7 +17749,7 @@
                                                        "VHFAM_MODE": {
                                                                              "category": "VHF AM Radio",
                                                                          "control_type": "selector",
-                                                                          "description": "Mode OFF/TR/DF",
+                                                                          "description": "Mode",
                                                                            "identifier": "VHFAM_MODE",
                                                                                "inputs": [ {
                                                                                              "description": "switch to previous or next state",
@@ -17759,7 +17768,8 @@
                                                                                                                   "shift_by": 8,
                                                                                                                     "suffix": "",
                                                                                                                       "type": "integer"
-                                                                                         } ]
+                                                                                         } ],
+                                                                            "positions": [ "OFF", "TR", "DF" ]
                                                                      },
                                                     "VHFAM_PRESENT": {
                                                                              "category": "VHF AM Radio",
@@ -18039,7 +18049,7 @@
                                                    "VHFFM_FREQEMER": {
                                                                              "category": "VHF FM Radio",
                                                                          "control_type": "selector",
-                                                                          "description": "Frequency Selection Dial FM/AM/MAN/PRE",
+                                                                          "description": "Frequency Selection Dial",
                                                                            "identifier": "VHFFM_FREQEMER",
                                                                                "inputs": [ {
                                                                                              "description": "switch to previous or next state",
@@ -18058,7 +18068,8 @@
                                                                                                                   "shift_by": 7,
                                                                                                                     "suffix": "",
                                                                                                                       "type": "integer"
-                                                                                         } ]
+                                                                                         } ],
+                                                                            "positions": [ "FM", "AM", "MAN", "PRE" ]
                                                                      },
                                                        "VHFFM_LOAD": {
                                                                           "api_variant": "momentary_last_position",
@@ -18093,7 +18104,7 @@
                                                        "VHFFM_MODE": {
                                                                              "category": "VHF FM Radio",
                                                                          "control_type": "selector",
-                                                                          "description": "Mode OFF/TR/DF",
+                                                                          "description": "Mode",
                                                                            "identifier": "VHFFM_MODE",
                                                                                "inputs": [ {
                                                                                              "description": "switch to previous or next state",
@@ -18112,7 +18123,8 @@
                                                                                                                   "shift_by": 5,
                                                                                                                     "suffix": "",
                                                                                                                       "type": "integer"
-                                                                                         } ]
+                                                                                         } ],
+                                                                            "positions": [ "OFF", "TR", "DF" ]
                                                                      },
                                                      "VHFFM_PRESET": {
                                                                              "category": "VHF FM Radio",

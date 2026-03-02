@@ -463,9 +463,16 @@ def run():
             useSlash  = False
             currentGroup = 0
 
-            # 4.1) slash‑split
-            if '/' in label_src:
-                # parts = [s.strip() for s in label_src.split('/')]
+            # 4.0) DCS-BIOS v0.11+ positions array (preferred, unambiguous)
+            pos_array = item.get('positions', [])
+            if pos_array and len(pos_array) == count:
+                labels = list(reversed(pos_array))
+                useSlash = True
+                groupCounter += 1
+                currentGroup = groupCounter
+
+            # 4.1) slash‑split (legacy DCS-BIOS v0.10 and earlier)
+            if not labels and '/' in label_src:
                 parts = [s.strip() for s in label_src.split('/')][::-1]
                 if len(parts) == count:
                     labels = parts
@@ -1110,8 +1117,27 @@ def run():
     # 2) merge into a new list, preserving any user edits by label
     merged = []
     for full, cmd, val, ct, grp, json_key in selector_entries_inputmap:
+        e = None
+        used_pos_fallback = False
         if full in existing_map:
             e = existing_map[full]
+        else:
+            # POS-fallback: when a positions array renames e.g. CABIN_PRESS_SW_NORM,
+            # try the old POS-based label (CABIN_PRESS_SW_POS2) to preserve wiring.
+            pos_fallback = f"{json_key}_POS{val}"
+            if pos_fallback in existing_map:
+                e = existing_map[pos_fallback]
+                used_pos_fallback = True
+
+        if e is not None:
+            # Decide label: if matched via POS-fallback and the entry has real
+            # wiring (not NONE), keep the OLD label to avoid silent renames that
+            # could break CoverGates.h or firmware references.  Only upgrade
+            # POS→named when wiring is default (unconfigured entry).
+            is_wired = (e["source"] != "NONE" or int(e["bit"]) != 0
+                        or int(e["hidId"]) != -1)
+            emit_label = e["label"] if (used_pos_fallback and is_wired) else full
+
             # Custom entries (json_key != cmd): preserve hardware wiring but
             # re-apply generator-computed value/type from Custom.json so that
             # changes to oride_value or control_type take effect on re-gen.
@@ -1119,12 +1145,12 @@ def run():
             if json_key != cmd:
                 rel = custom_release_map.get(full, 0)
                 merged.append((
-                    e["label"], e["source"], e["port"], e["bit"],
+                    emit_label, e["source"], e["port"], e["bit"],
                     e["hidId"], cmd, val, ct, e["group"], rel
                 ))
             else:
                 merged.append((
-                    e["label"], e["source"], e["port"], e["bit"],
+                    emit_label, e["source"], e["port"], e["bit"],
                     e["hidId"], e["oride_label"], e["oride_value"],
                     e["controlType"], e["group"], e["releaseValue"]
                 ))
@@ -1132,6 +1158,50 @@ def run():
             final_grp = alloc_group(json_key, grp, full)  # <- key on ident, not cmd
             rel = custom_release_map.get(full, 0)
             merged.append((full, "NONE", 0, 0, -1, cmd, val, ct, final_grp, rel))
+
+    # 2b) Detect orphaned wired entries — existing entries NOT matched by any
+    #     new entry.  These would be silently lost without this safeguard.
+    #     Append them to an append-only log so wiring data is NEVER lost.
+    merged_labels = {e[0] for e in merged}
+    orphaned = []
+    for label, e in existing_map.items():
+        if label in merged_labels:
+            continue
+        # Check if this entry was consumed via POS-fallback (old label kept)
+        # by seeing if another merged entry has the same wiring
+        is_wired = (e["source"] != "NONE" or int(e["bit"]) != 0
+                    or int(e["hidId"]) != -1)
+        if is_wired:
+            wiring = (e["source"], e["port"], int(e["bit"]), int(e["hidId"]))
+            wiring_in_merged = any(
+                (m[1], m[2], int(m[3]), int(m[4])) == wiring for m in merged
+            )
+            if not wiring_in_merged:
+                orphaned.append(e)
+
+    if orphaned:
+        from datetime import datetime
+        log_file = "preservation_log.txt"
+        timestamp = datetime.now().isoformat()
+        with open(log_file, "a", encoding="utf-8") as log:
+            log.write(f"\n# --- {timestamp} ---\n")
+            log.write(f"# WARNING: {len(orphaned)} wired entry(ies) orphaned by generator.\n")
+            log.write(f"# These entries existed in {INPUT_REFERENCE} with real hardware wiring\n")
+            log.write(f"# but were NOT produced by the current JSON. Wiring data preserved below.\n")
+            for e in orphaned:
+                rel = e.get("releaseValue", 0)
+                log.write(
+                    f'    {{ "{e["label"]}" , "{e["source"]}" , {e["port"]} , '
+                    f'{e["bit"]} , {e["hidId"]} , "{e["oride_label"]}" , '
+                    f'{e["oride_value"]} , "{e["controlType"]}" , '
+                    f'{e["group"]} , {rel} }},\n'
+                )
+        print()
+        print(f"  *** WARNING: {len(orphaned)} wired entry(ies) no longer in JSON! ***")
+        print(f"  *** Wiring data saved to {log_file} ***")
+        for e in orphaned:
+            print(f"      - {e['label']}  ({e['source']}, port={e['port']}, bit={e['bit']}, hidId={e['hidId']})")
+        print()
 
     # 3) write out merged list
     with open(INPUT_REFERENCE, "w", encoding="utf-8") as f2:
@@ -1356,6 +1426,35 @@ def run():
         else:
             print(f"❌ Hash table full! TABLE_SIZE={TABLE_SIZE} too small", file=sys.stderr)
             sys.exit(1)
+
+    # ——— 5b) Detect orphaned wired LED entries ———
+    new_label_set = set(labels)
+    orphaned_leds = []
+    for label, e in existing.items():
+        if label not in new_label_set and e["device"] != "NONE":
+            orphaned_leds.append((label, e))
+
+    if orphaned_leds:
+        from datetime import datetime
+        log_file = "preservation_log.txt"
+        timestamp = datetime.now().isoformat()
+        with open(log_file, "a", encoding="utf-8") as log:
+            log.write(f"\n# --- {timestamp} [LEDMapping] ---\n")
+            log.write(f"# WARNING: {len(orphaned_leds)} wired LED entry(ies) orphaned by generator.\n")
+            log.write(f"# These entries existed in {LED_REFERENCE} with real device wiring\n")
+            log.write(f"# but were NOT produced by the current DcsOutputTable.\n")
+            for label, e in orphaned_leds:
+                log.write(
+                    f'  {{ "{label}", DEVICE_{e["device"]}, '
+                    f'{{.{e["info_type"]} = {{{e["info_values"]}}}}}, '
+                    f'{e["dimmable"]}, {e["activeLow"]} }}\n'
+                )
+        print()
+        print(f"  *** WARNING: {len(orphaned_leds)} wired LED entry(ies) no longer in DcsOutputTable! ***")
+        print(f"  *** Wiring data saved to {log_file} ***")
+        for label, e in orphaned_leds:
+            print(f"      - {label}  (DEVICE_{e['device']}, {e['info_values']})")
+        print()
 
     # ——— 6) Emit the new LEDMapping.h ———
     with open(LED_REFERENCE, "w", encoding="utf-8") as out:

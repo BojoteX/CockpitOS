@@ -101,7 +101,7 @@
                                        "ADF_LOOP_LR": {
                                                               "category": "ADF",
                                                           "control_type": "selector",
-                                                           "description": "ADF LOOP Left Low Speed / Left High Speed /Center / Right Low Speed / Right High Speed",
+                                                           "description": "ADF LOOP",
                                                             "identifier": "ADF_LOOP_LR",
                                                                 "inputs": [ {
                                                                               "description": "switch to previous or next state",
@@ -120,12 +120,13 @@
                                                                                                    "shift_by": 0,
                                                                                                      "suffix": "",
                                                                                                        "type": "integer"
-                                                                          } ]
+                                                                          } ],
+                                                             "positions": [ "Left Low Speed", "Left High Speed", "Center", "Right Low Speed", "Right High Speed" ]
                                                       },
                                           "ADF_MODE": {
                                                               "category": "ADF",
                                                           "control_type": "selector",
-                                                           "description": "ADF Mode OFF / ADF / ANT / LOOP",
+                                                           "description": "ADF Mode",
                                                             "identifier": "ADF_MODE",
                                                                 "inputs": [ {
                                                                               "description": "switch to previous or next state",
@@ -144,7 +145,8 @@
                                                                                                    "shift_by": 4,
                                                                                                      "suffix": "",
                                                                                                        "type": "integer"
-                                                                          } ]
+                                                                          } ],
+                                                             "positions": [ "OFF", "ADF", "ANT", "LOOP" ]
                                                       },
                                         "ADF_SIGNAL": {
                                                               "category": "ADF",
@@ -431,7 +433,7 @@
                                              "GUN_SEL": {
                                                                 "category": "Armament Panel",
                                                             "control_type": "selector",
-                                                             "description": "Gun Selector LEFT / BOTH / RIGHT",
+                                                             "description": "Gun Selector",
                                                               "identifier": "GUN_SEL",
                                                                   "inputs": [ {
                                                                                 "description": "switch to previous or next state",
@@ -450,7 +452,8 @@
                                                                                                      "shift_by": 13,
                                                                                                        "suffix": "",
                                                                                                          "type": "integer"
-                                                                            } ]
+                                                                            } ],
+                                                               "positions": [ "LEFT", "BOTH", "RIGHT" ]
                                                         },
                                             "JTSN_BTN": {
                                                              "api_variant": "momentary_last_position",
@@ -3528,7 +3531,7 @@
                                         "SEARCH_LIGHT_SW": {
                                                                    "category": "Collective",
                                                                "control_type": "selector",
-                                                                "description": "Search Light STOW / OFF / ON",
+                                                                "description": "Search Light",
                                                                  "identifier": "SEARCH_LIGHT_SW",
                                                                      "inputs": [ {
                                                                                    "description": "switch to previous or next state",
@@ -3547,12 +3550,13 @@
                                                                                                         "shift_by": 0,
                                                                                                           "suffix": "",
                                                                                                             "type": "integer"
-                                                                               } ]
+                                                                               } ],
+                                                                  "positions": [ "STOW", "OFF", "ON" ]
                                                            },
                                        "SEARCH_LIGHT_SW2": {
                                                                    "category": "Collective",
                                                                "control_type": "selector",
-                                                                "description": "Copilot Search Light STOW / OFF / ON",
+                                                                "description": "Copilot Search Light",
                                                                  "identifier": "SEARCH_LIGHT_SW2",
                                                                      "inputs": [ {
                                                                                    "description": "switch to previous or next state",
@@ -3571,7 +3575,8 @@
                                                                                                         "shift_by": 3,
                                                                                                           "suffix": "",
                                                                                                             "type": "integer"
-                                                                               } ]
+                                                                               } ],
+                                                                  "positions": [ "STOW", "OFF", "ON" ]
                                                            },
                                                "THROTTLE": {
                                                                    "category": "Collective",
@@ -4917,7 +4922,7 @@
                                           "SIGHT_LAMP_SW": {
                                                                    "category": "Flex Sight",
                                                                "control_type": "selector",
-                                                                "description": "Sighting Station Lamp Switch BACKUP / OFF / MAIN",
+                                                                "description": "Sighting Station Lamp Switch",
                                                                  "identifier": "SIGHT_LAMP_SW",
                                                                      "inputs": [ {
                                                                                    "description": "switch to previous or next state",
@@ -4936,7 +4941,8 @@
                                                                                                         "shift_by": 7,
                                                                                                           "suffix": "",
                                                                                                             "type": "integer"
-                                                                               } ]
+                                                                               } ],
+                                                                  "positions": [ "BACKUP", "OFF", "MAIN" ]
                                                            },
                                           "SIGHT_PWR_PLT": {
                                                                    "category": "Flex Sight",
@@ -7586,7 +7592,7 @@
                                          "DOME_LIGHT_SW": {
                                                                   "category": "Overhead Panel",
                                                               "control_type": "selector",
-                                                               "description": "Dome Light Switch WHITE / OFF / GREEN",
+                                                               "description": "Dome Light Switch",
                                                                 "identifier": "DOME_LIGHT_SW",
                                                                     "inputs": [ {
                                                                                   "description": "switch to previous or next state",
@@ -7605,7 +7611,8 @@
                                                                                                        "shift_by": 4,
                                                                                                          "suffix": "",
                                                                                                            "type": "integer"
-                                                                              } ]
+                                                                              } ],
+                                                                 "positions": [ "WHITE", "OFF", "GREEN" ]
                                                           },
                                         "MAIN_GEN_COVER": {
                                                                   "category": "Overhead Panel",
@@ -7639,7 +7646,7 @@
                                            "MAIN_GEN_SW": {
                                                                   "category": "Overhead Panel",
                                                               "control_type": "selector",
-                                                               "description": "Main Generator RESET/OFF/ON",
+                                                               "description": "Main Generator",
                                                                 "identifier": "MAIN_GEN_SW",
                                                                     "inputs": [ {
                                                                                   "description": "switch to previous or next state",
@@ -7658,7 +7665,8 @@
                                                                                                        "shift_by": 2,
                                                                                                          "suffix": "",
                                                                                                            "type": "integer"
-                                                                              } ]
+                                                                              } ],
+                                                                 "positions": [ "RESET", "OFF", "ON" ]
                                                           },
                                             "NAV_LTS_SW": {
                                                                   "category": "Overhead Panel",
@@ -7798,7 +7806,7 @@
                                              "WIPER_SEL": {
                                                                   "category": "Overhead Panel",
                                                               "control_type": "selector",
-                                                               "description": "Wiper PILOT / BOTH / OPERATOR",
+                                                               "description": "Wiper",
                                                                 "identifier": "WIPER_SEL",
                                                                     "inputs": [ {
                                                                                   "description": "switch to previous or next state",
@@ -7817,7 +7825,8 @@
                                                                                                        "shift_by": 11,
                                                                                                          "suffix": "",
                                                                                                            "type": "integer"
-                                                                              } ]
+                                                                              } ],
+                                                                 "positions": [ "PILOT", "BOTH", "OPERATOR" ]
                                                           },
                                              "WIPER_SPD": {
                                                                   "category": "Overhead Panel",
@@ -8576,7 +8585,7 @@
                                           "VHFFM_MODE": {
                                                                 "category": "VHF FM Radio",
                                                             "control_type": "selector",
-                                                             "description": "VHF FM Mode Dial: OFF / T/R / RETRAN / HOME",
+                                                             "description": "VHF FM Mode Dial",
                                                               "identifier": "VHFFM_MODE",
                                                                   "inputs": [ {
                                                                                 "description": "switch to previous or next state",
@@ -8595,12 +8604,13 @@
                                                                                                      "shift_by": 9,
                                                                                                        "suffix": "",
                                                                                                          "type": "integer"
-                                                                            } ]
+                                                                            } ],
+                                                               "positions": [ "OFF", "T/R", "RETRAN", "HOME" ]
                                                         },
                                        "VHFFM_SQUELCH": {
                                                                 "category": "VHF FM Radio",
                                                             "control_type": "selector",
-                                                             "description": "VHF FM Squelch Mode: DIS / CARR / TONE",
+                                                             "description": "VHF FM Squelch Mode",
                                                               "identifier": "VHFFM_SQUELCH",
                                                                   "inputs": [ {
                                                                                 "description": "switch to previous or next state",
@@ -8619,7 +8629,8 @@
                                                                                                      "shift_by": 11,
                                                                                                        "suffix": "",
                                                                                                          "type": "integer"
-                                                                            } ]
+                                                                            } ],
+                                                               "positions": [ "DIS", "CARR", "TONE" ]
                                                         },
                                            "VHFFM_VOL": {
                                                                 "category": "VHF FM Radio",
@@ -8708,7 +8719,7 @@
                                         "VHFNAV_PWR": {
                                                               "category": "VHF NAV Radio",
                                                           "control_type": "selector",
-                                                           "description": "VHF NAV Off / On / Test",
+                                                           "description": "VHF NAV",
                                                             "identifier": "VHFNAV_PWR",
                                                                 "inputs": [ {
                                                                               "description": "switch to previous or next state",
@@ -8727,7 +8738,8 @@
                                                                                                    "shift_by": 13,
                                                                                                      "suffix": "",
                                                                                                        "type": "integer"
-                                                                          } ]
+                                                                          } ],
+                                                             "positions": [ "Off", "On", "Test" ]
                                                       },
                                         "VHFNAV_VOL": {
                                                               "category": "VHF NAV Radio",
