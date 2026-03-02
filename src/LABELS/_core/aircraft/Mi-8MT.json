@@ -182,7 +182,7 @@
                                         "APU_START_MODE": {
                                                                   "category": "APU Launch Panel",
                                                               "control_type": "selector",
-                                                               "description": "APU Start Mode Switch, START/COLD CRANKING/FALSE START",
+                                                               "description": "APU Start Mode Switch",
                                                                 "identifier": "APU_START_MODE",
                                                                     "inputs": [ {
                                                                                   "description": "switch to previous or next state",
@@ -201,7 +201,8 @@
                                                                                                        "shift_by": 12,
                                                                                                          "suffix": "",
                                                                                                            "type": "integer"
-                                                                              } ]
+                                                                              } ],
+                                                                 "positions": [ "START", "COLD CRANKING", "FALSE START" ]
                                                           },
                                               "APU_STOP": {
                                                                "api_variant": "momentary_last_position",
@@ -321,7 +322,7 @@
                                                "ARC9_MODE": {
                                                                     "category": "ARC-9",
                                                                 "control_type": "selector",
-                                                                 "description": "ARC-9, Mode Selector Switch, OFF/COMP/ANT/LOOP",
+                                                                 "description": "ARC-9, Mode Selector Switch",
                                                                   "identifier": "ARC9_MODE",
                                                                       "inputs": [ {
                                                                                     "description": "switch to previous or next state",
@@ -340,7 +341,8 @@
                                                                                                          "shift_by": 6,
                                                                                                            "suffix": "",
                                                                                                              "type": "integer"
-                                                                                } ]
+                                                                                } ],
+                                                                   "positions": [ "OFF", "COMP", "ANT", "LOOP" ]
                                                             },
                                             "ARC9_TLF_TLG": {
                                                                     "category": "ARC-9",
@@ -374,7 +376,7 @@
                                               "ARC_9_LOOP": {
                                                                     "category": "ARC-9",
                                                                 "control_type": "selector",
-                                                                 "description": "ARC-9, Loop Control Switch, LEFT/OFF/RIGHT",
+                                                                 "description": "ARC-9, Loop Control Switch",
                                                                   "identifier": "ARC_9_LOOP",
                                                                       "inputs": [ {
                                                                                     "description": "switch to previous or next state",
@@ -393,7 +395,8 @@
                                                                                                          "shift_by": 5,
                                                                                                            "suffix": "",
                                                                                                              "type": "integer"
-                                                                                } ]
+                                                                                } ],
+                                                                   "positions": [ "LEFT", "OFF", "RIGHT" ]
                                                             },
                                           "ARC_BCK_100KHZ": {
                                                                     "category": "ARC-9",
@@ -496,7 +499,7 @@
                                           "ARCUD_CHL": {
                                                                "category": "ARC-UD",
                                                            "control_type": "selector",
-                                                            "description": "ARC-UD, Channel Selector Switch, 1/2/3/4/5/6",
+                                                            "description": "ARC-UD, Channel Selector Switch",
                                                              "identifier": "ARCUD_CHL",
                                                                  "inputs": [ {
                                                                                "description": "switch to previous or next state",
@@ -515,7 +518,8 @@
                                                                                                     "shift_by": 3,
                                                                                                       "suffix": "",
                                                                                                         "type": "integer"
-                                                                           } ]
+                                                                           } ],
+                                                              "positions": [ "1", "2", "3", "4", "5", "6" ]
                                                        },
                                          "ARCUD_CTRL": {
                                                             "api_variant": "momentary_last_position",
@@ -609,7 +613,7 @@
                                          "ARCUD_MODE": {
                                                                "category": "ARC-UD",
                                                            "control_type": "selector",
-                                                            "description": "ARC-UD, Mode Switch, OFF/NARROW/WIDE/PULSE/RC",
+                                                            "description": "ARC-UD, Mode Switch",
                                                              "identifier": "ARCUD_MODE",
                                                                  "inputs": [ {
                                                                                "description": "switch to previous or next state",
@@ -628,7 +632,8 @@
                                                                                                     "shift_by": 0,
                                                                                                       "suffix": "",
                                                                                                         "type": "integer"
-                                                                           } ]
+                                                                           } ],
+                                                              "positions": [ "OFF", "NARROW", "WIDE", "PULSE", "RC" ]
                                                        },
                                         "ARCUD_R_ANT": {
                                                             "api_variant": "momentary_last_position",
@@ -3873,7 +3878,7 @@
                                               "ENG_CT_CHECK": {
                                                                       "category": "Center Console",
                                                                   "control_type": "selector",
-                                                                   "description": "CT Check Switch, RIGHT/WORK/LEFT",
+                                                                   "description": "CT Check Switch",
                                                                     "identifier": "ENG_CT_CHECK",
                                                                         "inputs": [ {
                                                                                       "description": "switch to previous or next state",
@@ -3892,7 +3897,8 @@
                                                                                                            "shift_by": 12,
                                                                                                              "suffix": "",
                                                                                                                "type": "integer"
-                                                                                  } ]
+                                                                                  } ],
+                                                                     "positions": [ "RIGHT", "WORK", "LEFT" ]
                                                               },
                                               "ENG_LEFT_ECC": {
                                                                       "category": "Center Console",
@@ -3955,7 +3961,7 @@
                                          "ENG_LEFT_FT_CHECK": {
                                                                       "category": "Center Console",
                                                                   "control_type": "selector",
-                                                                   "description": "Left Engine FT Check Switch, ST1/WORK/ST2",
+                                                                   "description": "Left Engine FT Check Switch",
                                                                     "identifier": "ENG_LEFT_FT_CHECK",
                                                                         "inputs": [ {
                                                                                       "description": "switch to previous or next state",
@@ -3974,7 +3980,8 @@
                                                                                                            "shift_by": 8,
                                                                                                              "suffix": "",
                                                                                                                "type": "integer"
-                                                                                  } ]
+                                                                                  } ],
+                                                                     "positions": [ "ST1", "WORK", "ST2" ]
                                                               },
                                              "ENG_RIGHT_ECC": {
                                                                       "category": "Center Console",
@@ -4037,7 +4044,7 @@
                                         "ENG_RIGHT_FT_CHECK": {
                                                                       "category": "Center Console",
                                                                   "control_type": "selector",
-                                                                   "description": "Right Engine FT Check Switch, ST1/WORK/ST2",
+                                                                   "description": "Right Engine FT Check Switch",
                                                                     "identifier": "ENG_RIGHT_FT_CHECK",
                                                                         "inputs": [ {
                                                                                       "description": "switch to previous or next state",
@@ -4056,7 +4063,8 @@
                                                                                                            "shift_by": 10,
                                                                                                              "suffix": "",
                                                                                                                "type": "integer"
-                                                                                  } ]
+                                                                                  } ],
+                                                                     "positions": [ "ST1", "WORK", "ST2" ]
                                                               }
                                     },
                            "Clock": {
@@ -4382,7 +4390,7 @@
                                                "CMD_FLARE_SEL": {
                                                                         "category": "Dispenser",
                                                                     "control_type": "selector",
-                                                                     "description": "CMD Board Flares Dispensers Switch, LEFT/BOTH/RIGHT",
+                                                                     "description": "CMD Board Flares Dispensers Switch",
                                                                       "identifier": "CMD_FLARE_SEL",
                                                                           "inputs": [ {
                                                                                         "description": "switch to previous or next state",
@@ -4401,7 +4409,8 @@
                                                                                                              "shift_by": 8,
                                                                                                                "suffix": "",
                                                                                                                  "type": "integer"
-                                                                                    } ]
+                                                                                    } ],
+                                                                       "positions": [ "LEFT", "BOTH", "RIGHT" ]
                                                                 },
                                              "CMD_FLARE_START": {
                                                                      "api_variant": "momentary_last_position",
@@ -4858,7 +4867,7 @@
                                            "INV_115V_SWITCH": {
                                                                       "category": "Electrical system",
                                                                   "control_type": "selector",
-                                                                   "description": "Inverter Switch 115V MANUAL/OFF/AUTO",
+                                                                   "description": "Inverter Switch 115V",
                                                                     "identifier": "INV_115V_SWITCH",
                                                                         "inputs": [ {
                                                                                       "description": "switch to previous or next state",
@@ -4877,12 +4886,13 @@
                                                                                                            "shift_by": 3,
                                                                                                              "suffix": "",
                                                                                                                "type": "integer"
-                                                                                  } ]
+                                                                                  } ],
+                                                                     "positions": [ "MANUAL", "OFF", "AUTO" ]
                                                               },
                                             "INV_36V_SWITCH": {
                                                                       "category": "Electrical system",
                                                                   "control_type": "selector",
-                                                                   "description": "Inverter Switch 36V MANUAL/OFF/AUTO",
+                                                                   "description": "Inverter Switch 36V",
                                                                     "identifier": "INV_36V_SWITCH",
                                                                         "inputs": [ {
                                                                                       "description": "switch to previous or next state",
@@ -4901,7 +4911,8 @@
                                                                                                            "shift_by": 5,
                                                                                                              "suffix": "",
                                                                                                                "type": "integer"
-                                                                                  } ]
+                                                                                  } ],
+                                                                     "positions": [ "MANUAL", "OFF", "AUTO" ]
                                                               },
                                             "NET_RECT_COVER": {
                                                                       "category": "Electrical system",
@@ -5107,7 +5118,7 @@
                                           "TRANS_36V_SWITCH": {
                                                                       "category": "Electrical system",
                                                                   "control_type": "selector",
-                                                                   "description": "Transformer Switch 36V, MAIN/OFF/AUXILIARY",
+                                                                   "description": "Transformer Switch 36V",
                                                                     "identifier": "TRANS_36V_SWITCH",
                                                                         "inputs": [ {
                                                                                       "description": "switch to previous or next state",
@@ -5126,7 +5137,8 @@
                                                                                                            "shift_by": 8,
                                                                                                              "suffix": "",
                                                                                                                "type": "integer"
-                                                                                  } ]
+                                                                                  } ],
+                                                                     "positions": [ "MAIN", "OFF", "AUXILIARY" ]
                                                               }
                                     },
                   "Engine Control": {
@@ -5223,7 +5235,7 @@
                                             "ENG_IGN_CHK": {
                                                                    "category": "Engines Launch Panel",
                                                                "control_type": "selector",
-                                                                "description": "Engine Ignition Check Switch, LEFT/OFF/RIGHT",
+                                                                "description": "Engine Ignition Check Switch",
                                                                  "identifier": "ENG_IGN_CHK",
                                                                      "inputs": [ {
                                                                                    "description": "switch to previous or next state",
@@ -5242,12 +5254,13 @@
                                                                                                         "shift_by": 6,
                                                                                                           "suffix": "",
                                                                                                             "type": "integer"
-                                                                               } ]
+                                                                               } ],
+                                                                  "positions": [ "LEFT", "OFF", "RIGHT" ]
                                                            },
                                                 "ENG_SEL": {
                                                                    "category": "Engines Launch Panel",
                                                                "control_type": "selector",
-                                                                "description": "Engine Selector Switch, LEFT/OFF/RIGHT",
+                                                                "description": "Engine Selector Switch",
                                                                  "identifier": "ENG_SEL",
                                                                      "inputs": [ {
                                                                                    "description": "switch to previous or next state",
@@ -5266,7 +5279,8 @@
                                                                                                         "shift_by": 2,
                                                                                                           "suffix": "",
                                                                                                             "type": "integer"
-                                                                               } ]
+                                                                               } ],
+                                                                  "positions": [ "LEFT", "OFF", "RIGHT" ]
                                                            },
                                               "ENG_START": {
                                                                 "api_variant": "momentary_last_position",
@@ -5301,7 +5315,7 @@
                                          "ENG_START_MODE": {
                                                                    "category": "Engines Launch Panel",
                                                                "control_type": "selector",
-                                                                "description": "Engine Start Mode Switch, START/OFF/COLD CRANKING",
+                                                                "description": "Engine Start Mode Switch",
                                                                  "identifier": "ENG_START_MODE",
                                                                      "inputs": [ {
                                                                                    "description": "switch to previous or next state",
@@ -5320,7 +5334,8 @@
                                                                                                         "shift_by": 4,
                                                                                                           "suffix": "",
                                                                                                             "type": "integer"
-                                                                               } ]
+                                                                               } ],
+                                                                  "positions": [ "START", "OFF", "COLD CRANKING" ]
                                                            }
                                     },
               "Engines management": {
@@ -5387,7 +5402,7 @@
                                          "ENG_LEFT_FREE_TURB_RPM": {
                                                                            "category": "Engines management",
                                                                        "control_type": "selector",
-                                                                        "description": "Readjust Left Free Turbine RPM Switch, MORE/OFF/LESS",
+                                                                        "description": "Readjust Left Free Turbine RPM Switch",
                                                                          "identifier": "ENG_LEFT_FREE_TURB_RPM",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -5406,7 +5421,8 @@
                                                                                                                 "shift_by": 0,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "MORE", "OFF", "LESS" ]
                                                                    },
                                          "ENG_LEFT_REG_TEMP_TEST": {
                                                                         "api_variant": "momentary_last_position",
@@ -5470,7 +5486,7 @@
                                         "ENG_RIGHT_FREE_TURB_RPM": {
                                                                            "category": "Engines management",
                                                                        "control_type": "selector",
-                                                                        "description": "Readjust Right Free Turbine RPM Switch, MORE/OFF/LESS",
+                                                                        "description": "Readjust Right Free Turbine RPM Switch",
                                                                          "identifier": "ENG_RIGHT_FREE_TURB_RPM",
                                                                              "inputs": [ {
                                                                                            "description": "switch to previous or next state",
@@ -5489,7 +5505,8 @@
                                                                                                                 "shift_by": 2,
                                                                                                                   "suffix": "",
                                                                                                                     "type": "integer"
-                                                                                       } ]
+                                                                                       } ],
+                                                                          "positions": [ "MORE", "OFF", "LESS" ]
                                                                    },
                                         "ENG_RIGHT_REG_TEMP_TEST": {
                                                                         "api_variant": "momentary_last_position",
@@ -5875,7 +5892,7 @@
                                         "FIRE_CHECK_CIRC": {
                                                                    "category": "FIRE",
                                                                "control_type": "selector",
-                                                                "description": "Check Fire Circuits Switch, OFF/CONTROL/1/2/3/4/5/6",
+                                                                "description": "Check Fire Circuits Switch",
                                                                  "identifier": "FIRE_CHECK_CIRC",
                                                                      "inputs": [ {
                                                                                    "description": "switch to previous or next state",
@@ -5894,14 +5911,15 @@
                                                                                                         "shift_by": 13,
                                                                                                           "suffix": "",
                                                                                                             "type": "integer"
-                                                                               } ]
+                                                                               } ],
+                                                                  "positions": [ "OFF", "CONTROL", "1", "2", "3", "4", "5", "6" ]
                                                            }
                                     },
                             "FUEL": {
                                         "FUEL_METER_SWITCH": {
                                                                      "category": "FUEL",
                                                                  "control_type": "selector",
-                                                                  "description": "Fuel Meter Switch, OFF/SUM/LEFT/RIGHT/FEED/ADDITIONAL",
+                                                                  "description": "Fuel Meter Switch",
                                                                    "identifier": "FUEL_METER_SWITCH",
                                                                        "inputs": [ {
                                                                                      "description": "switch to previous or next state",
@@ -5920,7 +5938,8 @@
                                                                                                           "shift_by": 13,
                                                                                                             "suffix": "",
                                                                                                               "type": "integer"
-                                                                                 } ]
+                                                                                 } ],
+                                                                    "positions": [ "OFF", "SUM", "LEFT", "RIGHT", "FEED", "ADDITIONAL" ]
                                                              }
                                     },
                      "Fuel System": {
@@ -6159,7 +6178,7 @@
                                                  "FUEL_REFUEL": {
                                                                         "category": "Fuel System",
                                                                     "control_type": "selector",
-                                                                     "description": "Refueling Control Switch, REFUEL/OFF/CHECK",
+                                                                     "description": "Refueling Control Switch",
                                                                       "identifier": "FUEL_REFUEL",
                                                                           "inputs": [ {
                                                                                         "description": "switch to previous or next state",
@@ -6178,7 +6197,8 @@
                                                                                                              "shift_by": 10,
                                                                                                                "suffix": "",
                                                                                                                  "type": "integer"
-                                                                                    } ]
+                                                                                    } ],
+                                                                       "positions": [ "REFUEL", "OFF", "CHECK" ]
                                                                 },
                                             "FUEL_RIGHT_COVER": {
                                                                         "category": "Fuel System",
@@ -6296,7 +6316,7 @@
                                         "GMC_CTRL_SWITCH": {
                                                                    "category": "GMC",
                                                                "control_type": "selector",
-                                                                "description": "GMC Control Switch, 0/CONTROL/300",
+                                                                "description": "GMC Control Switch",
                                                                  "identifier": "GMC_CTRL_SWITCH",
                                                                      "inputs": [ {
                                                                                    "description": "switch to previous or next state",
@@ -6315,7 +6335,8 @@
                                                                                                         "shift_by": 10,
                                                                                                           "suffix": "",
                                                                                                             "type": "integer"
-                                                                               } ]
+                                                                               } ],
+                                                                  "positions": [ "0", "CONTROL", "300" ]
                                                            },
                                             "GMC_HEM_SEL": {
                                                                    "category": "GMC",
@@ -7099,7 +7120,7 @@
                                         "IFF_MODE_SELECTOR": {
                                                                      "category": "IFF",
                                                                  "control_type": "selector",
-                                                                  "description": "IFF Transponder Mode Selector Switch, AUTO/KD/+-15/KP",
+                                                                  "description": "IFF Transponder Mode Selector Switch",
                                                                    "identifier": "IFF_MODE_SELECTOR",
                                                                        "inputs": [ {
                                                                                      "description": "switch to previous or next state",
@@ -7118,7 +7139,8 @@
                                                                                                           "shift_by": 9,
                                                                                                             "suffix": "",
                                                                                                               "type": "integer"
-                                                                                 } ]
+                                                                                 } ],
+                                                                    "positions": [ "AUTO", "KD", "+-15", "KP" ]
                                                              },
                                                   "IFF_SEL": {
                                                                      "category": "IFF",
@@ -10349,7 +10371,7 @@
                                             "KO50_MODE": {
                                                                  "category": "KO-50",
                                                              "control_type": "selector",
-                                                              "description": "KO-50 Heater Mode Switch, MANUAL/OFF/AUTO",
+                                                              "description": "KO-50 Heater Mode Switch",
                                                                "identifier": "KO50_MODE",
                                                                    "inputs": [ {
                                                                                  "description": "switch to previous or next state",
@@ -10368,12 +10390,13 @@
                                                                                                       "shift_by": 0,
                                                                                                         "suffix": "",
                                                                                                           "type": "integer"
-                                                                             } ]
+                                                                             } ],
+                                                                "positions": [ "MANUAL", "OFF", "AUTO" ]
                                                          },
                                           "KO50_REGIME": {
                                                                  "category": "KO-50",
                                                              "control_type": "selector",
-                                                              "description": "KO-50 Heater Regime Switch, FILLING/FULL/MEDIUM",
+                                                              "description": "KO-50 Heater Regime Switch",
                                                                "identifier": "KO50_REGIME",
                                                                    "inputs": [ {
                                                                                  "description": "switch to previous or next state",
@@ -10392,7 +10415,8 @@
                                                                                                       "shift_by": 2,
                                                                                                         "suffix": "",
                                                                                                           "type": "integer"
-                                                                             } ]
+                                                                             } ],
+                                                                "positions": [ "FILLING", "FULL", "MEDIUM" ]
                                                          },
                                            "KO50_START": {
                                                               "api_variant": "momentary_last_position",
@@ -12998,7 +13022,7 @@
                                              "LGHT_ANO": {
                                                                  "category": "Lights",
                                                              "control_type": "selector",
-                                                              "description": "ANO Switch, BRIGHT/OFF/DIM",
+                                                              "description": "ANO Switch",
                                                                "identifier": "LGHT_ANO",
                                                                    "inputs": [ {
                                                                                  "description": "switch to previous or next state",
@@ -13017,7 +13041,8 @@
                                                                                                       "shift_by": 2,
                                                                                                         "suffix": "",
                                                                                                           "type": "integer"
-                                                                             } ]
+                                                                             } ],
+                                                                "positions": [ "BRIGHT", "OFF", "DIM" ]
                                                          },
                                         "LGHT_ANO_CODE": {
                                                               "api_variant": "momentary_last_position",
@@ -13110,7 +13135,7 @@
                                              "LGHT_FRM": {
                                                                  "category": "Lights",
                                                              "control_type": "selector",
-                                                              "description": "Formation Lights Switch, BRIGHT/OFF/DIM",
+                                                              "description": "Formation Lights Switch",
                                                                "identifier": "LGHT_FRM",
                                                                    "inputs": [ {
                                                                                  "description": "switch to previous or next state",
@@ -13129,12 +13154,13 @@
                                                                                                       "shift_by": 4,
                                                                                                         "suffix": "",
                                                                                                           "type": "integer"
-                                                                             } ]
+                                                                             } ],
+                                                                "positions": [ "BRIGHT", "OFF", "DIM" ]
                                                          },
                                           "LGHT_L_CEIL": {
                                                                  "category": "Lights",
                                                              "control_type": "selector",
-                                                              "description": "Left Ceiling Light Switch, RED/OFF/WHITE",
+                                                              "description": "Left Ceiling Light Switch",
                                                                "identifier": "LGHT_L_CEIL",
                                                                    "inputs": [ {
                                                                                  "description": "switch to previous or next state",
@@ -13153,12 +13179,13 @@
                                                                                                       "shift_by": 14,
                                                                                                         "suffix": "",
                                                                                                           "type": "integer"
-                                                                             } ]
+                                                                             } ],
+                                                                "positions": [ "RED", "OFF", "WHITE" ]
                                                          },
                                           "LGHT_L_LAND": {
                                                                  "category": "Lights",
                                                              "control_type": "selector",
-                                                              "description": "Left Landing Light Switch, LIGHT/OFF/RETRACT",
+                                                              "description": "Left Landing Light Switch",
                                                                "identifier": "LGHT_L_LAND",
                                                                    "inputs": [ {
                                                                                  "description": "switch to previous or next state",
@@ -13177,12 +13204,13 @@
                                                                                                       "shift_by": 10,
                                                                                                         "suffix": "",
                                                                                                           "type": "integer"
-                                                                             } ]
+                                                                             } ],
+                                                                "positions": [ "LIGHT", "OFF", "RETRACT" ]
                                                          },
                                           "LGHT_R_CEIL": {
                                                                  "category": "Lights",
                                                              "control_type": "selector",
-                                                              "description": "Right Ceiling Light Switch, RED/OFF/WHITE",
+                                                              "description": "Right Ceiling Light Switch",
                                                                "identifier": "LGHT_R_CEIL",
                                                                    "inputs": [ {
                                                                                  "description": "switch to previous or next state",
@@ -13201,12 +13229,13 @@
                                                                                                       "shift_by": 0,
                                                                                                         "suffix": "",
                                                                                                           "type": "integer"
-                                                                             } ]
+                                                                             } ],
+                                                                "positions": [ "RED", "OFF", "WHITE" ]
                                                          },
                                           "LGHT_R_LAND": {
                                                                  "category": "Lights",
                                                              "control_type": "selector",
-                                                              "description": "Right Landing Light Switch, LIGHT/OFF/RETRACT",
+                                                              "description": "Right Landing Light Switch",
                                                                "identifier": "LGHT_R_LAND",
                                                                    "inputs": [ {
                                                                                  "description": "switch to previous or next state",
@@ -13225,7 +13254,8 @@
                                                                                                       "shift_by": 12,
                                                                                                         "suffix": "",
                                                                                                           "type": "integer"
-                                                                             } ]
+                                                                             } ],
+                                                                "positions": [ "LIGHT", "OFF", "RETRACT" ]
                                                          },
                                           "LGHT_STROBE": {
                                                                  "category": "Lights",
@@ -13989,7 +14019,7 @@
                                                "PYRO_L": {
                                                                  "category": "PODS",
                                                              "control_type": "selector",
-                                                              "description": "Left PYROCARTRIDGE Switch, I/II/III",
+                                                              "description": "Left PYROCARTRIDGE Switch",
                                                                "identifier": "PYRO_L",
                                                                    "inputs": [ {
                                                                                  "description": "switch to previous or next state",
@@ -14008,12 +14038,13 @@
                                                                                                       "shift_by": 9,
                                                                                                         "suffix": "",
                                                                                                           "type": "integer"
-                                                                             } ]
+                                                                             } ],
+                                                                "positions": [ "OFF", "I", "II", "III" ]
                                                          },
                                                "PYRO_R": {
                                                                  "category": "PODS",
                                                              "control_type": "selector",
-                                                              "description": "Right PYROCARTRIDGE Switch, I/II/III",
+                                                              "description": "Right PYROCARTRIDGE Switch",
                                                                "identifier": "PYRO_R",
                                                                    "inputs": [ {
                                                                                  "description": "switch to previous or next state",
@@ -14032,14 +14063,15 @@
                                                                                                       "shift_by": 11,
                                                                                                         "suffix": "",
                                                                                                           "type": "integer"
-                                                                             } ]
+                                                                             } ],
+                                                                "positions": [ "OFF", "I", "II", "III" ]
                                                          }
                                     },
                            "Pitot": {
                                         "STC_PRS_SYSTEM": {
                                                                   "category": "Pitot",
                                                               "control_type": "selector",
-                                                               "description": "Static Pressure System Mode Selector, LEFT/COMMON/RIGHT",
+                                                               "description": "Static Pressure System Mode Selector",
                                                                 "identifier": "STC_PRS_SYSTEM",
                                                                     "inputs": [ {
                                                                                   "description": "switch to previous or next state",
@@ -14058,7 +14090,8 @@
                                                                                                        "shift_by": 14,
                                                                                                          "suffix": "",
                                                                                                            "type": "integer"
-                                                                              } ]
+                                                                              } ],
+                                                                 "positions": [ "LEFT", "COMMON", "RIGHT" ]
                                                           }
                                     },
                            "R-828": {
@@ -15108,7 +15141,7 @@
                                           "SAS_CHK": {
                                                              "category": "SAS",
                                                          "control_type": "selector",
-                                                          "description": "Check Switch, LAMPS/OFF/FLASHER",
+                                                          "description": "Check Switch",
                                                            "identifier": "SAS_CHK",
                                                                "inputs": [ {
                                                                              "description": "switch to previous or next state",
@@ -15127,7 +15160,8 @@
                                                                                                   "shift_by": 4,
                                                                                                     "suffix": "",
                                                                                                       "type": "integer"
-                                                                         } ]
+                                                                         } ],
+                                                            "positions": [ "LAMPS", "OFF", "FLASHER" ]
                                                      },
                                         "SAS_FLASH": {
                                                              "category": "SAS",
@@ -15192,7 +15226,7 @@
                                              "RADIO_SEL_L": {
                                                                     "category": "SPU-7",
                                                                 "control_type": "selector",
-                                                                 "description": "Radio Source Selector Switch, R-863/JADRO-1A/R-828/NF/ARC-9/ARC-UD Left",
+                                                                 "description": "Radio Source Selector Switch",
                                                                   "identifier": "RADIO_SEL_L",
                                                                       "inputs": [ {
                                                                                     "description": "switch to previous or next state",
@@ -15211,12 +15245,13 @@
                                                                                                          "shift_by": 7,
                                                                                                            "suffix": "",
                                                                                                              "type": "integer"
-                                                                                } ]
+                                                                                } ],
+                                                                   "positions": [ "R-863", "JADRO-1A", "R-828", "NF", "ARC-9", "ARC-UD Left" ]
                                                             },
                                              "RADIO_SEL_R": {
                                                                     "category": "SPU-7",
                                                                 "control_type": "selector",
-                                                                 "description": "Radio Source Selector Switch, R-863/JADRO-1A/R-828/NF/ARC-9/ARC-UD Right",
+                                                                 "description": "Radio Source Selector Switch",
                                                                   "identifier": "RADIO_SEL_R",
                                                                       "inputs": [ {
                                                                                     "description": "switch to previous or next state",
@@ -15235,7 +15270,8 @@
                                                                                                          "shift_by": 10,
                                                                                                            "suffix": "",
                                                                                                              "type": "integer"
-                                                                                } ]
+                                                                                } ],
+                                                                   "positions": [ "R-863", "JADRO-1A", "R-828", "NF", "ARC-9", "ARC-UD Right" ]
                                                             },
                                              "SPU7_LARYNG": {
                                                                     "category": "SPU-7",
@@ -17720,7 +17756,7 @@
                                           "JADR1A_MODE": {
                                                                  "category": "YaDRO-1A",
                                                              "control_type": "selector",
-                                                              "description": "YaDRO-1A, Mode Switch, OFF/OM/AM",
+                                                              "description": "YaDRO-1A, Mode Switch",
                                                                "identifier": "JADR1A_MODE",
                                                                    "inputs": [ {
                                                                                  "description": "switch to previous or next state",
@@ -17728,18 +17764,19 @@
                                                                              }, {
                                                                                  "description": "set position",
                                                                                    "interface": "set_state",
-                                                                                   "max_value": 3
+                                                                                   "max_value": 2
                                                                              } ],
                                                                   "outputs": [ {
                                                                                                        "address": 9812,
                                                                                  "address_mask_shift_identifier": "Mi_8MT_JADR1A_MODE",
                                                                                                    "description": "selector position",
                                                                                                           "mask": 24576,
-                                                                                                     "max_value": 3,
+                                                                                                     "max_value": 2,
                                                                                                       "shift_by": 13,
                                                                                                         "suffix": "",
                                                                                                           "type": "integer"
-                                                                             } ]
+                                                                             } ],
+                                                                "positions": [ "OFF", "OM", "AM" ]
                                                          },
                                          "YADRO1A_FREQ": {
                                                                  "category": "YaDRO-1A",

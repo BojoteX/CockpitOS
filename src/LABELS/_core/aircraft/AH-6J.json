@@ -168,7 +168,7 @@
                                     "PW_SEL_SW": {
                                                          "category": "Electric System",
                                                      "control_type": "selector",
-                                                      "description": "Power Selector Switch, BATT/OFF/EXT",
+                                                      "description": "Power Selector Switch",
                                                        "identifier": "PW_SEL_SW",
                                                            "inputs": [ {
                                                                          "description": "switch to previous or next state",
@@ -187,7 +187,8 @@
                                                                                               "shift_by": 0,
                                                                                                 "suffix": "",
                                                                                                   "type": "integer"
-                                                                     } ]
+                                                                     } ],
+                                                        "positions": [ "BATT", "OFF", "EXT" ]
                                                  }
                                },
                     "Engines": {
@@ -743,7 +744,7 @@
                                       "GUN_STATION_SEL": {
                                                                  "category": "Weapons Panel",
                                                              "control_type": "selector",
-                                                              "description": "Gun Station Selector, OFF/LEFT/BOTH/RIGHT",
+                                                              "description": "Gun Station Selector",
                                                                "identifier": "GUN_STATION_SEL",
                                                                    "inputs": [ {
                                                                                  "description": "switch to previous or next state",
@@ -762,7 +763,8 @@
                                                                                                       "shift_by": 11,
                                                                                                         "suffix": "",
                                                                                                           "type": "integer"
-                                                                             } ]
+                                                                             } ],
+                                                                "positions": [ "OFF", "LEFT", "BOTH", "RIGHT" ]
                                                          },
                                         "MASTER_ARM_SW": {
                                                                  "category": "Weapons Panel",
@@ -883,7 +885,7 @@
                                    "ROCKET_STATION_SEL": {
                                                                  "category": "Weapons Panel",
                                                              "control_type": "selector",
-                                                              "description": "Rocket Station Selector, OFF/LEFT/BOTH/RIGHT",
+                                                              "description": "Rocket Station Selector",
                                                                "identifier": "ROCKET_STATION_SEL",
                                                                    "inputs": [ {
                                                                                  "description": "switch to previous or next state",
@@ -902,7 +904,8 @@
                                                                                                       "shift_by": 9,
                                                                                                         "suffix": "",
                                                                                                           "type": "integer"
-                                                                             } ]
+                                                                             } ],
+                                                                "positions": [ "OFF", "LEFT", "BOTH", "RIGHT" ]
                                                          }
                                }
 }

@@ -346,6 +346,35 @@ def run():
 
     '''
 
+    # --- Detect orphaned wired display entries ---
+    new_display_labels = {label for label, _, _ in display_fields}
+    orphaned_displays = []
+    for label, line in existing_defs.items():
+        if label not in new_display_labels:
+            # Check if this entry had a real segment map (not nullptr)
+            m = re.match(r'\s*\{\s*"[^"]+",\s*([^\s,]+),', line)
+            map_ptr = m.group(1) if m else None
+            if map_ptr and map_ptr != "nullptr":
+                orphaned_displays.append((label, line))
+
+    if orphaned_displays:
+        from datetime import datetime
+        log_file = "preservation_log.txt"
+        timestamp = datetime.now().isoformat()
+        with open(log_file, "a", encoding="utf-8") as log:
+            log.write(f"\n# --- {timestamp} [DisplayMapping] ---\n")
+            log.write(f"# WARNING: {len(orphaned_displays)} wired display entry(ies) orphaned by generator.\n")
+            log.write(f"# These entries existed in {preservation_file or DEV_MAPPING_CPP} with real segment maps\n")
+            log.write(f"# but were NOT produced by the current JSON/panel selection.\n")
+            for label, line in orphaned_displays:
+                log.write(f"{line.rstrip()}\n")
+        print()
+        print(f"  *** WARNING: {len(orphaned_displays)} wired display entry(ies) no longer in JSON! ***")
+        print(f"  *** Wiring data saved to {log_file} ***")
+        for label, _ in orphaned_displays:
+            print(f"      - {label}")
+        print()
+
     with open(DEV_MAPPING_CPP, "w", encoding="utf-8") as fcpp:
         fcpp.write("// DisplayMapping.cpp - Defines the display fields\n")
         fcpp.write('#include "../../Globals.h"\n#include "DisplayMapping.h"\n\n')

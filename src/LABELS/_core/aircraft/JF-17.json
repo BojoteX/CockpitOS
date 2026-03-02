@@ -1862,7 +1862,7 @@
                                                      "START_MODE_SEL": {
                                                                                "category": "Engine",
                                                                            "control_type": "selector",
-                                                                            "description": "Start Mode Selector - START/ENG COLD/STARTER COLD",
+                                                                            "description": "Start Mode Selector",
                                                                              "identifier": "START_MODE_SEL",
                                                                                  "inputs": [ {
                                                                                                "description": "switch to previous or next state",
@@ -1881,7 +1881,8 @@
                                                                                                                     "shift_by": 1,
                                                                                                                       "suffix": "",
                                                                                                                         "type": "integer"
-                                                                                           } ]
+                                                                                           } ],
+                                                                              "positions": [ "START", "ENG COLD", "STARTER COLD" ]
                                                                        }
                                             },
                  "External Aircraft Model": {
@@ -2839,7 +2840,7 @@
                                                  "LND_TAX_LIGHT_SW": {
                                                                              "category": "Gear",
                                                                          "control_type": "selector",
-                                                                          "description": "Light Switch - Land/Off/Taxi",
+                                                                          "description": "Light Switch",
                                                                            "identifier": "LND_TAX_LIGHT_SW",
                                                                                "inputs": [ {
                                                                                              "description": "switch to previous or next state",
@@ -2858,7 +2859,8 @@
                                                                                                                   "shift_by": 14,
                                                                                                                     "suffix": "",
                                                                                                                       "type": "integer"
-                                                                                         } ]
+                                                                                         } ],
+                                                                            "positions": [ "Land", "Off", "Taxi" ]
                                                                      }
                                             },
                             "Left Console": {
@@ -3227,7 +3229,7 @@
                                                    "ANTI_COL_LIGHT_SW": {
                                                                                 "category": "Lights",
                                                                             "control_type": "selector",
-                                                                             "description": "Light Switch - Tow/Off/Anti-Collision",
+                                                                             "description": "Light Switch",
                                                                               "identifier": "ANTI_COL_LIGHT_SW",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -3246,7 +3248,8 @@
                                                                                                                      "shift_by": 12,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "Tow", "Off", "Anti-Collision" ]
                                                                         },
                                                    "CONSOLE_LIGHT_KNB": {
                                                                                 "category": "Lights",
@@ -3517,7 +3520,7 @@
                                                  "NAV_LIGHT_BRIGHT_SW": {
                                                                                 "category": "Lights",
                                                                             "control_type": "selector",
-                                                                             "description": "Navigation Light Switch - Bright/Off/Dim",
+                                                                             "description": "Navigation Light Switch",
                                                                               "identifier": "NAV_LIGHT_BRIGHT_SW",
                                                                                   "inputs": [ {
                                                                                                 "description": "switch to previous or next state",
@@ -3536,7 +3539,8 @@
                                                                                                                      "shift_by": 9,
                                                                                                                        "suffix": "",
                                                                                                                          "type": "integer"
-                                                                                            } ]
+                                                                                            } ],
+                                                                               "positions": [ "Bright", "Off", "Dim" ]
                                                                         },
                                                   "NAV_LIGHT_FLASH_SW": {
                                                                                 "category": "Lights",
