@@ -1,11 +1,23 @@
 # Changelog
 
+## v1.2.6 — 2026-03-04
+
+### Improved
+- Refactor all Python tooling for easier flows + README.md simple steps
+
 ## v1.2.5 — 2026-03-04
 
 ### Improved
-- Unit Tests for Auto-Generator
+- Misc Cleaning
+- Set IFEI as default LABEL set
+- Refactor Python Tools
+- Set IFEI as default LABEL SET
+- Bulk command tester script refactor
+- Firmware Loaded this version
 - Update test_preservation.py
-- Refactor all Python tooling for easier flows + README.md simple steps
+
+### Fixed
+- Fixed BLE memory init and added HID ID editor in Label Editor
 
 ## v1.2.4 — 2026-03-01
 

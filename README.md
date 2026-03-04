@@ -7,11 +7,13 @@
 
 ## Quick Start
 
-**1.** Install [**Python**](https://apps.microsoft.com/detail/9pnrbtzxmb4z) from the Microsoft Store (one click, no configuration needed)
+**1.** Install [**Python**](https://www.python.org/downloads/) -- click the big yellow download button, run the installer, and check **"Add to PATH"**
+
+> Already have Python? Skip this step. Prefer a one-click install? Get it from the [Microsoft Store](https://apps.microsoft.com/detail/9pnrbtzxmb4z) instead.
 
 **2.** [**Download CockpitOS**](https://github.com/BojoteX/CockpitOS/releases/latest/download/CockpitOS.zip) -- unzip anywhere
 
-**3.** Double-click `Setup-START.py`
+**3.** Double-click `START.py`
 
 That's it. The Setup tool installs everything and connects you to the rest of the workflow.
 
@@ -147,7 +149,7 @@ Label sets are created and edited using the **Label Creator** tool. Auto-generat
 ## Requirements
 
 - Windows 10/11
-- [Python 3.12+](https://apps.microsoft.com/detail/9pnrbtzxmb4z) (Microsoft Store)
+- [Python 3.12+](https://www.python.org/downloads/) (or from the [Microsoft Store](https://apps.microsoft.com/detail/9pnrbtzxmb4z))
 - [DCS World](https://www.digitalcombatsimulator.com/) with [DCS-BIOS](https://github.com/DCS-Skunkworks/dcs-bios/releases) installed
 
 Everything else is installed automatically by the Setup Tool.
