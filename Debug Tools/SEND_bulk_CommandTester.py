@@ -551,9 +551,17 @@ def pick_control(controls, aircraft_name, chain):
     scroll = 0
 
     cols, rows = _get_terminal_size()
-    # Reserve rows for: 3 header + chain lines + 1 blank + list + 2 footer
-    chain_rows = min(len(chain), 5)  # show last 5 chain entries max
-    overhead = 3 + (chain_rows + 1 if chain else 0) + 2
+    # Reserve rows for: 3 header + chain lines + list + 2 footer
+    chain_rows = min(len(chain), 3)  # show last 3 (delays take extra lines)
+    if chain:
+        # Each entry: 1 cmd line + 1 delay line (except last in full chain)
+        n_delays = sum(1 for i in range(max(0, len(chain) - chain_rows), len(chain))
+                       if i < len(chain) - 1)
+        more_line = 1 if len(chain) > chain_rows else 0
+        chain_line_count = chain_rows + n_delays + more_line + 1  # +1 blank
+    else:
+        chain_line_count = 0
+    overhead = 3 + chain_line_count + 2
     list_height = rows - overhead
     if list_height < 5:
         list_height = 5
@@ -665,12 +673,15 @@ def pick_control(controls, aircraft_name, chain):
 
         # Chain display
         if chain:
-            visible = chain[-chain_rows:] if len(chain) > chain_rows else chain
-            if len(chain) > chain_rows:
-                _w(f"  {DIM}  ... ({len(chain) - chain_rows} more){RESET}\n")
-            for i_offset, cmd in enumerate(visible):
-                real_idx = len(chain) - len(visible) + i_offset + 1
+            visible_start = max(0, len(chain) - chain_rows)
+            visible = chain[visible_start:]
+            if visible_start > 0:
+                _w(f"  {DIM}  ... ({visible_start} more){RESET}\n")
+            for i_offset, (cmd, delay_ms) in enumerate(visible):
+                real_idx = visible_start + i_offset + 1
                 _w(f"  {GREEN}  {real_idx}. {cmd}{RESET}\n")
+                if real_idx < len(chain):
+                    _w(f"  {DIM}      ~ {delay_ms}ms ~{RESET}\n")
             _w("\n")
 
         thumb_start, thumb_end = _scroll_bar_positions()
@@ -980,19 +991,18 @@ def send_single_packet(commands: list, bind_ip: str, dcs_ip: str) -> None:
         print(f"  {RED}[ERROR]{RESET} {e}")
 
 
-def send_bulk(commands: list, bind_ip: str, dcs_ip: str, debounce_ms: int) -> None:
-    delay = max(0, debounce_ms) / 1000.0
-
-    for i, cmd in enumerate(commands):
-        if i > 0 and delay > 0:
-            time.sleep(delay)
+def send_bulk(chain: list, bind_ip: str, dcs_ip: str) -> None:
+    """Send chain of (command, delay_ms) tuples with per-command delays."""
+    for i, (cmd, delay_ms) in enumerate(chain):
         send_udp(cmd, bind_ip, dcs_ip)
+        if i < len(chain) - 1 and delay_ms > 0:
+            time.sleep(delay_ms / 1000.0)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CHAIN REVIEW SCREEN
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def review_chain(chain, debounce_ms, aircraft_name):
+def review_chain(chain, aircraft_name):
     """Show the full chain and let user choose next action.
 
     Returns:
@@ -1014,11 +1024,13 @@ def review_chain(chain, debounce_ms, aircraft_name):
         _w(f"\n  {DIM}Chain is empty.{RESET}\n")
     else:
         _w(f"\n")
-        for i, cmd in enumerate(chain, 1):
+        total_delay = 0
+        for i, (cmd, delay_ms) in enumerate(chain, 1):
             _w(f"  {GREEN}{i:>3}.{RESET} {cmd}\n")
             if i < len(chain):
-                _w(f"  {DIM}     ~ {debounce_ms}ms ~{RESET}\n")
-        _w(f"\n  {DIM}Total: {len(chain)} commands, ~{(len(chain) - 1) * debounce_ms}ms total delay{RESET}\n")
+                _w(f"  {DIM}     ~ {delay_ms}ms ~{RESET}\n")
+                total_delay += delay_ms
+        _w(f"\n  {DIM}Total: {len(chain)} commands, ~{total_delay}ms total delay{RESET}\n")
 
     # Build options
     options = []
@@ -1033,20 +1045,47 @@ def review_chain(chain, debounce_ms, aircraft_name):
     return result if result else "cancel"
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# DEBOUNCE PICKER
+# DELAY PICKER (per-command)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def pick_debounce():
-    """Let user pick debounce delay. Returns ms value."""
+def _prompt_custom_delay():
+    """Prompt for a custom delay value in ms. Returns int."""
+    _w(SHOW_CUR)
+    _w(f"\n  {BOLD}Enter delay in ms: {RESET}")
+    val = ""
+    while True:
+        ch = msvcrt.getwch()
+        if ch == "\r":
+            break
+        elif ch == "\x1b":
+            return DEFAULT_DEBOUNCE_MS
+        elif ch == "\x08":
+            if val:
+                val = val[:-1]
+                _w("\b \b")
+        elif ch.isdigit():
+            val += ch
+            _w(ch)
+    _w("\n")
+    try:
+        return max(0, int(val))
+    except ValueError:
+        return DEFAULT_DEBOUNCE_MS
+
+
+def pick_delay():
+    """Let user pick delay after a command. Returns ms value."""
     options = [
-        (f"{CYAN}{'0 ms':<12}{RESET} {DIM}no delay (fire all at once){RESET}", 0),
-        (f"{CYAN}{'50 ms':<12}{RESET} {DIM}fast (recommended){RESET}", 50),
-        (f"{CYAN}{'100 ms':<12}{RESET} {DIM}moderate{RESET}", 100),
-        (f"{CYAN}{'250 ms':<12}{RESET} {DIM}slow (visible stepping){RESET}", 250),
-        (f"{CYAN}{'500 ms':<12}{RESET} {DIM}very slow{RESET}", 500),
-        (f"{CYAN}{'1000 ms':<12}{RESET} {DIM}1 second between commands{RESET}", 1000),
+        (f"{CYAN}{'10 ms':<12}{RESET} {DIM}minimal{RESET}", 10),
+        (f"{CYAN}{'25 ms':<12}{RESET} {DIM}fast{RESET}", 25),
+        (f"{CYAN}{'50 ms':<12}{RESET} {DIM}moderate{RESET}", 50),
+        (f"{CYAN}{'100 ms':<12}{RESET} {DIM}comfortable{RESET}", 100),
+        (f"{CYAN}{'500 ms':<12}{RESET} {DIM}slow (visible stepping){RESET}", 500),
+        (f"{CYAN}{'Custom...':<12}{RESET} {DIM}enter a value in ms{RESET}", -1),
     ]
-    result = arrow_pick("Debounce delay between commands:", options)
+    result = arrow_pick("Delay after this command:", options)
+    if result == -1:
+        return _prompt_custom_delay()
     return result if result is not None else DEFAULT_DEBOUNCE_MS
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1080,9 +1119,6 @@ def interactive_mode(bind_ip, dcs_ip):
         input(f"\n  Press Enter to exit...")
         return
 
-    # Pick debounce
-    debounce_ms = pick_debounce()
-
     chain = []
 
     # ── Outer loop: build chain -> send -> repeat ──
@@ -1094,7 +1130,7 @@ def interactive_mode(bind_ip, dcs_ip):
 
             if control is None:
                 # Esc from browser — review
-                action = review_chain(chain, debounce_ms, aircraft_name)
+                action = review_chain(chain, aircraft_name)
                 if action == "add":
                     continue
                 elif action == "send":
@@ -1113,12 +1149,13 @@ def interactive_mode(bind_ip, dcs_ip):
             if cmd is None:
                 continue
 
-            chain.append(cmd)
-            _w(f"\n  {GREEN}Added #{len(chain)}:{RESET} {cmd}\n")
+            delay_ms = pick_delay()
+            chain.append((cmd, delay_ms))
+            _w(f"\n  {GREEN}Added #{len(chain)}:{RESET} {cmd}  {DIM}(+{delay_ms}ms){RESET}\n")
             _w(f"\n  {DIM}Press any key to add more, or Esc to review chain...{RESET}")
             ch = msvcrt.getwch()
             if ch == "\x1b":
-                action = review_chain(chain, debounce_ms, aircraft_name)
+                action = review_chain(chain, aircraft_name)
                 if action == "add":
                     continue
                 elif action == "send":
@@ -1145,9 +1182,9 @@ def interactive_mode(bind_ip, dcs_ip):
             _w(f"  {CYAN}{BOLD}{'=' * header_w}{RESET}\n")
             _w(f"  {CYAN}{BOLD}  Sending Chain{RESET}  {DIM}({aircraft_name}){RESET}\n")
             _w(f"  {CYAN}{BOLD}{'=' * header_w}{RESET}\n")
-            _w(f"\n  {DIM}Interface: {bind_label}  Target: {dcs_ip}:{DCS_PORT}  Debounce: {debounce_ms}ms{RESET}\n\n")
+            _w(f"\n  {DIM}Interface: {bind_label}  Target: {dcs_ip}:{DCS_PORT}{RESET}\n\n")
 
-            send_bulk(chain, bind_ip, dcs_ip, debounce_ms)
+            send_bulk(chain, bind_ip, dcs_ip)
 
             _w(f"\n  {GREEN}{BOLD}Done!{RESET} {DIM}{len(chain)} commands sent.{RESET}\n")
 
@@ -1212,7 +1249,8 @@ def main():
         if args.single:
             send_single_packet(args.commands, bind_ip, dcs_ip)
         else:
-            send_bulk(args.commands, bind_ip, dcs_ip, args.debounce)
+            cli_chain = [(cmd, args.debounce) for cmd in args.commands]
+            send_bulk(cli_chain, bind_ip, dcs_ip)
 
         print()
         input("  Press <ENTER> to exit...")

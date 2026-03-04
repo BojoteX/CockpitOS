@@ -49,6 +49,30 @@
             ],
             "oride_value": 0,
             "oride_release": 1
+        },
+        "LTD_R_SW_CUSTOM": {
+            "category": "Sensor Panel",
+            "control_type": "momentary",
+            "description": "LTD/R Switch, ARM/SAFE",
+            "identifier": "LTD_R_SW",
+            "inputs": [
+                {
+                    "interface": "fixed_step"
+                }
+            ],
+            "outputs": [
+                {
+                    "address": 29896,
+                    "address_mask_identifier": "FA_18C_hornet_LTD_R_SW_AM",
+                    "address_mask_shift_identifier": "FA_18C_hornet_LTD_R_SW",
+                    "description": "selector position",
+                    "mask": 16384,
+                    "max_value": 1,
+                    "shift_by": 14,
+                    "suffix": "",
+                    "type": "integer"
+                }
+            ]
         }
     }
 }

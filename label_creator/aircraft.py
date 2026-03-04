@@ -84,8 +84,8 @@ def merge_metadata(data: dict, label_set_dir: Path) -> None:
                 for label, item in controls.items():
                     if label not in data[category]:
                         data[category][label] = item
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"  Warning: failed to parse {jf.name}: {e}")
 
 
 def get_categories(data: dict) -> list[str]:
