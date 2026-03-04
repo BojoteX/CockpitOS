@@ -17,21 +17,11 @@ import msvcrt
 import threading
 
 import ui
+from ui import (CYAN, GREEN, YELLOW, RED, BOLD, DIM, RESET, REV,
+                HIDE_CUR, SHOW_CUR, ERASE_LN,
+                _SCROLL_BLOCK, _SCROLL_LIGHT,
+                scroll_bar_positions, clamp_scroll)
 
-# ---------------------------------------------------------------------------
-# ANSI constants (mirror ui.py)
-# ---------------------------------------------------------------------------
-CYAN     = "\033[96m"
-GREEN    = "\033[92m"
-YELLOW   = "\033[93m"
-RED      = "\033[91m"
-BOLD     = "\033[1m"
-DIM      = "\033[2m"
-RESET    = "\033[0m"
-REV      = "\033[7m"
-HIDE_CUR = "\033[?25l"
-SHOW_CUR = "\033[?25h"
-ERASE_LN = "\033[2K"
 _SEL_BG  = "\033[48;5;236m"
 WARN_BG  = "\033[43m\033[30m"   # yellow bg + black text
 
@@ -705,9 +695,6 @@ def edit_custom_pins(filepath, input_filepath, led_filepath,
     if list_height < 5:
         list_height = 5
 
-    _SCROLL_BLOCK = "\u2588"
-    _SCROLL_LIGHT = "\u2591"
-
     _flash_timer  = [None]
     _flash_active = [False]
 
@@ -737,10 +724,7 @@ def edit_custom_pins(filepath, input_filepath, led_filepath,
         if not selectable:
             return
         row_i = selectable[sel_idx]
-        if row_i < scroll:
-            scroll = row_i
-        if row_i >= scroll + list_height:
-            scroll = row_i - list_height + 1
+        scroll = clamp_scroll(row_i, scroll, list_height)
         # Also keep scroll in bounds
         max_scroll = max(0, _total_rows() - list_height)
         if scroll > max_scroll:
@@ -749,16 +733,7 @@ def edit_custom_pins(filepath, input_filepath, led_filepath,
             scroll = 0
 
     def _scroll_bar_positions():
-        total = _total_rows()
-        if total <= list_height:
-            return (0, list_height)
-        thumb = max(1, round(list_height * list_height / total))
-        max_s = total - list_height
-        if max_s <= 0:
-            top = 0
-        else:
-            top = round(scroll * (list_height - thumb) / max_s)
-        return (top, top + thumb)
+        return scroll_bar_positions(scroll, list_height, _total_rows())
 
     def _flash_row():
         if _flash_timer[0]:

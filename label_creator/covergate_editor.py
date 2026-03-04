@@ -14,20 +14,10 @@ import threading
 
 import ui
 
-# ---------------------------------------------------------------------------
-# ANSI constants (mirror ui.py)
-# ---------------------------------------------------------------------------
-CYAN     = "\033[96m"
-GREEN    = "\033[92m"
-YELLOW   = "\033[93m"
-RED      = "\033[91m"
-BOLD     = "\033[1m"
-DIM      = "\033[2m"
-RESET    = "\033[0m"
-REV      = "\033[7m"
-HIDE_CUR = "\033[?25l"
-SHOW_CUR = "\033[?25h"
-ERASE_LN = "\033[2K"
+from ui import (CYAN, GREEN, YELLOW, RED, BOLD, DIM, RESET, REV,
+                HIDE_CUR, SHOW_CUR, ERASE_LN,
+                _SCROLL_BLOCK, _SCROLL_LIGHT,
+                scroll_bar_positions, clamp_scroll)
 _SEL_BG  = "\033[48;5;236m"
 
 
@@ -234,9 +224,6 @@ def _pick_from_list(title, items, pre_select=None):
     if list_height < 3:
         list_height = 3
 
-    _SCROLL_BLOCK = "\u2588"
-    _SCROLL_LIGHT = "\u2591"
-
     _flash_timer  = [None]
     _flash_active = [False]
 
@@ -261,16 +248,7 @@ def _pick_from_list(title, items, pre_select=None):
         return len(filtered) > list_height
 
     def _scroll_bar_positions():
-        total = len(filtered)
-        if total <= list_height:
-            return (0, list_height)
-        thumb = max(1, round(list_height * list_height / total))
-        max_scroll = total - list_height
-        if max_scroll <= 0:
-            top = 0
-        else:
-            top = round(scroll * (list_height - thumb) / max_scroll)
-        return (top, top + thumb)
+        return scroll_bar_positions(scroll, list_height, len(filtered))
 
     def _render_row(i, is_highlighted, scroll_char):
         item = filtered[i]
@@ -296,10 +274,7 @@ def _pick_from_list(title, items, pre_select=None):
         if not filtered:
             scroll = 0
             return
-        if idx < scroll:
-            scroll = idx
-        if idx >= scroll + list_height:
-            scroll = idx - list_height + 1
+        scroll = clamp_scroll(idx, scroll, list_height)
 
     def _flash_row():
         if _flash_timer[0]:
@@ -616,9 +591,6 @@ def edit_covergates(filepath, input_filepath, label_set_name="", aircraft_name="
     if list_height < 5:
         list_height = 5
 
-    _SCROLL_BLOCK = "\u2588"
-    _SCROLL_LIGHT = "\u2591"
-
     _flash_timer  = [None]
     _flash_active = [False]
 
@@ -626,16 +598,7 @@ def edit_covergates(filepath, input_filepath, label_set_name="", aircraft_name="
         return len(entries) > list_height
 
     def _scroll_bar_positions():
-        total = len(entries)
-        if total <= list_height:
-            return (0, list_height)
-        thumb = max(1, round(list_height * list_height / total))
-        max_scroll = total - list_height
-        if max_scroll <= 0:
-            top = 0
-        else:
-            top = round(scroll * (list_height - thumb) / max_scroll)
-        return (top, top + thumb)
+        return scroll_bar_positions(scroll, list_height, len(entries))
 
     # Column widths
     kind_w = 16
@@ -683,10 +646,7 @@ def edit_covergates(filepath, input_filepath, label_set_name="", aircraft_name="
             idx = total - 1
         if idx < 0:
             idx = 0
-        if idx < scroll:
-            scroll = idx
-        if idx >= scroll + list_height:
-            scroll = idx - list_height + 1
+        scroll = clamp_scroll(idx, scroll, list_height)
 
     def _flash_row():
         if _flash_timer[0]:

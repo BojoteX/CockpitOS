@@ -136,11 +136,16 @@ def create_label_set(new_name: str) -> Path:
     Returns the path to the new directory.
     """
     target = LABELS_DIR / f"LABEL_SET_{new_name}"
-    target.mkdir()
-    for script in ("reset_data.py", "generate_data.py", "display_gen.py"):
-        src = _TEMPLATE_DIR / script
-        shutil.copy2(src, target / script)
-    _seed_metadata_dir(target)
+    target.mkdir(exist_ok=False)
+    try:
+        for script in ("reset_data.py", "generate_data.py", "display_gen.py"):
+            src = _TEMPLATE_DIR / script
+            shutil.copy2(src, target / script)
+        _seed_metadata_dir(target)
+    except Exception:
+        # Rollback: remove the partially-created directory on failure
+        shutil.rmtree(target, ignore_errors=True)
+        raise
     return target
 
 

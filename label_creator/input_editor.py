@@ -15,20 +15,14 @@ import threading
 import ui
 
 # ---------------------------------------------------------------------------
-# ANSI constants (mirror ui.py / panels.py)
+# ANSI / scroll imports from shared TUI (via ui.py)
 # ---------------------------------------------------------------------------
-CYAN     = "\033[96m"
-GREEN    = "\033[92m"
-YELLOW   = "\033[93m"
-RED      = "\033[91m"
+from ui import (CYAN, GREEN, YELLOW, RED, BOLD, DIM, RESET, REV,
+                HIDE_CUR, SHOW_CUR, ERASE_LN,
+                _SCROLL_BLOCK, _SCROLL_LIGHT,
+                scroll_bar_positions, clamp_scroll)
+
 BLUE     = "\033[94m"
-BOLD     = "\033[1m"
-DIM      = "\033[2m"
-RESET    = "\033[0m"
-REV      = "\033[7m"
-HIDE_CUR = "\033[?25l"
-SHOW_CUR = "\033[?25h"
-ERASE_LN = "\033[2K"
 
 _SECTION_SEP = f"\n  {DIM}\u2500\u2500 Configure \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500{RESET}\n"
 _SEL_BG  = "\033[48;5;236m"    # subtle dark gray row highlight
@@ -1405,8 +1399,6 @@ def edit_input_mapping(filepath, label_set_name="", aircraft_name=""):
     if list_height < 5:
         list_height = 5
 
-    _SCROLL_BLOCK = "\u2588"
-    _SCROLL_LIGHT = "\u2591"
     needs_scroll = total > list_height
 
     _flash_timer  = [None]
@@ -1430,15 +1422,7 @@ def edit_input_mapping(filepath, label_set_name="", aircraft_name=""):
         return n
 
     def _scroll_bar_positions():
-        if not needs_scroll:
-            return (0, list_height)
-        thumb = max(1, round(list_height * list_height / total))
-        max_scroll = total - list_height
-        if max_scroll <= 0:
-            top = 0
-        else:
-            top = round(scroll * (list_height - thumb) / max_scroll)
-        return (top, top + thumb)
+        return scroll_bar_positions(scroll, list_height, total)
 
     # Column widths — fill terminal width
     # Layout: " > " (3) + label + source + port + bit + hid + type + scroll(1)
@@ -1499,10 +1483,7 @@ def edit_input_mapping(filepath, label_set_name="", aircraft_name=""):
 
     def _clamp_scroll():
         nonlocal scroll
-        if idx < scroll:
-            scroll = idx
-        if idx >= scroll + list_height:
-            scroll = idx - list_height + 1
+        scroll = clamp_scroll(idx, scroll, list_height)
 
     def _flash_row():
         if _flash_timer[0]:
