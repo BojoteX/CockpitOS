@@ -1,11 +1,18 @@
 # Changelog
 
+## v1.2.5 — 2026-03-04
+
+### Improved
+- Unit Tests for Auto-Generator
+- Update test_preservation.py
+- Refactor all Python tooling for easier flows + README.md simple steps
+
 ## v1.2.4 — 2026-03-01
 
 ### Improved
-- Misc bug fixes
-- BLE HID Implementation
-- Small BLE cache fix
+- Update test_preservation.py
+- Update README.md
+- Update README.md
 - Unit Tests for Auto-Generator
 
 ## v1.2.3 — 2026-03-01
