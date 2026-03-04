@@ -36,6 +36,16 @@ import urllib.request
 import winreg
 from pathlib import Path
 
+# Add shared TUI base to module search path
+sys.path.insert(0, str(Path(__file__).resolve().parent / "shared"))
+from tui import (                           # noqa: E402
+    CYAN, GREEN, YELLOW, RED, BOLD, DIM, RESET, REV,
+    HIDE_CUR, SHOW_CUR, ERASE_LN,
+    _w, cls, cprint, header, info,
+    success, warn, error,
+    big_success, big_fail, confirm,
+)
+
 # =============================================================================
 #  MANIFEST — Source of truth for recommended versions
 #  arduino-cli v1.4.1 is bundled at compiler/arduino-cli/arduino-cli.exe
@@ -58,7 +68,6 @@ MANIFEST = {
         "packages": {
             "hid":      "hidapi",
             "filelock": "filelock",
-            "curses":   "windows-curses",
             "ifaddr":   "ifaddr",
         },
     },
@@ -87,21 +96,6 @@ MANIFEST_DEFAULTS = {
 SCRIPT_DIR = Path(__file__).resolve().parent
 CLI_EXE = SCRIPT_DIR / "compiler" / "arduino-cli" / "arduino-cli.exe"
 
-# =============================================================================
-#  ANSI (mirrors compiler/ui.py)
-# =============================================================================
-CYAN     = "\033[96m"
-GREEN    = "\033[92m"
-YELLOW   = "\033[93m"
-RED      = "\033[91m"
-BOLD     = "\033[1m"
-DIM      = "\033[2m"
-RESET    = "\033[0m"
-REV      = "\033[7m"
-HIDE_CUR = "\033[?25l"
-SHOW_CUR = "\033[?25h"
-ERASE_LN = "\033[2K"
-
 _ANSI_RE = re.compile(r'\033\[[^m]*m')
 
 def _visible_len(s):
@@ -109,84 +103,8 @@ def _visible_len(s):
     return len(_ANSI_RE.sub('', s))
 
 
-def _enable_ansi():
-    """Enable ANSI escape processing on Windows 10+."""
-    kernel32 = ctypes.windll.kernel32
-    h = kernel32.GetStdHandle(-11)          # STD_OUTPUT_HANDLE
-    mode = ctypes.c_ulong()
-    kernel32.GetConsoleMode(h, ctypes.byref(mode))
-    kernel32.SetConsoleMode(h, mode.value | 0x0004)
-
-_enable_ansi()
-
-
-def _w(text):
-    """Write raw text to stdout (no newline)."""
-    try:
-        sys.stdout.write(text)
-        sys.stdout.flush()
-    except UnicodeEncodeError:
-        sys.stdout.write(text.encode("ascii", "replace").decode())
-        sys.stdout.flush()
-
-
-def cls():
-    os.system("cls")
-
-
-def info(text):
-    _w(f"       {text}\n")
-
-
-def success(text):
-    _w(f"  {GREEN}[OK]{RESET} {text}\n")
-
-
-def warn(text):
-    _w(f"  {YELLOW}[!]{RESET}  {text}\n")
-
-
-def error(text):
-    _w(f"  {RED}[X]{RESET}  {text}\n")
-
-
 def step_banner(num, total, text):
     _w(f"\n  {CYAN}[{num}/{total}]{RESET} {BOLD}{text}{RESET}\n\n")
-
-
-def big_success(title, details=None):
-    cols = min(shutil.get_terminal_size((80, 24)).columns, 72)
-    border = "=" * cols
-    _w(f"\n{GREEN}{border}{RESET}\n")
-    _w(f"{GREEN}{BOLD}  {title}{RESET}\n")
-    if details:
-        for d in details:
-            _w(f"{GREEN}  {d}{RESET}\n")
-    _w(f"{GREEN}{border}{RESET}\n\n")
-
-
-def big_fail(title, details=None):
-    cols = min(shutil.get_terminal_size((80, 24)).columns, 72)
-    border = "=" * cols
-    _w(f"\n{RED}{border}{RESET}\n")
-    _w(f"{RED}{BOLD}  {title}{RESET}\n")
-    if details:
-        for d in details:
-            _w(f"{RED}  {d}{RESET}\n")
-    _w(f"{RED}{border}{RESET}\n\n")
-
-
-def confirm(prompt):
-    """Y/n prompt. Returns True (Enter/Y) or False (N/Esc)."""
-    _w(f"\n  {prompt} [{BOLD}Y{RESET}/n]: ")
-    while True:
-        ch = msvcrt.getwch()
-        if ch in ("\r", "y", "Y"):
-            _w("y\n")
-            return True
-        if ch in ("n", "N", "\x1b"):
-            _w("n\n")
-            return False
 
 
 SEP_COLOR = "\033[38;5;240m"       # subtle gray for separators

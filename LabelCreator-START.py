@@ -13,8 +13,10 @@ if platform.system() != "Windows":
 
 from pathlib import Path
 
-_creator_dir = Path(__file__).resolve().parent / "label_creator"
-sys.path.insert(0, str(_creator_dir))
+# Add shared/ and label_creator/ to the module search path.
+_project_root = Path(__file__).resolve().parent
+sys.path.insert(0, str(_project_root / "shared"))
+sys.path.insert(0, str(_project_root / "label_creator"))
 
 from label_creator import main
 

@@ -62,7 +62,7 @@ Data Flow
 
 Threading Model (zero-contention design)
 -----------------------------------------
-  Main Thread ............ curses UI (ConsoleUI._loop), 100 ms refresh
+  Main Thread ............ ANSI UI (ConsoleUI._loop), 100 ms refresh
   Device Monitor Thread .. hotplug scan every HOTPLUG_INTERVAL_S (3 s)
   Stats Updater Thread ... 1-second rolling stats for the UI
   UDP RX Thread .......... blocking recvfrom(), slices + fans out
@@ -135,8 +135,7 @@ from typing import Optional, List, Dict, Tuple, Any
 # launched from any working directory.
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Platform flags — used to select the correct pip package name for curses
-# (windows-curses on Windows, built-in on Linux/macOS).
+# Platform flags — used for platform-specific keyboard input and paths.
 IS_WINDOWS = (os.name == 'nt') or sys.platform.startswith('win')
 IS_LINUX = sys.platform.startswith('linux')
 IS_MACOS = sys.platform == 'darwin'
@@ -152,13 +151,11 @@ IS_MACOS = sys.platform == 'darwin'
 # Module map: { import_name: pip_package_name }
 #   hid      → hidapi   : USB HID communication (read/write/feature reports)
 #   filelock → filelock  : cross-process single-instance locking
-#   curses   → windows-curses (Windows only) : terminal UI
 #   ifaddr   → ifaddr   : enumerate network interfaces for multicast joins
 
 REQUIRED_MODULES = {
     "hid": "hidapi",
     "filelock": "filelock",
-    "curses": "windows-curses" if IS_WINDOWS else None,
     "ifaddr": "ifaddr",
 }
 
@@ -176,16 +173,53 @@ if missing:
     print("Missing required modules:")
     for m in missing:
         print(f"  - {m}")
-    to_pip = [m for m in missing if m not in ("curses",)]
+    to_pip = list(missing)
     if to_pip:
         print(f"\nInstall with: pip install {' '.join(to_pip)}")
     input("\nPress Enter to exit...")
     sys.exit(1)
 
 import hid          # USB HID device enumeration, open, read, write, feature reports
-import curses       # Terminal UI (ncurses wrapper)
 import ifaddr       # Network interface enumeration for multicast
+
+# Cross-platform keyboard input (replaces curses getch)
+if IS_WINDOWS:
+    import msvcrt
+else:
+    import select
+    import tty
+    import termios
 from filelock import FileLock, Timeout  # Cross-process file-based locking
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ANSI TERMINAL SETUP
+# ══════════════════════════════════════════════════════════════════════════════
+# Pure ANSI escape codes for all terminal UI — no curses dependency.
+# Matches the patterns used in compiler/ui.py and label_creator/ui.py.
+
+_HIDE_CUR = "\033[?25l"
+_SHOW_CUR = "\033[?25h"
+_BOLD      = "\033[1m"
+_DIM       = "\033[2m"
+_RESET     = "\033[0m"
+_RED       = "\033[91m"
+_GREEN     = "\033[92m"
+_YELLOW    = "\033[93m"
+_CLR_LINE  = "\033[K"       # Clear from cursor to end of line
+
+def _w(s: str) -> None:
+    """Write ANSI string to stdout and flush."""
+    sys.stdout.write(s)
+    sys.stdout.flush()
+
+# Enable ANSI escape processing on Windows 10+ (required for color codes).
+if IS_WINDOWS:
+    import ctypes
+    _kernel32 = ctypes.windll.kernel32
+    _h_out = _kernel32.GetStdHandle(-11)  # STD_OUTPUT_HANDLE
+    _mode = ctypes.c_ulong()
+    _kernel32.GetConsoleMode(_h_out, ctypes.byref(_mode))
+    _kernel32.SetConsoleMode(_h_out, _mode.value | 0x0004)  # ENABLE_VIRTUAL_TERMINAL_PROCESSING
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SINGLE INSTANCE LOCK
@@ -1324,7 +1358,7 @@ class NetworkManager:
 # ══════════════════════════════════════════════════════════════════════════════
 # CONSOLE UI
 # ══════════════════════════════════════════════════════════════════════════════
-# ncurses-based terminal interface showing:
+# ANSI-based terminal interface showing:
 #   - Header row: cumulative frame count, Hz, kB/s, avg frame size, DCS IP
 #   - Device table: name, status (colour-coded), reconnection count
 #   - Scrolling log: timestamped messages from all threads
@@ -1343,18 +1377,38 @@ def _ts() -> str:
     return datetime.now().strftime("%H:%M:%S")
 
 
+def _getch_timeout(timeout_sec: float) -> Optional[str]:
+    """Wait up to *timeout_sec* for a keypress.  Returns the character
+    or None if no key was pressed before the deadline.
+
+    Cross-platform: uses msvcrt on Windows, select+termios on Unix/Mac.
+    """
+    if IS_WINDOWS:
+        deadline = time.monotonic() + timeout_sec
+        while time.monotonic() < deadline:
+            if msvcrt.kbhit():
+                return msvcrt.getwch()
+            time.sleep(0.02)  # 20 ms poll — matches curses getch granularity
+        return None
+    else:
+        rlist, _, _ = select.select([sys.stdin], [], [], timeout_sec)
+        if rlist:
+            return sys.stdin.read(1)
+        return None
+
+
 class ConsoleUI:
-    """Curses-based terminal UI.  Runs on the main thread via curses.wrapper().
+    """Pure-ANSI terminal UI.  Runs on the main thread.
 
     CPU OPTIMISATION [v5.2]: Adaptive refresh rate.
     Previously ran at a fixed 10 Hz (100 ms getch timeout) unconditionally
     — draining the queue, rebuilding the device table, and repainting every
     cycle even when nothing had changed.  Now uses a two-speed approach:
 
-      IDLE  (no events in last cycle) : 500 ms getch timeout → 2 Hz refresh
-      ACTIVE (events were consumed)   : 100 ms getch timeout → 10 Hz refresh
+      IDLE  (no events in last cycle) : 500 ms timeout → 2 Hz refresh
+      ACTIVE (events were consumed)   : 100 ms timeout → 10 Hz refresh
 
-    This cuts UI thread wake-ups by 5× during idle (no DCS mission, no
+    This cuts UI thread wake-ups by 5x during idle (no DCS mission, no
     device activity) while remaining fully responsive when data is flowing.
     The transition is instantaneous — any event in the queue triggers the
     next cycle at 100 ms.
@@ -1415,92 +1469,120 @@ class ConsoleUI:
         self._rows = rows
         return had_events
 
-    def _paint(self, stdscr) -> None:
+    def _paint(self) -> None:
         """Render the full UI: header, device table, log, and status bar.
-        Uses addnstr() everywhere to avoid curses errors on narrow terminals."""
-        stdscr.erase()
-        h, w = stdscr.getmaxyx()
+        Uses cursor positioning and line clearing for flicker-free updates.
+        All output is buffered into a single write+flush."""
+        try:
+            sz = os.get_terminal_size()
+            w, h = sz.columns, sz.lines
+        except OSError:
+            w, h = 80, 24  # Fallback for redirected stdout
+
+        buf = []
+
+        def _line(row: int, text: str, attr: str = "") -> None:
+            """Append a positioned, truncated, line-cleared row to the buffer."""
+            buf.append(f"\033[{row};1H{attr}{text[:w - 1]}{_CLR_LINE}{_RESET}")
 
         # ── Header: stats summary ──────────────────────────────────────
         hdr = (f"Frames: {self._stats['frames']}   Hz: {self._stats['hz']}   "
                f"kB/s: {self._stats['bw']}   Avg UDP Frame size (Bytes): {self._stats['avgudp']}   "
                f"Data Source: {self._stats['src']}")
-        stdscr.addnstr(0, 0, hdr, w - 1, curses.A_BOLD)
+        _line(1, hdr, _BOLD)
+
+        # Blank separator rows 2-3
+        _line(2, "")
+        _line(3, "")
 
         # ── Device table header ────────────────────────────────────────
-        stdscr.addnstr(3, 0, f"{'Device':<38} {'Status':<16} {'Reconnections':<14}", w - 1)
+        _line(4, f"{'Device':<38} {'Status':<16} {'Reconnections':<14}")
 
         # ── Device rows (colour-coded by status) ──────────────────────
-        y = 4
+        y = 5
         for name, status, reconn in self._rows:
-            attr = curses.A_NORMAL
+            attr = ""
             sl = status.lower()
             if 'ready' in sl:
-                attr = curses.color_pair(2)      # Green
+                attr = _GREEN
             elif ('wait' in sl) or ('handshake' in sl):
-                attr = curses.color_pair(3)      # Yellow
+                attr = _YELLOW
             elif ('off' in sl) or ('disconn' in sl):
-                attr = curses.color_pair(1)      # Red
-            stdscr.addnstr(y, 0, f"{name:<38} {status:<16} {reconn:<14}", w - 1, attr)
+                attr = _RED
+            _line(y, f"{name:<38} {status:<16} {reconn:<14}", attr)
             y += 1
 
+        # Clear any leftover rows from a previously longer device list
+        y += 1  # blank separator
+        _line(y, "")
+
         # ── Scrolling log (fills remaining space) ─────────────────────
-        y += 2
-        avail = max(0, h - y - 1)
+        log_start = y + 1
+        avail = max(0, h - log_start - 1)
         if avail > 0 and self._log:
-            # Show only the most recent lines that fit on screen
             tail = list(self._log)[-avail:]
             for i, line in enumerate(tail):
-                stdscr.addnstr(y + i, 0, line, w - 1)
+                _line(log_start + i, line)
+            # Clear remaining log area below the last log line
+            for j in range(len(tail), avail):
+                _line(log_start + j, "")
+        elif avail > 0:
+            for j in range(avail):
+                _line(log_start + j, "")
 
         # ── Status bar (bottom row) ───────────────────────────────────
         dev_cnt = len(self._rows)
-        stdscr.addnstr(h - 1, 0, f"{dev_cnt} device(s) connected.  Press 'q' to quit.", w - 1, curses.A_DIM)
-        stdscr.noutrefresh()
-        curses.doupdate()
+        _line(h, f"{dev_cnt} device(s) connected.  Press 'q' to quit.", _DIM)
 
-    def _loop(self, stdscr) -> None:
-        """Main curses loop.  Runs until 'q' or Esc is pressed.
+        # Single write + flush — equivalent to curses noutrefresh + doupdate
+        sys.stdout.write("".join(buf))
+        sys.stdout.flush()
 
-        CPU OPTIMISATION [v5.2]: Adaptive getch timeout.
+    def _loop(self) -> None:
+        """Main UI loop.  Runs until 'q' or Esc is pressed.
+
+        CPU OPTIMISATION [v5.2]: Adaptive timeout.
         Uses 100 ms (10 Hz) when the previous cycle consumed events, and
         500 ms (2 Hz) when idle.  This keeps the UI snappy during active
-        DCS sessions while cutting idle wake-ups by 5×.  The transition
+        DCS sessions while cutting idle wake-ups by 5x.  The transition
         back to fast mode is instantaneous — any queued event triggers
         a fast repaint on the very next cycle.
         """
-        curses.curs_set(0)           # Hide cursor
-        curses.use_default_colors()  # Transparent background
-        curses.init_pair(1, curses.COLOR_RED, -1)     # Disconnected
-        curses.init_pair(2, curses.COLOR_GREEN, -1)   # Ready
-        curses.init_pair(3, curses.COLOR_YELLOW, -1)  # Waiting
+        _w(_HIDE_CUR)
+        _w("\033[2J\033[H")  # Clear screen and home cursor
         self._running.set()
 
-        # Adaptive refresh: start active (100 ms) to paint the initial UI
-        # immediately, then drop to idle (500 ms) if no events arrive.
-        _TIMEOUT_ACTIVE = 100   # ms — responsive during data flow
-        _TIMEOUT_IDLE   = 500   # ms — near-zero CPU when nothing happens
+        _TIMEOUT_ACTIVE = 0.1   # seconds — responsive during data flow
+        _TIMEOUT_IDLE   = 0.5   # seconds — near-zero CPU when nothing happens
         cur_timeout = _TIMEOUT_ACTIVE
-        stdscr.timeout(cur_timeout)
 
-        while self._running.is_set():
-            had_events = self._consume()
-            self._paint(stdscr)
-            ch = stdscr.getch()
-            if ch in (ord('q'), 27):  # 'q' or Esc
-                self._running.clear()
+        try:
+            while self._running.is_set():
+                had_events = self._consume()
+                self._paint()
+                ch = _getch_timeout(cur_timeout)
+                if ch in ('q', '\x1b'):  # 'q' or Esc
+                    self._running.clear()
 
-            # Adaptive timeout: switch speed based on whether we consumed
-            # events this cycle.  stdscr.timeout() is a cheap call (sets a
-            # single integer in the curses WINDOW struct, no syscall).
-            next_timeout = _TIMEOUT_ACTIVE if had_events else _TIMEOUT_IDLE
-            if next_timeout != cur_timeout:
-                cur_timeout = next_timeout
-                stdscr.timeout(cur_timeout)
+                # Adaptive timeout: switch speed based on whether we consumed
+                # events this cycle.
+                cur_timeout = _TIMEOUT_ACTIVE if had_events else _TIMEOUT_IDLE
+        finally:
+            _w(_SHOW_CUR)
+            _w("\033[2J\033[H")  # Clear screen on exit
 
     def run(self) -> None:
-        """Enter the curses event loop (blocks until quit)."""
-        curses.wrapper(self._loop)
+        """Enter the UI event loop (blocks until quit)."""
+        if not IS_WINDOWS:
+            # Unix: set terminal to raw mode for single-char reads
+            old_settings = termios.tcgetattr(sys.stdin)
+            try:
+                tty.setraw(sys.stdin.fileno())
+                self._loop()
+            finally:
+                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+        else:
+            self._loop()
 
     def stop(self) -> None:
         """Signal the UI loop to exit."""
@@ -1512,12 +1594,12 @@ class ConsoleUI:
 # Wires everything together:
 #   1. Creates the shared device list (protected by device_lock)
 #   2. Starts the UI, network manager, device monitor, and stats updater
-#   3. Runs the curses event loop on the main thread
+#   3. Runs the ANSI UI event loop on the main thread
 #   4. Cleans up on exit (net.stop() closes sockets and workers)
 
 def start_console_mode() -> None:
     """Application entry point.  Creates all subsystems, launches daemon
-    threads, and runs the curses UI on the main thread until the user quits.
+    threads, and runs the ANSI UI on the main thread until the user quits.
     """
 
     # ── Shared device list ─────────────────────────────────────────────

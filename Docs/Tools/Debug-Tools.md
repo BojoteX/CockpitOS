@@ -24,7 +24,7 @@ The HID Manager is the host-side bridge between DCS World (via DCS-BIOS UDP mult
 | Hotplug | Detects connect/disconnect every 3 seconds |
 | Multi-NIC | Joins multicast on ALL network interfaces, fixing Windows multi-adapter setups |
 | Single-instance | File lock prevents two managers from fighting over HID handles |
-| Adaptive UI | curses-based console with color-coded device status, live stats (Hz, kB/s, avg frame size), and a scrolling log |
+| Adaptive UI | ANSI-based console with color-coded device status, live stats (Hz, kB/s, avg frame size), and a scrolling log |
 | Frame-skip | When a panel falls behind, skips stale frames and jumps to the latest state |
 
 ### Configuration -- settings.ini
@@ -53,7 +53,7 @@ CONSOLE = 1
 ### Dependencies
 
 ```
-pip install hidapi filelock windows-curses ifaddr
+pip install hidapi filelock ifaddr
 ```
 
 ### How to Run
@@ -256,7 +256,7 @@ No command-line arguments. Reads `dcsbios_data.json` from the current directory 
 
 | Tool | Extra pip packages |
 |------|--------------------|
-| HID Manager | `hidapi`, `filelock`, `windows-curses`, `ifaddr` |
+| HID Manager | `hidapi`, `filelock`, `ifaddr` |
 | PLAY_DCS_stream.py | `ifaddr` |
 | RECORD_DCS_stream.py | `ifaddr` |
 | BOOTLOADER_reset_tool.py | `ifaddr` |
