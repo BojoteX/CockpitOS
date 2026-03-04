@@ -1,11 +1,49 @@
 # Changelog
 
-## v1.2.2 — 2026-03-01
+## v1.2.6 — 2026-03-04
 
 ### Improved
-- Misc bug fixes
-- Misc bug fixes
-- BLE HID Implementation
+- Refactor all Python tooling for easier flows + README.md simple steps
+
+## v1.2.5 — 2026-03-04
+
+### Improved
+- Misc Cleaning
+- Set IFEI as default LABEL set
+- Refactor Python Tools
+- Set IFEI as default LABEL SET
+- Bulk command tester script refactor
+- Firmware Loaded this version
+- Update test_preservation.py
+
+### Fixed
+- Fixed BLE memory init and added HID ID editor in Label Editor
+
+## v1.2.4 — 2026-03-01
+
+### Improved
+- Update test_preservation.py
+- Update README.md
+- Update README.md
+- Unit Tests for Auto-Generator
+
+## v1.2.3 — 2026-03-01
+
+### Improved
+- Small BLE cache fix
+
+## v1.2.2 — 2026-03-01
+
+### Added
+- Implemented BLE mode as transport
+
+### Improved
+- Cleanup BLE Settings
+- Set IFEI as default Label Set
+- Cleanup and misc changes
+
+### Fixed
+- Bug fixing and maintenance
 
 ## v1.2.1 — 2026-02-28
 
