@@ -4,6 +4,7 @@
 
 ### Improved
 - Refactor all Python tooling for easier flows + README.md simple steps
+- Updated README.md
 
 ## v1.2.5 — 2026-03-04
 
