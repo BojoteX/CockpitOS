@@ -22,12 +22,7 @@ This Python application bridges DCS World (via DCS-BIOS) with ESP32-based cockpi
 ### Python Dependencies
 
 ```bash
-pip install hidapi filelock
-```
-
-**Windows only:**
-```bash
-pip install windows-curses
+pip install hidapi filelock ifaddr
 ```
 
 ## Installation

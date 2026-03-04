@@ -17,11 +17,12 @@ if platform.system() != "Windows":
 
 from pathlib import Path
 
-# Add the compiler directory to the module search path so all
-# internal modules (ui, config, boards, build, labels, cockpitos)
+# Add shared/ and compiler/ to the module search path so all
+# internal modules (tui, ui, config, boards, build, labels, cockpitos)
 # can find each other via simple imports.
-_compiler_dir = Path(__file__).resolve().parent / "compiler"
-sys.path.insert(0, str(_compiler_dir))
+_project_root = Path(__file__).resolve().parent
+sys.path.insert(0, str(_project_root / "shared"))
+sys.path.insert(0, str(_project_root / "compiler"))
 
 from cockpitos import main
 

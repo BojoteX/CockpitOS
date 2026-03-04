@@ -17,25 +17,12 @@ import threading
 from pathlib import Path
 
 import ui
+from ui import (CYAN, GREEN, YELLOW, RED, BOLD, DIM, RESET, REV,
+                HIDE_CUR, SHOW_CUR, ERASE_LN,
+                _SCROLL_BLOCK, _SCROLL_LIGHT,
+                scroll_bar_positions, clamp_scroll)
 
-# ---------------------------------------------------------------------------
-# ANSI constants (mirror ui.py)
-# ---------------------------------------------------------------------------
-CYAN     = "\033[96m"
-GREEN    = "\033[92m"
-YELLOW   = "\033[93m"
-RED      = "\033[91m"
-BOLD     = "\033[1m"
-DIM      = "\033[2m"
-RESET    = "\033[0m"
-REV      = "\033[7m"
-HIDE_CUR = "\033[?25l"
-SHOW_CUR = "\033[?25h"
-ERASE_LN = "\033[2K"
 _SEL_BG  = "\033[48;5;236m"
-
-_SCROLL_BLOCK = "\u2588"
-_SCROLL_LIGHT = "\u2591"
 
 EDITABLE_TYPES = [
     ("selector",        "Multi-position switch (0..N)"),
@@ -267,26 +254,14 @@ def _pick_source_control(aircraft_data: dict,
         return len(filtered_indices) > list_height
 
     def _scroll_bar_positions():
-        ftotal = len(filtered_indices)
-        if ftotal <= list_height:
-            return (0, list_height)
-        thumb = max(1, round(list_height * list_height / ftotal))
-        max_scroll = ftotal - list_height
-        if max_scroll <= 0:
-            top = 0
-        else:
-            top = round(scroll * (list_height - thumb) / max_scroll)
-        return (top, top + thumb)
+        return scroll_bar_positions(scroll, list_height, len(filtered_indices))
 
     def _clamp_scroll():
         nonlocal scroll
         if not filtered_indices:
             scroll = 0
             return
-        if idx < scroll:
-            scroll = idx
-        if idx >= scroll + list_height:
-            scroll = idx - list_height + 1
+        scroll = clamp_scroll(idx, scroll, list_height)
 
     def _flash_row():
         if _flash_timer[0]:
@@ -989,16 +964,7 @@ def edit_custom_controls(custom_json_path: str, aircraft_data: dict,
         return len(entries) > list_height
 
     def _scroll_bar_positions():
-        total = len(entries)
-        if total <= list_height:
-            return (0, list_height)
-        thumb = max(1, round(list_height * list_height / total))
-        max_scroll = total - list_height
-        if max_scroll <= 0:
-            top = 0
-        else:
-            top = round(scroll * (list_height - thumb) / max_scroll)
-        return (top, top + thumb)
+        return scroll_bar_positions(scroll, list_height, len(entries))
 
     def _clamp_scroll():
         nonlocal scroll, idx
@@ -1011,10 +977,7 @@ def edit_custom_controls(custom_json_path: str, aircraft_data: dict,
             idx = total - 1
         if idx < 0:
             idx = 0
-        if idx < scroll:
-            scroll = idx
-        if idx >= scroll + list_height:
-            scroll = idx - list_height + 1
+        scroll = clamp_scroll(idx, scroll, list_height)
 
     def _flash_row():
         if _flash_timer[0]:

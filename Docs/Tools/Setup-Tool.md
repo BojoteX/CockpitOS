@@ -22,7 +22,7 @@ The Setup Tool manages three components:
 |-----------|---------|-----------------|
 | ESP32 Arduino Core (`esp32:esp32`) | 3.3.6 | `%LOCALAPPDATA%/Arduino15/` |
 | LovyanGFX library | 1.2.19 | `~/Documents/Arduino/libraries/` |
-| HID Manager Python deps (`hidapi`, `filelock`, `windows-curses`, `ifaddr`) | latest | Python site-packages |
+| HID Manager Python deps (`hidapi`, `filelock`, `ifaddr`) | latest | Python site-packages |
 
 The ESP32 core and LovyanGFX are installed into **standard Arduino locations** so they are shared with any Arduino IDE you might also have installed. The ESP32 core provides the board definitions and toolchains for all supported ESP32 variants. LovyanGFX provides TFT display support. The HID Manager dependencies are Python packages required by the USB HID bridge tool.
 
@@ -44,7 +44,7 @@ MANIFEST = {
     "hid_manager_deps": {
         "packages": {
             "hid": "hidapi", "filelock": "filelock",
-            "curses": "windows-curses", "ifaddr": "ifaddr",
+            "ifaddr": "ifaddr",
         },
     },
 }
