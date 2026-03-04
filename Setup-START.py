@@ -814,6 +814,14 @@ def action_setup():
     # --- Step 3: Libraries (LovyanGFX + NimBLE-Arduino) ---
     step_banner(3, total, "Libraries (LovyanGFX + NimBLE-Arduino)")
 
+    info("Updating library index...")
+    rc, _, err = retry("Library index update",
+                       lambda: run_cli("lib", "update-index"))
+    if rc != 0:
+        error(f"Failed to update library index: {err.strip()}")
+    else:
+        success("Library index updated")
+
     for lib_key, skip_msg in [
         ("lovyangfx", "Skipped. LovyanGFX is required for TFT display support."),
         ("nimble",    "Skipped. NimBLE-Arduino is required for BLE transport."),
