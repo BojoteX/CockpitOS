@@ -876,7 +876,7 @@ void HIDManager_setToggleNamedButton(const char* name, bool deferSend) {
     // Priority 2: releaseValue > 0 → atomic press-delay-release (custom override, edge case).
     // Default:    normal press/release via sendDCSBIOSCommand.
     if (dcsAllowed && m->oride_label) {
-        const LEDMapping* led = newOn ? findLED(m->oride_label) : nullptr;
+        const LEDMapping* led = findLED(m->oride_label);
         bool isMagnetic = led && led->deviceType == DEVICE_MAGNETIC;
         bool hasDeferredRelease = isMagnetic || m->releaseValue > 0;
 
@@ -957,7 +957,7 @@ void HIDManager_setNamedButton(const char* name, bool deferSend, bool pressed) {
                 // Priority 1: DEVICE_MAGNETIC → atomic press-delay-release (release from gpioB).
                 // Priority 2: releaseValue > 0 → atomic press-delay-release (custom override, edge case).
                 // Default:    normal press/release via sendDCSBIOSCommand.
-                const LEDMapping* led = pressed ? findLED(m->oride_label) : nullptr;
+                const LEDMapping* led = findLED(m->oride_label);
                 bool isMagnetic = led && led->deviceType == DEVICE_MAGNETIC;
                 bool hasDeferredRelease = isMagnetic || m->releaseValue > 0;
 
