@@ -377,9 +377,9 @@ def run():
                     press_val = custom_oride if custom_oride is not None else 1
                     full_label = f"{ident}_PRESS"
                     selector_entries.append((full_label, orig_ident, press_val, 'momentary', 0, "PRESS", ident))
-                    # Store release value for custom momentaries (default 0)
-                    custom_release = item.get('oride_release', 0)
-                    if custom_release:
+                    # Store release value for atomic press-delay-release (None = RELEASE_NONE)
+                    custom_release = item.get('oride_release', None)
+                    if custom_release is not None:
                         custom_release_map[full_label] = int(custom_release)
                     continue
 
@@ -411,8 +411,8 @@ def run():
                 press_val = custom_oride if custom_oride is not None else 1
                 full_label = f"{ident}_PRESS"
                 selector_entries.append((full_label, orig_ident, press_val, 'momentary', 0, "PRESS", ident))
-                custom_release = item.get('oride_release', 0)
-                if custom_release:
+                custom_release = item.get('oride_release', None)
+                if custom_release is not None:
                     custom_release_map[full_label] = int(custom_release)
                 continue
             # --- End custom control override ---
@@ -1152,7 +1152,7 @@ def run():
                 merged.append((
                     emit_label, e["source"], e["port"], e["bit"],
                     e["hidId"], e["oride_label"], e["oride_value"],
-                    e["controlType"], e["group"], e["releaseValue"]
+                    e["controlType"], e["group"], 0
                 ))
         else:
             final_grp = alloc_group(json_key, grp, full)  # <- key on ident, not cmd
@@ -1189,7 +1189,7 @@ def run():
             log.write(f"# These entries existed in {INPUT_REFERENCE} with real hardware wiring\n")
             log.write(f"# but were NOT produced by the current JSON. Wiring data preserved below.\n")
             for e in orphaned:
-                rel = e.get("releaseValue", 0)
+                rel = e.get("releaseValue", 65535)
                 log.write(
                     f'    {{ "{e["label"]}" , "{e["source"]}" , {e["port"]} , '
                     f'{e["bit"]} , {e["hidId"]} , "{e["oride_label"]}" , '
@@ -1222,7 +1222,7 @@ def run():
         f2.write("    uint16_t    oride_value;  // Override command value (value)\n")
         f2.write("    const char* controlType;  // Control type, e.g., \"selector\"\n")
         f2.write("    uint16_t    group;        // Group ID for exclusive selectors\n")
-        f2.write("    uint16_t    releaseValue; // DCS-BIOS value sent on momentary release (0 = default)\n")
+        f2.write("    uint16_t    releaseValue; // Deferred release value (0 = default, >0 = atomic press-delay-release)\n")
         f2.write("};\n\n")
         f2.write('//  label                       source     port bit hidId  DCSCommand           value   Type        group  rel\n')
 
@@ -1241,8 +1241,9 @@ def run():
                 # Format override value safely
                 # val_str = f"0xFFFF" if val > 32767 else f"{val:>5}"
                 val_str = f"{val:>5}"
+                rel_str = f"{rel}"
                 f2.write(f'    {{ {lblf}, "{src}" , {port:>2} , {bit:>2} , {hid:>3} , '
-                     f'{cmdf}, {val_str} , {ctf}, {gp:>2} , {rel:>2} }},\n')
+                     f'{cmdf}, {val_str} , {ctf}, {gp:>2} , {rel_str} }},\n')
 
             f2.write("};\n")
 

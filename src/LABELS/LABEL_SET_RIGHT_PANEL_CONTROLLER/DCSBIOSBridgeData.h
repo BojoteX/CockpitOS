@@ -301,6 +301,7 @@ static const SelectorEntry SelectorMap[] = {
     { "RADAR_SW_DEC","RADAR_SW",0,"fixed_step",0,"DEC" },
     { "RADAR_SW_INC","RADAR_SW",1,"fixed_step",0,"INC" },
     { "RADAR_SW_PULL","RADAR_SW_PULL",1,"momentary",0,"PRESS" },
+    { "LTD_R_SW_CUSTOM_PRESS","LTD_R_SW",1,"momentary",0,"PRESS" },
 };
 static const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);
 
@@ -494,7 +495,7 @@ static const SelectorHashEntry selectorHashTable[191] = {
   {"CB_LG", 1, &SelectorMap[64]},
   {"INS_SW", 4, &SelectorMap[74]},
   {"LTD_R_SW", 1, &SelectorMap[83]},
-  {nullptr, 0, nullptr},
+  {"LTD_R_SW", 1, &SelectorMap[91]},
   {nullptr, 0, nullptr},
   {"FLOOD_DIMMER", 65535, &SelectorMap[47]},
   {nullptr, 0, nullptr},
