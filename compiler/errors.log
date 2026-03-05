@@ -1,6 +1,0 @@
-# Build errors — A10_TEST_USB — 2026-03-05 09:58:20
-# Exit code: 1
-
-C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\LABELS\LABEL_SET_A10_TEST\DisplayMapping.h:63:21: error: 'CLOCKDisplay clock' redeclared as different kind of entity
-C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\LABELS\LABEL_SET_A10_TEST\DisplayMapping.h:63:21: error: 'CLOCKDisplay clock' redeclared as different kind of entity
-Error during build: exit status 1
