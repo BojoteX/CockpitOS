@@ -113,7 +113,7 @@
 #define VALUE_THROTTLE_MS                          50 // How long (ms) to skip sending the same value again (debouncing)
 #define ANY_VALUE_THROTTLE_MS                      33 // How long (ms) to skip sending different values (prevents spamming the USB endpoint, while debouncing at the same time)
 #define CUSTOM_RESPONSE_THROTTLE_MS               100 // Min delay (ms) between press and deferred release for custom momentaries with releaseValue != 0
-#define SELECTOR_DWELL_MS                         100 // Wait time (in ms) for stable selector value. Used by our dwell-time fitering logic
+#define SELECTOR_DWELL_MS                         150 // Wait time (in ms) for stable selector value. Used by our dwell-time fitering logic
 #define DCS_GROUP_MIN_INTERVAL_US                (1000000UL / DCS_UPDATE_RATE_HZ) // min spacing/separation between selector positions
 #define HID_REPORT_MIN_INTERVAL_US               (1000000UL / HID_REPORT_RATE_HZ) // min spacing/separation between reports
 #define DCS_KEEP_ALIVE_MS                        (1000 / DCS_UPDATE_RATE_HZ) // send PING 0 (ASCII command) every x ms (when using keep-alives)
