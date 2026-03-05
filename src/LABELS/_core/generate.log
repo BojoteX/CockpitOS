@@ -1,4 +1,4 @@
-Generated DisplayMapping.cpp and DisplayMapping.h for devices: HUD, IFEI, UFC
+Generated DisplayMapping.cpp and DisplayMapping.h for devices: ARC210, CDU, CLOCK, CMSC, CMSP1, CMSP2, ILS, TACAN, UHF, VHF
 ============================================================
 CockpitOS PanelKind Generator
 ============================================================
@@ -29,29 +29,24 @@ Generated: C:\Users\jaltu\OneDrive\Documents\Arduino\CockpitOS\src\Generated\Pan
   → 13 total + COUNT
 
 Done!
-Current LABEL SET: LABEL_SET_IFEI
+Current LABEL SET: LABEL_SET_A10_TEST
 
 [INFO] The current target_objects (panel(s) to be processed) are:
-  - External Aircraft Model
-  - Flaps, Landing Gear, Stores Indicator Panel
-  - HUD Video Record Panel
-  - Integrated Fuel/Engine Indicator (IFEI)
-  - Interior Lights Panel
-  - Internal Lights
-  - Station Jettison Select
+  - AHCP
+  - Landing Gear and Flap Control Panel
 
-[✓] Generated DCSBIOSBridgeData.h with 154 outputs,  43 selectors.
-[✓] Generated InputMapping.h with 43 entries.
-✅ Found 43 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
-🔢 Using TABLE_SIZE = 89 (next prime ≥ 86)
+[✓] Generated DCSBIOSBridgeData.h with 21 outputs,  35 selectors.
+[✓] Generated InputMapping.h with 35 entries.
+✅ Found 21 LED/Analog/Selector labels in DcsOutputTable (DCSBIOSBridgeData.h)
+🔢 Using TABLE_SIZE = 53 (next prime ≥ 42)
 ✅ LEDMapping.h fully regenerated with dynamic enum from KNOWN_DEVICES.
 
 [INFO] Generating DisplayMapping.cpp/h using display_gen.py ...
 ✅ Renamed .cpp files to cpp.DISABLE in the inactive LABEL SETS to avoid linker conflicts
-[✓] Created LabelSetConfig.h with AUTOGEN_USB_PID=0x6E2A (from 'CockpitOS IFEI v2')
+[✓] Created LabelSetConfig.h with AUTOGEN_USB_PID=0x9AA1 (from 'CockpitOS Panel A10_TEST')
 [=] LatchedButtons.h exists, preserving
 [=] CoverGates.h exists, preserving
-[✓] Created ../active_set.h with LABEL_SET IFEI
+[✓] Created ../active_set.h with LABEL_SET A10_TEST
 
 ============================================================
 Running generate_panelkind.py to update PanelKind.h...

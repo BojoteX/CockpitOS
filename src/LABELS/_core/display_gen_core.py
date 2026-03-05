@@ -17,6 +17,14 @@ if sys.stdout.encoding and sys.stdout.encoding.lower().replace("-", "") != "utf8
 # When launched from the compiler tool, skip all interactive pauses.
 _BATCH = os.environ.get("COCKPITOS_BATCH") == "1"
 
+# C/C++ standard library names that collide with lowercased display prefixes.
+_RESERVED_VARNAMES = {"clock", "time", "signal", "errno", "stdin", "stdout", "stderr"}
+
+def _safe_var(prefix):
+    """Derive a C++ variable name from a display prefix, avoiding reserved names."""
+    var = prefix.lower()
+    return f"dsp_{var}" if var in _RESERVED_VARNAMES else var
+
 def _pause(msg="\nPress <ENTER> to exit..."):
     if not _BATCH:
         input(msg)
@@ -292,7 +300,7 @@ def run():
                 field_defs.append(preserved_line)
             continue
 
-        device_var = prefix.lower()
+        device_var = _safe_var(prefix)
         device_enum = f"DISPLAY_{prefix}"
 
         # Get strict map pointer and dimensions
@@ -512,7 +520,7 @@ def run():
 
         # Emit externs per detected device
         for prefix in sorted(all_device_prefixes):
-            var = prefix.lower()
+            var = _safe_var(prefix)
             fout.write(f"extern {prefix}Display {var};\n")
         # --- Emit dispatcher function externs (these are required if any entry uses them)
         for prefix in sorted(all_device_prefixes):

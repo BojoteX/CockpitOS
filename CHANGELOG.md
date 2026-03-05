@@ -1,9 +1,25 @@
 # Changelog
 
-## v1.2.6 — 2026-03-04
+## v1.2.8 — 2026-03-04
 
 ### Improved
 - Refactor all Python tooling for easier flows + README.md simple steps
+- Updated README.md
+- Update Setup Flow
+- LTD/R Magnetic support implemented
+- Misc minor changes
+
+### Fixed
+- Fixed Codex concern
+
+## v1.2.7 — 2026-03-04
+
+### Improved
+- Update Setup Flow
+
+## v1.2.6 — 2026-03-04
+
+### Improved
 - Updated README.md
 
 ## v1.2.5 — 2026-03-04
