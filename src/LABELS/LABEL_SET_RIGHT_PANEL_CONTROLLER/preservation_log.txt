@@ -1,0 +1,6 @@
+
+# --- 2026-03-04T20:35:14.823625 ---
+# WARNING: 1 wired entry(ies) orphaned by generator.
+# These entries existed in InputMapping.h with real hardware wiring
+# but were NOT produced by the current JSON. Wiring data preserved below.
+    { "LTD_R_SW_CUSTOM_PRESS" , "HC165" , 0 , 28 , -1 , "LTD_R_SW" , 1 , "momentary" , 0 , 0 },

@@ -3,6 +3,7 @@
 #include "../Globals.h"
 #include "../HIDManager.h"
 #include "../DCSBIOSBridge.h"
+#include "../LEDControl.h"
 
 // DCSBIOS serial handling
 #if defined(ARDUINO_USB_MODE)
@@ -871,31 +872,37 @@ void HIDManager_setToggleNamedButton(const char* name, bool deferSend) {
     const bool hidAllowed = (!inDcs) || hybridEnabled;
 
     // DCS path
-    // Custom momentaries with releaseValue != 0 are fire-and-forget pulses:
-    //   On press: send oride_value directly (bypass dwell) + queue deferred release.
-    //   On release: do nothing (release was already scheduled at press time).
-    // Direct sendCommand is required because the CommandHistoryEntry for the DCS label
-    // (e.g. ENGINE_CRANK_SW) has group > 0 from the selector positions, and the dwell
-    // gate in sendDCSBIOSCommand would buffer the press indefinitely.
-    // Standard momentaries (releaseValue == 0): normal press/release behavior.
+    // Priority 1: DEVICE_MAGNETIC → atomic press-delay-release (release from gpioB).
+    // Priority 2: releaseValue > 0 → atomic press-delay-release (custom override, edge case).
+    // Default:    normal press/release via sendDCSBIOSCommand.
     if (dcsAllowed && m->oride_label) {
-        if (newOn && m->releaseValue != 0) {
-            // Custom momentary press: bypass dwell, send directly
+        const LEDMapping* led = newOn ? findLED(m->oride_label) : nullptr;
+        bool isMagnetic = led && led->deviceType == DEVICE_MAGNETIC;
+        bool hasDeferredRelease = isMagnetic || m->releaseValue > 0;
+
+        if (newOn && isMagnetic) {
+            uint16_t relVal = (led->info.magneticInfo.gpioB == 255) ? 0 : 1;
             static char cbuf[10];
             snprintf(cbuf, sizeof(cbuf), "%u", m->oride_value);
-            debugPrintf("[DCS] Custom momentary press: %s = %u\n", m->oride_label, m->oride_value);
+            debugPrintf("[DCS] Magnetic press: %s = %u (release=%u)\n", m->oride_label, m->oride_value, relVal);
             sendCommand(m->oride_label, cbuf, false);
-            // Update command history for state tracking
             CommandHistoryEntry* ce = findCmdEntry(m->oride_label);
             if (ce) { ce->lastValue = m->oride_value; ce->lastSendTime = millis(); }
-            // Schedule deferred release
+            queueDeferredRelease(m->oride_label, relVal);
+        } else if (newOn && m->releaseValue > 0) {
+            static char cbuf[10];
+            snprintf(cbuf, sizeof(cbuf), "%u", m->oride_value);
+            debugPrintf("[DCS] Custom release press: %s = %u (release=%u)\n", m->oride_label, m->oride_value, m->releaseValue);
+            sendCommand(m->oride_label, cbuf, false);
+            CommandHistoryEntry* ce = findCmdEntry(m->oride_label);
+            if (ce) { ce->lastValue = m->oride_value; ce->lastSendTime = millis(); }
             queueDeferredRelease(m->oride_label, m->releaseValue);
         } else if (newOn) {
             sendDCSBIOSCommand(m->oride_label, m->oride_value, forcePanelSyncThisMission);
-        } else if (m->releaseValue == 0) {
+        } else if (!hasDeferredRelease) {
             sendDCSBIOSCommand(m->oride_label, 0, forcePanelSyncThisMission);
         }
-        // else: releaseValue != 0 and releasing — already handled by deferred queue at press time
+        // else: deferred release already queued at press time
     }
 
     // HID path
@@ -947,21 +954,36 @@ void HIDManager_setNamedButton(const char* name, bool deferSend, bool pressed) {
                 return;
             }
             else if (m->oride_label) {
-                if (pressed && m->releaseValue != 0) {
-                    // Custom momentary press: bypass dwell, send directly
+                // Priority 1: DEVICE_MAGNETIC → atomic press-delay-release (release from gpioB).
+                // Priority 2: releaseValue > 0 → atomic press-delay-release (custom override, edge case).
+                // Default:    normal press/release via sendDCSBIOSCommand.
+                const LEDMapping* led = pressed ? findLED(m->oride_label) : nullptr;
+                bool isMagnetic = led && led->deviceType == DEVICE_MAGNETIC;
+                bool hasDeferredRelease = isMagnetic || m->releaseValue > 0;
+
+                if (pressed && isMagnetic) {
+                    uint16_t relVal = (led->info.magneticInfo.gpioB == 255) ? 0 : 1;
                     static char cbuf[10];
                     snprintf(cbuf, sizeof(cbuf), "%u", m->oride_value);
-                    debugPrintf("[DCS] Custom momentary press: %s = %u\n", m->oride_label, m->oride_value);
+                    debugPrintf("[DCS] Magnetic press: %s = %u (release=%u)\n", m->oride_label, m->oride_value, relVal);
+                    sendCommand(m->oride_label, cbuf, false);
+                    CommandHistoryEntry* ce = findCmdEntry(m->oride_label);
+                    if (ce) { ce->lastValue = m->oride_value; ce->lastSendTime = millis(); }
+                    queueDeferredRelease(m->oride_label, relVal);
+                } else if (pressed && m->releaseValue > 0) {
+                    static char cbuf[10];
+                    snprintf(cbuf, sizeof(cbuf), "%u", m->oride_value);
+                    debugPrintf("[DCS] Custom release press: %s = %u (release=%u)\n", m->oride_label, m->oride_value, m->releaseValue);
                     sendCommand(m->oride_label, cbuf, false);
                     CommandHistoryEntry* ce = findCmdEntry(m->oride_label);
                     if (ce) { ce->lastValue = m->oride_value; ce->lastSendTime = millis(); }
                     queueDeferredRelease(m->oride_label, m->releaseValue);
                 } else if (pressed) {
                     sendDCSBIOSCommand(m->oride_label, m->oride_value, forcePanelSyncThisMission);
-                } else if (m->releaseValue == 0) {
+                } else if (!hasDeferredRelease) {
                     sendDCSBIOSCommand(m->oride_label, 0, forcePanelSyncThisMission);
                 }
-                // else: releaseValue != 0 and releasing — already handled by deferred queue at press time
+                // else: deferred release already queued at press time
             }
         }
         // else: cover handled DCS side; HID may still run below.
