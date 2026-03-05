@@ -60,7 +60,7 @@ extern size_t numFieldDefs;
 extern FieldState fieldStates[];
 extern ARC210Display arc210;
 extern CDUDisplay cdu;
-extern CLOCKDisplay clock;
+extern CLOCKDisplay dsp_clock;
 extern CMSCDisplay cmsc;
 extern CMSP1Display cmsp1;
 extern CMSP2Display cmsp2;

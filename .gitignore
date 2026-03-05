@@ -28,8 +28,10 @@ Disabled Panels/
 Binaries/Unclassified/
 
 # Lock files
-HID Manager/hid_manager.lock
-compiler/cockpitos.lock
+*.lock
+
+# Log files
+*.log
 
 # Tool backups
 compiler/backups/
