@@ -63,7 +63,7 @@ static const LEDMapping panelLEDs[] = {
   { "FLIR_SW"               , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "INS_SW"                , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "LST_NFLR_SW"           , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "LTD_R_SW"              , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
+  { "LTD_R_SW"              , DEVICE_MAGNETIC, {.magneticInfo = {17, 255}}, false, false }, // MAGNETIC A=17 B=255,
   { "RADAR_SW"              , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "RADAR_SW_PULL"         , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
 };
