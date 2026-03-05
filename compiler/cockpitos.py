@@ -46,6 +46,7 @@ from boards import (
     validate_config_vs_board, FATAL, WARNING,
     select_board, configure_options,
     resolve_arduino_cli,
+    get_chip_family,
 )
 from build import (
     BUILD_DIR,
@@ -112,7 +113,11 @@ def show_config(prefs):
     board_str = f"{friendly} ({fqbn})" if friendly else fqbn
     info(f"Board:       {CYAN}{board_str}{RESET}")
 
-    dual_usb = board_has_dual_usb(prefs)
+    print(f"  {DIM}Querying board capabilities...{RESET}", end="", flush=True)
+    if fqbn and fqbn != "(not set)":
+        get_chip_family(fqbn)       # prime chip cache (arduino-cli call)
+    dual_usb = board_has_dual_usb(prefs)  # prime board options cache
+    print(f"\r{' ' * 40}\r", end="", flush=True)
     if dual_usb:
         info(f"  {DIM}Dual USB board (USB-OTG + HW CDC){RESET}")
 

@@ -261,10 +261,15 @@ def run_cli(*args, capture=True, timeout=600):
         return None
 
 
+_board_options_cache = {}
+
 def get_board_options(fqbn):
     """Parse board details to get available options and their values."""
+    if fqbn in _board_options_cache:
+        return _board_options_cache[fqbn]
     r = run_cli("board", "details", "--fqbn", fqbn)
     if not r or r.returncode != 0:
+        _board_options_cache[fqbn] = {}
         return {}
 
     options = {}
@@ -308,6 +313,7 @@ def get_board_options(fqbn):
             "default": current_default,
         }
 
+    _board_options_cache[fqbn] = options
     return options
 
 
