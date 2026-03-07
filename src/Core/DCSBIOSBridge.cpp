@@ -1045,10 +1045,18 @@ static void flushBufferedDcsCommands() {
             e.hasPending = false;
         }
 
-        // Send winner
-        if (winner->pendingValue != winner->lastValue) {
+        // Send winner — always send when dwell expires (no suppression).
+        // Redundant commands are harmless (DCS ignores same-value performClickableAction).
+        // Removing the pendingValue != lastValue gate eliminates a race condition where
+        // onSelectorChange() export callback can overwrite lastValue with a stale frame,
+        // causing the next legitimate send to be incorrectly suppressed.
+        {
             char buf[10]; snprintf(buf, sizeof(buf), "%u", winner->pendingValue);
             sendCommand(winner->label, buf, false);
+            if (winner->pendingValue == winner->lastValue) {
+                debugPrintf("[DWELL] Redundant send %s=%u (was already %u)\n",
+                            winner->label, winner->pendingValue, winner->lastValue);
+            }
             winner->lastValue = winner->pendingValue;
             winner->lastSendTime = now;
         }
