@@ -1,5 +1,5 @@
-// PID:0x6E2A 
+// PID:0x626D 
 
 #pragma once
 
-#define LABEL_SET IFEI
+#define LABEL_SET LEFT_PANEL_CONTROLLER
