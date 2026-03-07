@@ -1,13 +1,24 @@
 # Changelog
 
+## v1.2.9 — 2026-03-07
+
+### Added
+- Added cache to compiler tool + misc fixes
+- New Magnetics tests and Race fix for time dwell
+
+### Improved
+- LTD/R Magnetic support implemented
+- Misc minor changes
+
+### Fixed
+- Fixed Codex concern
+
 ## v1.2.8 — 2026-03-04
 
 ### Improved
-- Refactor all Python tooling for easier flows + README.md simple steps
-- Updated README.md
-- Update Setup Flow
+- Set IFEI as default
+- Update Config.h
 - LTD/R Magnetic support implemented
-- Misc minor changes
 
 ### Fixed
 - Fixed Codex concern
