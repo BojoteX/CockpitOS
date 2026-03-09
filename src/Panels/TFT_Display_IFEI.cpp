@@ -145,7 +145,7 @@ public:
             cfg.vsync_back_porch  = 8;
 
             cfg.pclk_active_neg   = 1;
-            cfg.de_idle_high      = 1;   // Critical for Waveshare 7" — DE idles high
+            cfg.de_idle_high      = 0;
             cfg.pclk_idle_high    = 0;
 
             _bus_instance.config(cfg);
@@ -639,6 +639,7 @@ void TFTIFEIDisplay_init() {
 
     // Init LovyanGFX (init() auto-sets color depth, rotation, and clears screen)
     tft.init();
+    tft.fillScreen(TFT_BLACK);  // Explicit clear — PSRAM may contain 0xFF (white) on first boot
     tft.setFont(&fonts::Font0);  // Built-in 8x6 mono font, scaled via setTextSize
 
     debugPrintln("  TFT initialized (800x480 RGB parallel)");
