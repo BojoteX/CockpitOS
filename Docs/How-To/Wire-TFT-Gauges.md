@@ -6,11 +6,21 @@ TFT gauges are graphical LCD displays that render instrument faces with animated
 
 ## What You Need
 
+### For SPI Displays (Individual Gauges)
+
 | Item | Notes |
 |---|---|
 | TFT display module | GC9A01 (240x240 round), ST77961 (360x360 round), ST7789 (240x320 rectangular), or ILI9341 (240x320 rectangular) |
 | ESP32-S3 board (recommended) | Dual-core with PSRAM required for frame buffers. S2 works but with reduced performance. |
 | Hookup wire | SPI bus connections (6-8 wires) |
+
+### For RGB Parallel Displays (Full Panel Displays)
+
+| Item | Notes |
+|---|---|
+| Waveshare ESP32-S3-Touch-LCD-7 | 800x480, ST7262, all pins hard-wired on PCB. No external wiring needed. |
+
+> RGB parallel boards are self-contained -- the ESP32-S3, display, touch controller, and IO expander are all on one PCB. You only need USB-C for power/programming and a network connection for DCS-BIOS UDP.
 
 ### Supported Displays
 
@@ -21,12 +31,17 @@ TFT gauges are graphical LCD displays that render instrument faces with animated
 | ST77961 | 360x360 | Round | SPI | Needle gauges (cabin pressure, radar altimeter) |
 | ST7789 | 240x320 | Rectangular | SPI | Text displays (CMWS) |
 | ILI9341 | 240x320 | Rectangular | SPI | Text displays (CYD boards) |
+| ST7262 (Waveshare 7") | 800x480 | Rectangular | RGB Parallel | Full instrument panels (IFEI) |
 
-> **Note:** ST7789 and ILI9341 are currently used only for text-based displays (e.g., CMWS), not for animated needle gauges. Use GC9A01, ST77916, or ST77961 for needle gauges.
+> **Note:** ST7789 and ILI9341 are currently used only for text-based displays (e.g., CMWS), not for animated needle gauges. Use GC9A01, ST77916, or ST77961 for needle gauges. Use ST7262 (RGB parallel) for full instrument panel displays like the IFEI.
 
 ---
 
-## Step 1: Wire the SPI Bus
+## Step 1: Connect the Display
+
+CockpitOS supports two display bus types. Choose the section that matches your hardware.
+
+### Option A: SPI Displays (GC9A01, ST77916, ST7789, ILI9341)
 
 TFT displays connect to the ESP32 over the SPI bus. Each display needs the following connections:
 
@@ -68,6 +83,131 @@ Pin assignments are specific to each gauge and defined in `CustomPins.h`. For ex
 #define CABIN_PRESSURE_DC_PIN    PIN(18)
 #define CABIN_PRESSURE_RST_PIN   -1
 ```
+
+### Option B: RGB Parallel Displays (Waveshare ESP32-S3-Touch-LCD-7)
+
+No wiring needed -- all 16 data lines, 4 control signals, I2C, and touch are hard-wired on the PCB. However, the LGFX device class setup is significantly different from SPI.
+
+**Required includes (NOT auto-included by LovyanGFX):**
+
+```cpp
+#include <LovyanGFX.hpp>
+#include <lgfx/v1/platforms/esp32s3/Panel_RGB.hpp>
+#include <lgfx/v1/platforms/esp32s3/Bus_RGB.hpp>
+#include <Wire.h>
+```
+
+**LGFX device class pattern:**
+
+```cpp
+class LGFX_WS7 : public lgfx::LGFX_Device {
+    lgfx::Bus_RGB     _bus_instance;    // MUST be _bus_instance (not _bus)
+    lgfx::Panel_RGB   _panel_instance;  // MUST be _panel_instance (not _panel)
+    lgfx::Touch_GT911 _touch_instance;  // MUST be _touch_instance (not _touch)
+
+public:
+    LGFX_WS7() {
+        // 1. Panel FIRST (bus references panel)
+        {
+            auto cfg = _panel_instance.config();
+            cfg.memory_width  = 800;
+            cfg.memory_height = 480;
+            cfg.panel_width   = 800;
+            cfg.panel_height  = 480;
+            cfg.offset_x      = 0;
+            cfg.offset_y      = 0;
+            _panel_instance.config(cfg);
+        }
+
+        // 2. Bus SECOND (references panel)
+        {
+            auto cfg = _bus_instance.config();
+            cfg.panel = &_panel_instance;
+
+            // Blue (pin_d0..d4)
+            cfg.pin_d0  = 14;  cfg.pin_d1  = 38;  cfg.pin_d2  = 18;
+            cfg.pin_d3  = 17;  cfg.pin_d4  = 10;
+            // Green (pin_d5..d10)
+            cfg.pin_d5  = 39;  cfg.pin_d6  = 0;   cfg.pin_d7  = 45;
+            cfg.pin_d8  = 48;  cfg.pin_d9  = 47;  cfg.pin_d10 = 21;
+            // Red (pin_d11..d15)
+            cfg.pin_d11 = 1;   cfg.pin_d12 = 2;   cfg.pin_d13 = 42;
+            cfg.pin_d14 = 41;  cfg.pin_d15 = 40;
+
+            // Control signals
+            cfg.pin_henable = 5;    // DE
+            cfg.pin_vsync   = 3;
+            cfg.pin_hsync   = 46;
+            cfg.pin_pclk    = 7;
+
+            // Timing (Waveshare 7" confirmed working values)
+            cfg.freq_write        = 16000000;  // 16 MHz
+            cfg.hsync_polarity    = 0;
+            cfg.hsync_front_porch = 8;
+            cfg.hsync_pulse_width = 4;
+            cfg.hsync_back_porch  = 8;
+            cfg.vsync_polarity    = 0;
+            cfg.vsync_front_porch = 8;
+            cfg.vsync_pulse_width = 4;
+            cfg.vsync_back_porch  = 8;
+            cfg.pclk_active_neg   = 1;
+            cfg.pclk_idle_high    = 0;
+
+            _bus_instance.config(cfg);
+        }
+        _panel_instance.setBus(&_bus_instance);
+
+        // 3. Touch (GT911 on I2C port 1)
+        {
+            auto tcfg = _touch_instance.config();
+            tcfg.i2c_port = 1;    // MUST be 1 (CH422G uses port 0)
+            tcfg.i2c_addr = 0x14;
+            tcfg.pin_sda  = 8;
+            tcfg.pin_scl  = 9;
+            tcfg.pin_int  = 4;
+            tcfg.pin_rst  = -1;   // RST via CH422G
+            tcfg.freq     = 400000;
+            tcfg.x_min    = 0;  tcfg.x_max = 799;
+            tcfg.y_min    = 0;  tcfg.y_max = 479;
+            _touch_instance.config(tcfg);
+            _panel_instance.setTouch(&_touch_instance);
+        }
+        setPanel(&_panel_instance);
+    }
+};
+```
+
+**Critical rules for RGB parallel LGFX classes:**
+
+1. **Member names:** Use `_bus_instance`, `_panel_instance`, `_touch_instance`. Names like `_bus`, `_panel`, `_touch` collide with LGFX_Device base class members and cause compile errors.
+2. **Config order:** Panel config MUST come before bus config. The bus config references the panel: `cfg.panel = &_panel_instance`.
+3. **Pin order:** Bus_RGB maps `pin_d0..d4` = Blue, `pin_d5..d10` = Green, `pin_d11..d15` = Red. This is NOT the same as the physical RGB order.
+4. **I2C port separation:** CH422G uses `Wire` (I2C_NUM_0). Touch GT911 MUST use `i2c_port = 1` (I2C_NUM_1).
+5. **CH422G before tft.init():** Initialize the CH422G IO expander to release reset lines and enable backlight BEFORE calling `tft.init()`.
+
+**CH422G initialization (call before tft.init()):**
+
+```cpp
+Wire.begin(8, 9);  // SDA=GPIO8, SCL=GPIO9
+
+Wire.beginTransmission(0x24);  // Mode register
+Wire.write(0x01);              // Push-pull output
+Wire.endTransmission();
+
+Wire.beginTransmission(0x38);  // Output register
+Wire.write(0x07);              // EXIO1+EXIO2+EXIO3 HIGH (resets inactive, backlight ON)
+Wire.endTransmission();
+```
+
+**Init sequence:**
+
+```cpp
+ch422g_init();                  // 1. IO expander first
+tft.init();                     // 2. LGFX init (configures LCD peripheral)
+tft.fillScreen(TFT_BLACK);     // 3. Clear framebuffer
+```
+
+> **Full working example:** See `src/Panels/TFT_Display_IFEI.cpp` (LGFX_WS7 class, ch422g_init function, TFTIFEIDisplay_init).
 
 ---
 
@@ -117,14 +257,15 @@ TFT gauges automatically switch between Day and NVG modes based on DCS-BIOS dimm
 
 The easiest way to create a new TFT gauge is to copy an existing one. The codebase includes these implementations in `src/Panels/`:
 
-| File | Gauge | Display | Resolution |
-|---|---|---|---|
-| `TFT_Gauges_Battery.cpp` | Battery Voltage | GC9A01 | 240x240 |
-| `TFT_Gauges_BrakePress.cpp` | Brake Pressure | GC9A01 | 240x240 |
-| `TFT_Gauges_HydPress.cpp` | Hydraulic Pressure | GC9A01 | 240x240 |
-| `TFT_Gauges_CabinPressure.cpp` | Cabin Pressure | ST77961 | 360x360 |
-| `TFT_Gauges_RadarAlt.cpp` | Radar Altimeter | ST77961 | 360x360 |
-| `TFT_Display_CMWS.cpp` | CMWS Display | -- | Text-based |
+| File | Gauge | Display | Resolution | Bus |
+|---|---|---|---|---|
+| `TFT_Gauges_Battery.cpp` | Battery Voltage | GC9A01 | 240x240 | SPI |
+| `TFT_Gauges_BrakePress.cpp` | Brake Pressure | GC9A01 | 240x240 | SPI |
+| `TFT_Gauges_HydPress.cpp` | Hydraulic Pressure | GC9A01 | 240x240 | SPI |
+| `TFT_Gauges_CabinPressure.cpp` | Cabin Pressure | ST77961 | 360x360 | SPI |
+| `TFT_Gauges_RadarAlt.cpp` | Radar Altimeter | ST77961 | 360x360 | SPI |
+| `TFT_Display_CMWS.cpp` | CMWS Display | -- | Text-based | SPI |
+| `TFT_Display_IFEI.cpp` | IFEI Display | ST7262 | 800x480 | RGB Parallel |
 
 Each gauge file follows the same pattern:
 
@@ -206,6 +347,8 @@ The gauge must also be guarded with a compile-time `#if defined(HAS_YOUR_LABEL_S
 
 ## Troubleshooting
 
+### SPI Display Issues
+
 | Symptom | Cause | Fix |
 |---|---|---|
 | White screen, nothing displayed | Wrong SPI pin assignments | Verify MOSI, CLK, CS, DC, RST pins in CustomPins.h match your wiring |
@@ -214,6 +357,21 @@ The gauge must also be guarded with a compile-time `#if defined(HAS_YOUR_LABEL_S
 | Colors look wrong | Byte order mismatch | Check `setSwapBytes(true/false)` in your LGFX setup |
 | Compilation error about missing LovyanGFX | Library not installed | Run the Setup Tool (`Setup-START.py`) to install all required libraries |
 | Out of memory at startup | Not enough PSRAM | TFT gauges require PSRAM. Use an ESP32-S3 board with PSRAM. Reduce the number of simultaneous gauges if needed. |
+
+### RGB Parallel Display Issues
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `Bus_RGB` / `Panel_RGB` not found (compile error) | Missing explicit includes | Add `#include <lgfx/v1/platforms/esp32s3/Panel_RGB.hpp>` and `Bus_RGB.hpp`. These are NOT auto-included by `<LovyanGFX.hpp>`. |
+| `_panel` member collision (compile error) | Member name conflicts with LGFX_Device base class | Rename members to `_bus_instance`, `_panel_instance`, `_touch_instance`. |
+| White screen (display powers on but no content) | Wrong timing parameters or freq_write | Use the exact Waveshare 7" values: `freq_write=16000000`, hsync/vsync `8/4/8`. See Step 1 Option B. |
+| Cycling solid colors (red/green/blue/white) | Severely wrong timing (front/back porch, pulse width) | Do NOT use random forum values. Use the confirmed values from paulhamsh's repo. |
+| Display subscription overflow in log | Too many `subscribeToDisplayChange()` calls | Increase `MAX_DISPLAY_SUBSCRIPTIONS` in DCSBIOSBridge.h (default 32, IFEI needs 48). |
+| Touch not responding | GT911 on wrong I2C port | Set `tcfg.i2c_port = 1` (CH422G occupies port 0). |
+| Board target set to ESP32-S2 | Bus_RGB/Panel_RGB are ESP32-S3 only | In Arduino IDE / PlatformIO, select the correct ESP32-S3 board target. |
+| CH422G not initializing | Wire.begin() not called before CH422G writes | Call `Wire.begin(8, 9)` first, then CH422G mode + output writes, then `tft.init()`. |
+
+> **Golden rule for RGB parallel:** Always use manufacturer documentation and known-working configs. The Waveshare 7" timing values from [paulhamsh/Waveshare-ESP32-S3-LCD-7-LVGL](https://github.com/paulhamsh/Waveshare-ESP32-S3-LCD-7-LVGL) are confirmed working. Random forum timing values will produce white screens or color cycling.
 
 ---
 
