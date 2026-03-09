@@ -65,6 +65,8 @@ All tools are Windows-only, Python 3.12+, ANSI TUI, and switch between each othe
 |-------|----------|
 | **Documentation (current)** | `Docs/` — structured docs (Getting-Started, Tools, Hardware, How-To, Reference, Advanced, LLM) |
 | **LLM master reference** | `Docs/LLM/CockpitOS-LLM-Reference.md` — start here for any CockpitOS question |
+| **TFT display reference** | `Docs/Hardware/TFT-Gauges.md` — SPI + RGB parallel display configs, timing, troubleshooting |
+| **TFT wiring how-to** | `Docs/How-To/Wire-TFT-Gauges.md` — step-by-step setup including LGFX device class templates |
 | **Known issues & warnings** | `Docs/Reference/Known-Issues.md` — **read before touching generators or updating DCS-BIOS** |
 | **Config.h reference** | `Docs/Reference/Config.md` |
 | **Label Creator internals** | `label_creator/LLM/` — three files: LLM_GUIDE.md, ARCHITECTURE.md, EDITOR_FEATURES.md |
