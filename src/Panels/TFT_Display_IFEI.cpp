@@ -133,18 +133,20 @@ public:
             // Pixel clock frequency
             cfg.freq_write = 12000000;  // 12 MHz PCLK (safe for 800x480)
 
-            // Timing parameters (ST7262 / EK79007 standard for 800x480)
+            // Timing parameters (Waveshare ESP32-S3-Touch-LCD-7 / ST7262)
+            // Values from LovyanGFX community testing for this specific board
             cfg.hsync_polarity    = 0;
-            cfg.hsync_front_porch = 8;
-            cfg.hsync_pulse_width = 4;
-            cfg.hsync_back_porch  = 16;
+            cfg.hsync_front_porch = 50;
+            cfg.hsync_pulse_width = 8;
+            cfg.hsync_back_porch  = 8;
             cfg.vsync_polarity    = 0;
-            cfg.vsync_front_porch = 4;
-            cfg.vsync_pulse_width = 4;
-            cfg.vsync_back_porch  = 4;
+            cfg.vsync_front_porch = 8;
+            cfg.vsync_pulse_width = 3;
+            cfg.vsync_back_porch  = 8;
 
-            // Blanking
-            cfg.pclk_active_neg = 1;
+            cfg.pclk_active_neg   = 1;
+            cfg.de_idle_high      = 1;   // Critical for Waveshare 7" — DE idles high
+            cfg.pclk_idle_high    = 0;
 
             _bus_instance.config(cfg);
         }
@@ -241,18 +243,6 @@ static bool tex_bingo  = false;
 static bool tex_z      = false;
 static bool tex_l      = false;
 static bool tex_r      = false;
-
-// Nozzle scale/pointer textures (for future nozzle gauge)
-static bool tex_lpointer = false;
-static bool tex_rpointer = false;
-static bool tex_lscale   = false;
-static bool tex_rscale   = false;
-static bool tex_l100     = false;
-static bool tex_r100     = false;
-static bool tex_l50      = false;
-static bool tex_r50      = false;
-static bool tex_l0       = false;
-static bool tex_r0       = false;
 
 // Dirty flags for labels and textures
 static bool dirty_labels = true;
@@ -379,17 +369,7 @@ static void onTexZ(const char*, const char* v)     { tex_z     = (v && v[0] == '
 static void onTexL(const char*, const char* v)     { tex_l     = (v && v[0] == '1'); dirty_labels = true; displayDirty = true; }
 static void onTexR(const char*, const char* v)     { tex_r     = (v && v[0] == '1'); dirty_labels = true; displayDirty = true; }
 
-// Nozzle textures (stored for future use, trigger redraw)
-static void onTexLPointer(const char*, const char* v) { tex_lpointer = (v && v[0] != '0'); displayDirty = true; }
-static void onTexRPointer(const char*, const char* v) { tex_rpointer = (v && v[0] != '0'); displayDirty = true; }
-static void onTexLScale(const char*, const char* v)   { tex_lscale   = (v && v[0] != '0'); displayDirty = true; }
-static void onTexRScale(const char*, const char* v)   { tex_rscale   = (v && v[0] != '0'); displayDirty = true; }
-static void onTexL100(const char*, const char* v)     { tex_l100     = (v && v[0] != '0'); displayDirty = true; }
-static void onTexR100(const char*, const char* v)     { tex_r100     = (v && v[0] != '0'); displayDirty = true; }
-static void onTexL50(const char*, const char* v)      { tex_l50      = (v && v[0] != '0'); displayDirty = true; }
-static void onTexR50(const char*, const char* v)      { tex_r50      = (v && v[0] != '0'); displayDirty = true; }
-static void onTexL0(const char*, const char* v)       { tex_l0       = (v && v[0] != '0'); displayDirty = true; }
-static void onTexR0(const char*, const char* v)       { tex_r0       = (v && v[0] != '0'); displayDirty = true; }
+// Nozzle textures omitted for POC — add back when nozzle gauge is implemented
 
 // =============================================================================
 // DCS-BIOS LED CHANGE CALLBACK (brightness)
@@ -657,11 +637,8 @@ void TFTIFEIDisplay_init() {
     // Small delay for LCD controller to come out of reset
     delay(50);
 
-    // Init LovyanGFX
+    // Init LovyanGFX (init() auto-sets color depth, rotation, and clears screen)
     tft.init();
-    tft.setColorDepth(16);   // RGB565 for RGB parallel
-    tft.setRotation(0);
-    tft.fillScreen(COLOR_BLACK);
     tft.setFont(&fonts::Font0);  // Built-in 8x6 mono font, scaled via setTextSize
 
     debugPrintln("  TFT initialized (800x480 RGB parallel)");
@@ -715,17 +692,7 @@ void TFTIFEIDisplay_init() {
     subscribeToDisplayChange("IFEI_L_TEXTURE",        onTexL);
     subscribeToDisplayChange("IFEI_R_TEXTURE",        onTexR);
 
-    // Nozzle textures (stored for future nozzle gauge implementation)
-    subscribeToDisplayChange("IFEI_LPOINTER_TEXTURE", onTexLPointer);
-    subscribeToDisplayChange("IFEI_RPOINTER_TEXTURE", onTexRPointer);
-    subscribeToDisplayChange("IFEI_LSCALE_TEXTURE",   onTexLScale);
-    subscribeToDisplayChange("IFEI_RSCALE_TEXTURE",   onTexRScale);
-    subscribeToDisplayChange("IFEI_L100_TEXTURE",     onTexL100);
-    subscribeToDisplayChange("IFEI_R100_TEXTURE",     onTexR100);
-    subscribeToDisplayChange("IFEI_L50_TEXTURE",      onTexL50);
-    subscribeToDisplayChange("IFEI_R50_TEXTURE",      onTexR50);
-    subscribeToDisplayChange("IFEI_L0_TEXTURE",       onTexL0);
-    subscribeToDisplayChange("IFEI_R0_TEXTURE",       onTexR0);
+    // Nozzle textures omitted for POC (saves 10 subscription slots)
 
     // Brightness (LED change — integer value)
     // Note: IFEI_DISP_INT_LT is not in DcsOutputTable for this label set currently.
