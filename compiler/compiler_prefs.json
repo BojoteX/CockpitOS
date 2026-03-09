@@ -12,7 +12,7 @@
     "FlashSize": "8M",
     "PartitionScheme": "no_ota",
     "DebugLevel": "none",
-    "PSRAM": "disabled",
+    "PSRAM": "enabled",
     "LoopCore": "1",
     "EventsCore": "1",
     "EraseFlash": "none"
