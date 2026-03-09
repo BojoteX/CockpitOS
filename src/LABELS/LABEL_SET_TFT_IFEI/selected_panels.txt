@@ -30,7 +30,7 @@
 # Environment Control Louver
 # Environment Control System Panel
 # Exterior Lights Panel
-# External Aircraft Model
+External Aircraft Model
 # Fire Systems
 # Fire Test Panel
 # Flaps, Landing Gear, Stores Indicator Panel
@@ -47,9 +47,9 @@
 # Heading
 # Heading and Course Set Switches
 Integrated Fuel/Engine Indicator (IFEI)
-# Interior Lights Panel
+Interior Lights Panel
 # Internal Canopy Switch
-# Internal Lights
+Internal Lights
 # KY-58 Control
 # LH Advisory Panel
 # LOX Indicator
