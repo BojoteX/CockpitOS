@@ -130,22 +130,20 @@ public:
             cfg.pin_hsync   = IFEI_TFT_HSYNC;
             cfg.pin_pclk    = IFEI_TFT_PCLK;
 
-            // Pixel clock frequency
-            cfg.freq_write = 12000000;  // 12 MHz PCLK (safe for 800x480)
+            // Pixel clock frequency (16 MHz — from paulhamsh working LovyanGFX config)
+            cfg.freq_write = 16000000;
 
-            // Timing parameters (Waveshare ESP32-S3-Touch-LCD-7 / ST7262)
-            // Values from LovyanGFX community testing for this specific board
+            // Timing parameters (from paulhamsh/Waveshare-ESP32-S3-LCD-7-LVGL)
             cfg.hsync_polarity    = 0;
-            cfg.hsync_front_porch = 50;
-            cfg.hsync_pulse_width = 8;
+            cfg.hsync_front_porch = 8;
+            cfg.hsync_pulse_width = 4;
             cfg.hsync_back_porch  = 8;
             cfg.vsync_polarity    = 0;
             cfg.vsync_front_porch = 8;
-            cfg.vsync_pulse_width = 3;
+            cfg.vsync_pulse_width = 4;
             cfg.vsync_back_porch  = 8;
 
             cfg.pclk_active_neg   = 1;
-            cfg.de_idle_high      = 0;
             cfg.pclk_idle_high    = 0;
 
             _bus_instance.config(cfg);
@@ -156,7 +154,7 @@ public:
         // --- Touch (GT911) ---
         {
             auto tcfg = _touch_instance.config();
-            tcfg.i2c_port = 0;
+            tcfg.i2c_port = 1;  // I2C_NUM_1 (CH422G uses I2C_NUM_0 via Wire)
             tcfg.i2c_addr = 0x14;  // GT911 default (alt: 0x5D)
             tcfg.pin_sda  = IFEI_TOUCH_SDA;
             tcfg.pin_scl  = IFEI_TOUCH_SCL;
