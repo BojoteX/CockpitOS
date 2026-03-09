@@ -25,6 +25,7 @@ enum class PanelKind : uint8_t {
     TFTCabPress,             // PANEL_KIND in TFT_Gauges_CabinPressure.cpp
     TFTCmws,                 // PANEL_KIND in TFT_Display_CMWS.cpp
     TFTHyd,                  // PANEL_KIND in TFT_Gauges_HydPress.cpp
+    TFTIFEI,                 // PANEL_KIND in TFT_Display_IFEI.cpp
     TFTRadarAlt,             // PANEL_KIND in TFT_Gauges_RadarAlt.cpp
     TFT_Gauges_CabPressTest, // from TFT_Gauges_CabPressTest.cpp
     TestPanel,               // from TestPanel.cpp
