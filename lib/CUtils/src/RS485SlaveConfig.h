@@ -200,11 +200,6 @@
 #define RS485_TASK_TICK_INTERVAL 1
 #endif
 
-// *** Set in Config.h — this is only a fallback default ***
-#ifndef RS485_TASK_CORE
-#define RS485_TASK_CORE         0
-#endif
-
 #endif // RS485_USE_TASK
 
 // ============================================================================

@@ -571,7 +571,8 @@ void IFEIDisplay_init() {
 
     #if RUN_IFEI_DISPLAY_AS_TASK
     // Create FreeRTOS task to update our display
-    xTaskCreate(IFEIDisplayTask, "IFEIDisplay", 4096, NULL, 1, NULL);
+    // ARDUINO_RUNNING_CORE = 1 on dual-core (S3), 0 on single-core (S2)
+    xTaskCreatePinnedToCore(IFEIDisplayTask, "IFEIDisplay", 4096, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
     #endif
 
     debugPrintln("✅ Initialized IFEI Display");

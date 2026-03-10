@@ -35,12 +35,8 @@
 #include <esp_heap_caps.h>
 #endif
 
-// Core
-#if defined(ESP_FAMILY_S3)
-#define HYD_CPU_CORE 1
-#else
-#define HYD_CPU_CORE 0
-#endif
+// Pin TFT task to the same core as Arduino loop()
+// ARDUINO_RUNNING_CORE = 1 on dual-core (S3), 0 on single-core (S2)
 
 // --- Pins ---
 #ifndef HYD_PRESSURE_CS_PIN
@@ -403,7 +399,7 @@ void HydPressureGauge_init()
     HydPressureGauge_bitTest();
 
 #if RUN_HYD_PRESSURE_GAUGE_AS_TASK
-    xTaskCreatePinnedToCore(HydPressureGauge_task, "HydPressureGaugeTask", 4096, nullptr, 2, &tftTaskHandle, HYD_CPU_CORE);
+    xTaskCreatePinnedToCore(HydPressureGauge_task, "HydPressureGaugeTask", 4096, nullptr, 2, &tftTaskHandle, ARDUINO_RUNNING_CORE);
 #endif
 
     debugPrintln("✅ Hydraulic Pressure Gauge (dirty-rect DMA) initialized");

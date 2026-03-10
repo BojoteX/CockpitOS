@@ -29,8 +29,7 @@ Exactly **one** transport must be enabled (set to `1`). The compiler enforces th
 | `RS485_TX_PRE_DE_DELAY_US` | `40` | Microsecond delay before slave response. Prevents collisions with AVR masters. |
 | `RS485_TX_WARMUP_DELAY_US` | `0` | Manual DE: delay after DE assert before TX. |
 | `RS485_TX_WARMUP_AUTO_DELAY_US` | `0` | Auto-direction: delay before TX (internal RX to TX switch). |
-| `RS485_USE_TASK` | `1` | `0` = run in `loop()` (best for WiFi). `1` = dedicated FreeRTOS task (best for USB/Serial/BLE). |
-| `RS485_TASK_CORE` | `0` | CPU core for the RS-485 task. `0` = Core 0 (ideal when no WiFi). `1` = Core 1 (shares with `loop()`). Ignored on single-core chips. |
+| `RS485_USE_TASK` | `1` | `0` = run in `loop()` (best for WiFi). `1` = dedicated FreeRTOS task (best for USB/Serial/BLE). Task is pinned to `ARDUINO_RUNNING_CORE` (same core as `loop()`). |
 
 ### Transport Compatibility by ESP32 Variant
 

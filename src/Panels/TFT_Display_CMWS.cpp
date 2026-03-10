@@ -95,12 +95,8 @@
 // =============================================================================
 static constexpr uint32_t CMWS_REFRESH_INTERVAL_MS = 33;   // ~30 FPS max
 
-// Select core (For this gauge, we always use core 0 for all devices)
-#if defined(ESP_FAMILY_S3)
-    static constexpr uint8_t  CPU_CORE = 0;
-#else
-    static constexpr uint8_t  CPU_CORE = 0;
-#endif
+// Pin TFT task to the same core as Arduino loop()
+// ARDUINO_RUNNING_CORE = 1 on dual-core (S3), 0 on single-core (S2)
 
 static constexpr uint16_t TASK_STACK_SIZE          = 4096;
 static constexpr uint8_t  TASK_PRIORITY            = 2;
@@ -1778,7 +1774,7 @@ void CMWSDisplay_init() {
     // Create task using temp handle, then store to volatile (avoids const_cast)
     TaskHandle_t tempHandle = nullptr;
     xTaskCreatePinnedToCore(CMWSDisplay_task, "CMWSTask", TASK_STACK_SIZE, nullptr, TASK_PRIORITY, 
-                            &tempHandle, CPU_CORE);
+                            &tempHandle, ARDUINO_RUNNING_CORE);
     taskHandle = tempHandle;  // Atomic store to volatile
 #endif
 

@@ -128,8 +128,7 @@ The Compiler Tool's RS485 master wizard configures Smart Mode and Max Slave Addr
 |---|---|---|---|
 | `RS485_SMART_MODE` | `0` | When `1`, master filters data using its DcsOutputTable (built from the master's panels). The master's `selected_panels.txt` must include all panels that any slave needs. | Compiler Tool |
 | `RS485_MAX_SLAVE_ADDRESS` | `127` | Highest slave address to poll. Lower this to reduce polling overhead. | Compiler Tool |
-| `RS485_USE_TASK` | `1` | `1` = dedicated FreeRTOS task (best for USB/Serial). `0` = run in main loop (best for WiFi). | Manual (Config.h) |
-| `RS485_TASK_CORE` | `0` | CPU core for the RS485 task on dual-core boards. | Manual (Config.h) |
+| `RS485_USE_TASK` | `1` | `1` = dedicated FreeRTOS task (best for USB/Serial). `0` = run in main loop (best for WiFi). Task is pinned to `ARDUINO_RUNNING_CORE` (same core as `loop()`). | Manual (Config.h) |
 
 ---
 

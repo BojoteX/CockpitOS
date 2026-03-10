@@ -748,19 +748,8 @@ bool RS485Slave_init() {
     #if RS485_USE_TASK
     taskRunning = true;
 
-    #if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3) || \
-        defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32H2)
-    // Single-core chips - use xTaskCreate (no core affinity)
-    BaseType_t result = xTaskCreate(
-        rs485SlaveTask,
-        "RS485S",
-        RS485_TASK_STACK_SIZE,
-        nullptr,
-        RS485_TASK_PRIORITY,
-        &rs485TaskHandle
-    );
-    #else
-    // Dual-core chips - pin to specified core
+    // Pin to the same core as Arduino loop()
+    // ARDUINO_RUNNING_CORE = 1 on dual-core (S3), 0 on single-core (S2/C3/C6/H2)
     BaseType_t result = xTaskCreatePinnedToCore(
         rs485SlaveTask,
         "RS485S",
@@ -768,9 +757,8 @@ bool RS485Slave_init() {
         nullptr,
         RS485_TASK_PRIORITY,
         &rs485TaskHandle,
-        RS485_TASK_CORE
+        ARDUINO_RUNNING_CORE
     );
-    #endif
 
     if (result != pdPASS) {
         debugPrintln("[RS485S] ERROR: Failed to create task!");
