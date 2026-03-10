@@ -58,9 +58,8 @@
 #define RS485_TX_WARMUP_DELAY_US                    0 // Manual DE: delay after DE assert before TX
 #define RS485_TX_WARMUP_AUTO_DELAY_US               0 // Auto-direction: delay before TX (internal RX→TX switch)
 
-// RS485 *** Advanced CPU Core management *** 
+// RS485 *** Advanced CPU Core management ***
 #define RS485_USE_TASK                              1 // 0 = runs in loop() (best for WiFi). 1 = dedicated FreeRTOS task (best for USB/Serial/BLE)
-#define RS485_TASK_CORE                             0 // Only relevant/used when RS485_USE_TASK is set to 1 (see above). 0 = Core 0 (ideal when no WiFi). 1 = Core 1 (shares with loop). Ignored on single-core chips
 
 // *** READ THIS *** (Advanced users only)
 // TinyUSB + Wi-Fi enabled at the same time consume a LOT of memory, so if you decide to enable debugging (below) on S2 devices keep that in mind as compiles will most likely fail if both the WiFi stack (for debug or normal operation) is enabled along USB-OTG (TinyUSB). To avoid, simply use an S3 device or stick to the stack capabilities (e.g) Debug via Serial if using USB or Debug via WiFi if using WiFi as transport.  

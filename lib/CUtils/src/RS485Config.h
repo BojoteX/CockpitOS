@@ -222,12 +222,6 @@
 #define RS485_TASK_TICK_INTERVAL 1
 #endif
 
-// Core affinity for dual-core ESP32s (S3, classic ESP32)
-// *** Set in Config.h — this is only a fallback default ***
-#ifndef RS485_TASK_CORE
-#define RS485_TASK_CORE         1
-#endif
-
 // Command queue size (slave commands passed to main loop)
 #ifndef RS485_CMD_QUEUE_SIZE
 #define RS485_CMD_QUEUE_SIZE    16

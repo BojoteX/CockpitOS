@@ -49,7 +49,7 @@ Three Python TUI tools automate the entire workflow. Users do NOT need Arduino I
   - **Misc Options > Debug / Verbose Toggles** — Enable/disable DEBUG_ENABLED, VERBOSE_MODE_WIFI_ONLY, VERBOSE_MODE_SERIAL_ONLY, DEBUG_PERFORMANCE
   - **Misc Options > Advanced Settings > HID mode by default** — Toggle MODE_DEFAULT_IS_HID
 - **What it manages in Config.h (TRACKED_DEFINES):** USE_DCSBIOS_USB, USE_DCSBIOS_WIFI, USE_DCSBIOS_SERIAL, USE_DCSBIOS_BLUETOOTH, RS485_MASTER_ENABLED, RS485_SLAVE_ENABLED, RS485_SMART_MODE, RS485_MAX_SLAVE_ADDRESS, RS485_SLAVE_ADDRESS, DEBUG_ENABLED, VERBOSE_MODE, VERBOSE_MODE_WIFI_ONLY, VERBOSE_MODE_SERIAL_ONLY, DEBUG_PERFORMANCE, MODE_DEFAULT_IS_HID
-- **What it does NOT manage (manual Config.h editing still required):** IS_REPLAY, TEST_LEDS, SCAN_WIFI_NETWORKS, POLLING_RATE_HZ, PCA_FAST_MODE, axis thresholds, SELECTOR_DWELL_MS, SERVO_UPDATE_FREQ_MS, per-device debug flags (DEBUG_ENABLED_FOR_TM1637_ONLY, DEBUG_ENABLED_FOR_PCA_ONLY, DEBUG_ENABLED_FOR_HC165_ONLY), RS485_USE_TASK, RS485_TASK_CORE, RS485 timing parameters
+- **What it does NOT manage (manual Config.h editing still required):** IS_REPLAY, TEST_LEDS, SCAN_WIFI_NETWORKS, POLLING_RATE_HZ, PCA_FAST_MODE, axis thresholds, SELECTOR_DWELL_MS, SERVO_UPDATE_FREQ_MS, per-device debug flags (DEBUG_ENABLED_FOR_TM1637_ONLY, DEBUG_ENABLED_FOR_PCA_ONLY, DEBUG_ENABLED_FOR_HC165_ONLY), RS485_USE_TASK, RS485 timing parameters
 
 ### Tool 3: Label Creator (LabelCreator-START.py)
 - **Main module:** label_creator/label_creator.py
@@ -319,8 +319,7 @@ Only ONE transport can be active at a time. Set via Compiler Tool > Role / Trans
 | DEBUG_ENABLED_FOR_TM1637_ONLY | 0 | Per-device debug filter |
 | DEBUG_ENABLED_FOR_PCA_ONLY | 0 | Per-device debug filter |
 | DEBUG_ENABLED_FOR_HC165_ONLY | 0 | Per-device debug filter |
-| RS485_USE_TASK | 1 | Run RS485 on separate FreeRTOS task (best for USB/Serial/BLE; set 0 for WiFi) |
-| RS485_TASK_CORE | 0 | Core for RS485 task |
+| RS485_USE_TASK | 1 | Run RS485 on separate FreeRTOS task (best for USB/Serial/BLE; set 0 for WiFi). Pinned to ARDUINO_RUNNING_CORE |
 | RS485 timing params | varies | SLAVE_TIMEOUT_MS, RESPONSE_TIMEOUT_MS, etc. |
 
 ---

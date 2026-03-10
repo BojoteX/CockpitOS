@@ -35,12 +35,8 @@
 #include <esp_heap_caps.h>
 #endif
 
-// Select core (For this gauge, we always use core 0 for all devices)
-#if defined(ESP_FAMILY_S3)
-#define RA_CPU_CORE 1
-#else
-#define RA_CPU_CORE 0
-#endif
+// Pin TFT task to the same core as Arduino loop()
+// ARDUINO_RUNNING_CORE = 1 on dual-core (S3), 0 on single-core (S2)
 
 // --- Pins ---
 #ifndef RADARALT_CS_PIN
@@ -512,7 +508,7 @@ void RadarAlt_init()
     RadarAlt_bitTest();  // <-- call on demand if you prefer
 
 #if RUN_RADARALT_AS_TASK
-    xTaskCreatePinnedToCore(RadarAlt_task, "RadarAltTask", 4096, nullptr, 2, &tftTaskHandle, RA_CPU_CORE);
+    xTaskCreatePinnedToCore(RadarAlt_task, "RadarAltTask", 4096, nullptr, 2, &tftTaskHandle, ARDUINO_RUNNING_CORE);
 #endif
 
     debugPrintln("✅ Radar Altimeter (LovyanGFX, dirty-rect DMA) initialized");

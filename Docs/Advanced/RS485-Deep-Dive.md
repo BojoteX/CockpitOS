@@ -558,16 +558,14 @@ The master task runs at priority `RS485_TASK_PRIORITY` (24 default) to ensure it
 On dual-core chips (ESP32, ESP32-S3), the task is pinned to a specific core:
 
 ```cpp
-// Dual-core: use xTaskCreatePinnedToCore
+// Pinned to the same core as Arduino loop() on all chip variants
+// ARDUINO_RUNNING_CORE = 1 on dual-core (S3), 0 on single-core (S2/C3/C6/H2)
 xTaskCreatePinnedToCore(rs485Task, "RS485M",
     RS485_TASK_STACK_SIZE,    // 4096 bytes
     nullptr,
     RS485_TASK_PRIORITY,      // 24
     &rs485TaskHandle,
-    RS485_TASK_CORE);         // 0 (default)
-
-// Single-core (S2, C3, C6): use xTaskCreate (no affinity)
-xTaskCreate(rs485Task, "RS485M", ...);
+    ARDUINO_RUNNING_CORE);
 ```
 
 ---
@@ -594,7 +592,6 @@ xTaskCreate(rs485Task, "RS485M", ...);
 | `RS485_USE_TASK` | 1 | Run in FreeRTOS task |
 | `RS485_TASK_PRIORITY` | 24 | Task priority |
 | `RS485_TASK_STACK_SIZE` | 4096 | Task stack bytes |
-| `RS485_TASK_CORE` | 0 | Core affinity (dual-core only) |
 
 ### Slave Configuration (RS485SlaveConfig.h)
 
@@ -612,7 +609,6 @@ xTaskCreate(rs485Task, "RS485M", ...);
 | `RS485_USE_TASK` | 1 | Run in FreeRTOS task |
 | `RS485_TASK_PRIORITY` | 5 | Task priority |
 | `RS485_TASK_STACK_SIZE` | 4096 | Task stack bytes |
-| `RS485_TASK_CORE` | 0 | Core affinity (dual-core only) |
 
 ---
 
