@@ -447,12 +447,9 @@ static int16_t alignCursorX(LGFX_Sprite* spr, const char* text, int16_t sprWidth
 // DCS-BIOS CALLBACKS — Display fields
 // =============================================================================
 // Engine data — straightforward: update field, mark dirty
-// isMissionRunning() guard: prevents garbage data when no DCS mission is active
-// (gold standard: renderIFEIDispatcher line 594 gates ALL field processing)
-static void onRpmL(const char*, const char* v)  { if (!isMissionRunning()) return; if (updateField(v, fld_rpm_l, sizeof(fld_rpm_l)))   { dirty_rpm_l  = true; displayDirty = true; } }
-static void onRpmR(const char*, const char* v)  { if (!isMissionRunning()) return; if (updateField(v, fld_rpm_r, sizeof(fld_rpm_r)))   { dirty_rpm_r  = true; displayDirty = true; } }
+static void onRpmL(const char*, const char* v)  { if (updateField(v, fld_rpm_l, sizeof(fld_rpm_l)))   { dirty_rpm_l  = true; displayDirty = true; } }
+static void onRpmR(const char*, const char* v)  { if (updateField(v, fld_rpm_r, sizeof(fld_rpm_r)))   { dirty_rpm_r  = true; displayDirty = true; } }
 static void onTempL(const char*, const char* v) {
-    if (!isMissionRunning()) return;
     if (updateField(v, fld_temp_l, sizeof(fld_temp_l))) {
         // Cache base value for overlay restore (only when non-blank)
         if (!isBlankString(fld_temp_l, 3)) memcpy(tempL_base, fld_temp_l, sizeof(tempL_base));
@@ -460,37 +457,33 @@ static void onTempL(const char*, const char* v) {
     }
 }
 static void onTempR(const char*, const char* v) {
-    if (!isMissionRunning()) return;
     if (updateField(v, fld_temp_r, sizeof(fld_temp_r))) {
         if (!isBlankString(fld_temp_r, 3)) memcpy(tempR_base, fld_temp_r, sizeof(tempR_base));
         dirty_temp_r = true; displayDirty = true;
     }
 }
-static void onFfL(const char*, const char* v)   { if (!isMissionRunning()) return; if (updateField(v, fld_ff_l, sizeof(fld_ff_l)))     { dirty_ff_l   = true; displayDirty = true; } }
-static void onFfR(const char*, const char* v)   { if (!isMissionRunning()) return; if (updateField(v, fld_ff_r, sizeof(fld_ff_r)))     { dirty_ff_r   = true; displayDirty = true; } }
-static void onOilL(const char*, const char* v)  { if (!isMissionRunning()) return; if (updateField(v, fld_oil_l, sizeof(fld_oil_l)))   { dirty_oil_l  = true; displayDirty = true; } }
-static void onOilR(const char*, const char* v)  { if (!isMissionRunning()) return; if (updateField(v, fld_oil_r, sizeof(fld_oil_r)))   { dirty_oil_r  = true; displayDirty = true; } }
+static void onFfL(const char*, const char* v)   { if (updateField(v, fld_ff_l, sizeof(fld_ff_l)))     { dirty_ff_l   = true; displayDirty = true; } }
+static void onFfR(const char*, const char* v)   { if (updateField(v, fld_ff_r, sizeof(fld_ff_r)))     { dirty_ff_r   = true; displayDirty = true; } }
+static void onOilL(const char*, const char* v)  { if (updateField(v, fld_oil_l, sizeof(fld_oil_l)))   { dirty_oil_l  = true; displayDirty = true; } }
+static void onOilR(const char*, const char* v)  { if (updateField(v, fld_oil_r, sizeof(fld_oil_r)))   { dirty_oil_r  = true; displayDirty = true; } }
 
 // Fuel — cache base values for overlay restore
 static void onFuelUp(const char*, const char* v) {
-    if (!isMissionRunning()) return;
     if (updateField(v, fld_fuel_up, sizeof(fld_fuel_up))) {
         if (!isBlankString(fld_fuel_up, 6)) memcpy(fuelUp_base, fld_fuel_up, sizeof(fuelUp_base));
         dirty_fuel_up = true; displayDirty = true;
     }
 }
 static void onFuelDown(const char*, const char* v) {
-    if (!isMissionRunning()) return;
     if (updateField(v, fld_fuel_down, sizeof(fld_fuel_down))) {
         if (!isBlankString(fld_fuel_down, 6)) memcpy(fuelDn_base, fld_fuel_down, sizeof(fuelDn_base));
         dirty_fuel_down = true; displayDirty = true;
     }
 }
-static void onBingo(const char*, const char* v) { if (!isMissionRunning()) return; if (updateField(v, fld_bingo, sizeof(fld_bingo))) { dirty_bingo = true; displayDirty = true; } }
+static void onBingo(const char*, const char* v) { if (updateField(v, fld_bingo, sizeof(fld_bingo))) { dirty_bingo = true; displayDirty = true; } }
 
 // SP/CODES overlay — these replace TEMP L/R when non-blank
 static void onSp(const char*, const char* v) {
-    if (!isMissionRunning()) return;
     if (updateField(v, fld_sp, sizeof(fld_sp))) {
         bool wasActive = sp_active;
         bool blank = isBlankString(fld_sp, 3);
@@ -517,7 +510,6 @@ static void onSp(const char*, const char* v) {
     }
 }
 static void onCodes(const char*, const char* v) {
-    if (!isMissionRunning()) return;
     if (updateField(v, fld_codes, sizeof(fld_codes))) {
         bool wasActive = sp_active;
         bool blank = isBlankString(fld_codes, 3);
@@ -544,7 +536,6 @@ static void onCodes(const char*, const char* v) {
 
 // T mode overlay — replaces FUEL_UP, blanks TEMP while active
 static void onT(const char*, const char* v) {
-    if (!isMissionRunning()) return;
     if (updateField(v, fld_t, sizeof(fld_t))) {
         bool was_t = fuel_mode_active;
         bool blank = isBlankString(fld_t, 6);
@@ -578,78 +569,69 @@ static void onT(const char*, const char* v) {
 
 // TIME_SET overlay — replaces FUEL_DOWN when in T-mode
 static void onTimeSet(const char*, const char* v) {
-    if (!isMissionRunning()) return;
     if (updateField(v, fld_time_set, sizeof(fld_time_set))) {
         dirty_time_set = true;
-        // Gate: only mark FUEL_DOWN dirty if in T-mode or lastTWasBlank
-        // (prevents FUEL_DOWN flash when TIME_SET blanks outside T-mode)
-        if (fuel_mode_active || lastTWasBlank) {
-            dirty_fuel_down = true;
-        }
+        dirty_fuel_down = true;
         displayDirty = true;
     }
 }
 
 // Clock
-static void onClockH(const char*, const char* v) { if (!isMissionRunning()) return; if (updateField(v, fld_clock_h, sizeof(fld_clock_h))) { dirty_clock = true; displayDirty = true; } }
-static void onClockM(const char*, const char* v) { if (!isMissionRunning()) return; if (updateField(v, fld_clock_m, sizeof(fld_clock_m))) { dirty_clock = true; displayDirty = true; } }
-static void onClockS(const char*, const char* v) { if (!isMissionRunning()) return; if (updateField(v, fld_clock_s, sizeof(fld_clock_s))) { dirty_clock = true; displayDirty = true; } }
-static void onDd1(const char*, const char* v)    { if (!isMissionRunning()) return; if (v && fld_dd_1[0] != v[0]) { fld_dd_1[0] = v[0]; fld_dd_1[1] = '\0'; dirty_clock = true; displayDirty = true; } }
-static void onDd2(const char*, const char* v)    { if (!isMissionRunning()) return; if (v && fld_dd_2[0] != v[0]) { fld_dd_2[0] = v[0]; fld_dd_2[1] = '\0'; dirty_clock = true; displayDirty = true; } }
+static void onClockH(const char*, const char* v) { if (updateField(v, fld_clock_h, sizeof(fld_clock_h))) { dirty_clock = true; displayDirty = true; } }
+static void onClockM(const char*, const char* v) { if (updateField(v, fld_clock_m, sizeof(fld_clock_m))) { dirty_clock = true; displayDirty = true; } }
+static void onClockS(const char*, const char* v) { if (updateField(v, fld_clock_s, sizeof(fld_clock_s))) { dirty_clock = true; displayDirty = true; } }
+static void onDd1(const char*, const char* v)    { if (v && fld_dd_1[0] != v[0]) { fld_dd_1[0] = v[0]; fld_dd_1[1] = '\0'; dirty_clock = true; displayDirty = true; } }
+static void onDd2(const char*, const char* v)    { if (v && fld_dd_2[0] != v[0]) { fld_dd_2[0] = v[0]; fld_dd_2[1] = '\0'; dirty_clock = true; displayDirty = true; } }
 
 // Timer
-static void onTimerH(const char*, const char* v) { if (!isMissionRunning()) return; if (updateField(v, fld_timer_h, sizeof(fld_timer_h))) { dirty_timer = true; displayDirty = true; } }
-static void onTimerM(const char*, const char* v) { if (!isMissionRunning()) return; if (updateField(v, fld_timer_m, sizeof(fld_timer_m))) { dirty_timer = true; displayDirty = true; } }
-static void onTimerS(const char*, const char* v) { if (!isMissionRunning()) return; if (updateField(v, fld_timer_s, sizeof(fld_timer_s))) { dirty_timer = true; displayDirty = true; } }
-static void onDd3(const char*, const char* v)    { if (!isMissionRunning()) return; if (v && fld_dd_3[0] != v[0]) { fld_dd_3[0] = v[0]; fld_dd_3[1] = '\0'; dirty_timer = true; displayDirty = true; } }
-static void onDd4(const char*, const char* v)    { if (!isMissionRunning()) return; if (v && fld_dd_4[0] != v[0]) { fld_dd_4[0] = v[0]; fld_dd_4[1] = '\0'; dirty_timer = true; displayDirty = true; } }
+static void onTimerH(const char*, const char* v) { if (updateField(v, fld_timer_h, sizeof(fld_timer_h))) { dirty_timer = true; displayDirty = true; } }
+static void onTimerM(const char*, const char* v) { if (updateField(v, fld_timer_m, sizeof(fld_timer_m))) { dirty_timer = true; displayDirty = true; } }
+static void onTimerS(const char*, const char* v) { if (updateField(v, fld_timer_s, sizeof(fld_timer_s))) { dirty_timer = true; displayDirty = true; } }
+static void onDd3(const char*, const char* v)    { if (v && fld_dd_3[0] != v[0]) { fld_dd_3[0] = v[0]; fld_dd_3[1] = '\0'; dirty_timer = true; displayDirty = true; } }
+static void onDd4(const char*, const char* v)    { if (v && fld_dd_4[0] != v[0]) { fld_dd_4[0] = v[0]; fld_dd_4[1] = '\0'; dirty_timer = true; displayDirty = true; } }
 
 // =============================================================================
 // DCS-BIOS CALLBACKS — Texture visibility (labels on/off)
 // =============================================================================
-static void onTexRpm(const char*, const char* v)   { if (!isMissionRunning()) return; bool nv = (v && v[0] == '1'); if (nv != tex_rpm)   { tex_rpm   = nv; dirty_tex_rpm   = true; displayDirty = true; } }
-static void onTexTemp(const char*, const char* v)  { if (!isMissionRunning()) return; bool nv = (v && v[0] == '1'); if (nv != tex_temp)  { tex_temp  = nv; dirty_tex_temp  = true; displayDirty = true; } }
-static void onTexFf(const char*, const char* v)    { if (!isMissionRunning()) return; bool nv = (v && v[0] == '1'); if (nv != tex_ff)    { tex_ff    = nv; dirty_tex_ff    = true; displayDirty = true; } }
-static void onTexOil(const char*, const char* v)   { if (!isMissionRunning()) return; bool nv = (v && v[0] == '1'); if (nv != tex_oil)   { tex_oil   = nv; dirty_tex_oil   = true; displayDirty = true; } }
-static void onTexNoz(const char*, const char* v)   { if (!isMissionRunning()) return; bool nv = (v && v[0] == '1'); if (nv != tex_noz)   { tex_noz   = nv; dirty_tex_noz   = true; nozzleDirty = true; displayDirty = true; } }
-static void onTexBingo(const char*, const char* v) { if (!isMissionRunning()) return; bool nv = (v && v[0] == '1'); if (nv != tex_bingo) { tex_bingo = nv; dirty_tex_bingo = true; displayDirty = true; } }
-static void onTexZ(const char*, const char* v)     { if (!isMissionRunning()) return; bool nv = (v && v[0] == '1'); if (nv != tex_z)     { tex_z     = nv; dirty_tex_z     = true; displayDirty = true; } }
-static void onTexL(const char*, const char* v)     { if (!isMissionRunning()) return; bool nv = (v && v[0] == '1'); if (nv != tex_l)     { tex_l     = nv; dirty_tex_l     = true; displayDirty = true; } }
-static void onTexR(const char*, const char* v)     { if (!isMissionRunning()) return; bool nv = (v && v[0] == '1'); if (nv != tex_r)     { tex_r     = nv; dirty_tex_r     = true; displayDirty = true; } }
+static void onTexRpm(const char*, const char* v)   { bool nv = (v && v[0] == '1'); if (nv != tex_rpm)   { tex_rpm   = nv; dirty_tex_rpm   = true; displayDirty = true; } }
+static void onTexTemp(const char*, const char* v)  { bool nv = (v && v[0] == '1'); if (nv != tex_temp)  { tex_temp  = nv; dirty_tex_temp  = true; displayDirty = true; } }
+static void onTexFf(const char*, const char* v)    { bool nv = (v && v[0] == '1'); if (nv != tex_ff)    { tex_ff    = nv; dirty_tex_ff    = true; displayDirty = true; } }
+static void onTexOil(const char*, const char* v)   { bool nv = (v && v[0] == '1'); if (nv != tex_oil)   { tex_oil   = nv; dirty_tex_oil   = true; displayDirty = true; } }
+static void onTexNoz(const char*, const char* v)   { bool nv = (v && v[0] == '1'); if (nv != tex_noz)   { tex_noz   = nv; dirty_tex_noz   = true; nozzleDirty = true; displayDirty = true; } }
+static void onTexBingo(const char*, const char* v) { bool nv = (v && v[0] == '1'); if (nv != tex_bingo) { tex_bingo = nv; dirty_tex_bingo = true; displayDirty = true; } }
+static void onTexZ(const char*, const char* v)     { bool nv = (v && v[0] == '1'); if (nv != tex_z)     { tex_z     = nv; dirty_tex_z     = true; displayDirty = true; } }
+static void onTexL(const char*, const char* v)     { bool nv = (v && v[0] == '1'); if (nv != tex_l)     { tex_l     = nv; dirty_tex_l     = true; displayDirty = true; } }
+static void onTexR(const char*, const char* v)     { bool nv = (v && v[0] == '1'); if (nv != tex_r)     { tex_r     = nv; dirty_tex_r     = true; displayDirty = true; } }
 
 // =============================================================================
 // DCS-BIOS CALLBACKS — Nozzle textures (pointer, scale, number visibility)
 // =============================================================================
 static void onTexLPointer(const char*, const char* v) {
-    if (!isMissionRunning()) return;
     bool nv = (v && v[0] == '1');
     if (nv != showLeftNozPointer) { showLeftNozPointer = nv; nozzleDirty = true; displayDirty = true; }
 }
 static void onTexRPointer(const char*, const char* v) {
-    if (!isMissionRunning()) return;
     bool nv = (v && v[0] == '1');
     if (nv != showRightNozPointer) { showRightNozPointer = nv; nozzleDirty = true; displayDirty = true; }
 }
-static void onTexLScale(const char*, const char* v) { if (!isMissionRunning()) return; bool nv = (v && v[0] == '1'); if (nv != tex_lscale) { tex_lscale = nv; nozzleDirty = true; displayDirty = true; } }
-static void onTexRScale(const char*, const char* v) { if (!isMissionRunning()) return; bool nv = (v && v[0] == '1'); if (nv != tex_rscale) { tex_rscale = nv; nozzleDirty = true; displayDirty = true; } }
-static void onTexL0(const char*, const char* v)     { if (!isMissionRunning()) return; bool nv = (v && v[0] == '1'); if (nv != tex_l0)     { tex_l0     = nv; nozzleDirty = true; displayDirty = true; } }
-static void onTexL50(const char*, const char* v)    { if (!isMissionRunning()) return; bool nv = (v && v[0] == '1'); if (nv != tex_l50)    { tex_l50    = nv; nozzleDirty = true; displayDirty = true; } }
-static void onTexL100(const char*, const char* v)   { if (!isMissionRunning()) return; bool nv = (v && v[0] == '1'); if (nv != tex_l100)   { tex_l100   = nv; nozzleDirty = true; displayDirty = true; } }
-static void onTexR0(const char*, const char* v)     { if (!isMissionRunning()) return; bool nv = (v && v[0] == '1'); if (nv != tex_r0)     { tex_r0     = nv; nozzleDirty = true; displayDirty = true; } }
-static void onTexR50(const char*, const char* v)    { if (!isMissionRunning()) return; bool nv = (v && v[0] == '1'); if (nv != tex_r50)    { tex_r50    = nv; nozzleDirty = true; displayDirty = true; } }
-static void onTexR100(const char*, const char* v)   { if (!isMissionRunning()) return; bool nv = (v && v[0] == '1'); if (nv != tex_r100)   { tex_r100   = nv; nozzleDirty = true; displayDirty = true; } }
+static void onTexLScale(const char*, const char* v) { bool nv = (v && v[0] == '1'); if (nv != tex_lscale) { tex_lscale = nv; nozzleDirty = true; displayDirty = true; } }
+static void onTexRScale(const char*, const char* v) { bool nv = (v && v[0] == '1'); if (nv != tex_rscale) { tex_rscale = nv; nozzleDirty = true; displayDirty = true; } }
+static void onTexL0(const char*, const char* v)     { bool nv = (v && v[0] == '1'); if (nv != tex_l0)     { tex_l0     = nv; nozzleDirty = true; displayDirty = true; } }
+static void onTexL50(const char*, const char* v)    { bool nv = (v && v[0] == '1'); if (nv != tex_l50)    { tex_l50    = nv; nozzleDirty = true; displayDirty = true; } }
+static void onTexL100(const char*, const char* v)   { bool nv = (v && v[0] == '1'); if (nv != tex_l100)   { tex_l100   = nv; nozzleDirty = true; displayDirty = true; } }
+static void onTexR0(const char*, const char* v)     { bool nv = (v && v[0] == '1'); if (nv != tex_r0)     { tex_r0     = nv; nozzleDirty = true; displayDirty = true; } }
+static void onTexR50(const char*, const char* v)    { bool nv = (v && v[0] == '1'); if (nv != tex_r50)    { tex_r50    = nv; nozzleDirty = true; displayDirty = true; } }
+static void onTexR100(const char*, const char* v)   { bool nv = (v && v[0] == '1'); if (nv != tex_r100)   { tex_r100   = nv; nozzleDirty = true; displayDirty = true; } }
 
 // =============================================================================
 // DCS-BIOS CALLBACKS — Nozzle position (metadata — integer values)
 // =============================================================================
-static void onNozzlePosL(const char*, uint16_t value) { if (!isMissionRunning()) return; if (value != nozzlePosL) { nozzlePosL = value; nozzleDirty = true; displayDirty = true; } }
-static void onNozzlePosR(const char*, uint16_t value) { if (!isMissionRunning()) return; if (value != nozzlePosR) { nozzlePosR = value; nozzleDirty = true; displayDirty = true; } }
+static void onNozzlePosL(const char*, uint16_t value) { if (value != nozzlePosL) { nozzlePosL = value; nozzleDirty = true; displayDirty = true; } }
+static void onNozzlePosR(const char*, uint16_t value) { if (value != nozzlePosR) { nozzlePosR = value; nozzleDirty = true; displayDirty = true; } }
 
 // =============================================================================
 // DCS-BIOS CALLBACKS — Color mode and brightness
 // =============================================================================
-// COCKKPIT_LIGHT_MODE_SW: 0=Day, 1=Night, 2=NVG
-// NVG uses same green as Night on TFT (single backlight, color is pixel-rendered)
 static void onLightModeChange(const char*, uint16_t value) {
     uint32_t newColor = (value == 0) ? COLOR_DAY : COLOR_NIGHT;
     if (newColor != ifeiColor) {
@@ -659,16 +641,23 @@ static void onLightModeChange(const char*, uint16_t value) {
     }
 }
 
-// Brightness with deduplication — knob controls brightness in ALL modes
-// (gold standard: onBackLightIntensityChange scales to 0-255 for every mode)
-static uint8_t lastBrightnessVal = 0xFF;
+// Brightness with deduplication (ported from IFEIPanel setBacklightMode pattern)
+static uint8_t lastBrightnessMode = 0xFF;
+static uint8_t lastBrightnessVal  = 0xFF;
 
 static void onBrightnessChange(const char*, uint16_t value, uint16_t) {
-    uint8_t brightness = (uint8_t)map(value, 0, 65535, 0, 255);
+    uint8_t mode = (ifeiColor == COLOR_DAY) ? 0 : 1;
+    uint8_t brightness;
+    if (mode == 0) {
+        brightness = 150;  // Day: fixed
+    } else {
+        brightness = (uint8_t)map(value, 0, 65535, 0, 255);  // Night/NVG: proportional
+    }
 
     // Deduplication: skip if unchanged
-    if (brightness == lastBrightnessVal) return;
-    lastBrightnessVal = brightness;
+    if (mode == lastBrightnessMode && brightness == lastBrightnessVal) return;
+    lastBrightnessMode = mode;
+    lastBrightnessVal  = brightness;
 
     tft.setBrightness(brightness);
 }
@@ -951,16 +940,12 @@ static const char* resolveTempL() {
     // SP overrides TEMP_L when active; fuel_mode blanks TEMP entirely
     if (fuel_mode_active) return "";
     if (tempL_overlay && !isBlankString(fld_sp, 3)) return fld_sp;
-    // Blank-hold: show cached base when raw field is blank (prevents flash)
-    if (isBlankString(fld_temp_l, 3)) return tempL_base;
     return fld_temp_l;
 }
 
 static const char* resolveTempR() {
     if (fuel_mode_active) return "";
     if (tempR_overlay && !isBlankString(fld_codes, 3)) return fld_codes;
-    // Blank-hold: show cached base when raw field is blank (prevents flash)
-    if (isBlankString(fld_temp_r, 3)) return tempR_base;
     return fld_temp_r;
 }
 
@@ -1209,8 +1194,9 @@ static void blankAllFields() {
     dirty_tex_oil = true; dirty_tex_noz = true; dirty_tex_bingo = true;
     dirty_tex_z = true; dirty_tex_l = true; dirty_tex_r = true;
 
-    // Brightness dedup reset
-    lastBrightnessVal = 0xFF;
+    // Brightness
+    lastBrightnessMode = 0xFF;
+    lastBrightnessVal  = 0xFF;
 
     debugPrintln("  TFT IFEI: All fields blanked");
 }
@@ -1309,20 +1295,12 @@ static void TFTIFEIDisplayTask(void* pv) {
         if (displayDirty) {
             drawColor = ifeiColor;  // snapshot volatile color once per frame
 
-            #if DEBUG_PERFORMANCE
-            beginProfiling(PERF_DISPLAY_RENDER);
-            #endif
-
             if (needsFullRedraw) {
                 drawFullScreen();
                 needsFullRedraw = false;
             } else {
                 drawDirtyFields();
             }
-
-            #if DEBUG_PERFORMANCE
-            endProfiling(PERF_DISPLAY_RENDER);
-            #endif
 
             displayDirty = false;
         }
@@ -1484,20 +1462,12 @@ void TFTIFEIDisplay_loop() {
 
     drawColor = ifeiColor;  // snapshot volatile color once per frame
 
-    #if DEBUG_PERFORMANCE
-    beginProfiling(PERF_DISPLAY_RENDER);
-    #endif
-
     if (needsFullRedraw) {
         drawFullScreen();
         needsFullRedraw = false;
     } else {
         drawDirtyFields();
     }
-
-    #if DEBUG_PERFORMANCE
-    endProfiling(PERF_DISPLAY_RENDER);
-    #endif
 
     displayDirty = false;
 
@@ -1508,7 +1478,6 @@ void TFTIFEIDisplay_loop() {
 // MISSION START / STOP NOTIFICATIONS
 // =============================================================================
 void TFTIFEIDisplay_notifyMissionStart() {
-    blankAllFields();           // Clear stale data from previous mission
     needsFullRedraw = true;
     displayDirty = true;
 }

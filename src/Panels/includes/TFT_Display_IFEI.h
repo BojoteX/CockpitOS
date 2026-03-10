@@ -6,3 +6,4 @@
 void TFTIFEIDisplay_init();
 void TFTIFEIDisplay_loop();
 void TFTIFEIDisplay_notifyMissionStart();
+void TFTIFEIDisplay_notifyMissionStop();
