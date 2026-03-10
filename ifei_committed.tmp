@@ -56,12 +56,6 @@ static constexpr int16_t  SCREEN_W = 800;
 static constexpr int16_t  SCREEN_H = 480;
 static constexpr uint32_t REFRESH_INTERVAL_MS = 33;  // ~30 FPS
 
-// --- TROUBLESHOOTING FLAGS (set to 1 to disable for testing) ----------------
-// Step 1: Disable nozzle gauges (heaviest render: trig, 3 sprites, font load/unload)
-#define IFEI_DEBUG_NO_NOZZLES      0
-// Step 2: Disable ALL rendering in loop (static screen after init — isolates timing)
-#define IFEI_DEBUG_NO_LOOP_RENDER  0
-
 // Colors (RGB888 for 24-bit LovyanGFX sprites)
 static constexpr uint32_t COLOR_DAY   = 0xFFFFFFU;  // White
 static constexpr uint32_t COLOR_NIGHT = 0x1CDD2AU;  // Green (NVG)
@@ -87,6 +81,7 @@ static void ch422g_init() {
 class LGFX_WS7 : public lgfx::LGFX_Device {
     lgfx::Bus_RGB     _bus_instance;
     lgfx::Panel_RGB   _panel_instance;
+    lgfx::Touch_GT911 _touch_instance;
 
 public:
     LGFX_WS7() {
@@ -123,24 +118,36 @@ public:
             cfg.pin_vsync   = IFEI_TFT_VSYNC;
             cfg.pin_hsync   = IFEI_TFT_HSYNC;
             cfg.pin_pclk    = IFEI_TFT_PCLK;
-            cfg.freq_write = 13900000;   // 13.9 MHz — reduced from 16 MHz to lower PSRAM bus pressure
+            cfg.freq_write = 16000000;
             cfg.hsync_polarity    = 0;
             cfg.hsync_front_porch = 8;
             cfg.hsync_pulse_width = 4;
-            cfg.hsync_back_porch  = 43;  // 43 — widens horizontal blanking for safe PSRAM CPU access
+            cfg.hsync_back_porch  = 8;
             cfg.vsync_polarity    = 0;
             cfg.vsync_front_porch = 8;
             cfg.vsync_pulse_width = 4;
             cfg.vsync_back_porch  = 8;
             cfg.pclk_active_neg   = 1;
-            cfg.de_idle_high      = 0;
             cfg.pclk_idle_high    = 0;
             _bus_instance.config(cfg);
         }
         _panel_instance.setBus(&_bus_instance);
-        // NOTE: GT911 touch not configured — not used for IFEI, and its periodic
-        // I2C polling/interrupts cause occasional display stutter on RGB parallel.
-        // Can be re-added later if touch is needed (will require careful I2C scheduling).
+        {
+            auto tcfg = _touch_instance.config();
+            tcfg.i2c_port = 1;
+            tcfg.i2c_addr = 0x14;
+            tcfg.pin_sda  = IFEI_TOUCH_SDA;
+            tcfg.pin_scl  = IFEI_TOUCH_SCL;
+            tcfg.pin_int  = IFEI_TOUCH_INT;
+            tcfg.pin_rst  = -1;
+            tcfg.freq     = 400000;
+            tcfg.x_min    = 0;
+            tcfg.x_max    = SCREEN_W - 1;
+            tcfg.y_min    = 0;
+            tcfg.y_max    = SCREEN_H - 1;
+            _touch_instance.config(tcfg);
+            _panel_instance.setTouch(&_touch_instance);
+        }
         setPanel(&_panel_instance);
     }
 };
@@ -165,7 +172,6 @@ static LGFX_Sprite nozzleBand(&tft);        // 308x154 — combined nozzle area
 
 // Current text color
 static volatile uint32_t ifeiColor = COLOR_DAY;
-static uint32_t drawColor = COLOR_DAY;  // non-volatile snapshot for rendering
 
 // Dirty flags
 static volatile bool displayDirty = true;
@@ -349,17 +355,6 @@ static bool isBlankString(const char* s, size_t maxLen) {
     return true;
 }
 
-// Update a field only if the trimmed value actually changed (reduces unnecessary redraws)
-static bool updateField(const char* v, char* dest, size_t destSize) {
-    char tmp[8];
-    copyTrimmed(v, tmp, (destSize < sizeof(tmp)) ? destSize : sizeof(tmp));
-    if (strcmp(tmp, dest) != 0) {
-        memcpy(dest, tmp, destSize);
-        return true;
-    }
-    return false;
-}
-
 // Calculate cursor X for text alignment within a sprite
 static int16_t alignCursorX(LGFX_Sprite* spr, const char* text, int16_t sprWidth, TextAlignment align) {
     if (align == ALIGN_RIGHT) {
@@ -373,70 +368,70 @@ static int16_t alignCursorX(LGFX_Sprite* spr, const char* text, int16_t sprWidth
 // =============================================================================
 // DCS-BIOS CALLBACKS — Display fields
 // =============================================================================
-static void onRpmL(const char*, const char* v)  { if (updateField(v, fld_rpm_l, sizeof(fld_rpm_l)))   { dirty_rpm_l  = true; displayDirty = true; } }
-static void onRpmR(const char*, const char* v)  { if (updateField(v, fld_rpm_r, sizeof(fld_rpm_r)))   { dirty_rpm_r  = true; displayDirty = true; } }
-static void onTempL(const char*, const char* v) { if (updateField(v, fld_temp_l, sizeof(fld_temp_l))) { dirty_temp_l = true; displayDirty = true; } }
-static void onTempR(const char*, const char* v) { if (updateField(v, fld_temp_r, sizeof(fld_temp_r))) { dirty_temp_r = true; displayDirty = true; } }
-static void onFfL(const char*, const char* v)   { if (updateField(v, fld_ff_l, sizeof(fld_ff_l)))     { dirty_ff_l   = true; displayDirty = true; } }
-static void onFfR(const char*, const char* v)   { if (updateField(v, fld_ff_r, sizeof(fld_ff_r)))     { dirty_ff_r   = true; displayDirty = true; } }
-static void onOilL(const char*, const char* v)  { if (updateField(v, fld_oil_l, sizeof(fld_oil_l)))   { dirty_oil_l  = true; displayDirty = true; } }
-static void onOilR(const char*, const char* v)  { if (updateField(v, fld_oil_r, sizeof(fld_oil_r)))   { dirty_oil_r  = true; displayDirty = true; } }
+static void onRpmL(const char*, const char* v)  { copyTrimmed(v, fld_rpm_l, sizeof(fld_rpm_l));  dirty_rpm_l = true; displayDirty = true; }
+static void onRpmR(const char*, const char* v)  { copyTrimmed(v, fld_rpm_r, sizeof(fld_rpm_r));  dirty_rpm_r = true; displayDirty = true; }
+static void onTempL(const char*, const char* v) { copyTrimmed(v, fld_temp_l, sizeof(fld_temp_l)); dirty_temp_l = true; displayDirty = true; }
+static void onTempR(const char*, const char* v) { copyTrimmed(v, fld_temp_r, sizeof(fld_temp_r)); dirty_temp_r = true; displayDirty = true; }
+static void onFfL(const char*, const char* v)   { copyTrimmed(v, fld_ff_l, sizeof(fld_ff_l));   dirty_ff_l = true; displayDirty = true; }
+static void onFfR(const char*, const char* v)   { copyTrimmed(v, fld_ff_r, sizeof(fld_ff_r));   dirty_ff_r = true; displayDirty = true; }
+static void onOilL(const char*, const char* v)  { copyTrimmed(v, fld_oil_l, sizeof(fld_oil_l)); dirty_oil_l = true; displayDirty = true; }
+static void onOilR(const char*, const char* v)  { copyTrimmed(v, fld_oil_r, sizeof(fld_oil_r)); dirty_oil_r = true; displayDirty = true; }
 
-static void onFuelUp(const char*, const char* v)   { if (updateField(v, fld_fuel_up, sizeof(fld_fuel_up)))     { dirty_fuel_up   = true; displayDirty = true; } }
-static void onFuelDown(const char*, const char* v)  { if (updateField(v, fld_fuel_down, sizeof(fld_fuel_down))) { dirty_fuel_down = true; displayDirty = true; } }
-static void onBingo(const char*, const char* v)     { if (updateField(v, fld_bingo, sizeof(fld_bingo)))         { dirty_bingo     = true; displayDirty = true; } }
+static void onFuelUp(const char*, const char* v)   { copyTrimmed(v, fld_fuel_up, sizeof(fld_fuel_up));     dirty_fuel_up = true; displayDirty = true; }
+static void onFuelDown(const char*, const char* v)  { copyTrimmed(v, fld_fuel_down, sizeof(fld_fuel_down)); dirty_fuel_down = true; displayDirty = true; }
+static void onBingo(const char*, const char* v)     { copyTrimmed(v, fld_bingo, sizeof(fld_bingo));         dirty_bingo = true; displayDirty = true; }
 
-static void onSp(const char*, const char* v)    { if (updateField(v, fld_sp, sizeof(fld_sp)))             { dirty_sp = true; dirty_temp_l = true; displayDirty = true; } }
-static void onCodes(const char*, const char* v)  { if (updateField(v, fld_codes, sizeof(fld_codes)))       { dirty_codes = true; dirty_temp_r = true; displayDirty = true; } }
-static void onT(const char*, const char* v)      { if (updateField(v, fld_t, sizeof(fld_t)))               { dirty_t = true; dirty_fuel_up = true; displayDirty = true; } }
-static void onTimeSet(const char*, const char* v){ if (updateField(v, fld_time_set, sizeof(fld_time_set))) { dirty_time_set = true; dirty_fuel_down = true; displayDirty = true; } }
+static void onSp(const char*, const char* v)    { copyTrimmed(v, fld_sp, sizeof(fld_sp));       dirty_sp = true; dirty_temp_l = true; displayDirty = true; }
+static void onCodes(const char*, const char* v)  { copyTrimmed(v, fld_codes, sizeof(fld_codes)); dirty_codes = true; dirty_temp_r = true; displayDirty = true; }
+static void onT(const char*, const char* v)      { copyTrimmed(v, fld_t, sizeof(fld_t));         dirty_t = true; dirty_fuel_up = true; displayDirty = true; }
+static void onTimeSet(const char*, const char* v){ copyTrimmed(v, fld_time_set, sizeof(fld_time_set)); dirty_time_set = true; dirty_fuel_down = true; displayDirty = true; }
 
 // Clock
-static void onClockH(const char*, const char* v) { if (updateField(v, fld_clock_h, sizeof(fld_clock_h))) { dirty_clock = true; displayDirty = true; } }
-static void onClockM(const char*, const char* v) { if (updateField(v, fld_clock_m, sizeof(fld_clock_m))) { dirty_clock = true; displayDirty = true; } }
-static void onClockS(const char*, const char* v) { if (updateField(v, fld_clock_s, sizeof(fld_clock_s))) { dirty_clock = true; displayDirty = true; } }
-static void onDd1(const char*, const char* v)    { if (v && fld_dd_1[0] != v[0]) { fld_dd_1[0] = v[0]; fld_dd_1[1] = '\0'; dirty_clock = true; displayDirty = true; } }
-static void onDd2(const char*, const char* v)    { if (v && fld_dd_2[0] != v[0]) { fld_dd_2[0] = v[0]; fld_dd_2[1] = '\0'; dirty_clock = true; displayDirty = true; } }
+static void onClockH(const char*, const char* v) { copyTrimmed(v, fld_clock_h, sizeof(fld_clock_h)); dirty_clock = true; displayDirty = true; }
+static void onClockM(const char*, const char* v) { copyTrimmed(v, fld_clock_m, sizeof(fld_clock_m)); dirty_clock = true; displayDirty = true; }
+static void onClockS(const char*, const char* v) { copyTrimmed(v, fld_clock_s, sizeof(fld_clock_s)); dirty_clock = true; displayDirty = true; }
+static void onDd1(const char*, const char* v)    { if (v) { fld_dd_1[0] = v[0]; fld_dd_1[1] = '\0'; } dirty_clock = true; displayDirty = true; }
+static void onDd2(const char*, const char* v)    { if (v) { fld_dd_2[0] = v[0]; fld_dd_2[1] = '\0'; } dirty_clock = true; displayDirty = true; }
 
 // Timer
-static void onTimerH(const char*, const char* v) { if (updateField(v, fld_timer_h, sizeof(fld_timer_h))) { dirty_timer = true; displayDirty = true; } }
-static void onTimerM(const char*, const char* v) { if (updateField(v, fld_timer_m, sizeof(fld_timer_m))) { dirty_timer = true; displayDirty = true; } }
-static void onTimerS(const char*, const char* v) { if (updateField(v, fld_timer_s, sizeof(fld_timer_s))) { dirty_timer = true; displayDirty = true; } }
-static void onDd3(const char*, const char* v)    { if (v && fld_dd_3[0] != v[0]) { fld_dd_3[0] = v[0]; fld_dd_3[1] = '\0'; dirty_timer = true; displayDirty = true; } }
-static void onDd4(const char*, const char* v)    { if (v && fld_dd_4[0] != v[0]) { fld_dd_4[0] = v[0]; fld_dd_4[1] = '\0'; dirty_timer = true; displayDirty = true; } }
+static void onTimerH(const char*, const char* v) { copyTrimmed(v, fld_timer_h, sizeof(fld_timer_h)); dirty_timer = true; displayDirty = true; }
+static void onTimerM(const char*, const char* v) { copyTrimmed(v, fld_timer_m, sizeof(fld_timer_m)); dirty_timer = true; displayDirty = true; }
+static void onTimerS(const char*, const char* v) { copyTrimmed(v, fld_timer_s, sizeof(fld_timer_s)); dirty_timer = true; displayDirty = true; }
+static void onDd3(const char*, const char* v)    { if (v) { fld_dd_3[0] = v[0]; fld_dd_3[1] = '\0'; } dirty_timer = true; displayDirty = true; }
+static void onDd4(const char*, const char* v)    { if (v) { fld_dd_4[0] = v[0]; fld_dd_4[1] = '\0'; } dirty_timer = true; displayDirty = true; }
 
 // =============================================================================
 // DCS-BIOS CALLBACKS — Texture visibility (labels on/off)
 // =============================================================================
-static void onTexRpm(const char*, const char* v)   { bool nv = (v && v[0] == '1'); if (nv != tex_rpm)   { tex_rpm   = nv; dirty_tex_rpm   = true; displayDirty = true; } }
-static void onTexTemp(const char*, const char* v)  { bool nv = (v && v[0] == '1'); if (nv != tex_temp)  { tex_temp  = nv; dirty_tex_temp  = true; displayDirty = true; } }
-static void onTexFf(const char*, const char* v)    { bool nv = (v && v[0] == '1'); if (nv != tex_ff)    { tex_ff    = nv; dirty_tex_ff    = true; displayDirty = true; } }
-static void onTexOil(const char*, const char* v)   { bool nv = (v && v[0] == '1'); if (nv != tex_oil)   { tex_oil   = nv; dirty_tex_oil   = true; displayDirty = true; } }
-static void onTexNoz(const char*, const char* v)   { bool nv = (v && v[0] == '1'); if (nv != tex_noz)   { tex_noz   = nv; dirty_tex_noz   = true; nozzleDirty = true; displayDirty = true; } }
-static void onTexBingo(const char*, const char* v) { bool nv = (v && v[0] == '1'); if (nv != tex_bingo) { tex_bingo = nv; dirty_tex_bingo = true; displayDirty = true; } }
-static void onTexZ(const char*, const char* v)     { bool nv = (v && v[0] == '1'); if (nv != tex_z)     { tex_z     = nv; dirty_tex_z     = true; displayDirty = true; } }
-static void onTexL(const char*, const char* v)     { bool nv = (v && v[0] == '1'); if (nv != tex_l)     { tex_l     = nv; dirty_tex_l     = true; displayDirty = true; } }
-static void onTexR(const char*, const char* v)     { bool nv = (v && v[0] == '1'); if (nv != tex_r)     { tex_r     = nv; dirty_tex_r     = true; displayDirty = true; } }
+static void onTexRpm(const char*, const char* v)   { tex_rpm   = (v && v[0] == '1'); dirty_tex_rpm   = true; displayDirty = true; }
+static void onTexTemp(const char*, const char* v)  { tex_temp  = (v && v[0] == '1'); dirty_tex_temp  = true; displayDirty = true; }
+static void onTexFf(const char*, const char* v)    { tex_ff    = (v && v[0] == '1'); dirty_tex_ff    = true; displayDirty = true; }
+static void onTexOil(const char*, const char* v)   { tex_oil   = (v && v[0] == '1'); dirty_tex_oil   = true; displayDirty = true; }
+static void onTexNoz(const char*, const char* v)   { tex_noz   = (v && v[0] == '1'); dirty_tex_noz   = true; nozzleDirty = true; displayDirty = true; }
+static void onTexBingo(const char*, const char* v) { tex_bingo = (v && v[0] == '1'); dirty_tex_bingo = true; displayDirty = true; }
+static void onTexZ(const char*, const char* v)     { tex_z     = (v && v[0] == '1'); dirty_tex_z     = true; displayDirty = true; }
+static void onTexL(const char*, const char* v)     { tex_l     = (v && v[0] == '1'); dirty_tex_l     = true; displayDirty = true; }
+static void onTexR(const char*, const char* v)     { tex_r     = (v && v[0] == '1'); dirty_tex_r     = true; displayDirty = true; }
 
 // =============================================================================
 // DCS-BIOS CALLBACKS — Nozzle textures
 // =============================================================================
-static void onTexLPointer(const char*, const char* v) { bool nv = (v && v[0] == '1'); if (nv != tex_lpointer) { tex_lpointer = nv; nozzleDirty = true; displayDirty = true; } }
-static void onTexRPointer(const char*, const char* v) { bool nv = (v && v[0] == '1'); if (nv != tex_rpointer) { tex_rpointer = nv; nozzleDirty = true; displayDirty = true; } }
-static void onTexLScale(const char*, const char* v)   { bool nv = (v && v[0] == '1'); if (nv != tex_lscale)   { tex_lscale   = nv; nozzleDirty = true; displayDirty = true; } }
-static void onTexRScale(const char*, const char* v)   { bool nv = (v && v[0] == '1'); if (nv != tex_rscale)   { tex_rscale   = nv; nozzleDirty = true; displayDirty = true; } }
-static void onTexL0(const char*, const char* v)       { bool nv = (v && v[0] == '1'); if (nv != tex_l0)       { tex_l0       = nv; nozzleDirty = true; displayDirty = true; } }
-static void onTexL50(const char*, const char* v)      { bool nv = (v && v[0] == '1'); if (nv != tex_l50)      { tex_l50      = nv; nozzleDirty = true; displayDirty = true; } }
-static void onTexL100(const char*, const char* v)     { bool nv = (v && v[0] == '1'); if (nv != tex_l100)     { tex_l100     = nv; nozzleDirty = true; displayDirty = true; } }
-static void onTexR0(const char*, const char* v)       { bool nv = (v && v[0] == '1'); if (nv != tex_r0)       { tex_r0       = nv; nozzleDirty = true; displayDirty = true; } }
-static void onTexR50(const char*, const char* v)      { bool nv = (v && v[0] == '1'); if (nv != tex_r50)      { tex_r50      = nv; nozzleDirty = true; displayDirty = true; } }
-static void onTexR100(const char*, const char* v)     { bool nv = (v && v[0] == '1'); if (nv != tex_r100)     { tex_r100     = nv; nozzleDirty = true; displayDirty = true; } }
+static void onTexLPointer(const char*, const char* v) { tex_lpointer = (v && v[0] == '1'); nozzleDirty = true; displayDirty = true; }
+static void onTexRPointer(const char*, const char* v) { tex_rpointer = (v && v[0] == '1'); nozzleDirty = true; displayDirty = true; }
+static void onTexLScale(const char*, const char* v)   { tex_lscale   = (v && v[0] == '1'); nozzleDirty = true; displayDirty = true; }
+static void onTexRScale(const char*, const char* v)   { tex_rscale   = (v && v[0] == '1'); nozzleDirty = true; displayDirty = true; }
+static void onTexL0(const char*, const char* v)       { tex_l0       = (v && v[0] == '1'); nozzleDirty = true; displayDirty = true; }
+static void onTexL50(const char*, const char* v)      { tex_l50      = (v && v[0] == '1'); nozzleDirty = true; displayDirty = true; }
+static void onTexL100(const char*, const char* v)     { tex_l100     = (v && v[0] == '1'); nozzleDirty = true; displayDirty = true; }
+static void onTexR0(const char*, const char* v)       { tex_r0       = (v && v[0] == '1'); nozzleDirty = true; displayDirty = true; }
+static void onTexR50(const char*, const char* v)      { tex_r50      = (v && v[0] == '1'); nozzleDirty = true; displayDirty = true; }
+static void onTexR100(const char*, const char* v)     { tex_r100     = (v && v[0] == '1'); nozzleDirty = true; displayDirty = true; }
 
 // =============================================================================
 // DCS-BIOS CALLBACKS — Nozzle position (metadata)
 // =============================================================================
-static void onNozzlePosL(const char*, uint16_t value) { if (value != nozzlePosL) { nozzlePosL = value; nozzleDirty = true; displayDirty = true; } }
-static void onNozzlePosR(const char*, uint16_t value) { if (value != nozzlePosR) { nozzlePosR = value; nozzleDirty = true; displayDirty = true; } }
+static void onNozzlePosL(const char*, uint16_t value) { nozzlePosL = value; nozzleDirty = true; displayDirty = true; }
+static void onNozzlePosR(const char*, uint16_t value) { nozzlePosR = value; nozzleDirty = true; displayDirty = true; }
 
 // =============================================================================
 // DCS-BIOS CALLBACKS — Color mode and brightness
@@ -468,8 +463,16 @@ static void updateElement(DisplayName idx) {
     DisplayElement& el = elems[idx];
     LGFX_Sprite* spr = el.sprite;
 
+    // Resize sprite if needed (shared sprites may have different dimensions)
+    if (spr->width() != el.spriteWidth || spr->height() != el.spriteHeight) {
+        spr->deleteSprite();
+        spr->setPsram(true);
+        spr->setColorDepth(24);
+        spr->createSprite(el.spriteWidth, el.spriteHeight);
+    }
+
     spr->fillScreen(COLOR_BG);
-    spr->setTextColor(drawColor);
+    spr->setTextColor(ifeiColor);
     int16_t cx = alignCursorX(spr, el.value, el.spriteWidth, el.align);
     spr->setCursor(cx, 0);
     spr->print(el.value);
@@ -485,8 +488,15 @@ static void renderClock(DisplayName idx, const char* h, const char* d1,
     DisplayElement& el = elems[idx];
     LGFX_Sprite* spr = el.sprite;
 
+    if (spr->width() != el.spriteWidth || spr->height() != el.spriteHeight) {
+        spr->deleteSprite();
+        spr->setPsram(true);
+        spr->setColorDepth(24);
+        spr->createSprite(el.spriteWidth, el.spriteHeight);
+    }
+
     spr->fillScreen(COLOR_BG);
-    spr->setTextColor(drawColor);
+    spr->setTextColor(ifeiColor);
 
     // Build formatted clock string: "HH:MM:SS"
     // For clock (isTimer=false): pad single-digit hours with leading '0'
@@ -538,35 +548,36 @@ static void renderClock(DisplayName idx, const char* h, const char* d1,
         }
     }
 
-    // Render each segment with natural cursor flow (matches ashchan reference).
-    // Hardcoded X positions are ONLY used as skip-to fallbacks when a field is blank.
-    // When data is present, the cursor flows naturally left-to-right after each print.
-
-    // Hours
+    // Render each segment at hardcoded cursor positions (from ashchan reference)
+    // These cursor X values give proper fixed-width spacing for the clock font
     if (hBuf[0] != ' ') {
+        // If hours is "0" (single digit timer), offset to align with colon
         int16_t hx = (strlen(hBuf) == 1) ? 29 : 1;
         spr->setCursor(hx, 1);
         spr->print(hBuf);
     } else {
-        spr->setCursor(57, 1);
+        spr->setCursor(57, 1);  // Skip past hours area
     }
 
-    // Separator 1 — only skip to 63 when blank
+    // Separator 1
     if (d1[0] != '\0' && d1[0] != ' ') {
+        spr->setCursor(63, 1);
         spr->print(d1);
     } else {
-        spr->setCursor(63, 1);
+        spr->setCursor(63, 1);  // Advance cursor
     }
 
-    // Minutes — only skip to 119 when blank
+    // Minutes
     if (mBuf[0] != ' ') {
+        spr->setCursor(spr->getCursorX(), 1);
         spr->print(mBuf);
     } else {
         spr->setCursor(119, 1);
     }
 
-    // Separator 2 — only skip to 125 when blank
+    // Separator 2
     if (d2[0] != '\0' && d2[0] != ' ') {
+        spr->setCursor(125, 1);
         spr->print(d2);
     } else {
         spr->setCursor(125, 1);
@@ -574,6 +585,7 @@ static void renderClock(DisplayName idx, const char* h, const char* d1,
 
     // Seconds
     if (sBuf[0] != ' ') {
+        spr->setCursor(spr->getCursorX(), 1);
         spr->print(sBuf);
     }
 
@@ -615,12 +627,12 @@ static void drawNozzleGauge(LGFX_Sprite* composite, float pivotX, float pivotY,
             float y1 = pivotY - innerR * sinf(rad);
             float x2 = pivotX + outerR * cosf(rad);
             float y2 = pivotY - outerR * sinf(rad);
-            composite->drawLine((int16_t)x1, (int16_t)y1, (int16_t)x2, (int16_t)y2, drawColor);
+            composite->drawLine((int16_t)x1, (int16_t)y1, (int16_t)x2, (int16_t)y2, ifeiColor);
         }
     }
 
     // Number labels at 0, 50, 100 positions
-    composite->setTextColor(drawColor);
+    composite->setTextColor(ifeiColor);
     composite->setTextSize(1);
     // Use the label font for numbers
     composite->loadFont(IFEI_Labels_16);
@@ -657,11 +669,11 @@ static void drawNozzleGauge(LGFX_Sprite* composite, float pivotX, float pivotY,
         for (int d = -1; d <= 1; d++) {
             composite->drawLine(
                 (int16_t)pivotX + d, (int16_t)pivotY,
-                (int16_t)x2 + d, (int16_t)y2, drawColor
+                (int16_t)x2 + d, (int16_t)y2, ifeiColor
             );
             composite->drawLine(
                 (int16_t)pivotX, (int16_t)pivotY + d,
-                (int16_t)x2, (int16_t)y2 + d, drawColor
+                (int16_t)x2, (int16_t)y2 + d, ifeiColor
             );
         }
     }
@@ -689,7 +701,7 @@ static void renderNozzles() {
         int16_t nozRelY = elems[NOZT].posY - NOZ_BAND_Y;
 
         labelSprite.fillScreen(COLOR_BG);
-        labelSprite.setTextColor(drawColor);
+        labelSprite.setTextColor(ifeiColor);
         int16_t cx = alignCursorX(&labelSprite, "NOZ", elems[NOZT].spriteWidth, ALIGN_CENTER);
         labelSprite.setCursor(cx, 0);
         labelSprite.print("NOZ");
@@ -732,9 +744,7 @@ static void drawFullScreen() {
     strcpy(elems[OILT].value, tex_oil ? "OIL" : "");   updateElement(OILT);
 
     // Nozzle gauges
-#if !IFEI_DEBUG_NO_NOZZLES
     renderNozzles();
-#endif
 
     // FUEL UP / T-mode overlay
     {
@@ -762,22 +772,6 @@ static void drawFullScreen() {
     strcpy(elems[ZULU].value,  tex_z ? "Z" : "");  updateElement(ZULU);
     strcpy(elems[L_TAG].value, tex_l ? "L" : "");   updateElement(L_TAG);
     strcpy(elems[R_TAG].value, tex_r ? "R" : "");    updateElement(R_TAG);
-
-    // Clear all dirty flags — prevents redundant redraws on next incremental update
-    dirty_rpm_l = false;  dirty_rpm_r = false;
-    dirty_temp_l = false; dirty_temp_r = false;
-    dirty_ff_l = false;   dirty_ff_r = false;
-    dirty_oil_l = false;  dirty_oil_r = false;
-    dirty_fuel_up = false; dirty_fuel_down = false;
-    dirty_bingo = false;
-    dirty_sp = false;     dirty_codes = false;
-    dirty_t = false;      dirty_time_set = false;
-    dirty_clock = false;  dirty_timer = false;
-    nozzleDirty = false;  dirty_tex_noz = false;
-    dirty_tex_rpm = false;  dirty_tex_temp = false;
-    dirty_tex_ff = false;   dirty_tex_oil = false;
-    dirty_tex_bingo = false;
-    dirty_tex_z = false;  dirty_tex_l = false;  dirty_tex_r = false;
 }
 
 // =============================================================================
@@ -837,17 +831,11 @@ static void drawDirtyFields() {
         dirty_timer = false;
     }
 
-    // Nozzle gauges (NOZ label visibility handled inside renderNozzles)
-#if !IFEI_DEBUG_NO_NOZZLES
+    // Nozzle gauges
     if (nozzleDirty) {
         renderNozzles();
         nozzleDirty = false;
-        dirty_tex_noz = false;
     }
-#else
-    nozzleDirty = false;
-    dirty_tex_noz = false;
-#endif
 
     // Label textures (only redraw when visibility changed)
     if (dirty_tex_rpm) {
@@ -889,15 +877,8 @@ static void drawDirtyFields() {
 // SPRITE CREATION
 // =============================================================================
 static void createSprites() {
-    // --- Text sprites: internal SRAM + 24-bit (matches ashchan reference) ---
-    // 24-bit depth is critical: pushSprite() must convert each pixel from RGB888
-    // to RGB565 before writing to the PSRAM framebuffer. This per-pixel conversion
-    // creates natural CPU processing gaps between PSRAM writes, allowing DMA to
-    // interleave framebuffer reads without stalling. 16-bit sprites allow direct
-    // memcpy (burst writes) that monopolize the PSRAM bus and cause display shifting.
-
     // Two-digit data sprite (RPM L/R, OIL L/R)
-    twoDigitSprite.setPsram(false);
+    twoDigitSprite.setPsram(true);
     twoDigitSprite.setColorDepth(24);
     twoDigitSprite.createSprite(76, 38);
     twoDigitSprite.loadFont(IFEI_Data_36);
@@ -905,7 +886,7 @@ static void createSprites() {
     twoDigitSprite.setTextColor(ifeiColor);
 
     // Three-digit data sprite (TEMP L/R, FF L/R)
-    threeDigitSprite.setPsram(false);
+    threeDigitSprite.setPsram(true);
     threeDigitSprite.setColorDepth(24);
     threeDigitSprite.createSprite(108, 38);
     threeDigitSprite.loadFont(IFEI_Data_36);
@@ -913,7 +894,7 @@ static void createSprites() {
     threeDigitSprite.setTextColor(ifeiColor);
 
     // Fuel sprite (FUEL UP/DOWN, BINGO)
-    fuelSprite.setPsram(false);
+    fuelSprite.setPsram(true);
     fuelSprite.setColorDepth(24);
     fuelSprite.createSprite(176, 38);
     fuelSprite.loadFont(IFEI_Data_36);
@@ -921,7 +902,7 @@ static void createSprites() {
     fuelSprite.setTextColor(ifeiColor);
 
     // Clock sprite (CLOCK UP/DOWN)
-    clockSprite.setPsram(false);
+    clockSprite.setPsram(true);
     clockSprite.setColorDepth(24);
     clockSprite.createSprite(176, 35);
     clockSprite.loadFont(IFEI_Data_32);
@@ -929,21 +910,20 @@ static void createSprites() {
     clockSprite.setTextColor(ifeiColor);
 
     // Label sprite (all text labels)
-    labelSprite.setPsram(false);
+    labelSprite.setPsram(true);
     labelSprite.setColorDepth(24);
     labelSprite.createSprite(65, 18);
     labelSprite.loadFont(IFEI_Labels_16);
     labelSprite.setTextColor(ifeiColor);
 
     // Tag sprite (ZULU, L, R)
-    tagSprite.setPsram(false);
+    tagSprite.setPsram(true);
     tagSprite.setColorDepth(24);
     tagSprite.createSprite(18, 18);
     tagSprite.loadFont(IFEI_Labels_16);
     tagSprite.setTextColor(ifeiColor);
 
-#if !IFEI_DEBUG_NO_NOZZLES
-    // --- Nozzle sprites: PSRAM + 24-bit (matches ashchan reference) ---
+    // Nozzle composite sprites
     nozCompositeL.setPsram(true);
     nozCompositeL.setColorDepth(24);
     nozCompositeL.createSprite(150, 154);
@@ -957,12 +937,7 @@ static void createSprites() {
     nozzleBand.setColorDepth(24);
     nozzleBand.createSprite(NOZ_BAND_W, NOZ_BAND_H);
 
-    debugPrintln("  Sprites created (9 sprites — 6 in SRAM/24-bit, 3 nozzle in PSRAM/24-bit)");
-#else
-    debugPrintln("  Sprites created (6 sprites, internal SRAM, 24-bit, nozzles DISABLED)");
-#endif
-
-    debugPrintf("  Internal SRAM free: %u bytes\n", (unsigned)ESP.getFreeHeap());
+    debugPrintln("  Sprites created (9 sprites, 24-bit PSRAM)");
 }
 
 // =============================================================================
@@ -1031,7 +1006,6 @@ void TFTIFEIDisplay_init() {
     subscribeToDisplayChange("IFEI_L_TEXTURE",        onTexL);
     subscribeToDisplayChange("IFEI_R_TEXTURE",        onTexR);
 
-#if !IFEI_DEBUG_NO_NOZZLES
     // Nozzle texture visibility flags
     subscribeToDisplayChange("IFEI_LPOINTER_TEXTURE", onTexLPointer);
     subscribeToDisplayChange("IFEI_RPOINTER_TEXTURE", onTexRPointer);
@@ -1047,14 +1021,12 @@ void TFTIFEIDisplay_init() {
     // Nozzle position (metadata — integer values)
     subscribeToMetadataChange("EXT_NOZZLE_POS_L",  onNozzlePosL);
     subscribeToMetadataChange("EXT_NOZZLE_POS_R",  onNozzlePosR);
-#endif
 
     // Color mode and brightness
     subscribeToSelectorChange("COCKKPIT_LIGHT_MODE_SW", onLightModeChange);
     subscribeToLedChange("IFEI_DISP_INT_LT", onBrightnessChange);
 
     // Initial full draw
-    drawColor = ifeiColor;
     drawFullScreen();
     needsFullRedraw = false;
 
@@ -1066,20 +1038,11 @@ void TFTIFEIDisplay_init() {
 // LOOP
 // =============================================================================
 void TFTIFEIDisplay_loop() {
-#if IFEI_DEBUG_NO_LOOP_RENDER
-    // Troubleshooting: all loop rendering disabled — screen stays static after init.
-    // If shaking persists here, the issue is RGB bus timing, not rendering.
-    displayDirty = false;
-    return;
-#endif
-
     if (!displayDirty) return;
 
     const unsigned long now = millis();
     if (now - lastDrawTime < REFRESH_INTERVAL_MS) return;
     lastDrawTime = now;
-
-    drawColor = ifeiColor;  // snapshot volatile color once per frame
 
     if (needsFullRedraw) {
         drawFullScreen();
