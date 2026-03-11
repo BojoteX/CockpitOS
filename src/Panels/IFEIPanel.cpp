@@ -13,7 +13,7 @@
 // Load Library
 REGISTER_PANEL(IFEI, IFEI_init, nullptr, IFEIDisplay_init, IFEIDisplay_loop, nullptr, 100);
 
-#define RUN_IFEI_DISPLAY_AS_TASK 0
+#define RUN_IFEI_DISPLAY_AS_TASK 1
 #define IFEI_DISPLAY_REFRESH_RATE_HZ 250
 
 // [a, b, c, d, e, f, g] -- top, top-right, bottom-right, bottom, bottom-left, top-left, middle
@@ -473,8 +473,8 @@ static const DisplayFieldDefLabel nozzleR = { "IFEI_NOZZLE_R", &IFEI_NOZZLE_R_MA
 // ---- Nozzle pointer trackers ----
 static int lastPercentL = -1;
 static int lastPercentR = -1;
-static bool showLeftNozPointer = false;
-static bool showRightNozPointer = false;
+static volatile bool showLeftNozPointer = false;
+static volatile bool showRightNozPointer = false;
 
 void updateLEFTNozzle(const char* label, uint16_t value) {
     int percentL = (value * 100 + 32767) / 65535;
@@ -589,10 +589,39 @@ void IFEIDisplay_loop() {
         #endif // RUN_IFEI_DISPLAY_AS_TASK
 }
 
+// =============================================================================
+// renderIFEIDispatcher — Central render callback for all IFEI display fields.
+//
+// Called by the display pipeline whenever a DCS-BIOS value changes for any
+// registered IFEI field. Routes to the correct rendering method based on
+// def.renderType, and implements the IFEI overlay state machine:
+//
+//   IDLE (normal)
+//     |
+//     +-- SP/CODES go non-blank --> OVERLAY_SP (TEMP fields show SP/CODES values,
+//     |                              FUEL_UP/DOWN blanked, base values cached)
+//     |     SP/CODES go blank ----> back to IDLE (TEMPs restored from base cache)
+//     |
+//     +-- IFEI_T goes non-blank --> OVERLAY_T  (FUEL_UP shows T value,
+//     |                              FUEL_DOWN shows TIME_SET, TEMPs blanked)
+//     |     IFEI_T goes blank ----> back to IDLE (fuels + TEMPs restored)
+//     |
+//     +-- SP during T-mode -------> SP takes priority over T for TEMP fields
+//
+// Key state variables:
+//   sp_active        — true when SP or CODES overlay is showing
+//   fuel_mode_active — true when IFEI_T overlay is active (T-mode)
+//   tempL_overlay    — SP is currently overriding TEMP_L
+//   tempR_overlay    — CODES is currently overriding TEMP_R
+//   fuelUp_overlay   — IFEI_T is currently overriding FUEL_UP
+//   lastTWasBlank    — gates FUEL_DOWN restore to prevent flash on exit
+//   tempL_base/R     — cached last non-blank TEMP values for restore
+//   fuelUp_base/Dn   — cached last non-blank FUEL values for restore
+// =============================================================================
 void renderIFEIDispatcher(void* drv, const SegmentMap* segMap, const char* value, const DisplayFieldDefLabel& def) {
     IFEIDisplay* display = reinterpret_cast<IFEIDisplay*>(drv);
 
-    if (!isMissionRunning()) return; // Do not render if mission is not running
+    if (!isMissionRunning()) return;
 
     if (DEBUG) {
         // For debugging only
@@ -630,19 +659,12 @@ void renderIFEIDispatcher(void* drv, const SegmentMap* segMap, const char* value
                 display->clearFuelFromShadow(&IFEI_FUEL_UP_MAP[0]);
                 display->clearFuelFromShadow(&IFEI_FUEL_DOWN_MAP[0]);
             }
-            /*
             else if (was_sp && !sp_active) { // leaving: restore cached fuel immediately
                 display->addAlphaNumFuelStringToShadow(fuelUp_base, &IFEI_FUEL_UP_MAP[0]);
-                display->addAlphaNumFuelStringToShadow(fuelDn_base, &IFEI_FUEL_DOWN_MAP[0]);
-            }
-            */
-            else if (was_sp && !sp_active) { // leaving: restore cached fuel immediately
-                display->addAlphaNumFuelStringToShadow(fuelUp_base, &IFEI_FUEL_UP_MAP[0]);
-                if (lastTWasBlank) { // <-- only draw DOWN if last T seen was blank
+                if (lastTWasBlank) { // only draw DOWN if last T seen was blank
                     display->addAlphaNumFuelStringToShadow(fuelDn_base, &IFEI_FUEL_DOWN_MAP[0]);
                 }
             }
-
 #endif
             break;
         }
@@ -658,19 +680,12 @@ void renderIFEIDispatcher(void* drv, const SegmentMap* segMap, const char* value
                 display->clearFuelFromShadow(&IFEI_FUEL_UP_MAP[0]);
                 display->clearFuelFromShadow(&IFEI_FUEL_DOWN_MAP[0]);
             }
-            /*
-            else if (was_sp && !sp_active) {
-                display->addAlphaNumFuelStringToShadow(fuelUp_base, &IFEI_FUEL_UP_MAP[0]);
-                display->addAlphaNumFuelStringToShadow(fuelDn_base, &IFEI_FUEL_DOWN_MAP[0]);
-            }
-            */
             else if (was_sp && !sp_active) { // leaving: restore cached fuel immediately
                 display->addAlphaNumFuelStringToShadow(fuelUp_base, &IFEI_FUEL_UP_MAP[0]);
-                if (lastTWasBlank) { // <-- only draw DOWN if last T seen was blank
+                if (lastTWasBlank) { // only draw DOWN if last T seen was blank
                     display->addAlphaNumFuelStringToShadow(fuelDn_base, &IFEI_FUEL_DOWN_MAP[0]);
                 }
             }
-
 #endif
             break;
         }
@@ -821,14 +836,6 @@ void renderIFEIDispatcher(void* drv, const SegmentMap* segMap, const char* value
                 }
                 // Do NOT change fuel_mode_active here; T is the source of truth
             }
-            /*
-            else {
-                // Not in T-mode → behave normally
-                if (!blank) display->addAlphaNumFuelStringToShadow(value, (const SegmentMap(*)[14])segMap);
-                else         display->addAlphaNumFuelStringToShadow(fuelDn_base, (const SegmentMap(*)[14])segMap);
-            }
-            */
-
             else {
                 // Not in T-mode → behave normally
                 if (!blank) {
@@ -942,6 +949,11 @@ void IFEIDisplay::clear() {
     commit(1); // Forced
 }
 
+// commitNextRegion — Per-field partial commit (round-robin).
+// Currently unused: the display loop calls commit() which pushes
+// the full shadow buffer. Kept as infrastructure for a future
+// optimization where only one field region is SPI-pushed per loop
+// iteration, spreading bus load across frames.
 void IFEIDisplay::commitNextRegion() {
     static int currentRegion = 0;
 
