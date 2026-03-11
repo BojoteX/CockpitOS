@@ -113,7 +113,7 @@
 #define ANY_VALUE_THROTTLE_MS                      33 // How long (ms) to skip sending different values (prevents spamming the USB endpoint, while debouncing at the same time)
 #define CUSTOM_RESPONSE_THROTTLE_MS               100 // Min delay (ms) between press and deferred release for custom momentaries with releaseValue != 0
 #define SELECTOR_DWELL_MS                          80 // Wait time (ms) for stable selector value before sending. Absorbs transit intermediates during rapid flicking.
-#define DCS_GROUP_MIN_INTERVAL_US              80000UL // Min spacing (µs) between selector commands to same group. Must be >2 DCS frames at 30Hz (>66ms) to guarantee different-frame processing.
+#define DCS_GROUP_MIN_INTERVAL_US             250000UL // Min spacing (µs) between selector commands to same group. DCS requires ~250ms between consecutive selector positions to register both.
 #define HID_REPORT_MIN_INTERVAL_US               (1000000UL / HID_REPORT_RATE_HZ) // min spacing/separation between reports
 #define DCS_KEEP_ALIVE_MS                        (1000 / DCS_UPDATE_RATE_HZ) // send PING 0 (ASCII command) every x ms (when using keep-alives)
 #define HID_KEEP_ALIVE_MS                        (1000 / HID_REPORT_RATE_HZ) // send HID command every x ms (when using keep-alives)
