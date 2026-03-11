@@ -1079,6 +1079,14 @@ void IFEIDisplay::blankBuffersAndDirty() {
 
         if (b.dirty) *b.dirty = true;
     }
+
+    // Bust Layer 2: renderField()'s FieldState.lastValue cache.
+    // Without this, renderField() compares incoming values against its stale
+    // cache and early-returns for fields that haven't changed (e.g. DD_1 colon).
+    // Setting lastValue to 0xFF guarantees the next memcmp sees a difference.
+    for (size_t i = 0; i < numFieldDefs; ++i) {
+        memset(fieldStates[i].lastValue, 0xFF, sizeof(fieldStates[i].lastValue));
+    }
 }
 
 void IFEIDisplay::invalidateHardwareCache() {

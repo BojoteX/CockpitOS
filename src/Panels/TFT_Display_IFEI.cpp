@@ -57,6 +57,10 @@
 #include <cstring>
 #include <cmath>
 
+// Access to the DCS-BIOS display buffer table (for busting dedup cache)
+extern DisplayBufferEntry CT_DisplayBuffers[];
+extern const size_t numCTDisplayBuffers;
+
 // VLW fonts (PROGMEM byte arrays)
 #include "Assets/Fonts/IFEI_Data_36.h"
 #include "Assets/Fonts/IFEI_Data_32.h"
@@ -1233,7 +1237,21 @@ static void blankAllFields() {
     // Brightness dedup reset
     lastBrightnessVal = 0xFF;
 
-    debugPrintln("  TFT IFEI: All fields blanked");
+    // Bust the DCS-BIOS bridge's change-detection cache (Layer 1 dedup).
+    // RegisteredDisplayBuffer.last points to the SAME memory as
+    // CT_DisplayBuffers[i].last — setting it to 0xFF (impossible ASCII)
+    // guarantees strncmp(buffer, last) will see a difference on the next
+    // frame, forcing onDisplayChange() to fire for ALL IFEI fields.
+    // Without this, values that haven't changed (like colons) would never
+    // trigger a callback after blanking, because buffer == last == ":".
+    for (size_t i = 0; i < numCTDisplayBuffers; ++i) {
+        DisplayBufferEntry& b = CT_DisplayBuffers[i];
+        if (!b.label || strncmp(b.label, "IFEI_", 5) != 0) continue;
+        memset(b.last, 0xFF, b.length);
+        b.last[b.length] = '\0';
+    }
+
+    debugPrintln("  TFT IFEI: All fields blanked, bridge dedup cache busted");
 }
 
 // =============================================================================
