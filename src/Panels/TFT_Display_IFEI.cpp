@@ -12,7 +12,7 @@
 //   - LovyanGFX Bus_RGB + Panel_RGB for continuous framebuffer scanning
 //   - VLW fonts loaded from PROGMEM (7-segment style, matching real IFEI)
 //   - Shared LGFX_Sprite objects per font size — sprite-based rendering
-//   - 24-bit sprite depth for PSRAM bus pressure relief (see createSprites)
+//   - 16-bit sprite depth (RGB565) for minimal PSRAM write volume per pushSprite
 //   - Day/NVG/Night color mode switching via COCKKPIT_LIGHT_MODE_SW
 //   - Brightness control via IFEI_DISP_INT_LT with deduplication
 //
@@ -88,7 +88,7 @@ static constexpr uint32_t REFRESH_INTERVAL_MS = 1000 / TFT_IFEI_DISPLAY_REFRESH_
 // Step 2: Disable ALL rendering in loop (static screen after init — isolates timing)
 #define IFEI_DEBUG_NO_LOOP_RENDER  0
 
-// Colors (RGB888 for 24-bit LovyanGFX sprites)
+// Colors (RGB888 — LovyanGFX converts to RGB565 internally for 16-bit sprites)
 static constexpr uint32_t COLOR_DAY   = 0xFFFFFFU;  // White
 static constexpr uint32_t COLOR_NIGHT = 0x1CDD2AU;  // Green (NVG)
 static constexpr uint32_t COLOR_BG    = 0x000000U;  // Black
@@ -157,7 +157,7 @@ public:
             cfg.vsync_polarity    = 0;
             cfg.vsync_front_porch = 8;
             cfg.vsync_pulse_width = 4;
-            cfg.vsync_back_porch  = 8;
+            cfg.vsync_back_porch  = 16;  // 16 — extra vertical blanking for uncontested PSRAM CPU access
             cfg.pclk_active_neg   = 1;
             cfg.de_idle_high      = 0;
             cfg.pclk_idle_high    = 0;
@@ -240,9 +240,9 @@ static DisplayElement elems[NUM_ELEMENTS] = {
     { 108, 38,  242, 178, ALIGN_RIGHT,  &threeDigitSprite, "" },  // FFR
     { 58,  18,  172, 186, ALIGN_CENTER, &labelSprite,      "" },  // FFTU
     { 65,  18,  168, 203, ALIGN_CENTER, &labelSprite,      "" },  // FFTL
-    // OIL
-    { 76,  38,  80,  439, ALIGN_RIGHT,  &twoDigitSprite,   "" },  // OILL
-    { 76,  38,  248, 439, ALIGN_RIGHT,  &twoDigitSprite,   "" },  // OILR
+    // OIL (3-digit field: values up to 999)
+    { 108, 38,  48,  439, ALIGN_RIGHT,  &threeDigitSprite, "" },  // OILL
+    { 108, 38,  242, 439, ALIGN_RIGHT,  &threeDigitSprite, "" },  // OILR
     { 58,  18,  176, 450, ALIGN_CENTER, &labelSprite,      "" },  // OILT
     // NOZZLE label (gauges rendered separately into nozzleBand)
     { 58,  18,  172, 320, ALIGN_CENTER, &labelSprite,      "" },  // NOZT
@@ -288,18 +288,23 @@ static constexpr float NOZ_DEG_PER_PCT   = 0.895f;  // single value, both gauges
 static constexpr float SCALE_RADIUS      = 135.0f;
 static constexpr float NEEDLE_INNER      = 65.0f;   // inner end of indicator bar
 static constexpr float NEEDLE_OUTER      = 120.0f;  // outer end (10px gap before shortest tick at 130)
+static constexpr float NEEDLE_HW_INNER   = 1.0f;    // half-width at base (narrow end, 2px total)
+static constexpr float NEEDLE_HW_OUTER   = 3.0f;    // half-width at tip  (wide end,   6px total)
 
 // Pre-computed bar endpoint coordinates (filled once at init, zero trig per frame)
 struct NozzleBarPos {
-    int16_t x1, y1;  // inner end
-    int16_t x2, y2;  // outer end
+    int16_t x1, y1;  // inner end (center)
+    int16_t x2, y2;  // outer end (center)
+    float perpX, perpY;  // unit perpendicular vector (for tapered needle)
 };
 static NozzleBarPos nozBarsL[NOZ_BARS];
 static NozzleBarPos nozBarsR[NOZ_BARS];
 
-// Static background sprites (drawn once at init, reused every frame)
-static LGFX_Sprite nozBgL(&tft);   // 150x154 — left gauge background
-static LGFX_Sprite nozBgR(&tft);   // 150x154 — right gauge background
+// Cached nozzle static background (ticks + labels + NOZ text, both gauges)
+// Built once at init and rebuilt only when textures or color change.
+// Per frame: copy cached -> nozzleBand, draw needles, push. Zero trig per frame.
+static LGFX_Sprite nozStaticBand(&tft);  // 308x154 — pre-composited background
+static volatile bool nozStaticDirty = true;  // rebuild flag (volatile: set in callbacks, read in task)
 
 // Nozzle position values (0-65535 from DCS-BIOS)
 static volatile uint16_t nozzlePosL = 0;
@@ -311,69 +316,76 @@ static int lastBarIdxL = -1;
 static int lastBarIdxR = -1;
 
 // Nozzle pointer visibility (gated by LPOINTER/RPOINTER texture)
-static bool showLeftNozPointer  = false;
-static bool showRightNozPointer = false;
+// volatile: set in callbacks, read in FreeRTOS render task
+static volatile bool showLeftNozPointer  = false;
+static volatile bool showRightNozPointer = false;
 
 // Nozzle texture visibility flags (scale, numbers)
-static bool tex_lscale = false;
-static bool tex_rscale = false;
-static bool tex_l0     = false;
-static bool tex_l50    = false;
-static bool tex_l100   = false;
-static bool tex_r0     = false;
-static bool tex_r50    = false;
-static bool tex_r100   = false;
+// volatile: set in callbacks, read in FreeRTOS render task
+static volatile bool tex_lscale = false;
+static volatile bool tex_rscale = false;
+static volatile bool tex_l0     = false;
+static volatile bool tex_l50    = false;
+static volatile bool tex_l100   = false;
+static volatile bool tex_r0     = false;
+static volatile bool tex_r50    = false;
+static volatile bool tex_r100   = false;
 
 // =============================================================================
 // FIELD STORAGE AND DIRTY FLAGS
 // =============================================================================
+// All per-field dirty flags are volatile: written by DCS-BIOS callbacks
+// (main loop context) and read/cleared by the FreeRTOS render task.
+// Without volatile, the compiler may cache stale reads in the task loop.
+
 // Engine data fields
-static char fld_rpm_l[4]  = "";  static bool dirty_rpm_l  = true;
-static char fld_rpm_r[4]  = "";  static bool dirty_rpm_r  = true;
-static char fld_temp_l[4] = "";  static bool dirty_temp_l = true;
-static char fld_temp_r[4] = "";  static bool dirty_temp_r = true;
-static char fld_ff_l[4]   = "";  static bool dirty_ff_l   = true;
-static char fld_ff_r[4]   = "";  static bool dirty_ff_r   = true;
-static char fld_oil_l[4]  = "";  static bool dirty_oil_l  = true;
-static char fld_oil_r[4]  = "";  static bool dirty_oil_r  = true;
+static char fld_rpm_l[4]  = "";  static volatile bool dirty_rpm_l  = true;
+static char fld_rpm_r[4]  = "";  static volatile bool dirty_rpm_r  = true;
+static char fld_temp_l[4] = "";  static volatile bool dirty_temp_l = true;
+static char fld_temp_r[4] = "";  static volatile bool dirty_temp_r = true;
+static char fld_ff_l[4]   = "";  static volatile bool dirty_ff_l   = true;
+static char fld_ff_r[4]   = "";  static volatile bool dirty_ff_r   = true;
+static char fld_oil_l[4]  = "";  static volatile bool dirty_oil_l  = true;
+static char fld_oil_r[4]  = "";  static volatile bool dirty_oil_r  = true;
 
 // Fuel fields
-static char fld_fuel_up[7]   = "";  static bool dirty_fuel_up   = true;
-static char fld_fuel_down[7] = "";  static bool dirty_fuel_down = true;
-static char fld_bingo[6]     = "";  static bool dirty_bingo     = true;
+static char fld_fuel_up[7]   = "";  static volatile bool dirty_fuel_up   = true;
+static char fld_fuel_down[7] = "";  static volatile bool dirty_fuel_down = true;
+static char fld_bingo[6]     = "";  static volatile bool dirty_bingo     = true;
 
 // SP/Codes overlay fields
-static char fld_sp[4]    = "";  static bool dirty_sp    = true;
-static char fld_codes[4] = "";  static bool dirty_codes = true;
+static char fld_sp[4]    = "";  static volatile bool dirty_sp    = true;
+static char fld_codes[4] = "";  static volatile bool dirty_codes = true;
 
 // T mode / Time set overlay fields
-static char fld_t[7]        = "";  static bool dirty_t        = true;
-static char fld_time_set[7] = "";  static bool dirty_time_set = true;
+static char fld_t[7]        = "";  static volatile bool dirty_t        = true;
+static char fld_time_set[7] = "";  static volatile bool dirty_time_set = true;
 
 // Clock (upper)
-static char fld_clock_h[3] = "";  static bool dirty_clock = true;
+static char fld_clock_h[3] = "";  static volatile bool dirty_clock = true;
 static char fld_clock_m[3] = "";
 static char fld_clock_s[3] = "";
 static char fld_dd_1[2]    = "";
 static char fld_dd_2[2]    = "";
 
 // Timer (lower)
-static char fld_timer_h[3] = "";  static bool dirty_timer = true;
+static char fld_timer_h[3] = "";  static volatile bool dirty_timer = true;
 static char fld_timer_m[3] = "";
 static char fld_timer_s[3] = "";
 static char fld_dd_3[2]    = "";
 static char fld_dd_4[2]    = "";
 
 // Texture visibility flags (label text on/off from DCS-BIOS)
-static bool tex_rpm   = false;  static bool dirty_tex_rpm   = true;
-static bool tex_temp  = false;  static bool dirty_tex_temp  = true;
-static bool tex_ff    = false;  static bool dirty_tex_ff    = true;
-static bool tex_oil   = false;  static bool dirty_tex_oil   = true;
-static bool tex_noz   = false;  static bool dirty_tex_noz   = true;
-static bool tex_bingo = false;  static bool dirty_tex_bingo = true;
-static bool tex_z     = false;  static bool dirty_tex_z     = true;
-static bool tex_l     = false;  static bool dirty_tex_l     = true;
-static bool tex_r     = false;  static bool dirty_tex_r     = true;
+// volatile: set in callbacks, read in FreeRTOS render task
+static volatile bool tex_rpm   = false;  static volatile bool dirty_tex_rpm   = true;
+static volatile bool tex_temp  = false;  static volatile bool dirty_tex_temp  = true;
+static volatile bool tex_ff    = false;  static volatile bool dirty_tex_ff    = true;
+static volatile bool tex_oil   = false;  static volatile bool dirty_tex_oil   = true;
+static volatile bool tex_noz   = false;  static volatile bool dirty_tex_noz   = true;
+static volatile bool tex_bingo = false;  static volatile bool dirty_tex_bingo = true;
+static volatile bool tex_z     = false;  static volatile bool dirty_tex_z     = true;
+static volatile bool tex_l     = false;  static volatile bool dirty_tex_l     = true;
+static volatile bool tex_r     = false;  static volatile bool dirty_tex_r     = true;
 
 // =============================================================================
 // OVERLAY STATE MACHINE (ported from gold-standard IFEIPanel.cpp)
@@ -409,6 +421,9 @@ static volatile bool fuelUp_overlay = false; // T is overriding FUEL_UP
 // =============================================================================
 // HELPERS
 // =============================================================================
+// Strip leading/trailing spaces from a DCS-BIOS string value.
+// DCS-BIOS pads fixed-width fields with spaces; trimming prevents
+// visual artifacts and ensures strcmp-based dedup works correctly.
 static void copyTrimmed(const char* src, char* dest, size_t destSize) {
     if (!src || !dest || destSize == 0) return;
     while (*src && *src == ' ') src++;
@@ -428,7 +443,9 @@ static bool isBlankString(const char* s, size_t maxLen) {
     return true;
 }
 
-// Update a field only if the trimmed value actually changed (reduces unnecessary redraws)
+// Trim and compare a new DCS-BIOS value against the cached field buffer.
+// Returns true (and updates dest) only if the value actually changed,
+// enabling dirty-flag deduplication across all data callbacks.
 static bool updateField(const char* v, char* dest, size_t destSize) {
     char tmp[8];
     copyTrimmed(v, tmp, (destSize < sizeof(tmp)) ? destSize : sizeof(tmp));
@@ -799,62 +816,66 @@ static void precomputeNozzleBars() {
         {
             float angleDeg = (100.0f - pct) * NOZ_DEG_PER_PCT;
             float rad = baseAngleRad + (angleDeg * M_PI / 180.0f);
-            nozBarsL[i].x1 = (int16_t)(NOZL_PIVOT_X + NEEDLE_INNER * cosf(rad));
-            nozBarsL[i].y1 = (int16_t)(NOZL_PIVOT_Y - NEEDLE_INNER * sinf(rad));
-            nozBarsL[i].x2 = (int16_t)(NOZL_PIVOT_X + NEEDLE_OUTER * cosf(rad));
-            nozBarsL[i].y2 = (int16_t)(NOZL_PIVOT_Y - NEEDLE_OUTER * sinf(rad));
+            float c = cosf(rad), s = sinf(rad);
+            nozBarsL[i].x1 = (int16_t)(NOZL_PIVOT_X + NEEDLE_INNER * c);
+            nozBarsL[i].y1 = (int16_t)(NOZL_PIVOT_Y - NEEDLE_INNER * s);
+            nozBarsL[i].x2 = (int16_t)(NOZL_PIVOT_X + NEEDLE_OUTER * c);
+            nozBarsL[i].y2 = (int16_t)(NOZL_PIVOT_Y - NEEDLE_OUTER * s);
+            // Perpendicular unit vector for tapered needle (precomputed, zero trig per frame)
+            nozBarsL[i].perpX = s;   // perp to (cos,-sin) is (sin,cos)
+            nozBarsL[i].perpY = c;
         }
 
         // Right gauge (inverted rotation — exact mirror of left)
         {
             float angleDeg = -(100.0f - pct) * NOZ_DEG_PER_PCT;
             float rad = baseAngleRad + (angleDeg * M_PI / 180.0f);
-            nozBarsR[i].x1 = (int16_t)(NOZR_PIVOT_X + NEEDLE_INNER * cosf(rad));
-            nozBarsR[i].y1 = (int16_t)(NOZR_PIVOT_Y - NEEDLE_INNER * sinf(rad));
-            nozBarsR[i].x2 = (int16_t)(NOZR_PIVOT_X + NEEDLE_OUTER * cosf(rad));
-            nozBarsR[i].y2 = (int16_t)(NOZR_PIVOT_Y - NEEDLE_OUTER * sinf(rad));
+            float c = cosf(rad), s = sinf(rad);
+            nozBarsR[i].x1 = (int16_t)(NOZR_PIVOT_X + NEEDLE_INNER * c);
+            nozBarsR[i].y1 = (int16_t)(NOZR_PIVOT_Y - NEEDLE_INNER * s);
+            nozBarsR[i].x2 = (int16_t)(NOZR_PIVOT_X + NEEDLE_OUTER * c);
+            nozBarsR[i].y2 = (int16_t)(NOZR_PIVOT_Y - NEEDLE_OUTER * s);
+            nozBarsR[i].perpX = s;
+            nozBarsR[i].perpY = c;
         }
     }
 }
 
 // =============================================================================
-// NOZZLE: Draw static background (called once at init, stored in nozBgL/R)
+// NOZZLE: Draw tick marks onto a target sprite (used by rebuildNozStaticBand)
 // =============================================================================
-// Draws the scale arc and tick marks into background sprites.
-// Labels are drawn separately on the nozzleBand (wider canvas, no clipping).
-static void drawNozzleBackground(LGFX_Sprite* bg, float pivotX, float pivotY,
-                                  bool invert, bool showScale) {
-    bg->fillScreen(COLOR_BG);
+// Draws the scale arc tick marks at the given pivot position.
+// Does NOT fillScreen — caller is responsible for clearing first.
+static void drawNozzleTicks(LGFX_Sprite* target, float pivotX, float pivotY,
+                             bool invert, bool showScale, uint32_t color) {
+    if (!showScale) return;
     float baseAngleRad = -M_PI / 2.0f;
 
     // Scale arc: exactly 11 tick marks (every 10%), longer at 0/50/100
     // 0%=top of arc (closed), 100%=bottom (open) — matches real F/A-18C IFEI
-    if (showScale) {
-        for (int i = 0; i <= 100; i += 10) {
-            float a = (100.0f - (float)i) * NOZ_DEG_PER_PCT;
-            if (invert) a = -a;
-            float rad = baseAngleRad + (a * M_PI / 180.0f);
+    for (int i = 0; i <= 100; i += 10) {
+        float a = (100.0f - (float)i) * NOZ_DEG_PER_PCT;
+        if (invert) a = -a;
+        float rad = baseAngleRad + (a * M_PI / 180.0f);
 
-            float innerR = SCALE_RADIUS - 5.0f;
-            float outerR = SCALE_RADIUS;
-            if (i == 0 || i == 50 || i == 100) innerR = SCALE_RADIUS - 10.0f;
+        float innerR = SCALE_RADIUS - 5.0f;
+        float outerR = SCALE_RADIUS;
+        if (i == 0 || i == 50 || i == 100) innerR = SCALE_RADIUS - 10.0f;
 
-            float x1 = pivotX + innerR * cosf(rad);
-            float y1 = pivotY - innerR * sinf(rad);
-            float x2 = pivotX + outerR * cosf(rad);
-            float y2 = pivotY - outerR * sinf(rad);
-            bg->drawLine((int16_t)x1, (int16_t)y1, (int16_t)x2, (int16_t)y2, drawColor);
-        }
+        float x1 = pivotX + innerR * cosf(rad);
+        float y1 = pivotY - innerR * sinf(rad);
+        float x2 = pivotX + outerR * cosf(rad);
+        float y2 = pivotY - outerR * sinf(rad);
+        target->drawLine((int16_t)x1, (int16_t)y1, (int16_t)x2, (int16_t)y2, color);
     }
 }
 
 // =============================================================================
-// NOZZLE: Draw all number labels on the nozzleBand (both gauges, one font load)
+// NOZZLE: Draw all number labels on a target sprite (both gauges)
 // =============================================================================
-// Labels (0, 50, 100) are drawn directly on the wide nozzleBand sprite to
-// avoid clipping that occurred in the smaller per-side bg sprites (150x154).
-// Both gauges drawn in a single call to avoid font load/unload issues.
-static void drawAllNozzleLabels(uint32_t color,
+// Labels (0, 50, 100) are drawn on the wide 308px sprite to avoid clipping.
+// Font must already be loaded on the target sprite (done once in createSprites).
+static void drawAllNozzleLabels(LGFX_Sprite* target, uint32_t color,
                                  bool showL0, bool showL50, bool showL100,
                                  bool showR0, bool showR50, bool showR100) {
     float baseAngleRad = -M_PI / 2.0f;
@@ -863,9 +884,8 @@ static void drawAllNozzleLabels(uint32_t color,
     static constexpr float LABEL_R      = SCALE_RADIUS + 18.0f;
     static constexpr float LABEL_R_ZERO = SCALE_RADIUS + 4.0f;
 
-    nozzleBand.setTextColor(color);
-    nozzleBand.setTextSize(1);
-    nozzleBand.loadFont(IFEI_Labels_16);
+    target->setTextColor(color);
+    target->setTextSize(1);
 
     auto drawLabel = [&](float pivotX, float pivotY, bool invert, int val, bool visible) {
         if (!visible) return;
@@ -877,10 +897,10 @@ static void drawAllNozzleLabels(uint32_t color,
         float y = pivotY - r * sinf(rad);
         char buf[4];
         snprintf(buf, sizeof(buf), "%d", val);
-        int16_t tw = nozzleBand.textWidth(buf);
-        int16_t th = nozzleBand.fontHeight();
-        nozzleBand.setCursor((int16_t)(x - tw / 2), (int16_t)(y - th / 2));
-        nozzleBand.print(buf);
+        int16_t tw = target->textWidth(buf);
+        int16_t th = target->fontHeight();
+        target->setCursor((int16_t)(x - tw / 2), (int16_t)(y - th / 2));
+        target->print(buf);
     };
 
     // Left gauge labels (pivot in band-space = same as bg sprite coords)
@@ -888,20 +908,79 @@ static void drawAllNozzleLabels(uint32_t color,
     drawLabel(NOZL_PIVOT_X, NOZL_PIVOT_Y, false, 50,  showL50);
     drawLabel(NOZL_PIVOT_X, NOZL_PIVOT_Y, false, 100, showL100);
 
-    // Right gauge labels (pivot offset by 158px — bg pushed at x=158)
+    // Right gauge labels (pivot offset by 158px — right gauge drawn at x=158)
     float rPivX = 158.0f + NOZR_PIVOT_X;
     float rPivY = NOZR_PIVOT_Y;
     drawLabel(rPivX, rPivY, true, 0,   showR0);
     drawLabel(rPivX, rPivY, true, 50,  showR50);
     drawLabel(rPivX, rPivY, true, 100, showR100);
+}
 
-    nozzleBand.unloadFont();
+// =============================================================================
+// NOZZLE: Tapered needle drawing (matches real F/A-18C IFEI pointer shape)
+// =============================================================================
+// Draws a wedge: narrow at the base (inner, near pivot), wide at the tip (outer).
+// Uses precomputed perpendicular vectors — zero trig per frame.
+static void drawTaperedNeedle(LGFX_Sprite* spr, const NozzleBarPos& b,
+                               int16_t offsetX, uint32_t color) {
+    float px = b.perpX, py = b.perpY;
+    int16_t x = offsetX;
+    // Inner edge corners (narrow base)
+    int16_t i1x = x + b.x1 + (int16_t)(px * NEEDLE_HW_INNER);
+    int16_t i1y =     b.y1 + (int16_t)(py * NEEDLE_HW_INNER);
+    int16_t i2x = x + b.x1 - (int16_t)(px * NEEDLE_HW_INNER);
+    int16_t i2y =     b.y1 - (int16_t)(py * NEEDLE_HW_INNER);
+    // Outer edge corners (wide tip)
+    int16_t o1x = x + b.x2 + (int16_t)(px * NEEDLE_HW_OUTER);
+    int16_t o1y =     b.y2 + (int16_t)(py * NEEDLE_HW_OUTER);
+    int16_t o2x = x + b.x2 - (int16_t)(px * NEEDLE_HW_OUTER);
+    int16_t o2y =     b.y2 - (int16_t)(py * NEEDLE_HW_OUTER);
+    // Two triangles forming the tapered quad
+    spr->fillTriangle(i1x, i1y, o1x, o1y, o2x, o2y, color);
+    spr->fillTriangle(i1x, i1y, i2x, i2y, o2x, o2y, color);
+}
+
+// =============================================================================
+// NOZZLE: Rebuild cached static background (ticks + labels + NOZ text)
+// =============================================================================
+// Called only on init, texture changes, or color changes. NOT per frame.
+// Draws directly on nozStaticBand — no intermediate sprites needed.
+static void rebuildNozStaticBand(uint32_t color) {
+    nozStaticBand.fillScreen(COLOR_BG);
+
+    // Draw tick marks directly on the 308-wide static band
+    // Left gauge: pivot at original position (band x=0 corresponds to left gauge)
+    drawNozzleTicks(&nozStaticBand, NOZL_PIVOT_X, NOZL_PIVOT_Y,
+                     false, tex_lscale, color);
+    // Right gauge: pivot offset by 158px (right gauge drawn at x=158 in band)
+    drawNozzleTicks(&nozStaticBand, 158.0f + NOZR_PIVOT_X, NOZR_PIVOT_Y,
+                     true, tex_rscale, color);
+
+    // Draw number labels directly on static band (font already loaded in createSprites)
+    drawAllNozzleLabels(&nozStaticBand, color,
+                         tex_l0, tex_l50, tex_l100,
+                         tex_r0, tex_r50, tex_r100);
+
+    // NOZ label — draw directly on static band via labelSprite
+    if (tex_noz) {
+        int16_t nozRelX = elems[NOZT].posX - NOZ_BAND_X;
+        int16_t nozRelY = elems[NOZT].posY - NOZ_BAND_Y;
+        labelSprite.fillScreen(COLOR_BG);
+        labelSprite.setTextColor(color);
+        int16_t cx = alignCursorX(&labelSprite, "NOZ", elems[NOZT].spriteWidth, ALIGN_CENTER);
+        labelSprite.setCursor(cx, 0);
+        labelSprite.print("NOZ");
+        labelSprite.pushSprite(&nozStaticBand, nozRelX, nozRelY, COLOR_BG);
+    }
+
+    nozStaticDirty = false;
 }
 
 // =============================================================================
 // NOZZLE: Render nozzles (called per frame when nozzleDirty)
 // =============================================================================
-// Composites: background + active bar indicator + NOZ label → nozzleBand → TFT
+// Fast path: copy cached static background, draw needles, push to TFT.
+// Eliminates per-frame trig, font loading, and redundant PSRAM copies.
 static void renderNozzles() {
     // Convert raw 0-65535 to bar index 0-10 (same formula as IFEIPanel)
     int percentL = ((int)nozzlePosL * 100 + 32767) / 65535;
@@ -914,49 +993,43 @@ static void renderNozzles() {
     if (percentR < 0) percentR = 0;
     int barIdxR = constrain((percentR + 5) / 10, 0, NOZ_BARS - 1);
 
-    // Regenerate backgrounds if texture visibility changed
-    // (This is infrequent — only on mission start or cockpit power state changes)
-    drawNozzleBackground(&nozBgL, NOZL_PIVOT_X, NOZL_PIVOT_Y,
-                          false, tex_lscale);
-    drawNozzleBackground(&nozBgR, NOZR_PIVOT_X, NOZR_PIVOT_Y,
-                          true, tex_rscale);
+    // Check if static background needs rebuild (texture or color change)
+    // Tracked locally — no need to modify callbacks
+    static bool cached_lscale = false, cached_rscale = false;
+    static bool cached_l0 = false, cached_l50 = false, cached_l100 = false;
+    static bool cached_r0 = false, cached_r50 = false, cached_r100 = false;
+    static bool cached_noz = false;
+    static uint32_t cachedColor = 0;
 
-    // Start nozzle band with black background
-    nozzleBand.fillScreen(COLOR_BG);
+    if (nozStaticDirty
+        || drawColor    != cachedColor
+        || tex_lscale   != cached_lscale  || tex_rscale != cached_rscale
+        || tex_l0       != cached_l0      || tex_l50    != cached_l50
+        || tex_l100     != cached_l100
+        || tex_r0       != cached_r0      || tex_r50    != cached_r50
+        || tex_r100     != cached_r100
+        || tex_noz      != cached_noz) {
 
-    // Copy static backgrounds (tick marks only) into band
-    nozBgL.pushSprite(&nozzleBand, 0, 0);
-    nozBgR.pushSprite(&nozzleBand, 158, 0);
+        rebuildNozStaticBand(drawColor);
 
-    // Draw all number labels on the wide band (single font load, no clipping)
-    drawAllNozzleLabels(drawColor,
-                         tex_l0, tex_l50, tex_l100,
-                         tex_r0, tex_r50, tex_r100);
+        cachedColor   = drawColor;
+        cached_lscale = tex_lscale;  cached_rscale = tex_rscale;
+        cached_l0     = tex_l0;      cached_l50    = tex_l50;
+        cached_l100   = tex_l100;
+        cached_r0     = tex_r0;      cached_r50    = tex_r50;
+        cached_r100   = tex_r100;
+        cached_noz    = tex_noz;
+    }
 
-    // Draw active bar indicator — exactly ONE bar lit per nozzle
-    // 2px wide line matching the thin needle in the real IFEI
+    // Fast per-frame path: stamp cached background onto working band
+    nozStaticBand.pushSprite(&nozzleBand, 0, 0);
+
+    // Draw active bar indicator — tapered needle (narrow base, wide tip)
     if (showLeftNozPointer) {
-        const NozzleBarPos& b = nozBarsL[barIdxL];
-        nozzleBand.drawLine(b.x1, b.y1, b.x2, b.y2, drawColor);
-        nozzleBand.drawLine(b.x1 + 1, b.y1, b.x2 + 1, b.y2, drawColor);
+        drawTaperedNeedle(&nozzleBand, nozBarsL[barIdxL], 0, drawColor);
     }
     if (showRightNozPointer) {
-        const NozzleBarPos& b = nozBarsR[barIdxR];
-        // Right gauge bars are at 158px offset in the band
-        nozzleBand.drawLine(158 + b.x1, b.y1, 158 + b.x2, b.y2, drawColor);
-        nozzleBand.drawLine(158 + b.x1 + 1, b.y1, 158 + b.x2 + 1, b.y2, drawColor);
-    }
-
-    // NOZ label in nozzle band
-    if (tex_noz) {
-        int16_t nozRelX = elems[NOZT].posX - NOZ_BAND_X;
-        int16_t nozRelY = elems[NOZT].posY - NOZ_BAND_Y;
-        labelSprite.fillScreen(COLOR_BG);
-        labelSprite.setTextColor(drawColor);
-        int16_t cx = alignCursorX(&labelSprite, "NOZ", elems[NOZT].spriteWidth, ALIGN_CENTER);
-        labelSprite.setCursor(cx, 0);
-        labelSprite.print("NOZ");
-        labelSprite.pushSprite(&nozzleBand, nozRelX, nozRelY, COLOR_BG);
+        drawTaperedNeedle(&nozzleBand, nozBarsR[barIdxR], 158, drawColor);
     }
 
     // Push entire nozzle band to TFT in one operation
@@ -1009,7 +1082,10 @@ static const char* resolveFuelDown() {
 // DRAWING: Full screen redraw (color change, mission start, init)
 // =============================================================================
 static void drawFullScreen() {
-    tft.fillScreen(COLOR_BG);
+    // No tft.fillScreen() here — each element's sprite already fills its own
+    // rectangle with COLOR_BG before drawing text. The gaps between elements are
+    // already black from init or previous frames. Skipping the 768KB full-framebuffer
+    // wipe eliminates the single heaviest PSRAM burst per full redraw.
 
     // RPM
     strcpy(elems[RPML].value, fld_rpm_l);   updateElement(RPML);
@@ -1230,6 +1306,7 @@ static void blankAllFields() {
     dirty_t = true; dirty_time_set = true;
     dirty_clock = true; dirty_timer = true;
     nozzleDirty = true;
+    nozStaticDirty = true;  // force nozzle background rebuild on next render
     dirty_tex_rpm = true; dirty_tex_temp = true; dirty_tex_ff = true;
     dirty_tex_oil = true; dirty_tex_noz = true; dirty_tex_bingo = true;
     dirty_tex_z = true; dirty_tex_l = true; dirty_tex_r = true;
@@ -1258,24 +1335,21 @@ static void blankAllFields() {
 // SPRITE CREATION
 // =============================================================================
 static void createSprites() {
-    // --- Text sprites: internal SRAM + 24-bit (matches ashchan reference) ---
-    // 24-bit depth is critical: pushSprite() must convert each pixel from RGB888
-    // to RGB565 before writing to the PSRAM framebuffer. This per-pixel conversion
-    // creates natural CPU processing gaps between PSRAM writes, allowing DMA to
-    // interleave framebuffer reads without stalling. 16-bit sprites allow direct
-    // memcpy (burst writes) that monopolize the PSRAM bus and cause display shifting.
+    // --- Text sprites: internal SRAM + 16-bit (RGB565) ---
+    // 16-bit depth minimizes PSRAM write volume per pushSprite (2 bytes/pixel vs 3).
+    // LovyanGFX converts RGB888 color constants to RGB565 internally.
 
     // Two-digit data sprite (RPM L/R, OIL L/R)
     twoDigitSprite.setPsram(false);
-    twoDigitSprite.setColorDepth(24);
+    twoDigitSprite.setColorDepth(16);
     twoDigitSprite.createSprite(76, 38);
     twoDigitSprite.loadFont(IFEI_Data_36);
     twoDigitSprite.setTextWrap(false);
     twoDigitSprite.setTextColor(ifeiColor);
 
-    // Three-digit data sprite (TEMP L/R, FF L/R)
+    // Three-digit data sprite (TEMP L/R, FF L/R, OIL L/R)
     threeDigitSprite.setPsram(false);
-    threeDigitSprite.setColorDepth(24);
+    threeDigitSprite.setColorDepth(16);
     threeDigitSprite.createSprite(108, 38);
     threeDigitSprite.loadFont(IFEI_Data_36);
     threeDigitSprite.setTextWrap(false);
@@ -1283,7 +1357,7 @@ static void createSprites() {
 
     // Fuel sprite (FUEL UP/DOWN, BINGO)
     fuelSprite.setPsram(false);
-    fuelSprite.setColorDepth(24);
+    fuelSprite.setColorDepth(16);
     fuelSprite.createSprite(220, 38);
     fuelSprite.loadFont(IFEI_Data_36);
     fuelSprite.setTextWrap(false);
@@ -1291,7 +1365,7 @@ static void createSprites() {
 
     // Clock sprite (CLOCK UP/DOWN)
     clockSprite.setPsram(false);
-    clockSprite.setColorDepth(24);
+    clockSprite.setColorDepth(16);
     clockSprite.createSprite(176, 35);
     clockSprite.loadFont(IFEI_Data_32);
     clockSprite.setTextWrap(false);
@@ -1299,36 +1373,35 @@ static void createSprites() {
 
     // Label sprite (all text labels)
     labelSprite.setPsram(false);
-    labelSprite.setColorDepth(24);
+    labelSprite.setColorDepth(16);
     labelSprite.createSprite(65, 18);
     labelSprite.loadFont(IFEI_Labels_16);
     labelSprite.setTextColor(ifeiColor);
 
     // Tag sprite (ZULU, L, R)
     tagSprite.setPsram(false);
-    tagSprite.setColorDepth(24);
+    tagSprite.setColorDepth(16);
     tagSprite.createSprite(18, 18);
     tagSprite.loadFont(IFEI_Labels_16);
     tagSprite.setTextColor(ifeiColor);
 
 #if !IFEI_DEBUG_NO_NOZZLES
-    // --- Nozzle sprites: PSRAM + 24-bit ---
-    // Two background sprites (static, drawn once) + one compositing band
-    nozBgL.setPsram(true);
-    nozBgL.setColorDepth(24);
-    nozBgL.createSprite(150, 154);
-
-    nozBgR.setPsram(true);
-    nozBgR.setColorDepth(24);
-    nozBgR.createSprite(150, 154);
+    // --- Nozzle sprites: PSRAM + 16-bit ---
+    // nozStaticBand: cached background (ticks + labels + NOZ text) — rebuilt only on texture/color change
+    // nozzleBand: working buffer — stamped from cache + needles drawn per frame
+    nozStaticBand.setPsram(true);
+    nozStaticBand.setColorDepth(16);
+    nozStaticBand.createSprite(NOZ_BAND_W, NOZ_BAND_H);
+    nozStaticBand.loadFont(IFEI_Labels_16);  // keep loaded permanently — no per-frame flash access
 
     nozzleBand.setPsram(true);
-    nozzleBand.setColorDepth(24);
+    nozzleBand.setColorDepth(16);
     nozzleBand.createSprite(NOZ_BAND_W, NOZ_BAND_H);
+    nozzleBand.loadFont(IFEI_Labels_16);  // needed for lampTest label rendering
 
-    debugPrintln("  Sprites created (6 text SRAM/24-bit, 3 nozzle PSRAM/24-bit)");
+    debugPrintln("  Sprites created (6 text SRAM/16-bit, 2 nozzle PSRAM/16-bit)");
 #else
-    debugPrintln("  Sprites created (6 text SRAM/24-bit, nozzles DISABLED)");
+    debugPrintln("  Sprites created (6 text SRAM/16-bit, nozzles DISABLED)");
 #endif
 
     debugPrintf("  Internal SRAM free: %u bytes\n", (unsigned)ESP.getFreeHeap());
@@ -1387,14 +1460,14 @@ static void lampTestPhase(uint32_t color) {
     // Numeric 2-digit fields -> "88"
     strcpy(elems[RPML].value,  "88");
     strcpy(elems[RPMR].value,  "88");
-    strcpy(elems[OILL].value,  "88");
-    strcpy(elems[OILR].value,  "88");
 
     // Numeric 3-digit fields -> "888"
     strcpy(elems[TMPL].value,  "888");
     strcpy(elems[TMPR].value,  "888");
     strcpy(elems[FFL].value,   "888");
     strcpy(elems[FFR].value,   "888");
+    strcpy(elems[OILL].value,  "888");
+    strcpy(elems[OILR].value,  "888");
 
     // Fuel 6-char fields -> "888888"
     strcpy(elems[FUELU].value, "888888");
@@ -1429,30 +1502,28 @@ static void lampTestPhase(uint32_t color) {
     renderClock(CLOCKU, "88", ":", "88", ":", "88", false);
     renderClock(CLOCKL, "88", ":", "88", ":", "88", true);
 
-    // Nozzle gauges — show both pointers at 50% with full scale
+    // Nozzle gauges — show all 11 positions with full scale
 #if !IFEI_DEBUG_NO_NOZZLES
     {
-        drawNozzleBackground(&nozBgL, NOZL_PIVOT_X, NOZL_PIVOT_Y,
-                              false, true);
-        drawNozzleBackground(&nozBgR, NOZR_PIVOT_X, NOZR_PIVOT_Y,
-                              true, true);
-
+        // Build lamp test nozzle directly on nozzleBand (one-time, no caching needed)
         nozzleBand.fillScreen(COLOR_BG);
-        nozBgL.pushSprite(&nozzleBand, 0, 0);
-        nozBgR.pushSprite(&nozzleBand, 158, 0);
 
-        // Draw all number labels on the wide band (no clipping)
-        drawAllNozzleLabels(color,
+        // Ticks — draw directly on band with correct offsets
+        drawNozzleTicks(&nozzleBand, NOZL_PIVOT_X, NOZL_PIVOT_Y,
+                         false, true, color);
+        drawNozzleTicks(&nozzleBand, 158.0f + NOZR_PIVOT_X, NOZR_PIVOT_Y,
+                         true, true, color);
+
+        // Labels — all visible for lamp test
+        drawAllNozzleLabels(&nozzleBand, color,
                              true, true, true,
                              true, true, true);
 
-        // Show bar at 50% (index 5) for both — 2px thin needle
-        const NozzleBarPos& bL = nozBarsL[5];
-        nozzleBand.drawLine(bL.x1, bL.y1, bL.x2, bL.y2, color);
-        nozzleBand.drawLine(bL.x1 + 1, bL.y1, bL.x2 + 1, bL.y2, color);
-        const NozzleBarPos& bR = nozBarsR[5];
-        nozzleBand.drawLine(158 + bR.x1, bR.y1, 158 + bR.x2, bR.y2, color);
-        nozzleBand.drawLine(158 + bR.x1 + 1, bR.y1, 158 + bR.x2 + 1, bR.y2, color);
+        // Show ALL 11 bar positions (0%-100%) for both — full arc verification
+        for (int i = 0; i < NOZ_BARS; i++) {
+            drawTaperedNeedle(&nozzleBand, nozBarsL[i], 0, color);
+            drawTaperedNeedle(&nozzleBand, nozBarsR[i], 158, color);
+        }
 
         // NOZ label in band
         labelSprite.fillScreen(COLOR_BG);
@@ -1497,7 +1568,7 @@ void TFTIFEIDisplay_init() {
     delay(50);
 
     tft.init();
-    tft.fillScreen(TFT_BLACK);
+    tft.fillScreen(COLOR_BG);
 
     tft.setBrightness(150);
 
@@ -1595,8 +1666,8 @@ void TFTIFEIDisplay_init() {
     // Pinned to ARDUINO_RUNNING_CORE (core 1 on dual-core S3, core 0 on single-core S2).
     // Unpinned xTaskCreate could schedule rendering on core 0, competing with WiFi
     // for CPU time during heavy sprite-to-PSRAM pushes.
-    xTaskCreatePinnedToCore(TFTIFEIDisplayTask, "TFTIFEIDisp", 8192, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
-    debugPrintln("  FreeRTOS display task created (30 Hz, app core)");
+    xTaskCreatePinnedToCore(TFTIFEIDisplayTask, "TFTIFEIDisp", 8192, NULL, 2, NULL, ARDUINO_RUNNING_CORE);
+    debugPrintln("  FreeRTOS display task created (30 Hz, pri 2, app core)");
     #endif
 
     debugPrintln("TFT IFEI: Initialized successfully");
