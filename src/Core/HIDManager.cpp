@@ -866,6 +866,15 @@ void HIDManager_setToggleNamedButton(const char* name, bool deferSend) {
     const bool newOn = !curOn;
     e->lastValue = newOn ? 1 : 0;
 
+    // ── Optimistic solenoid (toggle path) ─────────────────────────────
+    if (m->oride_label) {
+        const LEDMapping* mag = findLED(m->oride_label);
+        if (mag && mag->deviceType == DEVICE_MAGNETIC) {
+            uint16_t rawVal = newOn ? m->oride_value : 0;
+            setLED(m->oride_label, newOn, 100, rawVal, 2);
+        }
+    }
+
     const bool inDcs = isModeSelectorDCS();
     const bool hybridEnabled = false;
     const bool dcsAllowed = inDcs || hybridEnabled;
@@ -877,7 +886,11 @@ void HIDManager_setToggleNamedButton(const char* name, bool deferSend) {
     // Default:    normal press/release via sendDCSBIOSCommand.
     if (dcsAllowed && m->oride_label) {
         const LEDMapping* led = findLED(m->oride_label);
+#if MAGNETIC_DANCE_IN_FIRMWARE
         bool isMagnetic = led && led->deviceType == DEVICE_MAGNETIC;
+#else
+        bool isMagnetic = false; // Lua handles the dance
+#endif
         bool hasDeferredRelease = isMagnetic || m->releaseValue > 0;
 
         if (newOn && isMagnetic) {
@@ -923,6 +936,20 @@ void HIDManager_setNamedButton(const char* name, bool deferSend, bool pressed) {
         return;
     }
 
+    // ── Optimistic solenoid energization ──────────────────────────────
+    // In a real aircraft, the switch contact IS the solenoid circuit — zero
+    // delay between flip and coil energization.  We replicate that here by
+    // driving the solenoid GPIO the instant the input changes, before any
+    // DCS-BIOS round-trip (~70 ms).  The authoritative DCS-BIOS output
+    // arriving later either confirms (no-op) or corrects the state.
+    // Fires regardless of DCS/HID mode — it is a physical panel behavior.
+    if (m->oride_label) {
+        const LEDMapping* mag = findLED(m->oride_label);
+        if (mag && mag->deviceType == DEVICE_MAGNETIC) {
+            setLED(m->oride_label, m->oride_value > 0, 100, m->oride_value, 2);
+        }
+    }
+
     const bool inDcs = isModeSelectorDCS();
     const bool hybridEnabled = false;
     const bool dcsAllowed = inDcs || hybridEnabled;
@@ -958,7 +985,11 @@ void HIDManager_setNamedButton(const char* name, bool deferSend, bool pressed) {
                 // Priority 2: releaseValue > 0 → atomic press-delay-release (custom override, edge case).
                 // Default:    normal press/release via sendDCSBIOSCommand.
                 const LEDMapping* led = findLED(m->oride_label);
+#if MAGNETIC_DANCE_IN_FIRMWARE
                 bool isMagnetic = led && led->deviceType == DEVICE_MAGNETIC;
+#else
+                bool isMagnetic = false; // Lua handles the dance
+#endif
                 bool hasDeferredRelease = isMagnetic || m->releaseValue > 0;
 
                 if (pressed && isMagnetic) {
