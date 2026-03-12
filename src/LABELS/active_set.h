@@ -1,5 +1,5 @@
-// PID:0x6E2A 
+// PID:0x1B77 
 
 #pragma once
 
-#define LABEL_SET IFEI
+#define LABEL_SET TFT_IFEI
