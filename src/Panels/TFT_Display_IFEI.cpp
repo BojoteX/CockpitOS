@@ -6,7 +6,7 @@
 //
 // Hardware: Waveshare ESP32-S3-Touch-LCD-7 (800x480, RGB parallel, ST7262)
 //           CH422G I2C IO expander (backlight, LCD/touch reset)
-//           GT911 capacitive touch (unused — I2C polling causes RGB stutter)
+//           GT911 capacitive touch (I2C polled after render — 6 IFEI buttons)
 //
 // Architecture:
 //   - LovyanGFX Bus_RGB + Panel_RGB for continuous framebuffer scanning
@@ -97,14 +97,105 @@ static constexpr uint32_t COLOR_BG    = 0x000000U;  // Black
 // CH422G INITIALIZATION
 // =============================================================================
 static void ch422g_init() {
-    Wire.begin(SDA_PIN, SCL_PIN);
+    Wire.begin(SDA_PIN, SCL_PIN, 400000);  // 400kHz (matches Waveshare demo)
     Wire.beginTransmission(CH422G_MODE_ADDR);
     Wire.write(0x01);
     Wire.endTransmission();
+    // Release LCD reset + backlight ON, but keep GT911 in reset (EXIO1=0)
+    // GT911 gets a proper reset sequence later in initGT911()
     Wire.beginTransmission(CH422G_OUTPUT_ADDR);
-    Wire.write(CH422G_BACKLIGHT_BIT | CH422G_LCD_RST_BIT | CH422G_TOUCH_RST_BIT);
+    Wire.write(CH422G_BACKLIGHT_BIT | CH422G_LCD_RST_BIT);  // EXIO2+EXIO3 only
     Wire.endTransmission();
-    debugPrintln("  CH422G initialized (backlight ON, resets released)");
+    debugPrintln("  CH422G initialized (backlight ON, LCD reset released, GT911 held in reset)");
+}
+
+// =============================================================================
+// GT911 TOUCH — set to 0 to disable all touch detection and button rendering
+// =============================================================================
+#define ENABLE_TOUCH 1
+
+// =============================================================================
+// GT911 TOUCH DETECTION + INITIALIZATION
+// =============================================================================
+// The GT911 shares the I2C bus (SDA=8, SCL=9) with CH422G. Proper init requires
+// a timed reset sequence with INT pin control to select I2C address.
+// Reference: Waveshare ESP32-S3-Touch-LCD-7 demo (esp_panel_board_custom_conf.h)
+
+static bool    hasTouchHW = false;   // true if GT911 responded at init
+static uint8_t gt911Addr  = 0x5D;   // I2C address (0x5D when INT=LOW during reset)
+
+// Proper GT911 reset sequence (from Waveshare demo).
+// INT pin state during reset release selects I2C address:
+//   INT LOW  → 0x5D
+//   INT HIGH → 0x14
+static void resetGT911() {
+    // 1. Drive INT LOW to select address 0x5D
+    pinMode(IFEI_TOUCH_INT, OUTPUT);
+    digitalWrite(IFEI_TOUCH_INT, LOW);
+    delay(10);
+
+    // 2. Assert reset (EXIO1 LOW) — GT911 should already be in reset from ch422g_init
+    Wire.beginTransmission(CH422G_OUTPUT_ADDR);
+    Wire.write(CH422G_BACKLIGHT_BIT | CH422G_LCD_RST_BIT);  // EXIO1=0 (reset asserted)
+    Wire.endTransmission();
+    delay(100);
+
+    // 3. Release reset (EXIO1 HIGH) with INT still LOW
+    Wire.beginTransmission(CH422G_OUTPUT_ADDR);
+    Wire.write(CH422G_BACKLIGHT_BIT | CH422G_LCD_RST_BIT | CH422G_TOUCH_RST_BIT);  // EXIO1=1
+    Wire.endTransmission();
+    delay(200);  // GT911 needs ~150-200ms to boot after reset
+
+    // 4. Release INT pin (switch to input for polling)
+    pinMode(IFEI_TOUCH_INT, INPUT);
+}
+
+static bool probeGT911() {
+    for (uint8_t addr : { (uint8_t)0x5D, (uint8_t)0x14 }) {
+        Wire.beginTransmission(addr);
+        if (Wire.endTransmission() == 0) {
+            gt911Addr = addr;
+            return true;
+        }
+    }
+    return false;
+}
+
+// Read and log GT911 product ID (registers 0x8140-0x8143, should be "911\0")
+static void readGT911ProductID() {
+    Wire.beginTransmission(gt911Addr);
+    Wire.write(0x81);
+    Wire.write(0x40);
+    if (Wire.endTransmission(false) != 0) return;
+    if (Wire.requestFrom(gt911Addr, (uint8_t)4) == 4) {
+        char pid[5] = {0};
+        for (int i = 0; i < 4; i++) pid[i] = Wire.read();
+        debugPrintf("  GT911 Product ID: %s\n", pid);
+    }
+}
+
+// Read GT911 config: output resolution + firmware version
+static void readGT911Config() {
+    // Read resolution from config registers 0x8048-0x804B
+    Wire.beginTransmission(gt911Addr);
+    Wire.write(0x80);
+    Wire.write(0x48);
+    if (Wire.endTransmission(false) != 0) return;
+    if (Wire.requestFrom(gt911Addr, (uint8_t)5) == 5) {
+        uint16_t x_max = Wire.read() | (Wire.read() << 8);
+        uint16_t y_max = Wire.read() | (Wire.read() << 8);
+        uint8_t  touches = Wire.read();
+        debugPrintf("  GT911 config: X_max=%d  Y_max=%d  max_touches=%d\n", x_max, y_max, touches);
+    }
+    // Read firmware version from 0x8144-0x8145
+    Wire.beginTransmission(gt911Addr);
+    Wire.write(0x81);
+    Wire.write(0x44);
+    if (Wire.endTransmission(false) != 0) return;
+    if (Wire.requestFrom(gt911Addr, (uint8_t)2) == 2) {
+        uint16_t fw = Wire.read() | (Wire.read() << 8);
+        debugPrintf("  GT911 firmware version: 0x%04X\n", fw);
+    }
 }
 
 // =============================================================================
@@ -149,7 +240,7 @@ public:
             cfg.pin_vsync   = IFEI_TFT_VSYNC;
             cfg.pin_hsync   = IFEI_TFT_HSYNC;
             cfg.pin_pclk    = IFEI_TFT_PCLK;
-            cfg.freq_write = 13900000;   // 13.9 MHz — reduced from 16 MHz to lower PSRAM bus pressure
+            cfg.freq_write = 13900000;   // 13.9 MHz — tuned for Waveshare ESP32-S3-Touch-LCD-7 (do NOT lower: RGB breaks)
             cfg.hsync_polarity    = 0;
             cfg.hsync_front_porch = 8;
             cfg.hsync_pulse_width = 4;
@@ -157,16 +248,16 @@ public:
             cfg.vsync_polarity    = 0;
             cfg.vsync_front_porch = 8;
             cfg.vsync_pulse_width = 4;
-            cfg.vsync_back_porch  = 16;  // 16 — extra vertical blanking for uncontested PSRAM CPU access
+            cfg.vsync_back_porch  = 24;  // 24 — wider vertical blanking gives WiFi DMA more uncontested PSRAM access
             cfg.pclk_active_neg   = 1;
             cfg.de_idle_high      = 0;
             cfg.pclk_idle_high    = 0;
             _bus_instance.config(cfg);
         }
         _panel_instance.setBus(&_bus_instance);
-        // NOTE: GT911 touch not configured — not used for IFEI, and its periodic
-        // I2C polling/interrupts cause occasional display stutter on RGB parallel.
-        // Can be re-added later if touch is needed (will require careful I2C scheduling).
+        // GT911 touch: NOT configured via LovyanGFX (no _touch_instance). Instead,
+        // we use raw Wire I2C reads polled once per frame in the idle gap after rendering.
+        // This avoids the continuous I2C polling that causes RGB parallel display stutter.
         setPanel(&_panel_instance);
     }
 };
@@ -186,6 +277,7 @@ static LGFX_Sprite tagSprite(&tft);         // 18x18 — ZULU, L, R
 
 // Nozzle sprites
 static LGFX_Sprite nozzleBand(&tft);        // 308x154 — combined nozzle area
+static LGFX_Sprite btnSprite(&tft);          // 100x64 — reusable button rendering (avoids direct TFT draws)
 
 // Current text color (volatile: set in callbacks, read in loop)
 static volatile uint32_t ifeiColor = COLOR_DAY;
@@ -195,8 +287,10 @@ static uint32_t drawColor = COLOR_DAY;  // non-volatile snapshot for rendering
 static volatile bool displayDirty = true;
 static volatile bool needsFullRedraw = true;
 
-// Timing
+// Timing (non-task loop path only)
+#if !RUN_TFT_IFEI_DISPLAY_AS_TASK
 static unsigned long lastDrawTime = 0;
+#endif
 
 // =============================================================================
 // DISPLAY ELEMENT STRUCTURE
@@ -225,39 +319,41 @@ enum DisplayName : uint8_t {
     NUM_ELEMENTS
 };
 
-// Element layout — pixel-perfect positions from ashchan reference (offsets = 0)
+// Element layout — recentered for balanced vertical distribution.
+// Upper block (RPM/TEMP/FF) shifted up 20px, OIL shifted up 7px.
+// Result: top=22px, NOZ-OIL gap=20px, bottom=10px (was 42/7/3).
 static DisplayElement elems[NUM_ELEMENTS] = {
     // RPM
-    { 76,  38,  76,  42,  ALIGN_RIGHT,  &twoDigitSprite,   "" },  // RPML
-    { 76,  38,  242, 42,  ALIGN_RIGHT,  &twoDigitSprite,   "" },  // RPMR
-    { 58,  18,  170, 54,  ALIGN_CENTER, &labelSprite,      "" },  // RPMT
+    { 76,  38,  76,  22,  ALIGN_RIGHT,  &twoDigitSprite,   "" },  // RPML
+    { 76,  38,  242, 22,  ALIGN_RIGHT,  &twoDigitSprite,   "" },  // RPMR
+    { 58,  18,  170, 34,  ALIGN_CENTER, &labelSprite,      "" },  // RPMT
     // TEMP
-    { 108, 38,  48,  112, ALIGN_RIGHT,  &threeDigitSprite, "" },  // TMPL
-    { 108, 38,  242, 112, ALIGN_RIGHT,  &threeDigitSprite, "" },  // TMPR
-    { 58,  18,  172, 120, ALIGN_CENTER, &labelSprite,      "" },  // TMPT
+    { 108, 38,  48,  92,  ALIGN_RIGHT,  &threeDigitSprite, "" },  // TMPL
+    { 108, 38,  242, 92,  ALIGN_RIGHT,  &threeDigitSprite, "" },  // TMPR
+    { 58,  18,  172, 100, ALIGN_CENTER, &labelSprite,      "" },  // TMPT
     // FF
-    { 108, 38,  44,  178, ALIGN_RIGHT,  &threeDigitSprite, "" },  // FFL
-    { 108, 38,  242, 178, ALIGN_RIGHT,  &threeDigitSprite, "" },  // FFR
-    { 58,  18,  172, 186, ALIGN_CENTER, &labelSprite,      "" },  // FFTU
-    { 65,  18,  168, 203, ALIGN_CENTER, &labelSprite,      "" },  // FFTL
-    // OIL (3-digit field: values up to 999)
-    { 108, 38,  48,  439, ALIGN_RIGHT,  &threeDigitSprite, "" },  // OILL
-    { 108, 38,  242, 439, ALIGN_RIGHT,  &threeDigitSprite, "" },  // OILR
-    { 58,  18,  176, 450, ALIGN_CENTER, &labelSprite,      "" },  // OILT
+    { 108, 38,  44,  158, ALIGN_RIGHT,  &threeDigitSprite, "" },  // FFL
+    { 108, 38,  242, 158, ALIGN_RIGHT,  &threeDigitSprite, "" },  // FFR
+    { 58,  18,  172, 166, ALIGN_CENTER, &labelSprite,      "" },  // FFTU
+    { 65,  18,  168, 183, ALIGN_CENTER, &labelSprite,      "" },  // FFTL
+    // OIL — shifted only 7px (not 20) to open up NOZ-OIL gap
+    { 108, 38,  48,  432, ALIGN_RIGHT,  &threeDigitSprite, "" },  // OILL
+    { 108, 38,  242, 432, ALIGN_RIGHT,  &threeDigitSprite, "" },  // OILR
+    { 58,  18,  176, 443, ALIGN_CENTER, &labelSprite,      "" },  // OILT
     // NOZZLE label (gauges rendered separately into nozzleBand)
-    { 58,  18,  172, 320, ALIGN_CENTER, &labelSprite,      "" },  // NOZT
-    // FUEL
-    { 220, 38,  522, 56,  ALIGN_RIGHT,  &fuelSprite,       "" },  // FUELU
-    { 220, 38,  522, 132, ALIGN_RIGHT,  &fuelSprite,       "" },  // FUELL
-    { 220, 38,  522, 246, ALIGN_RIGHT,  &fuelSprite,       "" },  // BINGO_VAL
-    { 58,  18,  648, 215, ALIGN_CENTER, &labelSprite,      "" },  // BINGOT
-    // CLOCK
-    { 176, 35,  575, 378, ALIGN_RIGHT,  &clockSprite,      "" },  // CLOCKU
-    { 176, 35,  575, 440, ALIGN_RIGHT,  &clockSprite,      "" },  // CLOCKL
+    { 58,  18,  172, 300, ALIGN_CENTER, &labelSprite,      "" },  // NOZT
+    // FUEL — shifted up 20px to match engine side
+    { 220, 38,  522, 36,  ALIGN_RIGHT,  &fuelSprite,       "" },  // FUELU
+    { 220, 38,  522, 112, ALIGN_RIGHT,  &fuelSprite,       "" },  // FUELL
+    { 220, 38,  522, 226, ALIGN_RIGHT,  &fuelSprite,       "" },  // BINGO_VAL
+    { 58,  18,  648, 195, ALIGN_CENTER, &labelSprite,      "" },  // BINGOT
+    // CLOCK — shifted up slightly for balance
+    { 176, 35,  575, 370, ALIGN_RIGHT,  &clockSprite,      "" },  // CLOCKU
+    { 176, 35,  575, 432, ALIGN_RIGHT,  &clockSprite,      "" },  // CLOCKL
     // TAGS
-    { 18,  18,  750, 396, ALIGN_CENTER, &tagSprite,        "" },  // ZULU
-    { 18,  18,  740, 70,  ALIGN_CENTER, &tagSprite,        "" },  // L_TAG
-    { 18,  18,  740, 146, ALIGN_CENTER, &tagSprite,        "" },  // R_TAG
+    { 18,  18,  750, 388, ALIGN_CENTER, &tagSprite,        "" },  // ZULU
+    { 18,  18,  740, 50,  ALIGN_CENTER, &tagSprite,        "" },  // L_TAG
+    { 18,  18,  740, 126, ALIGN_CENTER, &tagSprite,        "" },  // R_TAG
 };
 
 // =============================================================================
@@ -271,19 +367,20 @@ static DisplayElement elems[NUM_ELEMENTS] = {
 // This matches IFEIPanel.cpp: addPointerBarToShadow() with 11-bar map.
 // Zero trig per frame — just an index lookup.
 
-static constexpr int16_t NOZ_BAND_X = 46;
-static constexpr int16_t NOZ_BAND_Y = 252;
-static constexpr int16_t NOZ_BAND_W = 340;
+static constexpr int16_t NOZ_BAND_X = 16;   // extended 30px left for "100" label room
+static constexpr int16_t NOZ_BAND_Y = 232;
+static constexpr int16_t NOZ_BAND_W = 370;  // 340 + 30px left extension
 static constexpr int16_t NOZ_BAND_H = 180;
 static constexpr int     NOZ_BARS   = 11;  // 0%, 10%, 20% ... 100%
 
 // Gauge geometry (for static background drawing at init)
 // Both gauges use identical geometry for perfect mirror symmetry.
 // Right pivot = (150 - leftPivotX, leftPivotY) = exact mirror within 150px bg sprite.
-static constexpr float NOZL_PIVOT_X      = 6.2f;
+static constexpr float NOZL_PIVOT_X      = 36.2f;   // 6.2 + 30 (band left extension)
 static constexpr float NOZL_PIVOT_Y      = 8.4f;
-static constexpr float NOZR_PIVOT_X      = 143.8f;  // 150.0 - 6.2 = exact mirror
+static constexpr float NOZR_PIVOT_X      = 143.8f;  // 150.0 - 6.2 = exact mirror (gauge-local coords)
 static constexpr float NOZR_PIVOT_Y      = 8.4f;    // same Y for symmetry
+static constexpr float NOZ_RIGHT_OFFSET  = 188.0f;  // right gauge origin in band = 158 + 30 (band extension)
 static constexpr float NOZ_DEG_PER_PCT   = 0.895f;  // single value, both gauges identical
 static constexpr float SCALE_RADIUS      = 135.0f;
 static constexpr float NEEDLE_INNER      = 65.0f;   // inner end of indicator bar
@@ -669,12 +766,36 @@ static void onNozzlePosL(const char*, uint16_t value) { if (!isMissionRunning())
 static void onNozzlePosR(const char*, uint16_t value) { if (!isMissionRunning()) return; if (value != nozzlePosR) { nozzlePosR = value; nozzleDirty = true; displayDirty = true; } }
 
 // =============================================================================
-// DCS-BIOS CALLBACKS — Color mode and brightness
+// DCS-BIOS CALLBACKS — Color mode and brightness (software dimming)
 // =============================================================================
+// Hardware: Waveshare backlight is binary on/off (CH422G EXIO2) — no PWM.
+// Unlike IFEIPanel.cpp (3x PWM LED pins), brightness is implemented as software
+// color dimming: Night/NVG text color channels are scaled by the knob value.
+// Day mode is always full-bright COLOR_DAY (matches real F/A-18C: the IFEI
+// brightness knob only affects Night and NVG modes).
+//
 // COCKKPIT_LIGHT_MODE_SW: 0=Day, 1=Night, 2=NVG
-// NVG uses same green as Night on TFT (single backlight, color is pixel-rendered)
+// NVG uses same green as Night on TFT (single backlight, color is pixel-rendered).
+
+static uint8_t currentLightMode  = 0;     // 0=Day, 1=Night, 2=NVG
+static uint8_t currentBrightness = 255;   // knob value scaled to 0-255
+static uint8_t lastBrightnessVal = 0xFF;  // dedup cache (reset on mission change)
+
+// Compute effective display color from mode + brightness.
+// Day: always full COLOR_DAY (knob ignored).
+// Night/NVG: COLOR_NIGHT with each RGB channel scaled by brightness/255.
+static uint32_t computeDisplayColor() {
+    if (currentLightMode == 0) return COLOR_DAY;
+    uint8_t r = (uint8_t)(((COLOR_NIGHT >> 16) & 0xFF) * currentBrightness / 255);
+    uint8_t g = (uint8_t)(((COLOR_NIGHT >> 8)  & 0xFF) * currentBrightness / 255);
+    uint8_t b = (uint8_t)(( COLOR_NIGHT        & 0xFF) * currentBrightness / 255);
+    return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
+}
+
 static void onLightModeChange(const char*, uint16_t value) {
-    uint32_t newColor = (value == 0) ? COLOR_DAY : COLOR_NIGHT;
+    if ((uint8_t)value == currentLightMode) return;
+    currentLightMode = (uint8_t)value;
+    uint32_t newColor = computeDisplayColor();
     if (newColor != ifeiColor) {
         ifeiColor = newColor;
         needsFullRedraw = true;
@@ -682,18 +803,22 @@ static void onLightModeChange(const char*, uint16_t value) {
     }
 }
 
-// Brightness with deduplication — knob controls brightness in ALL modes
-// (gold standard: onBackLightIntensityChange scales to 0-255 for every mode)
-static uint8_t lastBrightnessVal = 0xFF;
-
 static void onBrightnessChange(const char*, uint16_t value, uint16_t) {
     uint8_t brightness = (uint8_t)map(value, 0, 65535, 0, 255);
-
-    // Deduplication: skip if unchanged
     if (brightness == lastBrightnessVal) return;
     lastBrightnessVal = brightness;
+    currentBrightness = brightness;
 
-    tft.setBrightness(brightness);
+    // Day mode: knob is ignored (real F/A-18C behavior)
+    if (currentLightMode == 0) return;
+
+    // Night/NVG: recompute scaled color and trigger full redraw
+    uint32_t newColor = computeDisplayColor();
+    if (newColor != ifeiColor) {
+        ifeiColor = newColor;
+        needsFullRedraw = true;
+        displayDirty = true;
+    }
 }
 
 // =============================================================================
@@ -703,12 +828,18 @@ static void updateElement(DisplayName idx) {
     DisplayElement& el = elems[idx];
     LGFX_Sprite* spr = el.sprite;
 
+    // X100 uses reduced text size to match nozzle gauge labels (0, 50, 100)
+    bool reduced = (idx == FFTL);
+    if (reduced) spr->setTextSize(0.8f);
+
     spr->fillScreen(COLOR_BG);
     spr->setTextColor(drawColor);
     int16_t cx = alignCursorX(spr, el.value, el.spriteWidth, el.align);
     spr->setCursor(cx, 0);
     spr->print(el.value);
     spr->pushSprite(el.posX, el.posY);
+
+    if (reduced) spr->setTextSize(1);
 }
 
 // =============================================================================
@@ -866,26 +997,42 @@ static void drawNozzleTicks(LGFX_Sprite* target, float pivotX, float pivotY,
         float y1 = pivotY - innerR * sinf(rad);
         float x2 = pivotX + outerR * cosf(rad);
         float y2 = pivotY - outerR * sinf(rad);
+
+        // 3px thick: center line + one pixel each side (perpendicular offset).
+        // All drawLine — pure write ops on PSRAM, no AA, no read-modify-write.
+        float px = sinf(rad);   // perpendicular to radial direction
+        float py = cosf(rad);
         target->drawLine((int16_t)x1, (int16_t)y1, (int16_t)x2, (int16_t)y2, color);
+        target->drawLine((int16_t)(x1 + px), (int16_t)(y1 + py),
+                         (int16_t)(x2 + px), (int16_t)(y2 + py), color);
+        target->drawLine((int16_t)(x1 - px), (int16_t)(y1 - py),
+                         (int16_t)(x2 - px), (int16_t)(y2 - py), color);
     }
 }
 
 // =============================================================================
 // NOZZLE: Draw all number labels on a target sprite (both gauges)
 // =============================================================================
-// Labels (0, 50, 100) are drawn on the wide 308px sprite to avoid clipping.
-// Font must already be loaded on the target sprite (done once in createSprites).
+// Labels (0, 50, 100) are composited via labelSprite (SRAM) then pushed to the
+// PSRAM target. VLW fonts use per-pixel alpha blending (read-modify-write); doing
+// that directly on PSRAM causes bus contention with SPI DMA. The SRAM-first pattern
+// confines AA blending to fast SRAM — only a clean block copy hits PSRAM.
 static void drawAllNozzleLabels(LGFX_Sprite* target, uint32_t color,
                                  bool showL0, bool showL50, bool showL100,
                                  bool showR0, bool showR50, bool showR100) {
     float baseAngleRad = -M_PI / 2.0f;
     // 18px past tick outer edge for 50/100 labels — visible gap from ticks
-    // 4px for the 0% label — keeps it close to its own gauge, avoids center overlap
+    // 6px for the 0% label — balanced: visible tick gap (6px) without overlapping
+    // the opposing gauge's 0 label (center gap = 295.6 - 2*141 = 13.6px > char width)
     static constexpr float LABEL_R      = SCALE_RADIUS + 18.0f;
-    static constexpr float LABEL_R_ZERO = SCALE_RADIUS + 4.0f;
+    static constexpr float LABEL_R_ZERO = SCALE_RADIUS + 6.0f;
 
-    target->setTextColor(color);
-    target->setTextSize(1);
+    // Save labelSprite text size, set reduced size for nozzle labels
+    labelSprite.setTextColor(color);
+    labelSprite.setTextSize(0.8f);  // ~13px — smaller than gauge data
+
+    int16_t sprW = labelSprite.width();
+    int16_t sprH = labelSprite.height();
 
     auto drawLabel = [&](float pivotX, float pivotY, bool invert, int val, bool visible) {
         if (!visible) return;
@@ -897,10 +1044,26 @@ static void drawAllNozzleLabels(LGFX_Sprite* target, uint32_t color,
         float y = pivotY - r * sinf(rad);
         char buf[4];
         snprintf(buf, sizeof(buf), "%d", val);
-        int16_t tw = target->textWidth(buf);
-        int16_t th = target->fontHeight();
-        target->setCursor((int16_t)(x - tw / 2), (int16_t)(y - th / 2));
-        target->print(buf);
+
+        // Render on SRAM sprite (VLW AA happens here — fast, no PSRAM contention)
+        labelSprite.fillScreen(COLOR_BG);
+        int16_t tw = labelSprite.textWidth(buf);
+        int16_t th = labelSprite.fontHeight();
+        labelSprite.setCursor((sprW - tw) / 2, (sprH - th) / 2);
+        labelSprite.print(buf);
+
+        // Push composited result to PSRAM target (simple block copy, no AA)
+        int16_t destX = (int16_t)(x - sprW / 2.0f);
+        int16_t destY = (int16_t)(y - sprH / 2.0f);
+        // Clamp to target bounds — prevents "100" clipping on left gauge
+        // (pivot near left edge means destX can go negative at 100% arc position)
+        int16_t tgtW = target->width();
+        int16_t tgtH = target->height();
+        if (destX < 0) destX = 0;
+        if (destY < 0) destY = 0;
+        if (destX + sprW > tgtW) destX = tgtW - sprW;
+        if (destY + sprH > tgtH) destY = tgtH - sprH;
+        labelSprite.pushSprite(target, destX, destY, COLOR_BG);
     };
 
     // Left gauge labels (pivot in band-space = same as bg sprite coords)
@@ -908,12 +1071,15 @@ static void drawAllNozzleLabels(LGFX_Sprite* target, uint32_t color,
     drawLabel(NOZL_PIVOT_X, NOZL_PIVOT_Y, false, 50,  showL50);
     drawLabel(NOZL_PIVOT_X, NOZL_PIVOT_Y, false, 100, showL100);
 
-    // Right gauge labels (pivot offset by 158px — right gauge drawn at x=158)
-    float rPivX = 158.0f + NOZR_PIVOT_X;
+    // Right gauge labels (pivot at NOZ_RIGHT_OFFSET + gauge-local pivot)
+    float rPivX = NOZ_RIGHT_OFFSET + NOZR_PIVOT_X;
     float rPivY = NOZR_PIVOT_Y;
     drawLabel(rPivX, rPivY, true, 0,   showR0);
     drawLabel(rPivX, rPivY, true, 50,  showR50);
     drawLabel(rPivX, rPivY, true, 100, showR100);
+
+    // Restore labelSprite text size for other labels (RPM, TEMP, etc.)
+    labelSprite.setTextSize(1);
 }
 
 // =============================================================================
@@ -952,8 +1118,8 @@ static void rebuildNozStaticBand(uint32_t color) {
     // Left gauge: pivot at original position (band x=0 corresponds to left gauge)
     drawNozzleTicks(&nozStaticBand, NOZL_PIVOT_X, NOZL_PIVOT_Y,
                      false, tex_lscale, color);
-    // Right gauge: pivot offset by 158px (right gauge drawn at x=158 in band)
-    drawNozzleTicks(&nozStaticBand, 158.0f + NOZR_PIVOT_X, NOZR_PIVOT_Y,
+    // Right gauge: pivot at NOZ_RIGHT_OFFSET + gauge-local pivot
+    drawNozzleTicks(&nozStaticBand, NOZ_RIGHT_OFFSET + NOZR_PIVOT_X, NOZR_PIVOT_Y,
                      true, tex_rscale, color);
 
     // Draw number labels directly on static band (font already loaded in createSprites)
@@ -961,16 +1127,18 @@ static void rebuildNozStaticBand(uint32_t color) {
                          tex_l0, tex_l50, tex_l100,
                          tex_r0, tex_r50, tex_r100);
 
-    // NOZ label — draw directly on static band via labelSprite
+    // NOZ label — draw on static band via labelSprite (reduced size to match 0/50/100)
     if (tex_noz) {
         int16_t nozRelX = elems[NOZT].posX - NOZ_BAND_X;
         int16_t nozRelY = elems[NOZT].posY - NOZ_BAND_Y;
         labelSprite.fillScreen(COLOR_BG);
         labelSprite.setTextColor(color);
+        labelSprite.setTextSize(0.8f);
         int16_t cx = alignCursorX(&labelSprite, "NOZ", elems[NOZT].spriteWidth, ALIGN_CENTER);
         labelSprite.setCursor(cx, 0);
         labelSprite.print("NOZ");
         labelSprite.pushSprite(&nozStaticBand, nozRelX, nozRelY, COLOR_BG);
+        labelSprite.setTextSize(1);
     }
 
     nozStaticDirty = false;
@@ -1029,7 +1197,7 @@ static void renderNozzles() {
         drawTaperedNeedle(&nozzleBand, nozBarsL[barIdxL], 0, drawColor);
     }
     if (showRightNozPointer) {
-        drawTaperedNeedle(&nozzleBand, nozBarsR[barIdxR], 158, drawColor);
+        drawTaperedNeedle(&nozzleBand, nozBarsR[barIdxR], (int16_t)NOZ_RIGHT_OFFSET, drawColor);
     }
 
     // Push entire nozzle band to TFT in one operation
@@ -1076,6 +1244,212 @@ static const char* resolveFuelDown() {
         return "";
     }
     return fld_fuel_down;
+}
+
+// =============================================================================
+// BUTTON STRIP — placeholder outlines matching physical IFEI buttons
+// =============================================================================
+// The real F/A-18C IFEI has 6 physical buttons between the engine and fuel
+// columns: MODE, QTY, UP, DOWN, ZONE, ET. On touch-capable hardware (GT911),
+// these are functional momentary buttons sending DCS-BIOS commands. On non-touch
+// boards, the button strip is not rendered.
+
+static constexpr int16_t BTN_X      = 390;   // left edge — clears nozzle band right edge (386) by 4px
+static constexpr int16_t BTN_W      = 100;   // 1.56:1 ratio (W:H) — rectangular like real IFEI buttons
+static constexpr int16_t BTN_H      = 64;
+static constexpr int16_t BTN_RADIUS = 4;     // rounded corner radius
+
+struct ButtonDef {
+    int16_t     y;
+    const char* label;     // text label (nullptr = arrow)
+    bool        arrowUp;   // only used when label == nullptr
+};
+
+// Minimal margin: MODE at Y=4, ET bottom at Y=473 (7px from bottom).
+// Step = 81px, gap between buttons = 17px (matches real IFEI proportions).
+static constexpr ButtonDef buttons[] = {
+    {   4, "MODE",   false },
+    {  85, "QTY",    false },
+    { 166, nullptr,  true  },   // UP arrow
+    { 247, nullptr,  false },   // DOWN arrow
+    { 328, "ZONE",   false },
+    { 409, "ET",     false },
+};
+static constexpr int NUM_BUTTONS = sizeof(buttons) / sizeof(buttons[0]);
+
+// DCS-BIOS command labels — same order as buttons[] array
+static const char* const btnCommands[] = {
+    "IFEI_MODE_BTN",   // 0 = MODE
+    "IFEI_QTY_BTN",    // 1 = QTY
+    "IFEI_UP_BTN",     // 2 = UP arrow
+    "IFEI_DWN_BTN",    // 3 = DOWN arrow
+    "IFEI_ZONE_BTN",   // 4 = ZONE
+    "IFEI_ET_BTN",     // 5 = ET
+};
+
+// Touch state
+static int      activeBtn     = -1;    // currently pressed button index (-1 = none)
+static uint32_t touchLastSeen = 0;     // millis() of last valid touch
+static constexpr uint32_t TOUCH_TIMEOUT_MS = 300;  // auto-release safety timeout
+
+// -----------------------------------------------------------------------------
+// Touch helpers
+// -----------------------------------------------------------------------------
+
+// Send button command in both HID and DCS modes
+static void touchButtonSend(int idx, bool pressed) {
+    #if MODE_DEFAULT_IS_HID
+        HIDManager_setNamedButton(btnCommands[idx], false, pressed);
+    #else
+        sendDCSBIOSCommand(btnCommands[idx], pressed ? 1 : 0, false);
+    #endif
+}
+
+// Read single touch point from GT911 via raw Wire I2C.
+// Returns true if a valid touch point was read (coordinates in tx, ty).
+static bool readTouch(int16_t &tx, int16_t &ty) {
+    // Write register address 0x814E (touch status)
+    Wire.beginTransmission(gt911Addr);
+    Wire.write(0x81);
+    Wire.write(0x4E);
+    if (Wire.endTransmission(false) != 0) return false;
+
+    // Read status byte
+    if (Wire.requestFrom(gt911Addr, (uint8_t)1) != 1) return false;
+    uint8_t status = Wire.read();
+
+    bool valid = (status & 0x80) && ((status & 0x0F) >= 1);
+
+    if (valid) {
+        // Read first touch point from 0x8150 (X + Y + Size = 6 bytes)
+        // Register layout (per Espressif esp_lcd_touch_gt911 driver):
+        //   0x814F = Track ID (1 byte) — NOT included, we start at 0x8150
+        //   0x8150 = X_L,  0x8151 = X_H   (GT911 X, 0 to X_max)
+        //   0x8152 = Y_L,  0x8153 = Y_H   (GT911 Y, 0 to Y_max)
+        //   0x8154 = Size_L, 0x8155 = Size_H
+        Wire.beginTransmission(gt911Addr);
+        Wire.write(0x81);
+        Wire.write(0x50);
+        if (Wire.endTransmission(false) != 0) {
+            valid = false;
+        } else if (Wire.requestFrom(gt911Addr, (uint8_t)6) == 6) {
+            tx = Wire.read() | (Wire.read() << 8);            // GT911 X → display X
+            ty = Wire.read() | (Wire.read() << 8);            // GT911 Y → display Y
+            Wire.read();  Wire.read();                        // Size (skip)
+            // DEBUG: verify coordinates (remove once confirmed)
+            static uint32_t lastDbg = 0;
+            if (millis() - lastDbg > 500) {
+                debugPrintf("[TOUCH] x=%d  y=%d\n", tx, ty);
+                lastDbg = millis();
+            }
+        } else {
+            valid = false;
+        }
+    }
+
+    // ALWAYS clear buffer (write 0x00 to register 0x814E) — required by GT911 protocol
+    Wire.beginTransmission(gt911Addr);
+    Wire.write(0x81);
+    Wire.write(0x4E);
+    Wire.write(0x00);
+    Wire.endTransmission();
+
+    return valid;
+}
+
+// Hit-test touch coordinates against button bounding boxes.
+// tx = display X (from GT911 X, 0-799 after proper init)
+// ty = display Y (from GT911 Y, 0-479 after proper init)
+// Returns button index (0-5) or -1 if no button hit.
+static int hitTestButton(int16_t tx, int16_t ty) {
+    if (tx < BTN_X || tx >= BTN_X + BTN_W) return -1;
+    for (int i = 0; i < NUM_BUTTONS; i++) {
+        if (ty >= buttons[i].y && ty < buttons[i].y + BTN_H) return i;
+    }
+    return -1;
+}
+
+// -----------------------------------------------------------------------------
+// Button rendering (single button, with pressed/released visual state)
+// -----------------------------------------------------------------------------
+static void drawButton(int idx, uint32_t color, bool pressed) {
+    btnSprite.fillScreen(COLOR_BG);
+
+    if (pressed) {
+        // Filled button — inverted colors (colored fill, black text)
+        btnSprite.fillRoundRect(0, 0, BTN_W, BTN_H, BTN_RADIUS, color);
+        uint32_t labelColor = COLOR_BG;
+        if (buttons[idx].label != nullptr) {
+            btnSprite.setTextColor(labelColor);
+            int16_t tw = btnSprite.textWidth(buttons[idx].label);
+            int16_t th = btnSprite.fontHeight();
+            btnSprite.setCursor((BTN_W - tw) / 2, (BTN_H - th) / 2);
+            btnSprite.print(buttons[idx].label);
+        } else {
+            int16_t cx = BTN_W / 2, cy = BTN_H / 2, halfH = 12, halfW = 10;
+            if (buttons[idx].arrowUp)
+                btnSprite.fillTriangle(cx, cy - halfH, cx - halfW, cy + halfH, cx + halfW, cy + halfH, labelColor);
+            else
+                btnSprite.fillTriangle(cx, cy + halfH, cx - halfW, cy - halfH, cx + halfW, cy - halfH, labelColor);
+        }
+    } else {
+        // Outline button — normal colors (black fill, colored outline + text)
+        btnSprite.drawRoundRect(0, 0, BTN_W, BTN_H, BTN_RADIUS, color);
+        if (buttons[idx].label != nullptr) {
+            btnSprite.setTextColor(color);
+            int16_t tw = btnSprite.textWidth(buttons[idx].label);
+            int16_t th = btnSprite.fontHeight();
+            btnSprite.setCursor((BTN_W - tw) / 2, (BTN_H - th) / 2);
+            btnSprite.print(buttons[idx].label);
+        } else {
+            int16_t cx = BTN_W / 2, cy = BTN_H / 2, halfH = 12, halfW = 10;
+            if (buttons[idx].arrowUp)
+                btnSprite.fillTriangle(cx, cy - halfH, cx - halfW, cy + halfH, cx + halfW, cy + halfH, color);
+            else
+                btnSprite.fillTriangle(cx, cy + halfH, cx - halfW, cy - halfH, cx + halfW, cy - halfH, color);
+        }
+    }
+
+    btnSprite.pushSprite(BTN_X, buttons[idx].y);
+}
+
+// -----------------------------------------------------------------------------
+// Touch processing — called once per frame after rendering
+// -----------------------------------------------------------------------------
+static void processTouch() {
+    int16_t tx, ty;
+    bool touching = readTouch(tx, ty);
+    uint32_t now = millis();
+
+    if (touching) {
+        touchLastSeen = now;
+        int hit = hitTestButton(tx, ty);
+
+        if (activeBtn == -1 && hit >= 0) {
+            // New press
+            activeBtn = hit;
+            touchButtonSend(activeBtn, true);
+            drawButton(activeBtn, drawColor, true);
+        } else if (activeBtn >= 0 && hit != activeBtn) {
+            // Slid off active button — release
+            touchButtonSend(activeBtn, false);
+            drawButton(activeBtn, drawColor, false);
+            activeBtn = -1;
+        }
+        // If hit == activeBtn: still held, no action
+    } else if (activeBtn >= 0) {
+        // Finger lifted or timeout — release
+        touchButtonSend(activeBtn, false);
+        drawButton(activeBtn, drawColor, false);
+        activeBtn = -1;
+    }
+}
+
+static void drawButtonStrip(uint32_t color) {
+    if (!hasTouchHW) return;  // No touch hardware = no buttons rendered
+    for (int i = 0; i < NUM_BUTTONS; i++) {
+        drawButton(i, color, (i == activeBtn));  // preserve pressed state during full redraw
+    }
 }
 
 // =============================================================================
@@ -1131,6 +1505,9 @@ static void drawFullScreen() {
     strcpy(elems[ZULU].value,  tex_z ? "Z" : "");  updateElement(ZULU);
     strcpy(elems[L_TAG].value, tex_l ? "L" : "");   updateElement(L_TAG);
     strcpy(elems[R_TAG].value, tex_r ? "R" : "");    updateElement(R_TAG);
+
+    // Button placeholders (color-matched to current mode)
+    drawButtonStrip(drawColor);
 
     // Clear all dirty flags — prevents redundant redraws on next incremental pass
     dirty_rpm_l = false;  dirty_rpm_r = false;
@@ -1385,6 +1762,14 @@ static void createSprites() {
     tagSprite.loadFont(IFEI_Labels_16);
     tagSprite.setTextColor(ifeiColor);
 
+    // Button sprite — reusable for all 6 IFEI touch buttons.
+    // SRAM-based, rendered through sprite → pushSprite to avoid DMA contention.
+    btnSprite.setPsram(false);
+    btnSprite.setColorDepth(16);
+    btnSprite.createSprite(BTN_W, BTN_H);
+    btnSprite.setFont(&fonts::FreeSansBold12pt7b);
+    btnSprite.setTextSize(1);
+
 #if !IFEI_DEBUG_NO_NOZZLES
     // --- Nozzle sprites: PSRAM + 16-bit ---
     // nozStaticBand: cached background (ticks + labels + NOZ text) — rebuilt only on texture/color change
@@ -1392,12 +1777,12 @@ static void createSprites() {
     nozStaticBand.setPsram(true);
     nozStaticBand.setColorDepth(16);
     nozStaticBand.createSprite(NOZ_BAND_W, NOZ_BAND_H);
-    nozStaticBand.loadFont(IFEI_Labels_16);  // keep loaded permanently — no per-frame flash access
+    // No font loaded on PSRAM sprites — all VLW text rendering goes through
+    // labelSprite (SRAM) to avoid AA read-modify-write on PSRAM bus.
 
     nozzleBand.setPsram(true);
     nozzleBand.setColorDepth(16);
     nozzleBand.createSprite(NOZ_BAND_W, NOZ_BAND_H);
-    nozzleBand.loadFont(IFEI_Labels_16);  // needed for lampTest label rendering
 
     debugPrintln("  Sprites created (6 text SRAM/16-bit, 2 nozzle PSRAM/16-bit)");
 #else
@@ -1437,6 +1822,12 @@ static void TFTIFEIDisplayTask(void* pv) {
             #endif
 
             displayDirty = false;
+        }
+
+        // Touch polling — runs every frame (30 Hz), AFTER rendering completes.
+        // I2C read ~1-2ms at 100 kHz — safely fits in the idle gap before vTaskDelay.
+        if (hasTouchHW) {
+            processTouch();
         }
 
         vTaskDelay(tickDelay);
@@ -1511,7 +1902,7 @@ static void lampTestPhase(uint32_t color) {
         // Ticks — draw directly on band with correct offsets
         drawNozzleTicks(&nozzleBand, NOZL_PIVOT_X, NOZL_PIVOT_Y,
                          false, true, color);
-        drawNozzleTicks(&nozzleBand, 158.0f + NOZR_PIVOT_X, NOZR_PIVOT_Y,
+        drawNozzleTicks(&nozzleBand, NOZ_RIGHT_OFFSET + NOZR_PIVOT_X, NOZR_PIVOT_Y,
                          true, true, color);
 
         // Labels — all visible for lamp test
@@ -1522,22 +1913,27 @@ static void lampTestPhase(uint32_t color) {
         // Show ALL 11 bar positions (0%-100%) for both — full arc verification
         for (int i = 0; i < NOZ_BARS; i++) {
             drawTaperedNeedle(&nozzleBand, nozBarsL[i], 0, color);
-            drawTaperedNeedle(&nozzleBand, nozBarsR[i], 158, color);
+            drawTaperedNeedle(&nozzleBand, nozBarsR[i], (int16_t)NOZ_RIGHT_OFFSET, color);
         }
 
-        // NOZ label in band
+        // NOZ label in band (reduced size to match 0/50/100)
         labelSprite.fillScreen(COLOR_BG);
         labelSprite.setTextColor(color);
+        labelSprite.setTextSize(0.8f);
         int16_t cx = alignCursorX(&labelSprite, "NOZ", elems[NOZT].spriteWidth, ALIGN_CENTER);
         labelSprite.setCursor(cx, 0);
         labelSprite.print("NOZ");
         int16_t nozRelX = elems[NOZT].posX - NOZ_BAND_X;
         int16_t nozRelY = elems[NOZT].posY - NOZ_BAND_Y;
         labelSprite.pushSprite(&nozzleBand, nozRelX, nozRelY, COLOR_BG);
+        labelSprite.setTextSize(1);
 
         nozzleBand.pushSprite(NOZ_BAND_X, NOZ_BAND_Y);
     }
 #endif
+
+    // Button placeholders
+    drawButtonStrip(color);
 }
 
 static void lampTest() {
@@ -1656,6 +2052,21 @@ void TFTIFEIDisplay_init() {
     subscribeToSelectorChange("COCKKPIT_LIGHT_MODE_SW", onLightModeChange);
     subscribeToLedChange("IFEI_DISP_INT_LT", onBrightnessChange);
 
+    // GT911 touch: proper reset sequence, then probe + config read
+#if ENABLE_TOUCH
+    resetGT911();  // timed reset with INT pin control (Waveshare demo sequence)
+    hasTouchHW = probeGT911();
+    if (hasTouchHW) {
+        readGT911ProductID();
+        readGT911Config();
+        debugPrintf("  GT911 touch ready at 0x%02X — buttons enabled\n", gt911Addr);
+    } else {
+        debugPrintln("  GT911 not detected after reset — buttons disabled");
+    }
+#else
+    debugPrintln("  Touch disabled (ENABLE_TOUCH=0)");
+#endif
+
     // Initial full draw
     drawColor = ifeiColor;
     drawFullScreen();
@@ -1666,8 +2077,10 @@ void TFTIFEIDisplay_init() {
     // Pinned to ARDUINO_RUNNING_CORE (core 1 on dual-core S3, core 0 on single-core S2).
     // Unpinned xTaskCreate could schedule rendering on core 0, competing with WiFi
     // for CPU time during heavy sprite-to-PSRAM pushes.
-    xTaskCreatePinnedToCore(TFTIFEIDisplayTask, "TFTIFEIDisp", 8192, NULL, 2, NULL, ARDUINO_RUNNING_CORE);
-    debugPrintln("  FreeRTOS display task created (30 Hz, pri 2, app core)");
+    // Priority 1 = same as Arduino loop(). Round-robins with main loop instead of
+    // preempting it, so DCS-BIOS UDP drain gets equal CPU time (prevents WiFi frame drops).
+    xTaskCreatePinnedToCore(TFTIFEIDisplayTask, "TFTIFEIDisp", 8192, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
+    debugPrintln("  FreeRTOS display task created (30 Hz, pri 1, app core)");
     #endif
 
     debugPrintln("TFT IFEI: Initialized successfully");
@@ -1687,30 +2100,37 @@ void TFTIFEIDisplay_loop() {
 
     #if !RUN_TFT_IFEI_DISPLAY_AS_TASK
 
-    if (!displayDirty) return;
-
+    // Rate-limit to 30 Hz (both rendering AND touch polling)
     const unsigned long now = millis();
     if (now - lastDrawTime < REFRESH_INTERVAL_MS) return;
     lastDrawTime = now;
 
-    drawColor = ifeiColor;  // snapshot volatile color once per frame
+    if (displayDirty) {
+        drawColor = ifeiColor;  // snapshot volatile color once per frame
 
-    #if DEBUG_PERFORMANCE
-    beginProfiling(PERF_DISPLAY_RENDER);
-    #endif
+        #if DEBUG_PERFORMANCE
+        beginProfiling(PERF_DISPLAY_RENDER);
+        #endif
 
-    if (needsFullRedraw) {
-        drawFullScreen();
-        needsFullRedraw = false;
-    } else {
-        drawDirtyFields();
+        if (needsFullRedraw) {
+            drawFullScreen();
+            needsFullRedraw = false;
+        } else {
+            drawDirtyFields();
+        }
+
+        #if DEBUG_PERFORMANCE
+        endProfiling(PERF_DISPLAY_RENDER);
+        #endif
+
+        displayDirty = false;
     }
 
-    #if DEBUG_PERFORMANCE
-    endProfiling(PERF_DISPLAY_RENDER);
-    #endif
-
-    displayDirty = false;
+    // Touch polling — runs every 33ms regardless of displayDirty,
+    // so buttons respond even when no DCS-BIOS data is changing.
+    if (hasTouchHW) {
+        processTouch();
+    }
 
     #endif // RUN_TFT_IFEI_DISPLAY_AS_TASK
 }
@@ -1725,13 +2145,13 @@ void TFTIFEIDisplay_notifyMissionStart() {
 }
 
 void TFTIFEIDisplay_notifyMissionStop() {
-    // Clean reset: blank all fields and display so no stale data from the
-    // previous mission survives into the next one.
+    // Clean reset: blank all fields so no stale data survives into the next mission.
+    // Flag-only approach (same as notifyMissionStart) — lets the render task handle
+    // the actual drawing. Calling drawFullScreen() directly from here would race with
+    // the FreeRTOS display task (shared SRAM sprites used concurrently = garbled frame).
     blankAllFields();
-    drawColor = ifeiColor;
-    drawFullScreen();
-    needsFullRedraw = false;
-    displayDirty = false;
+    needsFullRedraw = true;
+    displayDirty = true;
 }
 
 #endif // HAS_TFT_IFEI && ENABLE_TFT_GAUGES
