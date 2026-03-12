@@ -1,4 +1,3 @@
-
 // ============================================================================
 // 
 //
@@ -22,7 +21,7 @@
 // ==============================================================================================================
 
 // Versioning for internal use
-#define VERSION_CURRENT        "R.1.2.1_dev_02-28-26" // Just to troubleshoot instalations
+#define VERSION_CURRENT        "R.1.3.0_dev_03-11-26" // Just to troubleshoot instalations
 
 // Your personal Wi-Fi network credentials should be stored in .credentials/wifi.h. If file wifi.h not found or does not exists yet, we use defaults ("TestNetwork" / "TestingOnly")
 #if __has_include(".credentials/wifi.h")
@@ -41,8 +40,8 @@
 // Here is where you tell the firmware which 'transport' will be used to Communicate with the simulator (only ONE can be selected). 
 // Bluetooth BLE, Pure Native USB, WIFI, Serial (CDC/Socat) or as an RS485 slave. ** Only ONE ** can be active 
 #define USE_DCSBIOS_BLUETOOTH                       0 // *INTERNAL USE ONLY* (Not included in Open Source version of CockpitOS) (Works on ALL ESP32s except S2s and some P4s).
-#define USE_DCSBIOS_WIFI                            1 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
-#define USE_DCSBIOS_USB                             0 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
+#define USE_DCSBIOS_WIFI                            0 // WiFi DCS transport (Works on all ESP32 except H2s abd P4s that lack WiFi radios) 
+#define USE_DCSBIOS_USB                             1 // Completely bypasses socat and uses USB to connect to DCS. You need to run the CockpitOS Companion app on the host PC for this to work. (Works on S2s, S3s & P4s Only). S3s & P4s require Tools menu "USB Mode" set to USB-OTG (TinyUSB)
 #define USE_DCSBIOS_SERIAL                          0 // LEGACY - Requires socat for this to work. (ALL ESP32 Devices supported). Also used for Stream Replay
 #define RS485_SLAVE_ENABLED                         0 // Set as RS-485 Slave, you need to also run a master RS485 on a separate device
 
@@ -111,6 +110,7 @@
 #define MAX_GROUPS                                128 // default safety cap, DO NOT change
 #define VALUE_THROTTLE_MS                          50 // How long (ms) to skip sending the same value again (debouncing)
 #define ANY_VALUE_THROTTLE_MS                      33 // How long (ms) to skip sending different values (prevents spamming the USB endpoint, while debouncing at the same time)
+#define MAGNETIC_DANCE_IN_FIRMWARE                  0 // 1 = firmware does press-delay-release for magnetic switches / 0 = DCS-BIOS Lua handles the dance, firmware sends plain values
 #define CUSTOM_RESPONSE_THROTTLE_MS               100 // Min delay (ms) between press and deferred release for custom momentaries with releaseValue != 0
 #define SELECTOR_DWELL_MS                          80 // Wait time (ms) for stable selector value before sending. Absorbs transit intermediates during rapid flicking.
 #define DCS_GROUP_MIN_INTERVAL_US             250000UL // Min spacing (µs) between selector commands to same group. DCS requires ~250ms between consecutive selector positions to register both.
