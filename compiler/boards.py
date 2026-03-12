@@ -195,6 +195,15 @@ COCKPITOS_OVERRIDES = {
     # USBMode is NOT here — resolved dynamically based on transport in configure_options().
 }
 
+# Per-board overrides — fixes vendor boards.txt defaults that are wrong for CockpitOS.
+# Keyed by board ID (last segment of FQBN, e.g. "waveshare_esp32_s3_touch_lcd_7").
+# Applied after generic CockpitOS overrides, before Quick/Full mode prompt.
+BOARD_OVERRIDES = {
+    "waveshare_esp32_s3_touch_lcd_7": {
+        "PSRAM": "enabled",  # Board has 8MB OPI PSRAM — vendor defaults to disabled (safe for bare modules)
+    },
+}
+
 # -----------------------------------------------------------------------------
 # Cross-validation levels
 # -----------------------------------------------------------------------------
@@ -616,6 +625,21 @@ def configure_options(fqbn, prefs):
         selected["USBMode"] = ideal
         usb_label = "USB-OTG (TinyUSB)" if ideal == "default" else "HW CDC"
         info(f"{DIM}USB Mode -> {usb_label} (auto, matches {transport_label(transport)}){RESET}")
+
+    # Per-board overrides (fixes vendor defaults that are wrong for CockpitOS)
+    board_id = fqbn.split(":")[-1] if ":" in fqbn else fqbn
+    board_fixes = BOARD_OVERRIDES.get(board_id, {})
+    for key, val in board_fixes.items():
+        if key in board_options:
+            selected[key] = val
+            opt_name = board_options[key].get("name", key)
+            # Find human-readable label for the value
+            label = val
+            for lbl, v in board_options[key].get("values", []):
+                if v == val:
+                    label = lbl
+                    break
+            info(f"{DIM}{opt_name} -> {label} (board override){RESET}")
 
     info(f"{DIM}Board defaults from boards.txt + CockpitOS overrides: CDC=Off, Partition=NoOTA{RESET}")
 

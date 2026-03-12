@@ -244,7 +244,7 @@ public:
             cfg.hsync_polarity    = 0;
             cfg.hsync_front_porch = 8;
             cfg.hsync_pulse_width = 4;
-            cfg.hsync_back_porch  = 43;  // 43 — widens horizontal blanking for safe PSRAM CPU access
+            cfg.hsync_back_porch  = 80;  // 80 — ~5.8us/line of uncontested PSRAM access (was 43 = ~3.1us)
             cfg.vsync_polarity    = 0;
             cfg.vsync_front_porch = 8;
             cfg.vsync_pulse_width = 4;
@@ -2073,14 +2073,17 @@ void TFTIFEIDisplay_init() {
     needsFullRedraw = false;
 
     #if RUN_TFT_IFEI_DISPLAY_AS_TASK
-    // Create FreeRTOS task for display rendering (8KB stack — TFT sprites need more than HT1622 SPI)
-    // Pinned to ARDUINO_RUNNING_CORE (core 1 on dual-core S3, core 0 on single-core S2).
-    // Unpinned xTaskCreate could schedule rendering on core 0, competing with WiFi
-    // for CPU time during heavy sprite-to-PSRAM pushes.
-    // Priority 1 = same as Arduino loop(). Round-robins with main loop instead of
-    // preempting it, so DCS-BIOS UDP drain gets equal CPU time (prevents WiFi frame drops).
-    xTaskCreatePinnedToCore(TFTIFEIDisplayTask, "TFTIFEIDisp", 8192, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
-    debugPrintln("  FreeRTOS display task created (30 Hz, pri 1, app core)");
+    // Display task core assignment — keep rendering on the OPPOSITE core from the transport:
+    //   WiFi/BLE: transport on core 0 → display on core 1 (ARDUINO_RUNNING_CORE)
+    //   USB/Serial: transport on core 1 → display on core 0
+    // This eliminates CPU contention between PSRAM-heavy sprite pushes and transport I/O.
+    #if USE_DCSBIOS_WIFI || USE_DCSBIOS_BLUETOOTH
+    static constexpr BaseType_t displayCore = ARDUINO_RUNNING_CORE;  // core 1 — away from WiFi/BLE on core 0
+    #else
+    static constexpr BaseType_t displayCore = 1 - ARDUINO_RUNNING_CORE;  // core 0 — away from USB/loop on core 1
+    #endif
+    xTaskCreatePinnedToCore(TFTIFEIDisplayTask, "TFTIFEIDisp", 8192, NULL, 1, NULL, displayCore);
+    debugPrintf("  FreeRTOS display task created (30 Hz, pri 1, core %d)\n", displayCore);
     #endif
 
     debugPrintln("TFT IFEI: Initialized successfully");
