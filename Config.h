@@ -1,4 +1,3 @@
-
 // ============================================================================
 // 
 //
@@ -21,8 +20,12 @@
 // "generate_data.py" script located there. After running the auto-generator, that set will become the default.
 // ==============================================================================================================
 
-// Versioning for internal use
-#define VERSION_CURRENT        "R.1.2.1_dev_02-28-26" // Just to troubleshoot instalations
+// Version (auto-generated at compile time from git tags - see version.h)
+#if __has_include("version.h")
+  #include "version.h"
+#else
+  #define VERSION_CURRENT        "dev-unversioned"
+#endif
 
 // Your personal Wi-Fi network credentials should be stored in .credentials/wifi.h. If file wifi.h not found or does not exists yet, we use defaults ("TestNetwork" / "TestingOnly")
 #if __has_include(".credentials/wifi.h")
@@ -58,9 +61,8 @@
 #define RS485_TX_WARMUP_DELAY_US                    0 // Manual DE: delay after DE assert before TX
 #define RS485_TX_WARMUP_AUTO_DELAY_US               0 // Auto-direction: delay before TX (internal RX→TX switch)
 
-// RS485 *** Advanced CPU Core management *** 
+// RS485 *** Advanced CPU Core management ***
 #define RS485_USE_TASK                              1 // 0 = runs in loop() (best for WiFi). 1 = dedicated FreeRTOS task (best for USB/Serial/BLE)
-#define RS485_TASK_CORE                             0 // Only relevant/used when RS485_USE_TASK is set to 1 (see above). 0 = Core 0 (ideal when no WiFi). 1 = Core 1 (shares with loop). Ignored on single-core chips
 
 // *** READ THIS *** (Advanced users only)
 // TinyUSB + Wi-Fi enabled at the same time consume a LOT of memory, so if you decide to enable debugging (below) on S2 devices keep that in mind as compiles will most likely fail if both the WiFi stack (for debug or normal operation) is enabled along USB-OTG (TinyUSB). To avoid, simply use an S3 device or stick to the stack capabilities (e.g) Debug via Serial if using USB or Debug via WiFi if using WiFi as transport.  
@@ -112,9 +114,10 @@
 #define MAX_GROUPS                                128 // default safety cap, DO NOT change
 #define VALUE_THROTTLE_MS                          50 // How long (ms) to skip sending the same value again (debouncing)
 #define ANY_VALUE_THROTTLE_MS                      33 // How long (ms) to skip sending different values (prevents spamming the USB endpoint, while debouncing at the same time)
+#define MAGNETIC_DANCE_IN_FIRMWARE                  0 // 1 = firmware does press-delay-release for magnetic switches / 0 = DCS-BIOS Lua handles the dance, firmware sends plain values
 #define CUSTOM_RESPONSE_THROTTLE_MS               100 // Min delay (ms) between press and deferred release for custom momentaries with releaseValue != 0
 #define SELECTOR_DWELL_MS                          80 // Wait time (ms) for stable selector value before sending. Absorbs transit intermediates during rapid flicking.
-#define DCS_GROUP_MIN_INTERVAL_US              80000UL // Min spacing (µs) between selector commands to same group. Must be >2 DCS frames at 30Hz (>66ms) to guarantee different-frame processing.
+#define DCS_GROUP_MIN_INTERVAL_US             250000UL // Min spacing (µs) between selector commands to same group. DCS requires ~250ms between consecutive selector positions to register both.
 #define HID_REPORT_MIN_INTERVAL_US               (1000000UL / HID_REPORT_RATE_HZ) // min spacing/separation between reports
 #define DCS_KEEP_ALIVE_MS                        (1000 / DCS_UPDATE_RATE_HZ) // send PING 0 (ASCII command) every x ms (when using keep-alives)
 #define HID_KEEP_ALIVE_MS                        (1000 / HID_REPORT_RATE_HZ) // send HID command every x ms (when using keep-alives)
@@ -162,7 +165,7 @@
 #define DCS_USB_PACKET_MAXLEN   GAMEPAD_REPORT_SIZE  // Max USB packet size safe for DCS-BIOS (to match HID report size)
 
 // DCS UDP/USB Receive Ring Buffer (incoming packets) - *MANDATORY* when using USB mode, optional in WiFi UDP mode.
-#define MAX_UDP_FRAMES_PER_DRAIN                  1  // Max number to hold in buffer before parsing (increase for bursty processing) 1 is deterministic, best.
+#define MAX_UDP_FRAMES_PER_DRAIN                  6  // Max packets drained per loop iteration. Absorbs WiFi UDP bursts (jitter bunches 3-5 frames). Cost: ~50-100us extra per burst. Safe for USB/WiFi/Serial.
 
 #if USE_DCSBIOS_USB
   #define DCS_USE_RINGBUFFER                      1  // Should ALWAYS be 1 when USE_DCSBIOS_USB. DO NOT CHANGE 
@@ -171,7 +174,7 @@
 #else // Used for incoming DCS stream via WiFi UDP (if enabled) 
   #if USE_DCSBIOS_WIFI || USE_DCSBIOS_BLUETOOTH
     #define DCS_USE_RINGBUFFER                    1  // Enforces WiFi/BLE use of a ring buffer for the incoming DCS Stream data (otherwise it will crash)
-    #define DCS_UDP_RINGBUF_SIZE                 32  // Number of UDP packets buffered (reduced from 64: larger slots need fewer entries)
+    #define DCS_UDP_RINGBUF_SIZE                 64  // Number of UDP packets buffered (reduced from 64: larger slots need fewer entries)
     #define DCS_UDP_PACKET_MAXLEN               128  // Match full UDP frame size — eliminates multi-chunk ring buffer splits and the cross-core race they cause
   #else 
     #define DCS_USE_RINGBUFFER                    0  // No need for it as Wi-Fi/BLE for DCS-BIOS is not active.

@@ -39,8 +39,8 @@
 #include <esp_heap_caps.h>
 #endif
 
-// Select core (currently pinned to core 0 for all variants)
-#define CABPRESS_CPU_CORE 0
+// Pin TFT task to the same core as Arduino loop()
+// ARDUINO_RUNNING_CORE = 1 on dual-core (S3), 0 on single-core (S2)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Pin configuration for Cabin Pressure TFT gauge
@@ -513,7 +513,7 @@ void CabinPressureGauge_init()
     CabinPressureGauge_bitTest();
 
 #if RUN_CABIN_PRESSURE_GAUGE_AS_TASK
-    xTaskCreatePinnedToCore(CabinPressureGauge_task, "CabinPressureGaugeTask", 4096, nullptr, 2, &tftTaskHandle, CABPRESS_CPU_CORE);
+    xTaskCreatePinnedToCore(CabinPressureGauge_task, "CabinPressureGaugeTask", 4096, nullptr, 2, &tftTaskHandle, ARDUINO_RUNNING_CORE);
 #endif
 
 #if CABIN_PRESSURE_USE_QSPI

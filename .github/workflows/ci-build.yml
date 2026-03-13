@@ -100,6 +100,13 @@ jobs:
             exit 1
           fi
 
+      - name: Generate version.h
+        run: |
+          RAW=$(git describe --tags --always --dirty 2>/dev/null || echo "ci-unknown")
+          VER=$(echo "$RAW" | sed -E 's/^v//; s/-([0-9]+)-g([0-9a-f]+)/+\1.\2/; s/-dirty/.dirty/')
+          printf '#pragma once\n#define VERSION_CURRENT "%s"\n' "$VER" > version.h
+          echo "Version stamp: $VER"
+
       - name: Compile
         id: compile
         run: |

@@ -296,7 +296,6 @@ struct SegmentMap {
 | SERVO_UPDATE_FREQ_MS | 20 | Config.h |
 | PCA_FAST_MODE | 1 | Config.h |
 | RS485_USE_TASK | 1 | Config.h |
-| RS485_TASK_CORE | 0 | Config.h |
 | IS_REPLAY | 0 | Config.h |
 | TEST_LEDS | 0 | Config.h |
 | SCAN_WIFI_NETWORKS | 0 | Config.h |

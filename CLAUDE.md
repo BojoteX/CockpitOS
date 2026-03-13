@@ -65,6 +65,8 @@ All tools are Windows-only, Python 3.12+, ANSI TUI, and switch between each othe
 |-------|----------|
 | **Documentation (current)** | `Docs/` — structured docs (Getting-Started, Tools, Hardware, How-To, Reference, Advanced, LLM) |
 | **LLM master reference** | `Docs/LLM/CockpitOS-LLM-Reference.md` — start here for any CockpitOS question |
+| **TFT display reference** | `Docs/Hardware/TFT-Gauges.md` — SPI + RGB parallel display configs, timing, troubleshooting |
+| **TFT wiring how-to** | `Docs/How-To/Wire-TFT-Gauges.md` — step-by-step setup including LGFX device class templates |
 | **Known issues & warnings** | `Docs/Reference/Known-Issues.md` — **read before touching generators or updating DCS-BIOS** |
 | **Config.h reference** | `Docs/Reference/Config.md` |
 | **Label Creator internals** | `label_creator/LLM/` — three files: LLM_GUIDE.md, ARCHITECTURE.md, EDITOR_FEATURES.md |
@@ -76,6 +78,7 @@ All tools are Windows-only, Python 3.12+, ANSI TUI, and switch between each othe
 ```
 CockpitOS.ino           Entry point
 Config.h                Master config (transport, debug, timing)
+version.h               Auto-generated at compile time from git tags (gitignored, never committed)
 Mappings.cpp/h          Panel init/loop orchestration, PCA auto-detection, isLatchedButton()
 src/Core/               Core firmware (HIDManager, DCSBIOSBridge, CoverGate, InputControl, LEDControl)
 src/Panels/             Panel implementations (Generic.cpp handles most; custom panels for complex logic)
@@ -162,6 +165,8 @@ Rules:
 ## Config.h — Allowed Edits
 
 Config.h may be edited **only** for the same defines the Compile Tool (`compiler/cockpitos.py` + `compiler/config.py`) already manages. These are the `TRACKED_DEFINES` in `config.py`. Any other Config.h value must not be changed without explicit user instruction.
+
+**Note:** `VERSION_CURRENT` is NOT in Config.h. It is auto-generated into `version.h` from git tags at compile time by `compiler/config.py:generate_version_h()`. Config.h includes it via `__has_include("version.h")` with a fallback to `"dev-unversioned"`. Never manually define VERSION_CURRENT.
 
 ### Transport (exactly one must be 1, rest 0)
 | Define | Values | Notes |

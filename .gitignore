@@ -19,6 +19,7 @@ __pycache__/
 # Build artifacts
 build/
 *.map
+version.h
 
 # Project-specific
 Dev/

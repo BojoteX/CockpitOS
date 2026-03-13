@@ -60,6 +60,11 @@ jobs:
             git log --no-merges --format="- %s ([%h](${REPO_URL}/commit/%H))" | head -50 > changelog.md
           fi
 
+      - name: Stamp version.h
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          printf '// Auto-generated - do not edit\n#pragma once\n#define VERSION_CURRENT "%s"\n' "$VERSION" > version.h
+
       - name: Package CockpitOS.zip
         run: |
           zip -r CockpitOS.zip . \
