@@ -1,12 +1,33 @@
 # Changelog
 
-## v1.2.10 — 2026-03-12
-
-### Added
-- New Magnetics tests and Race fix for time dwell
+## v1.2.11 — 2026-03-13
 
 ### Improved
 - Stable release
+- Workflows update
+
+## v1.2.10 — 2026-03-12
+
+### Added
+- New versioning system
+
+### Improved
+- Setup Script misc fixes
+- TFT IFEI Fixes
+- Optimistic Selenoid logic
+- TFT IFEI Bug fixes
+- Dwell fix
+- IFEI Misc fixes
+- IFEI Fixes for both TFT and 7-Seg
+- TFT IFEI Improvements and FreeRTOS Core Fixes
+- TFT IFEI Improvements
+- TFT IFEI Improvements
+- TGT IFEI Enhancements
+- Updated TFT Docs
+- TFT IFEI Changes
+- small TFT IFEI Fix
+- IFEI Timing Fix
+- TFT IFEI Implementation
 
 ## v1.2.9 — 2026-03-07
 
