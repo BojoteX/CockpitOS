@@ -39,3 +39,7 @@ compiler/backups/
 
 # Internal
 release.py
+
+#Misc
+%TEMP%/
+TODO/

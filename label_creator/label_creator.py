@@ -1022,6 +1022,10 @@ def main():
             print(f"     \U0001f3f7\ufe0f {ui.RED}{active_ls} (deleted){ui.RESET}")
         else:
             print(f"     \U0001f3f7\ufe0f {ui.DIM}No label set generated yet{ui.RESET}")
+
+        # -- Version + update check ------------------------------------------
+        from shared.update_check import version_line
+        print(version_line())
         print()
 
         choice = ui.menu_pick([
