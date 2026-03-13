@@ -1279,7 +1279,7 @@ def action_download_dcsbios():
     src/LABELS/_core/aircraft/ so the Label Creator can use them.
     """
     show_banner()
-    _w(f"  {BOLD}Download / Update DCS-BIOS{RESET}\n\n")
+    _w(f"  {BOLD}Install / Update DCS-BIOS{RESET}\n\n")
 
     # --- Detect DCS ---
     dcs_list = find_dcs_saved_games()
@@ -1542,7 +1542,7 @@ def action_advanced_versions():
         def_bios   = MANIFEST_DEFAULTS["dcsbios_release"]
 
         # Show current manifest state
-        _w(f"  {BOLD}Advanced — Version Pinning{RESET}\n\n")
+        _w(f"  {BOLD}Advanced Settings{RESET}\n\n")
         _w(f"     {CYAN}ESP32 Core{RESET}      {BOLD}{cur_core}{RESET}")
         if cur_core != def_core:
             _w(f"  {DIM}(default: {def_core}){RESET}")
@@ -1566,9 +1566,10 @@ def action_advanced_versions():
             ("NimBLE-Arduino version",  "nimble"),
             ("DCS-BIOS release",        "bios"),
             ("",),
-            ("Reset all to defaults",   "defaults", "dim"),
+            ("Reset all to defaults",             "defaults", "dim"),
+            ("Reset to recommended versions",     "reset",    "dim"),
             ("",),
-            ("Back",                    "back",     "dim"),
+            ("Back",                              "back",     "dim"),
         ])
 
         if choice in ("back", None):
@@ -1583,6 +1584,10 @@ def action_advanced_versions():
             success("All versions reset to defaults")
             _w(f"\n  {DIM}Press any key...{RESET}")
             msvcrt.getwch()
+            continue
+
+        if choice == "reset":
+            action_reset_to_manifest()
             continue
 
         if choice == "core":
@@ -2104,8 +2109,7 @@ def main():
 
         menu_options = [
             ("Setup / Update environment",         "setup"),
-            ("Reset to recommended versions",      "reset"),
-            ("Download / Update DCS-BIOS",         "dcsbios"),
+            ("Install / Update DCS-BIOS",          "dcsbios"),
         ]
 
         if mtu_needs_fix:
@@ -2114,7 +2118,7 @@ def main():
             )
 
         menu_options += [
-            ("Advanced — Version Pinning",         "advanced",  "dim"),
+            ("Advanced Settings",                  "advanced",  "dim"),
             ("",),
             ("---", "Switch Tool"),
             ("Label Creator",                      "label"),
@@ -2127,8 +2131,6 @@ def main():
 
         if choice == "setup":
             action_setup()
-        elif choice == "reset":
-            action_reset_to_manifest()
         elif choice == "dcsbios":
             action_download_dcsbios()
         elif choice == "fix_mtu":

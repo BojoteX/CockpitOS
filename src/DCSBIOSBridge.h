@@ -26,7 +26,7 @@ extern size_t metadataSubscriptionCount;
 bool subscribeToMetadataChange(const char* label, void (*callback)(const char* label, uint16_t value));
 
 // ───── Subscribe to display changes ─────
-#define MAX_DISPLAY_SUBSCRIPTIONS 32
+#define MAX_DISPLAY_SUBSCRIPTIONS 48
 struct DisplaySubscription {
     const char* label;
     void (*callback)(const char* label, const char* value);
