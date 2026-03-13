@@ -5,6 +5,13 @@ name: CI Build
 on:
   push:
     branches: [dev]
+    paths-ignore:
+      - 'CHANGELOG.md'
+      - '*.md'
+      - 'TODO/**'
+      - 'Docs/**'
+      - 'Plans/**'
+      - 'LICENSE'
   schedule:
     - cron: '0 6 * * *'
 
@@ -73,6 +80,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Install arduino-cli
         uses: arduino/setup-arduino-cli@v2
@@ -102,8 +112,17 @@ jobs:
 
       - name: Generate version.h
         run: |
-          RAW=$(git describe --tags --always --dirty 2>/dev/null || echo "ci-unknown")
-          VER=$(echo "$RAW" | sed -E 's/^v//; s/-([0-9]+)-g([0-9a-f]+)/+\1.\2/; s/-dirty/.dirty/')
+          TAG=$(git tag --sort=-v:refname -l 'v*' | head -1)
+          SHA=$(git rev-parse --short HEAD)
+          if [ -n "$TAG" ]; then
+            VER="${TAG#v}"
+            AHEAD=$(git rev-list --count "$TAG..HEAD")
+            if [ "$AHEAD" -gt 0 ]; then
+              VER="${VER}+${AHEAD}.${SHA}"
+            fi
+          else
+            VER="dev-${SHA}"
+          fi
           printf '#pragma once\n#define VERSION_CURRENT "%s"\n' "$VER" > version.h
           echo "Version stamp: $VER"
 

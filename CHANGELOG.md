@@ -1,13 +1,29 @@
 # Changelog
 
+## v1.2.10 — 2026-03-12
+
+### Added
+- New Magnetics tests and Race fix for time dwell
+
+### Improved
+- Stable release
+
+## v1.2.9 — 2026-03-07
+
+### Added
+- Added New Label Sets
+- Added cache to Compile tool
+
+### Improved
+- Time Dwell race condition fix
+- A-10 Clock naming conflict in auto-generator fix
+
 ## v1.2.8 — 2026-03-04
 
 ### Improved
-- Refactor all Python tooling for easier flows + README.md simple steps
-- Updated README.md
-- Update Setup Flow
+- Set IFEI as default
+- Update Config.h
 - LTD/R Magnetic support implemented
-- Misc minor changes
 
 ### Fixed
 - Fixed Codex concern
