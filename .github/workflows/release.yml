@@ -107,3 +107,12 @@ jobs:
             CockpitOS.zip
         env:
           GH_TOKEN: ${{ github.token }}
+
+      - name: Sync dev with main
+        run: |
+          git fetch origin dev
+          git checkout dev
+          git merge origin/main --no-edit -m "Sync dev with main after v${{ github.event.inputs.version }} release"
+          git push origin dev
+        env:
+          GH_TOKEN: ${{ github.token }}
