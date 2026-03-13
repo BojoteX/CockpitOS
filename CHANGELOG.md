@@ -5,6 +5,7 @@
 ### Improved
 - Stable release
 - Workflows update
+- Updated Release workflow
 
 ## v1.2.10 — 2026-03-12
 
