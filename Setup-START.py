@@ -2107,6 +2107,11 @@ def main():
         show_banner()
         mtu_needs_fix = show_status()
 
+        # -- Version + update check ------------------------------------------
+        from shared.update_check import version_line
+        print(version_line())
+        print()
+
         menu_options = [
             ("Setup / Update environment",         "setup"),
             ("Install / Update DCS-BIOS",          "dcsbios"),

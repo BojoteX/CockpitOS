@@ -665,9 +665,9 @@ def main():
         else:
             print(f"     \U0001f41b {DIM}Debug is DISABLED (see Misc Options to enable){RESET}")
 
-        # -- Version line --------------------------------------------------------
-        ver_str = get_version_string()
-        print(f"     {DIM}v{ver_str}{RESET}")
+        # -- Version + update check ----------------------------------------------
+        from shared.update_check import version_line
+        print(version_line())
 
         print()
 

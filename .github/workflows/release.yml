@@ -92,7 +92,9 @@ jobs:
             -x ".credentials/*" \
             -x "CLAUDE.md" \
             -x "TODO.md" \
-            -x "TODO/*"
+            -x "TODO/*" \
+            -x "changelog.md" \
+            -x "Plans/*"
 
       - name: Publish release
         run: |
