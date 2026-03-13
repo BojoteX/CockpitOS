@@ -1,25 +1,16 @@
 {
-  "fqbn": "esp32:esp32:waveshare_esp32_s3_touch_lcd_7",
+  "fqbn": "esp32:esp32:lolin_s2_mini",
   "options": {
-    "UploadSpeed": "921600",
-    "USBMode": "default",
-    "CDCOnBoot": "default",
+    "CDCOnBoot": "dis_cdc",
     "MSCOnBoot": "default",
     "DFUOnBoot": "default",
-    "UploadMode": "default",
-    "CPUFreq": "240",
-    "FlashMode": "qio",
-    "FlashSize": "8M",
     "PartitionScheme": "no_ota",
     "DebugLevel": "none",
-    "PSRAM": "enabled",
-    "LoopCore": "1",
-    "EventsCore": "1",
     "EraseFlash": "none"
   },
   "transport": "usb",
   "role": "standalone",
   "usb_mode": null,
-  "board_name": "Waveshare ESP32-S3-Touch-LCD-7",
+  "board_name": "LOLIN S2 Mini",
   "show_detailed_warnings": false
 }

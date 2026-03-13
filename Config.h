@@ -20,8 +20,12 @@
 // "generate_data.py" script located there. After running the auto-generator, that set will become the default.
 // ==============================================================================================================
 
-// Versioning for internal use
-#define VERSION_CURRENT        "R.1.3.0_dev_03-11-26" // Just to troubleshoot instalations
+// Version (auto-generated at compile time from git tags - see version.h)
+#if __has_include("version.h")
+  #include "version.h"
+#else
+  #define VERSION_CURRENT        "dev-unversioned"
+#endif
 
 // Your personal Wi-Fi network credentials should be stored in .credentials/wifi.h. If file wifi.h not found or does not exists yet, we use defaults ("TestNetwork" / "TestingOnly")
 #if __has_include(".credentials/wifi.h")

@@ -40,6 +40,7 @@ from config import (
     configure_transport_and_role,
     SKETCH_DIR, CREDENTIALS_DIR, WIFI_H,
     safe_write_file,
+    generate_version_h, get_version_string,
 )
 from boards import (
     board_has_dual_usb, preferred_usb_mode,
@@ -192,6 +193,10 @@ def do_compile(prefs, verbose=False):
     if not ok:
         if not confirm("generate_data.py had issues. Continue compiling anyway?", default_yes=False):
             return False
+
+    # Generate version.h from git tags (no restore needed — file is gitignored)
+    ver = generate_version_h()
+    info(f"Version stamp: {ver}")
 
     fresh = load_prefs()
     show_detail = fresh.get("show_detailed_warnings", False)
@@ -659,6 +664,10 @@ def main():
             print(f"     \U0001f41b {GREEN}{label} ENABLED{RESET} via {CYAN}{via}{RESET}{ssid_str}{perf_str}")
         else:
             print(f"     \U0001f41b {DIM}Debug is DISABLED (see Misc Options to enable){RESET}")
+
+        # -- Version line --------------------------------------------------------
+        ver_str = get_version_string()
+        print(f"     {DIM}v{ver_str}{RESET}")
 
         print()
 
