@@ -1,11 +1,18 @@
 # Changelog
 
-## v1.2.11 — 2026-03-13
+## v1.2.12 — 2026-03-13
 
 ### Improved
 - Stable release
 - Workflows update
 - Updated Release workflow
+- Stable release
+
+## v1.2.11 — 2026-03-13
+
+### Improved
+- Updated Release workflow
+- Workflows update
 
 ## v1.2.10 — 2026-03-12
 
