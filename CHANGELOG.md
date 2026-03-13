@@ -1,17 +1,22 @@
 # Changelog
 
-## v1.2.9 — 2026-03-07
+## v1.2.10 — 2026-03-12
 
 ### Added
-- Added cache to compiler tool + misc fixes
 - New Magnetics tests and Race fix for time dwell
 
 ### Improved
-- LTD/R Magnetic support implemented
-- Misc minor changes
+- Stable release
 
-### Fixed
-- Fixed Codex concern
+## v1.2.9 — 2026-03-07
+
+### Added
+- Added New Label Sets
+- Added cache to Compile tool
+
+### Improved
+- Time Dwell race condition fix
+- A-10 Clock naming conflict in auto-generator fix
 
 ## v1.2.8 — 2026-03-04
 
