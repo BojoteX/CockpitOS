@@ -143,16 +143,12 @@ These are the remaining manual steps that should be automated:
 
 ## Changelog
 
-Maintain `CHANGELOG.md` in the project root. This is a user-facing file — keep it brief, scannable, and only for significant changes. Do not log internal refactors, minor fixes, or CI tweaks.
+`CHANGELOG.md` is **gitignored** — it is auto-generated from git history at release time.
 
-Rules:
-- Group entries under version headers (`## v1.1.5`, etc.) with a date
-- Use short bullet points — one line per item, plain language, no jargon
-- Categories: **Added**, **Improved**, **Fixed** (only include categories that have entries)
-- Only add an entry when a change is meaningful to end users: new features, new hardware support, notable UX improvements, or important bug fixes
-- Do not add entries for: code cleanup, doc edits, CI changes, internal restructuring
-- When committing a significant change, update the changelog in the same commit
-- Newest version goes at the top of the file
+- `release.py` rebuilds it locally from all tags + commit messages (for user preview)
+- `release.yml` generates it fresh during packaging (included in the release ZIP)
+- Do **not** manually create, commit, or edit CHANGELOG.md — it will be overwritten on next release
+- Write clear, meaningful commit messages — they become the changelog entries
 
 ## Hard Rules — Do NOT
 
