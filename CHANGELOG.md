@@ -1,12 +1,18 @@
 # Changelog
 
-## v1.2.12 — 2026-03-13
+## v1.2.13 — 2026-03-14
 
 ### Improved
 - Stable release
 - Workflows update
 - Updated Release workflow
 - Stable release
+- Auto-Update CockpitOS
+
+## v1.2.12 — 2026-03-13
+
+### Improved
+- Compiled IFEI 7-Seg test
 
 ## v1.2.11 — 2026-03-13
 
