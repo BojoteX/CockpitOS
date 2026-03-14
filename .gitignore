@@ -40,9 +40,6 @@ Binaries/Unclassified/
 # Tool backups
 compiler/backups/
 
-# Internal
-release.py
-
 #Misc
 %TEMP%/
 TODO/

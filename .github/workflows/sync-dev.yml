@@ -1,0 +1,29 @@
+# Keep dev in sync with main after PR merges
+# Without this, every PR merge commit accumulates as "dev is N behind main"
+name: Sync dev
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: Merge main into dev
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git merge origin/main --no-edit
+          git push origin dev
+        env:
+          GH_TOKEN: ${{ github.token }}
