@@ -582,6 +582,13 @@ def main():
         error("Config.h not found! The tool cannot operate without it.")
         sys.exit(1)
 
+    # ── Check for interrupted update from a previous session ──────────────
+    from shared.updater import check_interrupted_update, resume_interrupted_update
+    _interrupted = check_interrupted_update()
+    if _interrupted:
+        resume_interrupted_update(_interrupted, _lock_path,
+                                 str(_PROJECT_ROOT / "CockpitOS-START.py"))
+
     while True:
         # Reload prefs AND Config.h from disk every iteration.
         # Config.h is the source of truth — it may change externally
@@ -666,12 +673,13 @@ def main():
             print(f"     \U0001f41b {DIM}Debug is DISABLED (see Misc Options to enable){RESET}")
 
         # -- Version + update check ----------------------------------------------
-        from shared.update_check import version_line
+        from shared.update_check import version_line, update_available
         print(version_line())
 
         print()
 
-        choice = menu_pick([
+        _newer = update_available()
+        _menu_items = [
             ("Board / Options",      "board",     "normal"),
             ("Role / Transport",     "transport", "normal"),
             ("Misc Options",         "misc",      "normal"),
@@ -681,12 +689,19 @@ def main():
                 ("Upload", "upload"),
             ]),
             ("",),
+        ]
+        if _newer:
+            _menu_items.append(
+                (f"{YELLOW}Update to v{_newer}{RESET}", "update", "normal"))
+            _menu_items.append(("",))
+        _menu_items += [
             ("---", "Switch Tool"),
             ("Label Creator",        "label",     "normal"),
             ("Environment Setup",    "setup",     "normal"),
             ("",),
             ("Exit",                 "exit",      "dim"),
-        ])
+        ]
+        choice = menu_pick(_menu_items)
 
         if choice is None:         # ESC on main menu — just redraw
             continue
@@ -761,6 +776,11 @@ def main():
 
         elif choice == "setup":
             _launch_tool("Setup-START.py")
+
+        elif choice == "update":
+            from shared.updater import perform_update
+            perform_update(_newer, _lock_path,
+                           str(_PROJECT_ROOT / "CockpitOS-START.py"))
 
 if __name__ == "__main__":
     try:

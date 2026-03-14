@@ -990,6 +990,13 @@ def main():
     # Set window title so other instances can find us
     ctypes.windll.kernel32.SetConsoleTitleW(_WINDOW_TITLE)
 
+    # Check for interrupted update from a previous session
+    from shared.updater import check_interrupted_update, resume_interrupted_update
+    _interrupted = check_interrupted_update()
+    if _interrupted:
+        resume_interrupted_update(_interrupted, lock_path,
+                                  str(SKETCH_DIR / "LabelCreator-START.py"))
+
     prefs = load_prefs()
 
     while True:
@@ -1028,7 +1035,10 @@ def main():
         print(version_line())
         print()
 
-        choice = ui.menu_pick([
+        from shared.update_check import update_available
+        _newer = update_available()
+
+        _menu_items = [
             ("Create New Label Set",      "create",    "action"),
             ("Modify Label Set",          "browse",    "normal"),
             ("Auto-Generate Label Set",   "generate",  "normal"),
@@ -1037,9 +1047,17 @@ def main():
             ("---", "Switch Tool"),
             ("Compile Tool",              "compiler",  "normal"),
             ("Environment Setup",         "setup",     "normal"),
-            ("",),
-            ("Exit",                      "exit",      "dim"),
-        ])
+        ]
+
+        if _newer:
+            _menu_items.append(("",))
+            _menu_items.append((f"{ui.YELLOW}Update to v{_newer}{ui.RESET}",
+                                "update", "normal"))
+
+        _menu_items.append(("",))
+        _menu_items.append(("Exit",                      "exit",      "dim"))
+
+        choice = ui.menu_pick(_menu_items)
 
         if choice is None:         # ESC on main menu — just redraw
             continue
@@ -1082,6 +1100,11 @@ def main():
         elif choice == "delete":
             do_delete(prefs)
             prefs = load_prefs()
+
+        elif choice == "update":
+            from shared.updater import perform_update
+            perform_update(_newer, lock_path,
+                           str(SKETCH_DIR / "LabelCreator-START.py"))
 
 
 if __name__ == "__main__":
