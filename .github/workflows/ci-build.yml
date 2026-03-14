@@ -16,6 +16,8 @@ on:
 
 jobs:
   setup:
+    # Skip CI when sync-dev bot merges main back into dev (already built)
+    if: github.event_name == 'schedule' || github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
