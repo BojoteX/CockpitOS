@@ -21,6 +21,9 @@ build/
 *.map
 version.h
 
+# Auto-generated at release time from git history
+CHANGELOG.md
+
 # Project-specific
 Dev/
 Debug Tools/logs/

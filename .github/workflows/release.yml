@@ -65,6 +65,33 @@ jobs:
           VERSION="${{ github.event.inputs.version }}"
           printf '// Auto-generated - do not edit\n#pragma once\n#define VERSION_CURRENT "%s"\n' "$VERSION" > version.h
 
+      - name: Generate CHANGELOG.md
+        run: |
+          echo "# Changelog" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          TAGS=$(git tag --sort=-v:refname -l 'v*')
+          PREV=""
+          for TAG in $TAGS; do
+            VER="${TAG#v}"
+            DATE=$(git log -1 --format=%ad --date=short "$TAG")
+            echo "## v${VER} — ${DATE}" >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            if [ -n "$PREV" ]; then
+              ITEMS=$(git log "${TAG}..${PREV}" --no-merges --format="- %s" | \
+                grep -iv '^- merge pull request\|^- merge branch\|^- update changelog\|^- release version\|^- update release' || true)
+            else
+              ITEMS=$(git log "${TAG}" --no-merges --format="- %s" -20 | \
+                grep -iv '^- merge pull request\|^- merge branch\|^- update changelog\|^- release version\|^- update release' || true)
+            fi
+            if [ -n "$ITEMS" ]; then
+              echo "$ITEMS" >> CHANGELOG.md
+            else
+              echo "- Release" >> CHANGELOG.md
+            fi
+            echo "" >> CHANGELOG.md
+            PREV="$TAG"
+          done
+
       - name: Package CockpitOS.zip
         run: |
           zip -r CockpitOS.zip . \
@@ -107,14 +134,5 @@ jobs:
             --notes-file changelog.md \
             --latest \
             CockpitOS.zip
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-      - name: Sync dev with main
-        run: |
-          git fetch origin dev
-          git checkout dev
-          git merge origin/main --no-edit -m "Sync dev with main after v${{ github.event.inputs.version }} release"
-          git push origin dev
         env:
           GH_TOKEN: ${{ github.token }}
