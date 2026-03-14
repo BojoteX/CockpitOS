@@ -6,7 +6,6 @@ on:
   push:
     branches: [dev]
     paths-ignore:
-      - 'CHANGELOG.md'
       - '*.md'
       - 'TODO/**'
       - 'Docs/**'
