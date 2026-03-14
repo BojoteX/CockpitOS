@@ -2103,9 +2103,23 @@ def main():
     # Set window title so other instances can find us
     ctypes.windll.kernel32.SetConsoleTitleW(_WINDOW_TITLE)
 
+    # ── Check for interrupted update from a previous session ──────────────
+    from shared.updater import check_interrupted_update, resume_interrupted_update
+    _interrupted = check_interrupted_update()
+    if _interrupted:
+        resume_interrupted_update(_interrupted, lock_path,
+                                 str(_PROJECT_ROOT / "Setup-START.py"))
+
     while True:
         show_banner()
         mtu_needs_fix = show_status()
+
+        # -- Version + update check ------------------------------------------
+        from shared.update_check import version_line, update_available
+        print(version_line())
+        print()
+
+        _newer = update_available()
 
         menu_options = [
             ("Setup / Update environment",         "setup"),
@@ -2115,6 +2129,11 @@ def main():
         if mtu_needs_fix:
             menu_options.append(
                 (f"{YELLOW}Fix DCS-BIOS MTU{RESET}",  "fix_mtu"),
+            )
+
+        if _newer:
+            menu_options.append(
+                (f"{YELLOW}Update to v{_newer}{RESET}", "update"),
             )
 
         menu_options += [
@@ -2135,6 +2154,10 @@ def main():
             action_download_dcsbios()
         elif choice == "fix_mtu":
             action_fix_dcsbios_mtu()
+        elif choice == "update":
+            from shared.updater import perform_update
+            perform_update(_newer, lock_path,
+                           str(_PROJECT_ROOT / "Setup-START.py"))
         elif choice == "advanced":
             action_advanced_versions()
         elif choice == "compiler":
