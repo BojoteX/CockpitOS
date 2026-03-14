@@ -165,18 +165,28 @@ _DIM = "\033[2m"
 _RESET = "\033[0m"
 
 
+def update_available():
+    """Return the newer version string if an update is available, None otherwise.
+
+    Lightweight wrapper for menu logic -- use this to decide whether to show
+    the "Update CockpitOS" menu item.
+    """
+    ver = get_local_version()
+    return check_for_update(ver)
+
+
 def version_line():
     """Return a formatted version + update-available line for the TUI menu.
 
     Example outputs:
         "     v1.2.12"
-        "     v1.2.12    Update available: v1.3.0 -- github.com/BojoteX/CockpitOS/releases"
+        "     v1.2.12    Update available: v1.3.0"
     """
     ver = get_local_version()
     line = f"     {_DIM}v{ver}{_RESET}"
 
     newer = check_for_update(ver)
     if newer:
-        line += f"    {_YELLOW}Update available: v{newer} -- github.com/{_REPO}/releases{_RESET}"
+        line += f"    {_YELLOW}Update available: v{newer}{_RESET}"
 
     return line
