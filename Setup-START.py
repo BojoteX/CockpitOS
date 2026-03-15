@@ -238,7 +238,9 @@ def show_banner():
     _w(f"{CYAN}{BOLD}      | |__| (_) | (__ |   <| |_) | | |_| |_| |___) |{RESET}\n")
     _w(f"{CYAN}{BOLD}       \\____\\___/ \\___|_|\\_\\ .__/|_|\\__|\\___/|____/{RESET}\n")
     _w(f"{CYAN}{BOLD}                            |_|{RESET}\n")
-    _w(f"{CYAN}{BOLD}              Environment Setup{RESET}\n\n")
+    from shared.update_check import version_tag
+    vtag = version_tag()
+    _w(f"{CYAN}{BOLD}              Environment Setup{RESET}{vtag}\n\n")
 
 
 # =============================================================================
@@ -2114,10 +2116,12 @@ def main():
         show_banner()
         mtu_needs_fix = show_status()
 
-        # -- Version + update check ------------------------------------------
+        # -- Update check ----------------------------------------------------
         from shared.update_check import version_line, update_available
-        print(version_line())
-        print()
+        _vl = version_line()
+        if _vl:
+            print(_vl)
+            print()
 
         _newer = update_available()
 
