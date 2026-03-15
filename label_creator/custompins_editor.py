@@ -78,6 +78,10 @@ _COMMENTED_DEFINE_RE = re.compile(
 # Value validation: bare integer, -1, or PIN(x) macro e.g. PIN(39), PIN(GPIO_NUM_39)
 _PIN_VALUE_RE = re.compile(r'^(-?\d+|PIN\(\w+\))$')
 
+# Custom define validation (broader than PIN values — also allows hex literals)
+_CUSTOM_NAME_RE = re.compile(r'^[A-Z][A-Z0-9_]*$')
+_CUSTOM_VALUE_RE = re.compile(r'^(-?\d+|PIN\([A-Za-z0-9_]+\)|0[xX][0-9A-Fa-f]+)$')
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # PIN GROUP DEFINITIONS — the intelligence layer
@@ -316,17 +320,20 @@ def _tm1637_module_is_used(module, known_pins, detected):
 # ═══════════════════════════════════════════════════════════════════════════
 
 def parse_custom_pins(filepath):
-    """Parse CustomPins.h into (known_pins, unknown_lines).
+    """Parse CustomPins.h into (known_pins, custom_defines, unknown_lines).
 
-    known_pins: dict { define_name: value_str } for recognized defines.
-    unknown_lines: list of raw lines that don't match any known define
-                   (preserved verbatim on write).
+    known_pins:     dict { define_name: value_str } for recognized defines.
+    custom_defines: dict { define_name: value_str } for user-added defines
+                    that aren't in PIN_GROUPS (order preserved, Python 3.7+).
+    unknown_lines:  list of raw lines that aren't #define at all
+                    (comments, blank lines, #pragma, etc. — preserved verbatim).
     """
     known_pins = {}
+    custom_defines = {}
     unknown_lines = []
 
     if not os.path.exists(filepath):
-        return known_pins, unknown_lines
+        return known_pins, custom_defines, unknown_lines
 
     with open(filepath, "r", encoding="utf-8") as f:
         lines = f.readlines()
@@ -342,7 +349,7 @@ def parse_custom_pins(filepath):
             if name in _KNOWN_DEFINES:
                 known_pins[name] = val
             else:
-                unknown_lines.append(raw)
+                custom_defines[name] = val
             continue
 
         # Try commented define
@@ -359,28 +366,32 @@ def parse_custom_pins(filepath):
         # Everything else: comments, blank lines, #pragma, #undef, etc.
         unknown_lines.append(raw)
 
-    return known_pins, unknown_lines
+    return known_pins, custom_defines, unknown_lines
 
 
 def count_pins(filepath):
     """Return count of active (non-commented) #define pins in CustomPins.h."""
     if not os.path.exists(filepath):
         return 0
-    known, _ = parse_custom_pins(filepath)
-    return len(known)
+    known, custom, _ = parse_custom_pins(filepath)
+    return len(known) + len(custom)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
 # CUSTOM PINS WRITER
 # ═══════════════════════════════════════════════════════════════════════════
 
-def write_custom_pins(filepath, known_pins, unknown_lines, label_set_name=""):
-    """Write CustomPins.h from known pin values + preserved unknown lines.
+def write_custom_pins(filepath, known_pins, unknown_lines, label_set_name="",
+                      custom_defines=None):
+    """Write CustomPins.h from known pin values + custom defines + preserved lines.
 
     Groups are written in PIN_GROUPS order.  Only groups that have at
     least one defined pin (or are Feature Enables) are emitted.
-    Unknown lines are appended at the bottom.
+    Custom defines are written in their own section, then unknown lines
+    are appended at the bottom.
     """
+    if custom_defines is None:
+        custom_defines = {}
     out = []
     ls_label = label_set_name or "Label Set"
     out.append(f"// CustomPins.h - Pin configuration for {ls_label}")
@@ -436,6 +447,13 @@ def write_custom_pins(filepath, known_pins, unknown_lines, label_set_name=""):
         out.extend(extras)
         out.append("")
 
+    # Emit custom (user-added) defines
+    if custom_defines:
+        out.append("// --- Custom Defines " + "-" * 39)
+        for cname, cval in custom_defines.items():
+            out.append(f"#define {cname:<40s} {cval}")
+        out.append("")
+
     # Emit unknown lines (skip leading blanks / pragma / header comments
     # from the original file since we already wrote our own header)
     filtered_unknown = _filter_unknown_lines(unknown_lines)
@@ -461,6 +479,7 @@ def _filter_unknown_lines(unknown_lines):
         "// Configuration PINS",
         "// Managed by the Label Creator",
         "// Unknown defines are preserved",
+        "// --- Custom Defines",
         "// This file is automatically",
         "// Uncomment and set",
         "// The PIN(X) macro",     # legacy template line
@@ -513,18 +532,22 @@ ROW_GROUP_HEADER = "header"
 ROW_PIN          = "pin"
 ROW_WARNING      = "warning"
 ROW_SPACER       = "spacer"
+ROW_CUSTOM       = "custom"
 
 
-def _build_rows(known_pins, detected):
+def _build_rows(known_pins, detected, custom_defines=None):
     """Build the flat row list for the TUI.
 
     Each row is a dict with at least:
-      type:  ROW_GROUP_HEADER | ROW_PIN | ROW_WARNING
+      type:  ROW_GROUP_HEADER | ROW_PIN | ROW_WARNING | ROW_CUSTOM
       group: group name
     PIN rows also have: define, value, help, pdef
+    CUSTOM rows also have: define, value
     WARNING rows also have: message
     HEADER rows also have: detected (bool), required (bool)
     """
+    if custom_defines is None:
+        custom_defines = {}
     rows = []
     first_group = True
 
@@ -605,15 +628,35 @@ def _build_rows(known_pins, detected):
                 "pdef": pdef,
             })
 
+    # --- Custom Defines section (user-added, not in PIN_GROUPS) -----------
+    if custom_defines:
+        rows.append({"type": ROW_SPACER, "group": "Custom Defines"})
+        rows.append({
+            "type": ROW_GROUP_HEADER,
+            "group": "Custom Defines",
+            "detected": False,
+            "required": False,
+            "status": f"{len(custom_defines)} define{'s' if len(custom_defines) != 1 else ''}",
+        })
+        for cname, cval in custom_defines.items():
+            rows.append({
+                "type": ROW_CUSTOM,
+                "group": "Custom Defines",
+                "define": cname,
+                "value": cval,
+            })
+
     return rows
 
 
-def _count_defined(known_pins):
+def _count_defined(known_pins, custom_defines=None):
     """Count defined pins (excluding feature enables)."""
     count = 0
     for name in known_pins:
         if name not in ("ENABLE_TFT_GAUGES", "ENABLE_PCA9555"):
             count += 1
+    if custom_defines:
+        count += len(custom_defines)
     return count
 
 
@@ -638,7 +681,7 @@ def edit_custom_pins(filepath, input_filepath, led_filepath,
         input(f"\n  {ui.DIM}Press Enter to continue...{ui.RESET}")
         return
 
-    known_pins, unknown_lines = parse_custom_pins(filepath)
+    known_pins, custom_defines, unknown_lines = parse_custom_pins(filepath)
 
     # Detect RS485 from Config.h transport settings
     if config_filepath and os.path.exists(config_filepath):
@@ -674,12 +717,14 @@ def edit_custom_pins(filepath, input_filepath, led_filepath,
 
     # -- Take a snapshot for dirty detection ------------------------------
     original_pins = dict(known_pins)
+    original_custom = dict(custom_defines)
 
     # -- Build row list ---------------------------------------------------
-    rows = _build_rows(known_pins, detected)
+    rows = _build_rows(known_pins, detected, custom_defines)
 
-    # -- Selectable row indices (only PIN rows are selectable) ------------
-    selectable = [i for i, r in enumerate(rows) if r["type"] == ROW_PIN]
+    # -- Selectable row indices (PIN and CUSTOM rows are selectable) ------
+    selectable = [i for i, r in enumerate(rows)
+                  if r["type"] in (ROW_PIN, ROW_CUSTOM)]
     if not selectable:
         ui.header("Custom Pins")
         print()
@@ -706,8 +751,9 @@ def edit_custom_pins(filepath, input_filepath, led_filepath,
 
     def _rebuild():
         nonlocal rows, selectable
-        rows = _build_rows(known_pins, detected)
-        selectable = [i for i, r in enumerate(rows) if r["type"] == ROW_PIN]
+        rows = _build_rows(known_pins, detected, custom_defines)
+        selectable = [i for i, r in enumerate(rows)
+                      if r["type"] in (ROW_PIN, ROW_CUSTOM)]
 
     def _clamp_sel():
         nonlocal sel_idx
@@ -771,6 +817,28 @@ def edit_custom_pins(filepath, input_filepath, led_filepath,
             pad = max(1, body_w - len(label) + 1)
             return (f"  {CYAN}{BOLD}{label}{'-' * pad}{RESET}"
                     f"{DIM}{scroll_char}{RESET}")
+
+        if row["type"] == ROW_CUSTOM:
+            cname = row["define"]
+            cval = row["value"]
+            name_part = f"{cname:<{name_w}}"
+            val_part = f"{cval:<{val_w}}"
+            hint_room = max(0, body_w - name_w - val_w)
+            hint_part = f"{'':>{hint_room}}"
+            if is_highlighted and _flash_active[0]:
+                return (f"{_SEL_BG} {YELLOW}> "
+                        f"{name_part}{val_part}{hint_part}"
+                        f"{RESET}{DIM}{scroll_char}{RESET}")
+            elif is_highlighted:
+                return (f"{_SEL_BG} {CYAN}>{RESET}{_SEL_BG} "
+                        f"{GREEN}{name_part}{RESET}{_SEL_BG}"
+                        f"{GREEN}{val_part}{RESET}{_SEL_BG}"
+                        f"{hint_part}"
+                        f"{RESET}{DIM}{scroll_char}{RESET}")
+            else:
+                return (f"   "
+                        f"{RESET}{name_part}{val_part}{hint_part}"
+                        f"{DIM}{scroll_char}{RESET}")
 
         if row["type"] == ROW_WARNING:
             msg = row["message"]
@@ -850,7 +918,7 @@ def edit_custom_pins(filepath, input_filepath, led_filepath,
         # Header
         parts = [label_set_name, aircraft_name]
         ctx = "  (" + ", ".join(p for p in parts if p) + ")" if any(parts) else ""
-        n_pins = _count_defined(known_pins)
+        n_pins = _count_defined(known_pins, custom_defines)
         title = f"Custom Pins{ctx}"
         counter = f"{n_pins} pin{'s' if n_pins != 1 else ''} defined"
         spacing = header_w - len(title) - len(counter) - 4
@@ -876,7 +944,7 @@ def edit_custom_pins(filepath, input_filepath, led_filepath,
             else:
                 _w(f"{'':>{cols - 1}}{DIM}{sc}{RESET}\n")
 
-        _w(f"\n  {DIM}Enter=edit  D=clear pin  Esc=save & exit{RESET}")
+        _w(f"\n  {DIM}Enter=edit  A=add define  D=clear/delete  Esc=save & exit{RESET}")
 
     # -- Detect string for initial banner ----------------------------------
     if detected:
@@ -919,31 +987,50 @@ def edit_custom_pins(filepath, input_filepath, led_filepath,
                     _clamp_scroll()
                     _draw()
 
-            elif ch == "\r" or ch == " ":     # Enter/Space = edit pin value
+            elif ch == "\r" or ch == " ":     # Enter/Space = edit value
                 if not selectable:
                     continue
                 ri = selectable[sel_idx]
                 row = rows[ri]
-                # Bool pins: toggle inline, no modal prompt
-                pdef = row["pdef"]
-                if pdef.get("type") == "bool":
-                    name = row["define"]
-                    cur = known_pins.get(name, pdef.get("default", "0"))
-                    known_pins[name] = "0" if cur == "1" else "1"
+                if row["type"] == ROW_CUSTOM:
+                    _edit_custom_value(row, custom_defines)
                 else:
-                    _edit_pin_value(row, known_pins, detected)
+                    # Bool pins: toggle inline, no modal prompt
+                    pdef = row["pdef"]
+                    if pdef.get("type") == "bool":
+                        name = row["define"]
+                        cur = known_pins.get(name, pdef.get("default", "0"))
+                        known_pins[name] = "0" if cur == "1" else "1"
+                    else:
+                        _edit_pin_value(row, known_pins, detected)
                 _rebuild()
                 _clamp_sel()
                 _clamp_scroll()
                 _draw()
 
-            elif ch in ("d", "D", "\x04"):    # D/Ctrl+D = clear pin
+            elif ch in ("a", "A"):      # A = add custom define
+                _add_custom_define(custom_defines, known_pins)
+                _rebuild()
+                # Jump to last selectable row (the newly added one)
+                if selectable:
+                    sel_idx = len(selectable) - 1
+                _clamp_sel()
+                _clamp_scroll()
+                _draw()
+
+            elif ch in ("d", "D", "\x04"):    # D/Ctrl+D = clear/delete
                 if not selectable:
                     continue
                 ri = selectable[sel_idx]
                 row = rows[ri]
                 name = row["define"]
-                if name in known_pins:
+                if row["type"] == ROW_CUSTOM:
+                    if name in custom_defines:
+                        del custom_defines[name]
+                        _rebuild()
+                        _clamp_sel()
+                        _clamp_scroll()
+                elif name in known_pins:
                     # Feature enables reset to default, not removed
                     if name in ("ENABLE_TFT_GAUGES", "ENABLE_PCA9555"):
                         known_pins[name] = "0"
@@ -963,11 +1050,104 @@ def edit_custom_pins(filepath, input_filepath, led_filepath,
         _w(SHOW_CUR)
 
     # Save if changed
-    if known_pins != original_pins:
+    if known_pins != original_pins or custom_defines != original_custom:
         ls_short = label_set_name
         if ls_short.startswith("LABEL_SET_"):
             ls_short = ls_short[len("LABEL_SET_"):]
-        write_custom_pins(filepath, known_pins, unknown_lines, ls_short or "Label Set")
+        write_custom_pins(filepath, known_pins, unknown_lines,
+                          ls_short or "Label Set", custom_defines)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# CUSTOM DEFINE — ADD / EDIT (modal)
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _add_custom_define(custom_defines, known_pins):
+    """Modal prompt to add a new custom #define. Modifies custom_defines in place."""
+    _w(SHOW_CUR)
+    print()
+    print()
+    print(f"  {CYAN}{BOLD}Add Custom Define{RESET}")
+    print(f"  {DIM}Name must be UPPERCASE letters, digits, and underscores (A-Z, 0-9, _){RESET}")
+    print(f"  {DIM}Value must be an integer, PIN(x), or hex (0x..){RESET}")
+    print()
+
+    # --- Name ---
+    _w(f"  Name: ")
+    try:
+        raw_name = input().strip()
+    except (EOFError, KeyboardInterrupt):
+        return
+    if not raw_name:
+        return
+
+    # Auto-uppercase
+    raw_name = raw_name.upper()
+
+    if not _CUSTOM_NAME_RE.match(raw_name):
+        print(f"  {RED}Invalid name: only A-Z, 0-9, underscore allowed (must start with A-Z){RESET}")
+        msvcrt.getwch()
+        return
+
+    # Check collisions
+    if raw_name in _KNOWN_DEFINES:
+        print(f"  {RED}'{raw_name}' is a built-in pin — use the main editor to set it{RESET}")
+        msvcrt.getwch()
+        return
+    if raw_name in custom_defines:
+        print(f"  {RED}'{raw_name}' already exists — edit it instead{RESET}")
+        msvcrt.getwch()
+        return
+    if raw_name in known_pins:
+        print(f"  {RED}'{raw_name}' conflicts with an existing known pin{RESET}")
+        msvcrt.getwch()
+        return
+
+    # --- Value ---
+    _w(f"  Value: ")
+    try:
+        raw_val = input().strip()
+    except (EOFError, KeyboardInterrupt):
+        return
+    if not raw_val:
+        return
+
+    if not _CUSTOM_VALUE_RE.match(raw_val):
+        print(f"  {RED}Invalid value: enter an integer, PIN(x), or hex (0x..){RESET}")
+        msvcrt.getwch()
+        return
+
+    custom_defines[raw_name] = raw_val
+
+
+def _edit_custom_value(row, custom_defines):
+    """Modal edit for a custom define value. Modifies custom_defines in place."""
+    _w(SHOW_CUR)
+    name = row["define"]
+    current = custom_defines.get(name)
+
+    print()
+    print()
+    print(f"  {CYAN}{BOLD}{name}{RESET}")
+    print()
+    if current is not None:
+        print(f"  Current: {GREEN}{current}{RESET}")
+    print(f"  {DIM}Enter integer, PIN(x), or hex (0x..){RESET}")
+    print()
+
+    _w(f"  Value: ")
+    try:
+        raw = input().strip()
+    except (EOFError, KeyboardInterrupt):
+        return
+    if not raw:
+        return  # keep current
+
+    if _CUSTOM_VALUE_RE.match(raw):
+        custom_defines[name] = raw
+    else:
+        print(f"  {RED}Invalid value: enter an integer, PIN(x), or hex (0x..){RESET}")
+        msvcrt.getwch()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
