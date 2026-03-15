@@ -24,6 +24,23 @@ void resetAllGauges() {
         }
     }
     if (PanelRegistry_has(PanelKind::AnalogGauge)) debugPrintln("[GAUGE] Analog gauges will update automatically.");
+
+    // Register stepper motors (separate from servo gauges)
+    for (uint16_t i = 0; i < panelLEDsCount; ++i) {
+        const auto& led = panelLEDs[i];
+        if (led.deviceType == DEVICE_STEPPER) {
+            PanelRegistry_setActive(PanelKind::StepperMotor, true);
+            const auto& si = led.info.stepperInfo;
+            Stepper_register(si.pin1, si.pin2, si.pin3, si.pin4, si.totalSteps, si.usPerStep);
+            debugPrintf("[STEPPER] Registered %s on pins %u,%u,%u,%u (%u steps, %uus/step)\n",
+                led.label, si.pin1, si.pin2, si.pin3, si.pin4, si.totalSteps, si.usPerStep);
+
+            // Init sweep: full revolution forward, then back to zero.
+            // Same visual self-test as servo gauges — confirms needle position.
+            Stepper_initSweep(si.pin1);
+        }
+    }
+    if (PanelRegistry_has(PanelKind::StepperMotor)) debugPrintln("[STEPPER] Stepper motors will update automatically.");
 }
 
 void preconfigureGPIO() {
@@ -54,6 +71,12 @@ void preconfigureGPIO() {
                     led.label, pin);
                 // Optionally move gauge to safe position here if you wish
             }
+        }
+        else if (led.deviceType == DEVICE_STEPPER) {
+            // Stepper pins already configured by Stepper_register() in resetAllGauges()
+            const auto& si = led.info.stepperInfo;
+            if (DEBUG) debugPrintf("[INIT] STEPPER    %-20s (GPIO %2d,%2d,%2d,%2d) -> OUTPUT (stepper)\n",
+                led.label, si.pin1, si.pin2, si.pin3, si.pin4);
         }
         else if (led.deviceType == DEVICE_MAGNETIC) {
             const auto& m = led.info.magneticInfo;
@@ -111,6 +134,11 @@ void GPIO_setAllLEDs(bool state) {
         else if (led.deviceType == DEVICE_GAUGE && DEBUG) {
             debugPrintf("[LED GAUGE] %-20s (GPIO %2d) -> SKIPPED (servo)\n",
                         led.label, led.info.gaugeInfo.gpio);
+        }
+        else if (led.deviceType == DEVICE_STEPPER && DEBUG) {
+            const auto& si = led.info.stepperInfo;
+            debugPrintf("[LED STEPPER] %-20s (GPIO %2d,%2d,%2d,%2d) -> SKIPPED (stepper)\n",
+                        led.label, si.pin1, si.pin2, si.pin3, si.pin4);
         }
         else if (led.deviceType == DEVICE_MAGNETIC) {
             const auto& m = led.info.magneticInfo;
