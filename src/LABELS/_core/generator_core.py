@@ -1335,6 +1335,9 @@ def run():
             return f"// MAGNETIC A={info[0]} B={info[1]}"
         if device == "MAGNETIC" and len(info) >= 1:
             return f"// MAGNETIC A={info[0]} (single)"
+        if device == "STEPPER" and len(info) >= 7:
+            mode = "continuous" if info[6].strip().lower() == "true" else "limited-sweep"
+            return f"// STEPPER pins {info[0]},{info[1]},{info[2]},{info[3]} steps={info[4]} {info[5]}us {mode}"
         if device == "STEPPER" and len(info) >= 6:
             return f"// STEPPER pins {info[0]},{info[1]},{info[2]},{info[3]} steps={info[4]} {info[5]}us"
         if device == "STEPPER" and len(info) >= 5:
@@ -1486,7 +1489,7 @@ def run():
         # out.write("    struct { uint8_t index; } ws2812Info;\n")
         out.write("    struct { uint8_t index; uint8_t pin; uint8_t defR; uint8_t defG; uint8_t defB; uint8_t defBright; } ws2812Info;\n")
         out.write("    struct { uint8_t gpioA; uint8_t gpioB; } magneticInfo;  // gpioB=255 → single solenoid (2-pos)\n")
-        out.write("    struct { uint8_t pin1; uint8_t pin2; uint8_t pin3; uint8_t pin4; uint16_t totalSteps; uint16_t usPerStep; } stepperInfo;\n")
+        out.write("    struct { uint8_t pin1; uint8_t pin2; uint8_t pin3; uint8_t pin4; uint16_t totalSteps; uint16_t usPerStep; bool continuous; } stepperInfo;\n")
         out.write("  } info;\n")
         out.write("  bool dimmable;\n")
         out.write("  bool activeLow;\n")

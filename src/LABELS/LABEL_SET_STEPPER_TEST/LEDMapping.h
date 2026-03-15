@@ -25,7 +25,7 @@ struct LEDMapping {
     struct { uint8_t address; uint8_t column; uint8_t row; } gn1640Info;
     struct { uint8_t index; uint8_t pin; uint8_t defR; uint8_t defG; uint8_t defB; uint8_t defBright; } ws2812Info;
     struct { uint8_t gpioA; uint8_t gpioB; } magneticInfo;  // gpioB=255 → single solenoid (2-pos)
-    struct { uint8_t pin1; uint8_t pin2; uint8_t pin3; uint8_t pin4; uint16_t totalSteps; uint16_t usPerStep; } stepperInfo;
+    struct { uint8_t pin1; uint8_t pin2; uint8_t pin3; uint8_t pin4; uint16_t totalSteps; uint16_t usPerStep; bool continuous; } stepperInfo;
   } info;
   bool dimmable;
   bool activeLow;
@@ -35,7 +35,7 @@ struct LEDMapping {
 static const LEDMapping panelLEDs[] = {
   { "STBY_ALT_10000_FT_CNT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "STBY_ALT_1000_FT_CNT" , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "STBY_ALT_100_FT_PTR"  , DEVICE_STEPPER , {.stepperInfo = {34, 36, 38, 40, 4096, 1000}}, false, false }, // STEPPER pins 34,36,38,40 steps=4096 1000us,
+  { "STBY_ALT_100_FT_PTR"  , DEVICE_STEPPER , {.stepperInfo = {34, 36, 38, 40, 4096, 1000, true}}, false, false }, // STEPPER pins 34,36,38,40 steps=4096 1000us continuous,
   { "STBY_PRESS_ALT"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "STBY_PRESS_SET_0"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "STBY_PRESS_SET_1"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,

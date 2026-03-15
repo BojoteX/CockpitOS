@@ -31,9 +31,10 @@ void resetAllGauges() {
         if (led.deviceType == DEVICE_STEPPER) {
             PanelRegistry_setActive(PanelKind::StepperMotor, true);
             const auto& si = led.info.stepperInfo;
-            Stepper_register(si.pin1, si.pin2, si.pin3, si.pin4, si.totalSteps, si.usPerStep);
-            debugPrintf("[STEPPER] Registered %s on pins %u,%u,%u,%u (%u steps, %uus/step)\n",
-                led.label, si.pin1, si.pin2, si.pin3, si.pin4, si.totalSteps, si.usPerStep);
+            Stepper_register(si.pin1, si.pin2, si.pin3, si.pin4, si.totalSteps, si.usPerStep, si.continuous);
+            debugPrintf("[STEPPER] Registered %s on pins %u,%u,%u,%u (%u steps, %uus/step, %s)\n",
+                led.label, si.pin1, si.pin2, si.pin3, si.pin4, si.totalSteps, si.usPerStep,
+                si.continuous ? "continuous" : "limited-sweep");
 
             // Init sweep: full revolution forward, then back to zero.
             // Same visual self-test as servo gauges — confirms needle position.
