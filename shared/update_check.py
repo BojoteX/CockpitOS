@@ -43,29 +43,23 @@ def _parse_semver(version_str):
 def get_local_version():
     """Resolve local version from git tags. Returns a string like '1.2.12'."""
     try:
-        tag = subprocess.run(
-            ["git", "tag", "--sort=-v:refname", "-l", "v*"],
+        # Use git describe so we only see tags reachable from HEAD,
+        # not tags on other branches pulled in by git fetch.
+        desc = subprocess.run(
+            ["git", "describe", "--tags", "--long", "--match", "v*"],
             capture_output=True, text=True,
             cwd=_PROJECT_ROOT, timeout=5
         )
-        if tag.returncode == 0 and tag.stdout.strip():
-            first_tag = tag.stdout.strip().splitlines()[0]
-            sha = subprocess.run(
-                ["git", "rev-parse", "--short", "HEAD"],
-                capture_output=True, text=True,
-                cwd=_PROJECT_ROOT, timeout=5
-            ).stdout.strip()
+        if desc.returncode == 0 and desc.stdout.strip():
+            # Format: v1.2.16-0-gabcdef  or  v1.2.16-3-gabcdef
+            parts = desc.stdout.strip().rsplit("-", 2)
+            first_tag = parts[0]
+            ahead = int(parts[1]) if len(parts) >= 3 else 0
+            sha = parts[2].lstrip("g") if len(parts) >= 3 else ""
 
             ver = first_tag.lstrip("v")
-            if sha:
-                count = subprocess.run(
-                    ["git", "rev-list", "--count", f"{first_tag}..HEAD"],
-                    capture_output=True, text=True,
-                    cwd=_PROJECT_ROOT, timeout=5
-                ).stdout.strip()
-                ahead = int(count) if count.isdigit() else 0
-                if ahead > 0:
-                    ver += f"+{ahead}.{sha}"
+            if ahead > 0:
+                ver += f"+{ahead}.{sha}"
             return ver
     except Exception:
         pass

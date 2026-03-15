@@ -2108,7 +2108,7 @@ def main():
     _interrupted = check_interrupted_update()
     if _interrupted:
         resume_interrupted_update(_interrupted, lock_path,
-                                 str(_PROJECT_ROOT / "Setup-START.py"))
+                                 str(SCRIPT_DIR / "Setup-START.py"))
 
     while True:
         show_banner()
@@ -2157,7 +2157,7 @@ def main():
         elif choice == "update":
             from shared.updater import perform_update
             perform_update(_newer, lock_path,
-                           str(_PROJECT_ROOT / "Setup-START.py"))
+                           str(SCRIPT_DIR / "Setup-START.py"))
         elif choice == "advanced":
             action_advanced_versions()
         elif choice == "compiler":
