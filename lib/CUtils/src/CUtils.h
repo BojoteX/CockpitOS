@@ -143,7 +143,7 @@ void HC165_printBitChanges(uint64_t prev, uint64_t curr, uint8_t numBits);
 // uint64_t HC165_read();  // always reads as many bits as configured
 
 // —— Analog Gauge Implementation ——
-extern bool hasGauge; // If we find ONE we run the 20 ms ticker 
+extern bool hasGauge; // If we find ONE we run the 20 ms ticker
 #define MAX_GAUGES 8
 void AnalogG_initPin(uint8_t pin);
 void AnalogG_pulseUs(uint8_t pin, int minPulseUs, int maxPulseUs, uint16_t value);
@@ -165,6 +165,17 @@ void    Servo_writeMicroseconds(uint8_t id, uint16_t pulseUs);  // direct micros
 void    Servo_enable(uint8_t id);    // re-attach LEDC, servo holds position
 void    Servo_disable(uint8_t id);   // detach LEDC, servo goes limp
 void    Servo_detach(uint8_t id);    // release LEDC channel permanently
+
+// —— Stepper Motor (any 4-wire unipolar) ——
+// Non-blocking stepper driver: rate-limits each stepper to its usPerStep timing.
+// Supports geared motors (28BYJ-48, 800us) and direct-drive (X27.168, 100us).
+#define MAX_STEPPERS 4
+void    Stepper_register(uint8_t pin1, uint8_t pin2, uint8_t pin3, uint8_t pin4,
+                         uint16_t totalSteps, uint16_t usPerStep);
+void    Stepper_initSweep(uint8_t pin1);                  // blocking self-test: full rev forward, then back to zero
+void    Stepper_set(uint8_t pin1, int32_t targetStep);   // lookup by pin1, set target position
+void    Stepper_tick();                                   // advance one step per stepper; call from tickOutputDrivers()
+void    Stepper_setAllOff();                              // de-energize all coils (power saving)
 
 // —— Meta & Debug helpers —— 
 void setPanelAllLEDs(const char* panelPrefix, bool state);

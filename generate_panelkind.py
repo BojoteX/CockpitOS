@@ -68,6 +68,7 @@ SCAN_LINES = 30  # Only scan first N lines for metadata
 # =============================================================================
 PERMANENT_PCA_ENTRIES = [
     ("AnalogGauge", "Auto-detected when DEVICE_GAUGE in LEDMapping"),
+    ("StepperMotor", "Auto-detected when DEVICE_STEPPER in LEDMapping"),
 ]
 
 def find_panel_kind(filepath: Path) -> tuple[str, str]:

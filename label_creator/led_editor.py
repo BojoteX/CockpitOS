@@ -37,6 +37,7 @@ LED_DEVICES = [
     ("WS2812",           "WS2812"),
     ("GAUGE",            "GAUGE"),
     ("MAGNETIC",         "MAGNETIC"),
+    ("STEPPER",          "STEPPER"),
 ]
 
 # Map device -> info struct type name
@@ -49,6 +50,7 @@ _DEVICE_INFO_MAP = {
     "WS2812":   "ws2812Info",
     "GAUGE":    "gaugeInfo",
     "MAGNETIC": "magneticInfo",
+    "STEPPER":  "stepperInfo",
 }
 
 
@@ -127,6 +129,17 @@ _DEVICE_DESCRIPTIONS = {
         "",
         f"{DIM}  1 solenoid (2-pos toggle): {RESET}APU, LTD/R",
         f"{DIM}  2 solenoids (3-pos rocker): {RESET}Engine Crank",
+    ],
+    "STEPPER": [
+        f"{CYAN}{BOLD}STEPPER{RESET} {DIM}\u2014 4-wire stepper motor{RESET}",
+        f"{DIM}Drives a stepper motor via 4 GPIO pins (IN1-IN4).{RESET}",
+        f"{DIM}Two motor types supported:{RESET}",
+        "",
+        f"{DIM}  {BOLD}28BYJ-48 + ULN2003{RESET}{DIM} — geared, continuous 360\u00b0, unlimited turns{RESET}",
+        f"{DIM}    Slow but reliable. Needs ULN2003 driver board. (1000us, 4096 steps/rev){RESET}",
+        f"{DIM}  {BOLD}X27.168 / VID29{RESET}{DIM} — direct drive, fast, wires directly to GPIO{RESET}",
+        f"{DIM}    Stock: ~315\u00b0 limited sweep. Modded (stop removed): full 360\u00b0{RESET}",
+        f"{DIM}    (100us, 720 steps/rev){RESET}",
     ],
 }
 
@@ -274,6 +287,10 @@ def _generate_comment(device, info_type, info_values):
         return f"// MAGNETIC A={vals[0]} B={vals[1]}"
     if device == "MAGNETIC" and len(vals) >= 1:
         return f"// MAGNETIC A={vals[0]} (single)"
+    if device == "STEPPER" and len(vals) >= 6:
+        return f"// STEPPER pins {vals[0]},{vals[1]},{vals[2]},{vals[3]} steps={vals[4]} {vals[5]}us/step"
+    if device == "STEPPER" and len(vals) >= 5:
+        return f"// STEPPER pins {vals[0]},{vals[1]},{vals[2]},{vals[3]} steps={vals[4]}"
     return "// No Info"
 
 
@@ -370,6 +387,10 @@ def _info_summary(record):
         return f"A={vals[0]} B={vals[1]}"
     if dev == "MAGNETIC" and len(vals) >= 1:
         return f"A={vals[0]} (single)"
+    if dev == "STEPPER" and len(vals) >= 6:
+        return f"pins={vals[0]},{vals[1]},{vals[2]},{vals[3]} steps={vals[4]} {vals[5]}us"
+    if dev == "STEPPER" and len(vals) >= 5:
+        return f"pins={vals[0]},{vals[1]},{vals[2]},{vals[3]} steps={vals[4]}"
     return record["info_values"][:20]
 
 
@@ -574,8 +595,78 @@ def _edit_record_inner(record, label, max_values):
             if gpioA is None: return False
             record["info_values"] = f"{gpioA.strip()}, 255"
 
-    # Dimmable & Active Low — skip for GAUGE and MAGNETIC (not applicable)
-    if dev in ("GAUGE", "MAGNETIC"):
+    elif dev == "STEPPER":
+        # -- STEPPER: any 4-wire unipolar stepper motor --------
+        if max_values:
+            mv = max_values.get(label)
+            if mv is not None and mv not in (1, 65535):
+                print()
+                ui.warn(f"'{label}' has max_value={mv} -- STEPPER only supports "
+                        f"binary (max=1) or analog (max=65535) outputs.")
+                input(f"\n  {DIM}Press Enter to go back...{RESET}")
+                return False
+        print(_SECTION_SEP)
+        ui.info(f"{DIM}Which stepper motor are you using?{RESET}")
+        print()
+        ui.info(f"{DIM}  {BOLD}28BYJ-48 + ULN2003{RESET}{DIM}  (the blue geared motor with driver board){RESET}")
+        ui.info(f"{DIM}    - Continuous 360\u00b0 rotation, unlimited turns{RESET}")
+        ui.info(f"{DIM}    - Slow but strong — good for any instrument{RESET}")
+        ui.info(f"{DIM}    - Requires ULN2003 driver board between ESP32 and motor{RESET}")
+        ui.info(f"{DIM}    - 4096 steps/rev, recommended speed: 1000us/step{RESET}")
+        print()
+        ui.info(f"{DIM}  {BOLD}X27.168 / VID29{RESET}{DIM}  (tiny automotive gauge stepper){RESET}")
+        ui.info(f"{DIM}    - Stock: ~315\u00b0 max sweep (has mechanical end stop){RESET}")
+        ui.info(f"{DIM}    - Modded: remove the stop tab for full 360\u00b0 continuous rotation{RESET}")
+        ui.info(f"{DIM}    - Very fast — ideal for gauge needles{RESET}")
+        ui.info(f"{DIM}    - Wires directly to ESP32 GPIO (no driver board needed){RESET}")
+        ui.info(f"{DIM}    - 720 steps/rev, recommended speed: 100us/step{RESET}")
+        print()
+        ui.info(f"{DIM}Connect IN1-IN4 from the stepper to 4 ESP32 GPIO pins.{RESET}")
+        ui.info(f"{DIM}(Through ULN2003 board for 28BYJ-48, or direct for X27.168){RESET}")
+        print()
+        pin1 = ui.text_input("IN1 GPIO pin",
+                             default=_extract_val(record["info_values"], 0, "0"))
+        if pin1 is None: return False
+        pin2 = ui.text_input("IN2 GPIO pin",
+                             default=_extract_val(record["info_values"], 1, "0"))
+        if pin2 is None: return False
+        pin3 = ui.text_input("IN3 GPIO pin",
+                             default=_extract_val(record["info_values"], 2, "0"))
+        if pin3 is None: return False
+        pin4 = ui.text_input("IN4 GPIO pin",
+                             default=_extract_val(record["info_values"], 3, "0"))
+        if pin4 is None: return False
+        print()
+        ui.info(f"{BOLD}Total steps{RESET}{DIM} = how many steps for the full DCS-BIOS range (0-65535).{RESET}")
+        print()
+        ui.info(f"{DIM}  {BOLD}28BYJ-48:{RESET}")
+        ui.info(f"{DIM}    4096 = 1 full revolution (use for most instruments){RESET}")
+        ui.info(f"{DIM}    Needle wraps naturally at 360\u00b0 (altimeters, heading, clocks){RESET}")
+        print()
+        ui.info(f"{DIM}  {BOLD}X27.168 (stock, with end stop):{RESET}")
+        ui.info(f"{DIM}    630  = ~315\u00b0 max sweep — do NOT exceed or motor jams!{RESET}")
+        ui.info(f"{DIM}    Use for limited-sweep gauges (oil/hyd pressure, fuel, RPM){RESET}")
+        print()
+        ui.info(f"{DIM}  {BOLD}X27.168 (modded, end stop removed):{RESET}")
+        ui.info(f"{DIM}    720  = 1 full revolution, continuous 360\u00b0{RESET}")
+        ui.info(f"{DIM}    Use for altimeters, heading indicators — fast + smooth{RESET}")
+        total = ui.text_input("Total steps",
+                              default=_extract_val(record["info_values"], 4, "4096"))
+        if total is None: return False
+        print()
+        ui.info(f"{BOLD}Step speed{RESET}{DIM} (microseconds per step) — must match your motor type.{RESET}")
+        ui.info(f"{DIM}Too fast = motor vibrates and stalls. Too slow = needle feels sluggish.{RESET}")
+        print()
+        ui.info(f"{DIM}  {BOLD}1000{RESET}{DIM} = 28BYJ-48  (safe default for geared motor){RESET}")
+        ui.info(f"{DIM}  {BOLD}100{RESET}{DIM}  = X27.168   (direct drive, very fast){RESET}")
+        speed = ui.text_input("Microseconds per step",
+                              default=_extract_val(record["info_values"], 5, "1000"))
+        if speed is None: return False
+        record["info_values"] = (f"{pin1.strip()}, {pin2.strip()}, {pin3.strip()}, "
+                                 f"{pin4.strip()}, {total.strip()}, {speed.strip()}")
+
+    # Dimmable & Active Low — skip for GAUGE, MAGNETIC, STEPPER (not applicable)
+    if dev in ("GAUGE", "MAGNETIC", "STEPPER"):
         record["dimmable"]  = "false"
         record["activeLow"] = "false"
     else:
