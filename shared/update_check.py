@@ -107,10 +107,12 @@ def _read_cache():
 
 
 def _write_cache(latest):
-    """Write cache file."""
+    """Write cache file (atomic via tmp + replace)."""
+    tmp = _CACHE_FILE + ".tmp"
     try:
-        with open(_CACHE_FILE, "w") as f:
+        with open(tmp, "w") as f:
             json.dump({"ts": time.time(), "latest": latest}, f)
+        os.replace(tmp, _CACHE_FILE)
     except Exception:
         pass
 
