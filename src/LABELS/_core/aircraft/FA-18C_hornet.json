@@ -992,9 +992,16 @@
                                                                                 "description": "APU Control Switch, ON/OFF",
                                                                                  "identifier": "APU_CONTROL_SW",
                                                                                      "inputs": [ {
+                                                                                                   "description": "switch to previous or next state",
+                                                                                                     "interface": "fixed_step"
+                                                                                               }, {
                                                                                                    "description": "set the switch position -- 0 = off, 1 = on",
                                                                                                      "interface": "set_state",
                                                                                                      "max_value": 1
+                                                                                               }, {
+                                                                                                      "argument": "TOGGLE",
+                                                                                                   "description": "toggle switch state",
+                                                                                                     "interface": "action"
                                                                                                } ],
                                                                                     "outputs": [ {
                                                                                                                          "address": 29890,
@@ -2691,9 +2698,16 @@
                                                                                "description": "Pitot Heater Switch, ON/AUTO",
                                                                                 "identifier": "PITOT_HEAT_SW",
                                                                                     "inputs": [ {
+                                                                                                  "description": "switch to previous or next state",
+                                                                                                    "interface": "fixed_step"
+                                                                                              }, {
                                                                                                   "description": "set the switch position -- 0 = off, 1 = on",
                                                                                                     "interface": "set_state",
                                                                                                     "max_value": 1
+                                                                                              }, {
+                                                                                                     "argument": "TOGGLE",
+                                                                                                  "description": "toggle switch state",
+                                                                                                    "interface": "action"
                                                                                               } ],
                                                                                    "outputs": [ {
                                                                                                                         "address": 29896,
@@ -3550,9 +3564,16 @@
                                                                                 "description": "Fuel Dump Switch, ON/OFF",
                                                                                  "identifier": "FUEL_DUMP_SW",
                                                                                      "inputs": [ {
+                                                                                                   "description": "switch to previous or next state",
+                                                                                                     "interface": "fixed_step"
+                                                                                               }, {
                                                                                                    "description": "set the switch position -- 0 = off, 1 = on",
                                                                                                      "interface": "set_state",
                                                                                                      "max_value": 1
+                                                                                               }, {
+                                                                                                      "argument": "TOGGLE",
+                                                                                                   "description": "toggle switch state",
+                                                                                                     "interface": "action"
                                                                                                } ],
                                                                                     "outputs": [ {
                                                                                                                          "address": 29876,
@@ -9201,9 +9222,16 @@
                                                                                "description": "HOOK BYPASS Switch, FIELD/CARRIER",
                                                                                 "identifier": "HOOK_BYPASS_SW",
                                                                                     "inputs": [ {
+                                                                                                  "description": "switch to previous or next state",
+                                                                                                    "interface": "fixed_step"
+                                                                                              }, {
                                                                                                   "description": "set the switch position -- 0 = off, 1 = on",
                                                                                                     "interface": "set_state",
                                                                                                     "max_value": 1
+                                                                                              }, {
+                                                                                                     "argument": "TOGGLE",
+                                                                                                  "description": "toggle switch state",
+                                                                                                    "interface": "action"
                                                                                               } ],
                                                                                    "outputs": [ {
                                                                                                                         "address": 29824,
@@ -9241,9 +9269,16 @@
                                                                                "description": "Launch Bar Switch",
                                                                                 "identifier": "LAUNCH_BAR_SW",
                                                                                     "inputs": [ {
+                                                                                                  "description": "switch to previous or next state",
+                                                                                                    "interface": "fixed_step"
+                                                                                              }, {
                                                                                                   "description": "set the switch position -- 0 = off, 1 = on",
                                                                                                     "interface": "set_state",
                                                                                                     "max_value": 1
+                                                                                              }, {
+                                                                                                     "argument": "TOGGLE",
+                                                                                                  "description": "toggle switch state",
+                                                                                                    "interface": "action"
                                                                                               } ],
                                                                                    "outputs": [ {
                                                                                                                         "address": 29824,
@@ -9424,13 +9459,20 @@
                                                                          },
                                                              "LTD_R_SW": {
                                                                                  "category": "Sensor Panel",
-                                                                             "control_type": "action",
+                                                                             "control_type": "selector",
                                                                               "description": "LTD/R Switch, ARM/SAFE",
                                                                                "identifier": "LTD_R_SW",
                                                                                    "inputs": [ {
-                                                                                                 "description": "set the switch position -- 0 = off, 1 = on",
+                                                                                                 "description": "switch to previous or next state",
+                                                                                                   "interface": "fixed_step"
+                                                                                             }, {
+                                                                                                 "description": "set position",
                                                                                                    "interface": "set_state",
                                                                                                    "max_value": 1
+                                                                                             }, {
+                                                                                                    "argument": "TOGGLE",
+                                                                                                 "description": "Toggle switch state",
+                                                                                                   "interface": "action"
                                                                                              } ],
                                                                                   "outputs": [ {
                                                                                                                        "address": 29896,
