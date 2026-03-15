@@ -76,6 +76,10 @@
                      "DCS_BIOS": {
                                          "category": "Metadata",
                                      "control_type": "display",
+                                       "deprecated": {
+                                                               "since": "0.11.2",
+                                                         "use_instead": "VERSION"
+                                                     },
                                       "description": "DCS Bios Version",
                                        "identifier": "DCS_BIOS",
                                            "inputs": [  ],
@@ -98,6 +102,21 @@
                                                                     "address": 1030,
                                                          "address_identifier": "CommonData_PILOTNAME_A",
                                                                 "description": "Pilot Name",
+                                                                 "max_length": 24,
+                                                                     "suffix": "",
+                                                                       "type": "string"
+                                                     } ]
+                                 },
+                      "VERSION": {
+                                         "category": "Metadata",
+                                     "control_type": "display",
+                                      "description": "DCS-BIOS Version",
+                                       "identifier": "VERSION",
+                                           "inputs": [  ],
+                                          "outputs": [ {
+                                                                    "address": 1126,
+                                                         "address_identifier": "CommonData_VERSION_A",
+                                                                "description": "DCS-BIOS Version",
                                                                  "max_length": 24,
                                                                      "suffix": "",
                                                                        "type": "string"
