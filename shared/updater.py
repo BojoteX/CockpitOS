@@ -110,8 +110,10 @@ def _write_manifest(data):
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(data, f)
         os.replace(tmp, _MANIFEST)  # atomic on NTFS
-    except Exception:
-        pass
+        return True
+    except Exception as e:
+        _warn(f"Could not write update manifest: {e}")
+        return False
 
 
 def _read_manifest():
@@ -181,6 +183,9 @@ def _download_zip(version):
                         _w(f"\r     {_DIM}Downloading... {mb:.1f} MB{_RESET}  ")
 
             _w(f"\r{_ERASE_LN}")
+            if total > 0 and downloaded != total:
+                _error(f"Incomplete download: got {downloaded} of {total} bytes")
+                return False
             return True
     except Exception as e:
         _w(f"\r{_ERASE_LN}")
@@ -221,6 +226,13 @@ def _extract_to_staging():
             shutil.rmtree(_STAGING_DIR)
 
         with zipfile.ZipFile(_ZIP_PATH, "r") as zf:
+            # Guard against path traversal (../) in ZIP entries
+            staging_real = os.path.realpath(_STAGING_DIR)
+            for info in zf.infolist():
+                target = os.path.realpath(os.path.join(_STAGING_DIR, info.filename))
+                if not target.startswith(staging_real + os.sep) and target != staging_real:
+                    _error(f"Blocked path traversal in ZIP: {info.filename}")
+                    return -1
             zf.extractall(_STAGING_DIR)
             return len([n for n in zf.namelist() if not n.endswith("/")])
     except Exception as e:
@@ -240,6 +252,7 @@ def _overlay_files():
     copied = 0
     skipped = 0
     errors = 0
+    failed_files = []
 
     # Count total files for progress
     total = 0
@@ -271,13 +284,19 @@ def _overlay_files():
             except PermissionError:
                 # File in use (e.g., arduino-cli.exe) -- skip, non-fatal
                 errors += 1
+                failed_files.append(rel)
             except Exception:
                 errors += 1
+                failed_files.append(rel)
 
     _w(f"\r{_ERASE_LN}")
 
-    if errors:
-        _warn(f"{errors} file(s) could not be updated (in use or permission denied)")
+    if failed_files:
+        _warn(f"{len(failed_files)} file(s) could not be updated:")
+        for f in failed_files[:10]:
+            _warn(f"  {f}")
+        if len(failed_files) > 10:
+            _warn(f"  ... and {len(failed_files) - 10} more")
 
     return copied, skipped
 
@@ -411,6 +430,7 @@ def perform_update(target_version, lock_path, caller_script):
     if os.path.isdir(os.path.join(_PROJECT_ROOT, ".git")):
         _warn("Git repository detected. Source files will be overwritten.")
         _info("Your .git history and branches are NOT affected.")
+        _info("Your working tree will show modified files after the update.")
         print()
 
     if not _confirm(f"Update CockpitOS to v{target_version}?"):
@@ -461,8 +481,13 @@ def perform_update(target_version, lock_path, caller_script):
     _success(f"Extracted {file_count} files.")
 
     # ── Phase 3: Overlay ──────────────────────────────────────────────────
-    _write_manifest({"phase": "overlaying", "version": target_version,
-                     "staging_dir": _STAGING_DIR, "started_at": time.time()})
+    if not _write_manifest({"phase": "overlaying", "version": target_version,
+                            "staging_dir": _STAGING_DIR,
+                            "started_at": time.time()}):
+        _error("Cannot write recovery manifest — aborting update for safety.")
+        _cleanup_staging()
+        time.sleep(2)
+        return
 
     _info("Updating files...")
     copied, skipped = _overlay_files()
