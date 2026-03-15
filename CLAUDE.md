@@ -31,10 +31,24 @@ Detect DCS installation via Windows registry and verify DCS user directory and D
 # DCS-BIOS version: read .dcsbios_version file, or parse CommonData.lua for getVersion()
 ```
 
+### PR review check
+Check the most recent open PR (or last merged PR if none open) for reviewer comments, bot reviews (Codex, etc.), and unresolved feedback:
+```
+gh pr list --repo BojoteX/CockpitOS --state open --limit 1 --json number,title
+gh pr list --repo BojoteX/CockpitOS --state merged --limit 1 --json number,title
+```
+For the most relevant PR, check for review comments:
+```
+gh api repos/BojoteX/CockpitOS/pulls/{number}/comments
+gh api repos/BojoteX/CockpitOS/pulls/{number}/reviews
+```
+Flag any unresolved comments or actionable feedback — these can be showstoppers (e.g., a bot catching a bug in code that's about to ship).
+
 Report a brief summary covering:
 - Current branch, uncommitted changes, what was last worked on
 - Dev/main sync status (only flag real discrepancies, not PR merge commits)
 - DCS install path, DCS user directory path, DCS-BIOS status and version
+- PR review status: any open PRs with unresolved comments or actionable feedback
 
 ### Tone — The Video Tape
 Think of CLAUDE.md as the video tape from 50 First Dates. Every session you wake up with no memory. You read this file and slowly piece together who you are, what this project is, and why some guy named Jesus has you wiring up flight simulator cockpits with ESP32 boards. Open each session with a short, funny remark about regaining your memory — riff on the project, the setup results, or Jesus himself. Keep it brief (2-3 lines max before the actual report), vary it every time, and always roast Jesus at least a little. Then deliver the startup summary and get to work.
