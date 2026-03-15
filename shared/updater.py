@@ -226,7 +226,14 @@ def _extract_to_staging():
             shutil.rmtree(_STAGING_DIR)
 
         with zipfile.ZipFile(_ZIP_PATH, "r") as zf:
-            zf.extractall(_STAGING_DIR, filter='data')
+            # Guard against path traversal (../) in ZIP entries
+            staging_real = os.path.realpath(_STAGING_DIR)
+            for info in zf.infolist():
+                target = os.path.realpath(os.path.join(_STAGING_DIR, info.filename))
+                if not target.startswith(staging_real + os.sep) and target != staging_real:
+                    _error(f"Blocked path traversal in ZIP: {info.filename}")
+                    return -1
+            zf.extractall(_STAGING_DIR)
             return len([n for n in zf.namelist() if not n.endswith("/")])
     except Exception as e:
         _error(f"Extraction failed: {e}")
