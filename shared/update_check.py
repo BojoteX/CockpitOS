@@ -169,12 +169,20 @@ _DIM = "\033[2m"
 _RESET = "\033[0m"
 
 
+def is_git_repo():
+    """Return True if running from a git clone (has .git directory)."""
+    return os.path.isdir(os.path.join(_PROJECT_ROOT, ".git"))
+
+
 def update_available():
     """Return the newer version string if an update is available, None otherwise.
 
     Lightweight wrapper for menu logic -- use this to decide whether to show
-    the "Update CockpitOS" menu item.
+    the "Update CockpitOS" menu item.  Returns None for git repos — developers
+    should pull updates via git, not the auto-updater.
     """
+    if is_git_repo():
+        return None
     ver = get_local_version()
     return check_for_update(ver)
 
@@ -185,12 +193,20 @@ def version_line():
     Example outputs:
         "     v1.2.12"
         "     v1.2.12    Update available: v1.3.0"
+        "     v1.2.12    New release available: v1.3.0 — run git pull to update"
     """
     ver = get_local_version()
     line = f"     {_DIM}v{ver}{_RESET}"
 
-    newer = check_for_update(ver)
-    if newer:
-        line += f"    {_YELLOW}Update available: v{newer}{_RESET}"
+    if is_git_repo():
+        # Git users: hint to pull, never offer auto-update
+        newer = check_for_update(ver)
+        if newer:
+            line += (f"    {_YELLOW}New release: v{newer}"
+                     f" — git pull to update{_RESET}")
+    else:
+        newer = check_for_update(ver)
+        if newer:
+            line += f"    {_YELLOW}Update available: v{newer}{_RESET}"
 
     return line
