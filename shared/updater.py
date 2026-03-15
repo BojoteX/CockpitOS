@@ -499,6 +499,14 @@ def perform_update(target_version, lock_path, caller_script):
     _cleanup_staging()
     _cleanup_manifest()
 
+    # Clear the version-check cache so the restarted tool sees the new version
+    try:
+        cache = os.path.join(tempfile.gettempdir(), ".cockpitos_update_check")
+        if os.path.isfile(cache):
+            os.unlink(cache)
+    except OSError:
+        pass
+
     print()
     print(f"     {_GREEN}{_BOLD}CockpitOS updated to v{target_version}!{_RESET}")
     print(f"     {_DIM}{copied} files updated, {skipped} user files preserved{_RESET}")

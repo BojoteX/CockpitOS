@@ -41,30 +41,38 @@ def _parse_semver(version_str):
 # ---------------------------------------------------------------------------
 
 def get_local_version():
-    """Resolve local version from git tags. Returns a string like '1.2.12'."""
-    try:
-        # Use git describe so we only see tags reachable from HEAD,
-        # not tags on other branches pulled in by git fetch.
-        desc = subprocess.run(
-            ["git", "describe", "--tags", "--long", "--match", "v*"],
-            capture_output=True, text=True,
-            cwd=_PROJECT_ROOT, timeout=5
-        )
-        if desc.returncode == 0 and desc.stdout.strip():
-            # Format: v1.2.16-0-gabcdef  or  v1.2.16-3-gabcdef
-            parts = desc.stdout.strip().rsplit("-", 2)
-            first_tag = parts[0]
-            ahead = int(parts[1]) if len(parts) >= 3 else 0
-            sha = parts[2].lstrip("g") if len(parts) >= 3 else ""
+    """Resolve local version from git tags or version.h.
 
-            ver = first_tag.lstrip("v")
-            if ahead > 0:
-                ver += f"+{ahead}.{sha}"
-            return ver
-    except Exception:
-        pass
+    In a git repo, git describe is the primary source — it tracks HEAD
+    accurately across branches and tag switches.  version.h is gitignored
+    and can go stale, so it is only used as a fallback when git describe
+    fails, or as the primary source in release ZIP installs (no .git).
+    """
+    has_git = os.path.isdir(os.path.join(_PROJECT_ROOT, ".git"))
 
-    # Fallback: try reading version.h
+    # Git repo: git describe is the authoritative source
+    if has_git:
+        try:
+            desc = subprocess.run(
+                ["git", "describe", "--tags", "--long", "--match", "v*"],
+                capture_output=True, text=True,
+                cwd=_PROJECT_ROOT, timeout=5
+            )
+            if desc.returncode == 0 and desc.stdout.strip():
+                # Format: v1.2.16-0-gabcdef  or  v1.2.16-3-gabcdef
+                parts = desc.stdout.strip().rsplit("-", 2)
+                first_tag = parts[0]
+                ahead = int(parts[1]) if len(parts) >= 3 else 0
+                sha = parts[2].lstrip("g") if len(parts) >= 3 else ""
+
+                ver = first_tag.lstrip("v")
+                if ahead > 0:
+                    ver += f"+{ahead}.{sha}"
+                return ver
+        except Exception:
+            pass
+
+    # No .git (release ZIP) or git describe failed: use version.h
     vh = os.path.join(_PROJECT_ROOT, "version.h")
     try:
         with open(vh, "r", encoding="utf-8") as f:
@@ -161,12 +169,20 @@ _DIM = "\033[2m"
 _RESET = "\033[0m"
 
 
+def is_git_repo():
+    """Return True if running from a git clone (has .git directory)."""
+    return os.path.isdir(os.path.join(_PROJECT_ROOT, ".git"))
+
+
 def update_available():
     """Return the newer version string if an update is available, None otherwise.
 
     Lightweight wrapper for menu logic -- use this to decide whether to show
-    the "Update CockpitOS" menu item.
+    the "Update CockpitOS" menu item.  Returns None for git repos — developers
+    should pull updates via git, not the auto-updater.
     """
+    if is_git_repo():
+        return None
     ver = get_local_version()
     return check_for_update(ver)
 
@@ -177,12 +193,20 @@ def version_line():
     Example outputs:
         "     v1.2.12"
         "     v1.2.12    Update available: v1.3.0"
+        "     v1.2.12    New release available: v1.3.0 — run git pull to update"
     """
     ver = get_local_version()
     line = f"     {_DIM}v{ver}{_RESET}"
 
-    newer = check_for_update(ver)
-    if newer:
-        line += f"    {_YELLOW}Update available: v{newer}{_RESET}"
+    if is_git_repo():
+        # Git users: hint to pull, never offer auto-update
+        newer = check_for_update(ver)
+        if newer:
+            line += (f"    {_YELLOW}New release: v{newer}"
+                     f" — git pull to update{_RESET}")
+    else:
+        newer = check_for_update(ver)
+        if newer:
+            line += f"    {_YELLOW}Update available: v{newer}{_RESET}"
 
     return line
