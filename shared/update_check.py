@@ -41,44 +41,45 @@ def _parse_semver(version_str):
 # ---------------------------------------------------------------------------
 
 def get_local_version():
-    """Resolve local version from version.h or git tags.
+    """Resolve local version from git tags or version.h.
 
-    Priority: version.h with a clean release version (X.Y.Z) wins — this is
-    the source of truth after an auto-update overlay.  Falls back to git
-    describe for development builds, then to 'unknown'.
+    In a git repo, git describe is the primary source — it tracks HEAD
+    accurately across branches and tag switches.  version.h is gitignored
+    and can go stale, so it is only used as a fallback when git describe
+    fails, or as the primary source in release ZIP installs (no .git).
     """
-    # Primary: version.h — authoritative for release installs and post-overlay
+    has_git = os.path.isdir(os.path.join(_PROJECT_ROOT, ".git"))
+
+    # Git repo: git describe is the authoritative source
+    if has_git:
+        try:
+            desc = subprocess.run(
+                ["git", "describe", "--tags", "--long", "--match", "v*"],
+                capture_output=True, text=True,
+                cwd=_PROJECT_ROOT, timeout=5
+            )
+            if desc.returncode == 0 and desc.stdout.strip():
+                # Format: v1.2.16-0-gabcdef  or  v1.2.16-3-gabcdef
+                parts = desc.stdout.strip().rsplit("-", 2)
+                first_tag = parts[0]
+                ahead = int(parts[1]) if len(parts) >= 3 else 0
+                sha = parts[2].lstrip("g") if len(parts) >= 3 else ""
+
+                ver = first_tag.lstrip("v")
+                if ahead > 0:
+                    ver += f"+{ahead}.{sha}"
+                return ver
+        except Exception:
+            pass
+
+    # No .git (release ZIP) or git describe failed: use version.h
     vh = os.path.join(_PROJECT_ROOT, "version.h")
     try:
         with open(vh, "r", encoding="utf-8") as f:
             m = re.search(r'VERSION_CURRENT\s+"(.+?)"', f.read())
-            if m:
-                ver_str = m.group(1)
-                # Clean release version (e.g., "1.2.18") — use it directly
-                if re.match(r'^\d+\.\d+\.\d+$', ver_str):
-                    return ver_str
+            if m and not m.group(1).startswith("dev-"):
+                return m.group(1)
     except OSError:
-        pass
-
-    # Fallback: git describe for development builds
-    try:
-        desc = subprocess.run(
-            ["git", "describe", "--tags", "--long", "--match", "v*"],
-            capture_output=True, text=True,
-            cwd=_PROJECT_ROOT, timeout=5
-        )
-        if desc.returncode == 0 and desc.stdout.strip():
-            # Format: v1.2.16-0-gabcdef  or  v1.2.16-3-gabcdef
-            parts = desc.stdout.strip().rsplit("-", 2)
-            first_tag = parts[0]
-            ahead = int(parts[1]) if len(parts) >= 3 else 0
-            sha = parts[2].lstrip("g") if len(parts) >= 3 else ""
-
-            ver = first_tag.lstrip("v")
-            if ahead > 0:
-                ver += f"+{ahead}.{sha}"
-            return ver
-    except Exception:
         pass
 
     return "unknown"
