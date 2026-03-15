@@ -249,8 +249,10 @@ void setLED(const char* label, bool state, uint8_t intensity, uint16_t rawValue,
             #endif
             {
                 const auto& si = led->info.stepperInfo;
-                // Map rawValue to step position within totalSteps range
-                int32_t target = (int32_t)((uint32_t)rawValue * si.totalSteps / 65536UL);
+                // Binary outputs (max_value=1): 0 → step 0, 1 → last step
+                // Analog outputs (max_value=65535): scale proportionally
+                uint16_t val = (maxValue >= 65535) ? rawValue : (state ? 65535 : 0);
+                int32_t target = (int32_t)((uint32_t)val * si.totalSteps / 65536UL);
                 Stepper_set(si.pin1, target);
             }
             #if DEBUG_PERFORMANCE
@@ -291,8 +293,9 @@ void setLED(const char* label, bool state, uint8_t intensity, uint16_t rawValue,
                 break;
             case DEVICE_STEPPER: {
                 const auto& si = led->info.stepperInfo;
-                int32_t target = (int32_t)((uint32_t)rawValue * si.totalSteps / 65536UL);
-                debugPrintf("[STEPPER] %s target=%ld (raw=%u)\n", label, (long)target, rawValue);
+                uint16_t val = (maxValue >= 65535) ? rawValue : (state ? 65535 : 0);
+                int32_t target = (int32_t)((uint32_t)val * si.totalSteps / 65536UL);
+                debugPrintf("[STEPPER] %s target=%ld (raw=%u max=%u)\n", label, (long)target, rawValue, maxValue);
                 break;
             }
             case DEVICE_NONE:

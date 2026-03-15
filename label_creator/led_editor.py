@@ -287,8 +287,11 @@ def _generate_comment(device, info_type, info_values):
         return f"// MAGNETIC A={vals[0]} B={vals[1]}"
     if device == "MAGNETIC" and len(vals) >= 1:
         return f"// MAGNETIC A={vals[0]} (single)"
+    if device == "STEPPER" and len(vals) >= 7:
+        mode = "continuous" if vals[6].strip().lower() == "true" else "limited"
+        return f"// STEPPER pins {vals[0]},{vals[1]},{vals[2]},{vals[3]} steps={vals[4]} {vals[5]}us {mode}"
     if device == "STEPPER" and len(vals) >= 6:
-        return f"// STEPPER pins {vals[0]},{vals[1]},{vals[2]},{vals[3]} steps={vals[4]} {vals[5]}us/step"
+        return f"// STEPPER pins {vals[0]},{vals[1]},{vals[2]},{vals[3]} steps={vals[4]} {vals[5]}us"
     if device == "STEPPER" and len(vals) >= 5:
         return f"// STEPPER pins {vals[0]},{vals[1]},{vals[2]},{vals[3]} steps={vals[4]}"
     return "// No Info"
@@ -387,10 +390,13 @@ def _info_summary(record):
         return f"A={vals[0]} B={vals[1]}"
     if dev == "MAGNETIC" and len(vals) >= 1:
         return f"A={vals[0]} (single)"
+    if dev == "STEPPER" and len(vals) >= 7:
+        mode = "360" if vals[6].lower() == "true" else "lim"
+        return f"pins={vals[0]},{vals[1]},{vals[2]},{vals[3]} s={vals[4]} {vals[5]}us {mode}"
     if dev == "STEPPER" and len(vals) >= 6:
-        return f"pins={vals[0]},{vals[1]},{vals[2]},{vals[3]} steps={vals[4]} {vals[5]}us"
+        return f"pins={vals[0]},{vals[1]},{vals[2]},{vals[3]} s={vals[4]} {vals[5]}us"
     if dev == "STEPPER" and len(vals) >= 5:
-        return f"pins={vals[0]},{vals[1]},{vals[2]},{vals[3]} steps={vals[4]}"
+        return f"pins={vals[0]},{vals[1]},{vals[2]},{vals[3]} s={vals[4]}"
     return record["info_values"][:20]
 
 
@@ -662,8 +668,24 @@ def _edit_record_inner(record, label, max_values):
         speed = ui.text_input("Microseconds per step",
                               default=_extract_val(record["info_values"], 5, "1000"))
         if speed is None: return False
+        print()
+        ui.info(f"{BOLD}Continuous rotation?{RESET}")
+        ui.info(f"{DIM}Does this motor spin 360\u00b0 with no end stops?{RESET}")
+        print()
+        ui.info(f"{DIM}  {BOLD}y{RESET}{DIM} = 28BYJ-48 (always continuous){RESET}")
+        ui.info(f"{DIM}  {BOLD}y{RESET}{DIM} = X27.168 with end stop REMOVED (modded for 360\u00b0){RESET}")
+        ui.info(f"{DIM}  {BOLD}n{RESET}{DIM} = X27.168 stock (has physical end stop — limited sweep){RESET}")
+        print()
+        ui.info(f"{DIM}This controls wraparound behavior: continuous motors take the{RESET}")
+        ui.info(f"{DIM}shortest path across 0\u00b0, limited motors stay within their sweep.{RESET}")
+        prev_cont = _extract_val(record["info_values"], 6, "true")
+        cont_default = "y" if prev_cont.strip().lower() == "true" else "n"
+        cont_input = ui.text_input("Continuous 360\u00b0 rotation (y/n)",
+                                   default=cont_default)
+        if cont_input is None: return False
+        cont_val = "true" if cont_input.strip().lower() in ("y", "yes", "true") else "false"
         record["info_values"] = (f"{pin1.strip()}, {pin2.strip()}, {pin3.strip()}, "
-                                 f"{pin4.strip()}, {total.strip()}, {speed.strip()}")
+                                 f"{pin4.strip()}, {total.strip()}, {speed.strip()}, {cont_val}")
 
     # Dimmable & Active Low — skip for GAUGE, MAGNETIC, STEPPER (not applicable)
     if dev in ("GAUGE", "MAGNETIC", "STEPPER"):

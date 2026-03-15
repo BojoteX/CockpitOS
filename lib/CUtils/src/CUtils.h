@@ -171,7 +171,7 @@ void    Servo_detach(uint8_t id);    // release LEDC channel permanently
 // Supports geared motors (28BYJ-48, 800us) and direct-drive (X27.168, 100us).
 #define MAX_STEPPERS 4
 void    Stepper_register(uint8_t pin1, uint8_t pin2, uint8_t pin3, uint8_t pin4,
-                         uint16_t totalSteps, uint16_t usPerStep);
+                         uint16_t totalSteps, uint16_t usPerStep, bool continuous);
 void    Stepper_initSweep(uint8_t pin1);                  // blocking self-test: full rev forward, then back to zero
 void    Stepper_set(uint8_t pin1, int32_t targetStep);   // lookup by pin1, set target position
 void    Stepper_tick();                                   // advance one step per stepper; call from tickOutputDrivers()

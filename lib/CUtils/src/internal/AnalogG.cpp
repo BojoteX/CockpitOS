@@ -252,6 +252,7 @@ struct StepperState {
     uint32_t lastStepUs;        // micros() timestamp of last step (for rate-limiting in tick)
     uint8_t  phaseIndex;        // 0-7 half-step sequence index
     bool     enabled;
+    bool     continuous;        // true = 360 unlimited rotation (wraparound), false = limited sweep (no wraparound)
 };
 
 static StepperState stepperArray[MAX_STEPPERS];
@@ -286,7 +287,7 @@ static void stepperAllOff(const StepperState& s) {
 }
 
 void Stepper_register(uint8_t pin1, uint8_t pin2, uint8_t pin3, uint8_t pin4,
-                      uint16_t totalSteps, uint16_t usPerStep) {
+                      uint16_t totalSteps, uint16_t usPerStep, bool continuous) {
     if (stepperCount >= MAX_STEPPERS) return;
 
     StepperState& st = stepperArray[stepperCount];
@@ -301,6 +302,7 @@ void Stepper_register(uint8_t pin1, uint8_t pin2, uint8_t pin3, uint8_t pin4,
     st.lastStepUs  = 0;
     st.phaseIndex  = 0;
     st.enabled     = true;
+    st.continuous  = continuous;
 
     // Set all 4 pins as OUTPUT
     for (uint8_t i = 0; i < 4; ++i)
@@ -312,8 +314,9 @@ void Stepper_register(uint8_t pin1, uint8_t pin2, uint8_t pin3, uint8_t pin4,
     stepperApplyPhase(st);
 
     stepperCount++;
-    debugPrintf("[STEPPER] Registered id=%u pins=%u,%u,%u,%u totalSteps=%u usPerStep=%u (holding phase 0)\n",
-                stepperCount - 1, pin1, pin2, pin3, pin4, totalSteps, st.usPerStep);
+    debugPrintf("[STEPPER] Registered id=%u pins=%u,%u,%u,%u totalSteps=%u usPerStep=%u %s (holding phase 0)\n",
+                stepperCount - 1, pin1, pin2, pin3, pin4, totalSteps, st.usPerStep,
+                st.continuous ? "continuous" : "limited-sweep");
 }
 
 void Stepper_initSweep(uint8_t pin1) {
@@ -361,10 +364,16 @@ void Stepper_initSweep(uint8_t pin1) {
 void Stepper_set(uint8_t pin1, int32_t targetStep) {
     for (uint8_t i = 0; i < stepperCount; ++i) {
         if (stepperArray[i].pins[0] == pin1) {
-            // Wrap target into [0, totalSteps) for continuous-rotation instruments
             int32_t ts = (int32_t)stepperArray[i].totalSteps;
-            targetStep = targetStep % ts;
-            if (targetStep < 0) targetStep += ts;
+            if (stepperArray[i].continuous) {
+                // Wrap target into [0, totalSteps) for continuous-rotation
+                targetStep = targetStep % ts;
+                if (targetStep < 0) targetStep += ts;
+            } else {
+                // Clamp target for limited-sweep motors (never exceed end stops)
+                if (targetStep < 0)   targetStep = 0;
+                if (targetStep >= ts) targetStep = ts - 1;
+            }
             stepperArray[i].targetStep = targetStep;
             return;
         }
@@ -391,18 +400,23 @@ void Stepper_tick() {
         if ((now - st.lastStepUs) < st.usPerStep) continue;
         st.lastStepUs = now;
 
-        // Shortest-path wraparound for continuous-rotation instruments
-        // (e.g., altimeter needle crossing the 12-o'clock position)
         int32_t delta = st.targetStep - st.currentStep;
-        int32_t half  = (int32_t)st.totalSteps / 2;
 
-        if (delta > half)        delta -= st.totalSteps;
-        else if (delta < -half)  delta += st.totalSteps;
+        if (st.continuous) {
+            // Shortest-path wraparound for continuous-rotation instruments
+            // (e.g., altimeter needle crossing the 12-o'clock position)
+            int32_t half = (int32_t)st.totalSteps / 2;
+            if (delta > half)        delta -= st.totalSteps;
+            else if (delta < -half)  delta += st.totalSteps;
+        }
+        // Limited-sweep motors: delta is used as-is (no wraparound),
+        // so the motor always traverses the valid sweep range.
 
         int8_t dir = (delta > 0) ? 1 : -1;
         st.currentStep += dir;
 
-        // Wrap currentStep to [0, totalSteps)
+        // Wrap currentStep to [0, totalSteps) — only relevant for continuous motors
+        // but safe for limited-sweep (they never cross the boundary)
         if (st.currentStep < 0)                       st.currentStep += st.totalSteps;
         else if (st.currentStep >= st.totalSteps)     st.currentStep -= st.totalSteps;
 
