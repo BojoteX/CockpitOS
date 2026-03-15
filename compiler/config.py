@@ -179,6 +179,7 @@ TRACKED_DEFINES = {
     "VERBOSE_MODE_WIFI_ONLY":           "0",
     "VERBOSE_MODE_SERIAL_ONLY":         "0",
     "DEBUG_PERFORMANCE":                "0",
+    "VERBOSE_PERFORMANCE_ONLY":         "0",
     # Advanced
     "MODE_DEFAULT_IS_HID":              "0",
 }
