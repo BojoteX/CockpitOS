@@ -41,10 +41,27 @@ def _parse_semver(version_str):
 # ---------------------------------------------------------------------------
 
 def get_local_version():
-    """Resolve local version from git tags. Returns a string like '1.2.12'."""
+    """Resolve local version from version.h or git tags.
+
+    Priority: version.h with a clean release version (X.Y.Z) wins — this is
+    the source of truth after an auto-update overlay.  Falls back to git
+    describe for development builds, then to 'unknown'.
+    """
+    # Primary: version.h — authoritative for release installs and post-overlay
+    vh = os.path.join(_PROJECT_ROOT, "version.h")
     try:
-        # Use git describe so we only see tags reachable from HEAD,
-        # not tags on other branches pulled in by git fetch.
+        with open(vh, "r", encoding="utf-8") as f:
+            m = re.search(r'VERSION_CURRENT\s+"(.+?)"', f.read())
+            if m:
+                ver_str = m.group(1)
+                # Clean release version (e.g., "1.2.18") — use it directly
+                if re.match(r'^\d+\.\d+\.\d+$', ver_str):
+                    return ver_str
+    except OSError:
+        pass
+
+    # Fallback: git describe for development builds
+    try:
         desc = subprocess.run(
             ["git", "describe", "--tags", "--long", "--match", "v*"],
             capture_output=True, text=True,
@@ -62,16 +79,6 @@ def get_local_version():
                 ver += f"+{ahead}.{sha}"
             return ver
     except Exception:
-        pass
-
-    # Fallback: try reading version.h
-    vh = os.path.join(_PROJECT_ROOT, "version.h")
-    try:
-        with open(vh, "r", encoding="utf-8") as f:
-            m = re.search(r'VERSION_CURRENT\s+"(.+?)"', f.read())
-            if m and not m.group(1).startswith("dev-"):
-                return m.group(1)
-    except OSError:
         pass
 
     return "unknown"
