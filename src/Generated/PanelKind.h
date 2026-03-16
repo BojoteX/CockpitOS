@@ -15,6 +15,7 @@ enum class PanelKind : uint8_t {
 
     // ===== Auto-detected PCA panels (permanent, no REGISTER_PANEL) =====
     AnalogGauge,             // Auto-detected when DEVICE_GAUGE in LEDMapping
+    StepperMotor,            // Auto-detected when DEVICE_STEPPER in LEDMapping
 
     // ===== Compiled panels (auto-generated from src/Panels/*.cpp) =====
     Generic,                 // from Generic.cpp

@@ -608,7 +608,9 @@ def main():
         cprint(CYAN + BOLD, "      | |__| (_) | (__ |   <| |_) | | |_| |_| |___) |")
         cprint(CYAN + BOLD, "       \\____\\___/ \\___|_|\\_\\ .__/|_|\\__|\\___/|____/")
         cprint(CYAN + BOLD, "                            |_|")
-        cprint(CYAN + BOLD, "              Compile Tool")
+        from shared.update_check import version_tag
+        vtag = version_tag()
+        print(f"{CYAN}{BOLD}              Compile Tool{RESET}{vtag}")
         print()
         role_str = role_label(role)
         transport_str = transport_label(transport) if transport else "?"
@@ -672,10 +674,11 @@ def main():
         else:
             print(f"     \U0001f41b {DIM}Debug is DISABLED (see Misc Options to enable){RESET}")
 
-        # -- Version + update check ----------------------------------------------
+        # -- Update check --------------------------------------------------------
         from shared.update_check import version_line, update_available
-        print(version_line())
-
+        _vl = version_line()
+        if _vl:
+            print(_vl)
         print()
 
         _newer = update_available()

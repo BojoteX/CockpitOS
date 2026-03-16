@@ -1014,8 +1014,15 @@ def main():
 
         ui.cls()
         print()
-        for line in _BANNER.strip("\n").splitlines():
-            ui.cprint(ui.CYAN + ui.BOLD, line)
+        from shared.update_check import version_tag
+        vtag = version_tag()
+        banner_lines = _BANNER.strip("\n").splitlines()
+        for i, line in enumerate(banner_lines):
+            if i == len(banner_lines) - 1:
+                # Last line is the subtitle — append version tag
+                print(f"{ui.CYAN}{ui.BOLD}{line}{ui.RESET}{vtag}")
+            else:
+                ui.cprint(ui.CYAN + ui.BOLD, line)
         print()
 
         # Status display — emoji lines like the compiler tool
@@ -1030,12 +1037,12 @@ def main():
         else:
             print(f"     \U0001f3f7\ufe0f {ui.DIM}No label set generated yet{ui.RESET}")
 
-        # -- Version + update check ------------------------------------------
-        from shared.update_check import version_line
-        print(version_line())
+        # -- Update check ----------------------------------------------------
+        from shared.update_check import version_line, update_available
+        _vl = version_line()
+        if _vl:
+            print(_vl)
         print()
-
-        from shared.update_check import update_available
         _newer = update_available()
 
         _menu_items = [

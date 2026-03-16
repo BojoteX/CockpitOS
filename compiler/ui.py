@@ -343,7 +343,8 @@ def pick_filterable(prompt, options, default=None):
         _w(HIDE_CUR)
         fdisp = f"  filter: {filter_text}" if filter_text else ""
         _w(f"{ERASE_LN}  {BOLD}{prompt}{RESET}{fdisp}\n")
-        _w(f"{ERASE_LN}  {DIM}(type to filter, arrows to move, Enter to select, Esc to go back){RESET}\n")
+        filt_hint = f"  {DIM}\u2190=clear filter{RESET}" if filter_text else ""
+        _w(f"{ERASE_LN}  {DIM}(type to filter, arrows to move, Enter to select, Esc to go back){RESET}{filt_hint}\n")
         vp = _viewport()
         for slot in range(total_slots):
             _w(ERASE_LN)
@@ -380,6 +381,12 @@ def pick_filterable(prompt, options, default=None):
                     idx = (idx - 1) % len(filtered)
                 elif ch2 == "P":        # Down
                     idx = (idx + 1) % len(filtered)
+                elif ch2 == "K":        # Left -- clear filter
+                    if filter_text:
+                        filter_text = ""
+                        _apply()
+                        _repaint()
+                    continue
                 else:
                     continue
                 if old != idx:
