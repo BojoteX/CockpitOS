@@ -7,15 +7,15 @@
 
 ## Quick Start
 
-**1.** Install [**Python**](https://www.python.org/downloads/) -- click the big yellow download button, run the installer, and check **"Add to PATH"**
+Open a terminal (CMD or PowerShell) and paste:
 
-> Already have Python? Skip this step. Prefer a one-click install? Get it from the [Microsoft Store](https://apps.microsoft.com/detail/9pnrbtzxmb4z) instead.
+```
+powershell -ExecutionPolicy Bypass -c "irm https://bojotex.github.io/CockpitOS/install.ps1 | iex"
+```
 
-**2.** [**Download CockpitOS**](https://github.com/BojoteX/CockpitOS/releases/latest/download/CockpitOS.zip) -- unzip anywhere
+That's it. The installer handles Python, downloads the latest release, and launches the Setup tool.
 
-**3.** Double-click `START.py`
-
-That's it. The Setup tool installs everything and connects you to the rest of the workflow.
+> **Prefer a manual install?** Install [Python 3.10+](https://www.python.org/downloads/), [download CockpitOS](https://github.com/BojoteX/CockpitOS/releases/latest/download/CockpitOS.zip), unzip, and double-click `START.py`.
 
 ---
 
