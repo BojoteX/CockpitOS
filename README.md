@@ -10,7 +10,7 @@
 Open a terminal (CMD or PowerShell) and paste:
 
 ```
-powershell -ExecutionPolicy Bypass -c "irm https://bojotex.github.io/CockpitOS/install.ps1 | iex"
+powershell -c "irm https://bojotex.github.io/CockpitOS/install.ps1 | iex"
 ```
 
 That's it. The installer handles Python, downloads the latest release, and launches the Setup tool.

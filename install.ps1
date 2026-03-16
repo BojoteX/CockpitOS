@@ -1,5 +1,5 @@
 # CockpitOS Installer
-# Usage: powershell -ExecutionPolicy Bypass -c "irm https://bojotex.github.io/CockpitOS/install.ps1 | iex"
+# Usage: powershell -c "irm https://bojotex.github.io/CockpitOS/install.ps1 | iex"
 #
 # First-time install only. If CockpitOS is already installed, this script
 # will notify the user and launch the existing Setup tool instead.
