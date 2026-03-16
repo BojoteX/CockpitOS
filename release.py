@@ -172,12 +172,13 @@ def main():
         local_rev, _ = run(f"git rev-parse {b}")
         remote_rev, rc = run(f"git rev-parse origin/{b}")
         if rc == 0 and local_rev != remote_rev:
+            print(f"  Syncing local {b} with origin/{b}...")
             if b == branch:
-                print(f"  Syncing local {b} with origin/{b}...")
-                run(f"git pull --ff-only origin {b}", capture=False)
+                subprocess.run(["git", "pull", "--ff-only", "origin", b],
+                               cwd=SCRIPT_DIR)
             else:
-                print(f"  Syncing local {b} with origin/{b}...")
-                run(f"git fetch origin {b}:{b}", capture=False)
+                subprocess.run(["git", "fetch", "origin", f"{b}:{b}"],
+                               cwd=SCRIPT_DIR)
 
     # ── Find latest tag ────────────────────────────────────────────────────
     versions = get_tags()
