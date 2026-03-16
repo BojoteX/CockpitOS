@@ -1,5 +1,5 @@
 # CockpitOS Installer
-# Usage: powershell -c "irm https://raw.githubusercontent.com/BojoteX/CockpitOS/main/install.ps1 | iex"
+# Usage: powershell -ExecutionPolicy Bypass -c "irm https://bojotex.github.io/CockpitOS/install.ps1 | iex"
 #
 # First-time install only. If CockpitOS is already installed, this script
 # will notify the user and launch the existing Setup tool instead.
@@ -10,10 +10,10 @@ $ErrorActionPreference = 'Stop'
 # ── Branding ────────────────────────────────────────────────────────────
 function Write-Banner {
     Write-Host ""
-    Write-Host "  ╔══════════════════════════════════════════╗" -ForegroundColor Cyan
-    Write-Host "  ║         CockpitOS Installer              ║" -ForegroundColor Cyan
-    Write-Host "  ║   Firmware platform for DCS cockpits     ║" -ForegroundColor Cyan
-    Write-Host "  ╚══════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host "  +--------------------------------------------+" -ForegroundColor Cyan
+    Write-Host "  |         CockpitOS Installer                |" -ForegroundColor Cyan
+    Write-Host "  |   Firmware platform for DCS cockpits       |" -ForegroundColor Cyan
+    Write-Host "  +--------------------------------------------+" -ForegroundColor Cyan
     Write-Host ""
 }
 
