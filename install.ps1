@@ -148,6 +148,20 @@ if (Test-ExistingInstall) {
     Write-Ok "CockpitOS is already installed at:"
     Write-Host "  $InstallDir" -ForegroundColor Gray
     Write-Host ""
+
+    # Ensure Python is still available before launching Setup
+    Write-Step "Checking Python..."
+    if (Test-Python) {
+        $pyVer = & python --version 2>&1
+        Write-Ok "Found $pyVer"
+    } else {
+        if (!(Install-Python)) {
+            Write-Err "Could not install Python. Please install Python 3.10+ manually:"
+            Write-Host "  https://www.python.org/downloads/" -ForegroundColor Gray
+            exit 1
+        }
+    }
+
     Write-Host "  To update, use the built-in updater from the CockpitOS menu." -ForegroundColor Yellow
     Write-Host "  Launching Setup now..." -ForegroundColor Yellow
     Write-Host ""
