@@ -27,6 +27,7 @@ const char* const perfLabelNames[] = {
     "[LED] GN1640",			// PERF_LED_GN1640
     "[LED] WS2812",			// PERF_LED_WS2812
     "[LED] GAUGE",			// PERF_LED_GAUGE
+    "[LED] STEPPER",			// PERF_LED_STEPPER
     "[LED] Unknown Device",		// PERF_LED_UNKNOWN
     "[REPLAY] Replay Loop",		// PERF_REPLAY
     "[UDP] onDcsBiosUdpPacket",		// PERF_WIFI_DCSBIOS
@@ -66,6 +67,7 @@ enum PerfLabel : uint8_t {
     PERF_LED_GN1640,
     PERF_LED_WS2812,
     PERF_LED_GAUGE,
+    PERF_LED_STEPPER,
     PERF_LED_UNKNOWN,
     PERF_REPLAY,
     PERF_WIFI_DCSBIOS,
@@ -106,6 +108,7 @@ constexpr bool perfIncludedInLoad[PERF_LABEL_COUNT] = {
     false,  	// PERF_LED_GN1640
     false,  	// PERF_LED_WS2812
     false,  	// PERF_LED_GAUGE
+    false,  	// PERF_LED_STEPPER
     false,  	// PERF_LED_UNKNOWN
     false,  	// PERF_REPLAY
     false,  	// PERF_WIFI_DCSBIOS

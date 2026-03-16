@@ -187,26 +187,36 @@ def update_available():
     return check_for_update(ver)
 
 
-def version_line():
-    """Return a formatted version + update-available line for the TUI menu.
+def version_tag():
+    """Return a short styled version string for embedding in the banner subtitle.
 
-    Example outputs:
-        "     v1.2.12"
-        "     v1.2.12    Update available: v1.3.0"
-        "     v1.2.12    New release available: v1.3.0 — run git pull to update"
+    Example: "  v1.3.0" (dim, no leading spaces beyond the separator).
     """
     ver = get_local_version()
-    line = f"     {_DIM}v{ver}{_RESET}"
+    return f"  {_DIM}v{ver}{_RESET}"
+
+
+def version_line():
+    """Return a formatted update-available notice for the TUI menu.
+
+    Returns an empty string if no update is available (version is shown
+    in the banner subtitle via version_tag() instead).
+
+    Example outputs:
+        ""
+        "     Update available: v1.3.0"
+        "     New release: v1.3.0 — git pull to update"
+    """
+    ver = get_local_version()
 
     if is_git_repo():
-        # Git users: hint to pull, never offer auto-update
         newer = check_for_update(ver)
         if newer:
-            line += (f"    {_YELLOW}New release: v{newer}"
-                     f" — git pull to update{_RESET}")
+            return (f"     {_YELLOW}New release: v{newer}"
+                    f" — git pull to update{_RESET}")
     else:
         newer = check_for_update(ver)
         if newer:
-            line += f"    {_YELLOW}Update available: v{newer}{_RESET}"
+            return f"     {_YELLOW}Update available: v{newer}{_RESET}"
 
-    return line
+    return ""

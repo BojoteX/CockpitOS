@@ -13,6 +13,7 @@ static bool g_hasWS2812 = false;
 static bool g_hasGN1640 = false;
 static bool g_hasGauge = false;
 static bool g_hasMagnetic = false;
+static bool g_hasStepper = false;
 static bool g_deviceScanComplete = false;
 
 // ============================================================================
@@ -25,6 +26,7 @@ void scanOutputDevicePresence() {
     g_hasGN1640 = false;
     g_hasGauge = false;
     g_hasMagnetic = false;
+    g_hasStepper = false;
 
     for (uint16_t i = 0; i < panelLEDsCount; ++i) {
         switch (panelLEDs[i].deviceType) {
@@ -33,14 +35,15 @@ void scanOutputDevicePresence() {
         case DEVICE_GN1640T:  g_hasGN1640 = true;   break;
         case DEVICE_GAUGE:    g_hasGauge = true;     break;
         case DEVICE_MAGNETIC: g_hasMagnetic = true;  break;
+        case DEVICE_STEPPER:  g_hasStepper = true;   break;
         default: break;
         }
     }
 
     g_deviceScanComplete = true;
 
-    debugPrintf("📊 Output device scan: TM1637=%d WS2812=%d GN1640=%d GAUGE=%d MAGNETIC=%d\n",
-        g_hasTM1637, g_hasWS2812, g_hasGN1640, g_hasGauge, g_hasMagnetic);
+    debugPrintf("📊 Output device scan: TM1637=%d WS2812=%d GN1640=%d GAUGE=%d MAGNETIC=%d STEPPER=%d\n",
+        g_hasTM1637, g_hasWS2812, g_hasGN1640, g_hasGauge, g_hasMagnetic, g_hasStepper);
 }
 
 // ============================================================================
@@ -57,6 +60,7 @@ bool hasOutputDevice(uint8_t deviceType) {
     case DEVICE_GN1640T:  return g_hasGN1640;
     case DEVICE_GAUGE:    return g_hasGauge;
     case DEVICE_MAGNETIC: return g_hasMagnetic;
+    case DEVICE_STEPPER:  return g_hasStepper;
     default: return false;
     }
 }
@@ -70,6 +74,7 @@ void tickOutputDrivers() {
     if (g_hasWS2812)  WS2812_tick();
     if (g_hasGN1640)  GN1640_tick();
     if (g_hasGauge)   AnalogG_tick();   // service servo gauges
+    if (g_hasStepper) Stepper_tick();   // advance stepper motors toward targets
 }
 
 // Blazing fast setLED()
@@ -237,6 +242,24 @@ void setLED(const char* label, bool state, uint8_t intensity, uint16_t rawValue,
             }
             break;
 
+        case DEVICE_STEPPER:
+            // DEVICE_STEPPER: map DCS-BIOS value (0-65535) to step position
+            #if DEBUG_PERFORMANCE
+            beginProfiling(PERF_LED_STEPPER);
+            #endif
+            {
+                const auto& si = led->info.stepperInfo;
+                // Binary outputs (max_value=1): 0 → step 0, 1 → last step
+                // Analog outputs (max_value=65535): scale proportionally
+                uint16_t val = (maxValue >= 65535) ? rawValue : (state ? 65535 : 0);
+                int32_t target = (int32_t)((uint32_t)val * si.totalSteps / 65536UL);
+                Stepper_set(si.pin1, target);
+            }
+            #if DEBUG_PERFORMANCE
+            endProfiling(PERF_LED_STEPPER);
+            #endif
+            break;
+
         case DEVICE_NONE:
         default:
             #if DEBUG_PERFORMANCE
@@ -268,6 +291,13 @@ void setLED(const char* label, bool state, uint8_t intensity, uint16_t rawValue,
             case DEVICE_GAUGE:
                 debugPrintf("[GAUGE] %s value=%u/%u\n", label, rawValue, maxValue);
                 break;
+            case DEVICE_STEPPER: {
+                const auto& si = led->info.stepperInfo;
+                uint16_t val = (maxValue >= 65535) ? rawValue : (state ? 65535 : 0);
+                int32_t target = (int32_t)((uint32_t)val * si.totalSteps / 65536UL);
+                debugPrintf("[STEPPER] %s target=%ld (raw=%u max=%u)\n", label, (long)target, rawValue, maxValue);
+                break;
+            }
             case DEVICE_NONE:
                 break;
             default:
