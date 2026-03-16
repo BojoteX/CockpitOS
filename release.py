@@ -161,9 +161,24 @@ def rebuild_changelog(versions, new_version=None, new_items=None):
 def main():
     repo = get_repo()
 
-    # ── Fetch ──────────────────────────────────────────────────────────────
+    # ── Fetch & sync ─────────────────────────────────────────────────────
     print("\n  Fetching latest from GitHub...")
     run("git fetch origin", capture=False)
+
+    # Sync both local branches with remote (after PR merge, sync-dev.yml
+    # makes remote main and dev equal — bring local up to match)
+    branch, _ = run("git rev-parse --abbrev-ref HEAD")
+    for b in [branch, "main"] if branch != "main" else ["main"]:
+        local_rev, _ = run(f"git rev-parse {b}")
+        remote_rev, rc = run(f"git rev-parse origin/{b}")
+        if rc == 0 and local_rev != remote_rev:
+            print(f"  Syncing local {b} with origin/{b}...")
+            if b == branch:
+                subprocess.run(["git", "pull", "--ff-only", "origin", b],
+                               cwd=SCRIPT_DIR)
+            else:
+                subprocess.run(["git", "fetch", "origin", f"{b}:{b}"],
+                               cwd=SCRIPT_DIR)
 
     # ── Find latest tag ────────────────────────────────────────────────────
     versions = get_tags()
