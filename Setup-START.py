@@ -590,7 +590,7 @@ def check_firewall_udp7778():
     try:
         result = subprocess.run(
             ["netsh", "advfirewall", "firewall", "show", "rule",
-             "name=all", "dir=in"],
+             "name=all", "dir=in", "verbose"],
             capture_output=True, text=True, timeout=15,
         )
         if result.returncode != 0:
@@ -633,7 +633,13 @@ def _fw_rule_covers_port(rule):
         return False
     local_port = rule.get("localport", "")
     if local_port == "any":
-        return True
+        # A program/service-scoped "allow all UDP" rule (e.g., svchost.exe)
+        # won't cover our port — only trust unscoped rules.
+        program = rule.get("program", "any")
+        service = rule.get("service", "any")
+        if program == "any" and service == "any":
+            return True
+        return False
     # Port can be a single value, comma-separated list, or range
     for part in local_port.split(","):
         part = part.strip()
