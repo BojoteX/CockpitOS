@@ -31,10 +31,10 @@ try {
         enable=yes | Out-Null
 
     if ($LASTEXITCODE -eq 0) {
-        Set-Content -Path $ResultFile -Value "OK" -Encoding UTF8
+        [IO.File]::WriteAllText($ResultFile, "OK")
     } else {
-        Set-Content -Path $ResultFile -Value "FAIL: netsh returned exit code $LASTEXITCODE" -Encoding UTF8
+        [IO.File]::WriteAllText($ResultFile, "FAIL: netsh returned exit code $LASTEXITCODE")
     }
 } catch {
-    Set-Content -Path $ResultFile -Value "FAIL: $($_.Exception.Message)" -Encoding UTF8
+    [IO.File]::WriteAllText($ResultFile, "FAIL: $($_.Exception.Message)")
 }

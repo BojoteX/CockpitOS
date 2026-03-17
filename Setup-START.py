@@ -688,7 +688,7 @@ def create_firewall_rule_udp7778():
 
         # Read result from the temp file
         if result_file.is_file():
-            outcome = result_file.read_text(encoding="utf-8").strip()
+            outcome = result_file.read_text(encoding="utf-8-sig").strip()
             result_file.unlink(missing_ok=True)
             if outcome == "OK":
                 return True, f"Firewall rule created: inbound UDP {_FW_PORT}"
