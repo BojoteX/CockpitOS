@@ -188,6 +188,8 @@ A standard USB 2.0 port provides up to 500mA. After the ESP32 itself draws 80-24
 | Single LED     | 10-20mA          | With current-limiting resistor |
 | WS2812 (each)  | Up to 60mA       | Full white, full brightness |
 | Servo motor    | 100-500mA        | Peaks during movement      |
+| X27.168 stepper| ~20mA per coil   | Direct GPIO, no driver     |
+| 28BYJ-48 stepper| ~240mA per coil | Needs ULN2003 + ext. 5V    |
 | PCA9555        | ~1mA             | Negligible                 |
 | 74HC165        | ~1mA             | Negligible                 |
 | TM1637 module  | ~10-80mA         | Depends on segments lit    |
@@ -247,6 +249,7 @@ Each hardware type has a dedicated guide with wiring diagrams and configuration 
 | [Displays](Displays.md)                       | TM1637, GN1640T, HT1622 segment LCDs                    |
 | [TFT Gauges](TFT-Gauges.md)                   | Graphical TFT instrument displays                        |
 | [Servo Gauges](Servo-Gauges.md)               | Physical needle gauges driven by servos                  |
+| [Stepper Motors](Stepper-Motors.md)            | Physical needle gauges driven by stepper motors (X27.168, 28BYJ-48) |
 
 ---
 

@@ -174,6 +174,8 @@ Each label set is a folder in src/LABELS/LABEL_SET_<name>/ containing:
 | DEVICE_TM1637 | {clkPin, dioPin, segment, bit} | 7-segment display segment |
 | DEVICE_GN1640T | {address, column, row} | LED matrix position |
 | DEVICE_GAUGE | {gpio, minPulse, maxPulse, period} | Servo gauge (PWM) |
+| DEVICE_STEPPER | {pin1, pin2, pin3, pin4, totalSteps, usPerStep, continuous} | Stepper motor gauge |
+| DEVICE_MAGNETIC | {gpioA, gpioB} | Solenoid switch (gpioB=255 for 2-pos) |
 
 ### Other Files
 - **DisplayMapping.cpp/h** — Links DCS-BIOS display string fields to segment map entries for HT1622 LCD displays
@@ -231,6 +233,13 @@ Each label set is a folder in src/LABELS/LABEL_SET_<name>/ containing:
 
 **Servo Gauges** — PWM-driven servo motors for physical gauge needles. DEVICE_GAUGE in LEDMapping.h. Maps DCS-BIOS value (0-65535) to servo pulse width (minPulse to maxPulse). External 5V power required — never power from ESP32.
 
+**Stepper Motor Gauges** — 4-wire stepper motors for precise gauge needles. DEVICE_STEPPER in LEDMapping.h. Two supported motors:
+- **X27.168 / VID29** — 720 steps/rev, 100us/step, direct to GPIO (no driver board). Stock ~315 deg sweep; modded (end stop removed) for full 360 deg. Best for partial-arc gauges (oil pressure, fuel, RPM).
+- **28BYJ-48 + ULN2003** — 4096 steps/rev, 1000us/step, needs ULN2003 driver board + external 5V. Continuous 360 deg always. Best for wrapping instruments (altimeters, heading indicators).
+Non-blocking: Stepper_tick() advances one step per call, rate-limited by usPerStep. Coils auto-de-energize after 2 seconds idle. Supports `continuous=true` (shortest-path wraparound) and `continuous=false` (limited sweep clamped to range). Label Creator wizard handles all motor math — user just picks motor type and enters angle in degrees.
+
+**Magnetic Solenoid Switches** — Force-feedback toggle switches using solenoid actuators. DEVICE_MAGNETIC in LEDMapping.h. Supports 2-position (single solenoid, gpioB=255) and 3-position (dual solenoid).
+
 ### Wiring Rules
 - ESP32 GPIO is 3.3V — NEVER connect 5V directly to a GPIO pin
 - All switch inputs use internal pull-ups — wire between GPIO and GND
@@ -238,6 +247,8 @@ Each label set is a folder in src/LABELS/LABEL_SET_<name>/ containing:
 - Potentiometers: outer pins to 3.3V and GND, wiper to analog GPIO
 - I2C: SDA + SCL with 4.7K pull-up resistors to 3.3V (many breakout boards include these)
 - Servos: signal wire to GPIO, power from external 5V (not ESP32)
+- Stepper X27.168: 4 wires direct to GPIO (low current, no driver needed)
+- Stepper 28BYJ-48: 4 wires to ULN2003 board, power board from external 5V
 
 ---
 
@@ -725,6 +736,15 @@ CockpitOS/
 3. Find the DCS-BIOS gauge value
 4. Set Device = GAUGE, GPIO pin, minPulse (e.g., 544), maxPulse (e.g., 2400), period (20000)
 5. Recompile and upload
+
+### "I want to add a stepper motor gauge"
+1. For X27.168: wire 4 motor wires directly to ESP32 GPIO pins (no driver board needed)
+   For 28BYJ-48: wire 4 signal wires from ESP32 GPIO to ULN2003 driver board; power board from external 5V
+2. Open Label Creator > Edit Outputs (LEDs)
+3. Find the DCS-BIOS gauge value (e.g., STBY_ALT_100_FT_PTR)
+4. Set Device = STEPPER — the wizard walks through motor type, pins, angle, and wrap behavior
+5. Recompile and upload
+6. At power-up, attach needle while motor holds phase 0 (zero position), then verify init sweep
 
 ### "I want to use PCA9555 expanders for more I/O"
 1. Wire PCA9555 to I2C bus (SDA, SCL, 4.7K pull-ups to 3.3V)

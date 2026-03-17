@@ -12,6 +12,7 @@ Step-by-step tutorials for accomplishing specific hardware tasks with CockpitOS.
 |---|---|---|
 | [Wire Analog Gauges](Wire-Analog-Gauges.md) | Drive physical needles with servo motors | You want a real needle gauge (fuel, oil pressure, RPM) that moves in response to DCS data |
 | [Wire TFT Gauges](Wire-TFT-Gauges.md) | Render graphical instruments on TFT displays | You want a round or rectangular LCD showing a rendered gauge face with animated needles |
+| [Wire Stepper Motors](Wire-Stepper-Motors.md) | Drive physical needles with stepper motors | You want a real needle gauge using X27.168 or 28BYJ-48 steppers with precise angle control |
 | [Wire Solenoid Switches](Wire-Solenoid-Switches.md) | Actuate toggle switches with solenoids | You want your physical toggles to snap to the correct position when DCS state changes |
 
 ### Intermediate

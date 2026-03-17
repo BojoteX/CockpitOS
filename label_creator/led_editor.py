@@ -131,16 +131,46 @@ _DEVICE_DESCRIPTIONS = {
         f"{DIM}  2 solenoids (3-pos rocker): {RESET}Engine Crank",
     ],
     "STEPPER": [
-        f"{CYAN}{BOLD}STEPPER{RESET} {DIM}\u2014 4-wire stepper motor{RESET}",
-        f"{DIM}Drives a stepper motor via 4 GPIO pins (IN1-IN4).{RESET}",
-        f"{DIM}Two motor types supported:{RESET}",
+        f"{CYAN}{BOLD}STEPPER{RESET} {DIM}\u2014 4-wire stepper motor for gauge needles{RESET}",
+        f"{DIM}Drives a physical gauge needle via a stepper motor.{RESET}",
+        f"{DIM}Maps the DCS value directly to a needle position.{RESET}",
         "",
-        f"{DIM}  {BOLD}28BYJ-48 + ULN2003{RESET}{DIM} — geared, continuous 360\u00b0, unlimited turns{RESET}",
-        f"{DIM}    Slow but reliable. Needs ULN2003 driver board. (1000us, 4096 steps/rev){RESET}",
-        f"{DIM}  {BOLD}X27.168 / VID29{RESET}{DIM} — direct drive, fast, wires directly to GPIO{RESET}",
-        f"{DIM}    Stock: ~315\u00b0 limited sweep. Modded (stop removed): full 360\u00b0{RESET}",
-        f"{DIM}    (100us, 720 steps/rev){RESET}",
+        f"{DIM}Supports {BOLD}X27.168{RESET}{DIM} (fast, direct to GPIO) and{RESET}",
+        f"{DIM}{BOLD}28BYJ-48{RESET}{DIM} (geared, needs ULN2003 driver board).{RESET}",
+        f"{DIM}The setup wizard handles all the motor math for you.{RESET}",
     ],
+}
+
+# ---------------------------------------------------------------------------
+# Stepper motor type descriptions (shown in motor picker)
+# ---------------------------------------------------------------------------
+_STEPPER_MOTOR_DESCRIPTIONS = {
+    "X27": [
+        f"{CYAN}{BOLD}X27.168 / VID29{RESET} {DIM}\u2014 automotive gauge stepper{RESET}",
+        f"{DIM}The standard stepper for cockpit gauge needles.{RESET}",
+        f"{DIM}Tiny, fast, and wires directly to ESP32 GPIO pins.{RESET}",
+        "",
+        f"{DIM}  720 steps/rev \u2014 smooth needle movement{RESET}",
+        f"{DIM}  Stock: ~315\u00b0 max sweep (has mechanical end stop){RESET}",
+        f"{DIM}  Modded: remove the end-stop tab for full 360\u00b0{RESET}",
+    ],
+    "28BYJ": [
+        f"{CYAN}{BOLD}28BYJ-48 + ULN2003{RESET} {DIM}\u2014 geared hobby stepper{RESET}",
+        f"{DIM}The blue geared motor \u2014 slow but strong.{RESET}",
+        f"{DIM}Requires ULN2003 driver board between motor and ESP32.{RESET}",
+        "",
+        f"{DIM}  4096 steps/rev \u2014 very precise positioning{RESET}",
+        f"{DIM}  Full 360\u00b0 rotation, unlimited turns{RESET}",
+        f"{DIM}  Slower than X27 \u2014 best for heavy or slow-moving gauges{RESET}",
+    ],
+}
+
+# ---------------------------------------------------------------------------
+# Stepper motor presets (steps_per_rev, us_per_step)
+# ---------------------------------------------------------------------------
+_STEPPER_PRESETS = {
+    "X27":  (720,  100),
+    "28BYJ": (4096, 1000),
 }
 
 
@@ -288,8 +318,19 @@ def _generate_comment(device, info_type, info_values):
     if device == "MAGNETIC" and len(vals) >= 1:
         return f"// MAGNETIC A={vals[0]} (single)"
     if device == "STEPPER" and len(vals) >= 7:
-        mode = "continuous" if vals[6].strip().lower() == "true" else "limited"
-        return f"// STEPPER pins {vals[0]},{vals[1]},{vals[2]},{vals[3]} steps={vals[4]} {vals[5]}us {mode}"
+        try:
+            spd = int(vals[5].strip())
+            tot = int(vals[4].strip())
+        except ValueError:
+            spd, tot = 1000, 0
+        motor = "X27" if spd <= 200 else "28BYJ"
+        spr = _STEPPER_PRESETS.get(motor, (720, 100))[0]
+        cont = vals[6].strip().lower() == "true"
+        if cont:
+            sweep = "360\u00b0 wrap"
+        else:
+            sweep = f"{round(tot * 360 / spr)}\u00b0" if spr else "?"
+        return f"// STEPPER {motor} pins {vals[0]},{vals[1]},{vals[2]},{vals[3]} {sweep} {vals[5]}us"
     if device == "STEPPER" and len(vals) >= 6:
         return f"// STEPPER pins {vals[0]},{vals[1]},{vals[2]},{vals[3]} steps={vals[4]} {vals[5]}us"
     if device == "STEPPER" and len(vals) >= 5:
@@ -391,8 +432,19 @@ def _info_summary(record):
     if dev == "MAGNETIC" and len(vals) >= 1:
         return f"A={vals[0]} (single)"
     if dev == "STEPPER" and len(vals) >= 7:
-        mode = "360" if vals[6].lower() == "true" else "lim"
-        return f"pins={vals[0]},{vals[1]},{vals[2]},{vals[3]} s={vals[4]} {vals[5]}us {mode}"
+        try:
+            spd = int(vals[5].strip())
+            tot = int(vals[4].strip())
+        except ValueError:
+            spd, tot = 1000, 0
+        motor = "X27" if spd <= 200 else "28BYJ"
+        spr = _STEPPER_PRESETS.get(motor, (720, 100))[0]
+        cont = vals[6].strip().lower() == "true"
+        if cont:
+            sweep = "360\u00b0 wrap"
+        else:
+            sweep = f"{round(tot * 360 / spr)}\u00b0" if spr else "?"
+        return f"{motor} {vals[0]},{vals[1]},{vals[2]},{vals[3]} {sweep}"
     if dev == "STEPPER" and len(vals) >= 6:
         return f"pins={vals[0]},{vals[1]},{vals[2]},{vals[3]} s={vals[4]} {vals[5]}us"
     if dev == "STEPPER" and len(vals) >= 5:
@@ -602,7 +654,7 @@ def _edit_record_inner(record, label, max_values):
             record["info_values"] = f"{gpioA.strip()}, 255"
 
     elif dev == "STEPPER":
-        # -- STEPPER: any 4-wire unipolar stepper motor --------
+        # -- STEPPER: 4-wire stepper motor for gauge needles --------
         if max_values:
             mv = max_values.get(label)
             if mv is not None and mv not in (1, 65535):
@@ -612,23 +664,32 @@ def _edit_record_inner(record, label, max_values):
                 input(f"\n  {DIM}Press Enter to go back...{RESET}")
                 return False
         print(_SECTION_SEP)
-        ui.info(f"{DIM}Which stepper motor are you using?{RESET}")
+
+        # ── Step 1: Motor type ──────────────────────────────────
+        # Infer default from stored usPerStep when re-editing
+        prev_speed = _extract_val(record["info_values"], 5, "1000")
+        try:
+            prev_speed_val = int(prev_speed.strip())
+        except ValueError:
+            prev_speed_val = 1000
+        default_motor = "X27" if prev_speed_val <= 200 else "28BYJ"
+
+        motor_choices = [
+            ("X27.168 / VID29  \u2014 tiny gauge stepper, direct to GPIO", "X27"),
+            ("28BYJ-48 + ULN2003  \u2014 blue geared motor with driver board", "28BYJ"),
+        ]
+        motor = ui.pick("Motor type:", motor_choices, default=default_motor,
+                         descriptions=_STEPPER_MOTOR_DESCRIPTIONS)
+        if motor is None: return False
+
+        steps_per_rev, us_per_step = _STEPPER_PRESETS[motor]
+
+        # ── Step 2: GPIO pins ──────────────────────────────────
         print()
-        ui.info(f"{DIM}  {BOLD}28BYJ-48 + ULN2003{RESET}{DIM}  (the blue geared motor with driver board){RESET}")
-        ui.info(f"{DIM}    - Continuous 360\u00b0 rotation, unlimited turns{RESET}")
-        ui.info(f"{DIM}    - Slow but strong — good for any instrument{RESET}")
-        ui.info(f"{DIM}    - Requires ULN2003 driver board between ESP32 and motor{RESET}")
-        ui.info(f"{DIM}    - 4096 steps/rev, recommended speed: 1000us/step{RESET}")
-        print()
-        ui.info(f"{DIM}  {BOLD}X27.168 / VID29{RESET}{DIM}  (tiny automotive gauge stepper){RESET}")
-        ui.info(f"{DIM}    - Stock: ~315\u00b0 max sweep (has mechanical end stop){RESET}")
-        ui.info(f"{DIM}    - Modded: remove the stop tab for full 360\u00b0 continuous rotation{RESET}")
-        ui.info(f"{DIM}    - Very fast — ideal for gauge needles{RESET}")
-        ui.info(f"{DIM}    - Wires directly to ESP32 GPIO (no driver board needed){RESET}")
-        ui.info(f"{DIM}    - 720 steps/rev, recommended speed: 100us/step{RESET}")
-        print()
-        ui.info(f"{DIM}Connect IN1-IN4 from the stepper to 4 ESP32 GPIO pins.{RESET}")
-        ui.info(f"{DIM}(Through ULN2003 board for 28BYJ-48, or direct for X27.168){RESET}")
+        if motor == "28BYJ":
+            ui.info(f"{DIM}Connect IN1\u2013IN4 from the ULN2003 driver board to 4 ESP32 GPIO pins.{RESET}")
+        else:
+            ui.info(f"{DIM}Connect the 4 motor wires to ESP32 GPIO pins.{RESET}")
         print()
         pin1 = ui.text_input("IN1 GPIO pin",
                              default=_extract_val(record["info_values"], 0, "0"))
@@ -642,50 +703,92 @@ def _edit_record_inner(record, label, max_values):
         pin4 = ui.text_input("IN4 GPIO pin",
                              default=_extract_val(record["info_values"], 3, "0"))
         if pin4 is None: return False
+
+        # ── Step 3: Needle behavior ─────────────────────────────
         print()
-        ui.info(f"{BOLD}Total steps{RESET}{DIM} = how many steps for the full DCS-BIOS range (0-65535).{RESET}")
+        ui.info(f"{BOLD}How does the gauge needle move?{RESET}")
         print()
-        ui.info(f"{DIM}  {BOLD}28BYJ-48:{RESET}")
-        ui.info(f"{DIM}    4096 = 1 full revolution (use for most instruments){RESET}")
-        ui.info(f"{DIM}    Needle wraps naturally at 360\u00b0 (altimeters, heading, clocks){RESET}")
+        ui.info(f"{DIM}  {BOLD}Wraps around{RESET}{DIM} \u2014 needle spins past the top and keeps going{RESET}")
+        ui.info(f"{DIM}    Examples: altimeter, clock, heading indicator{RESET}")
         print()
-        ui.info(f"{DIM}  {BOLD}X27.168 (stock, with end stop):{RESET}")
-        ui.info(f"{DIM}    630  = ~315\u00b0 max sweep — do NOT exceed or motor jams!{RESET}")
-        ui.info(f"{DIM}    Use for limited-sweep gauges (oil/hyd pressure, fuel, RPM){RESET}")
-        print()
-        ui.info(f"{DIM}  {BOLD}X27.168 (modded, end stop removed):{RESET}")
-        ui.info(f"{DIM}    720  = 1 full revolution, continuous 360\u00b0{RESET}")
-        ui.info(f"{DIM}    Use for altimeters, heading indicators — fast + smooth{RESET}")
-        total = ui.text_input("Total steps",
-                              default=_extract_val(record["info_values"], 4, "4096"))
-        if total is None: return False
-        print()
-        ui.info(f"{BOLD}Step speed{RESET}{DIM} (microseconds per step) — must match your motor type.{RESET}")
-        ui.info(f"{DIM}Too fast = motor vibrates and stalls. Too slow = needle feels sluggish.{RESET}")
-        print()
-        ui.info(f"{DIM}  {BOLD}1000{RESET}{DIM} = 28BYJ-48  (safe default for geared motor){RESET}")
-        ui.info(f"{DIM}  {BOLD}100{RESET}{DIM}  = X27.168   (direct drive, very fast){RESET}")
-        speed = ui.text_input("Microseconds per step",
-                              default=_extract_val(record["info_values"], 5, "1000"))
-        if speed is None: return False
-        print()
-        ui.info(f"{BOLD}Continuous rotation?{RESET}")
-        ui.info(f"{DIM}Does this motor spin 360\u00b0 with no end stops?{RESET}")
-        print()
-        ui.info(f"{DIM}  {BOLD}y{RESET}{DIM} = 28BYJ-48 (always continuous){RESET}")
-        ui.info(f"{DIM}  {BOLD}y{RESET}{DIM} = X27.168 with end stop REMOVED (modded for 360\u00b0){RESET}")
-        ui.info(f"{DIM}  {BOLD}n{RESET}{DIM} = X27.168 stock (has physical end stop — limited sweep){RESET}")
-        print()
-        ui.info(f"{DIM}This controls wraparound behavior: continuous motors take the{RESET}")
-        ui.info(f"{DIM}shortest path across 0\u00b0, limited motors stay within their sweep.{RESET}")
+        ui.info(f"{DIM}  {BOLD}Partial sweep{RESET}{DIM} \u2014 needle swings an arc and stops at both ends{RESET}")
+        ui.info(f"{DIM}    Examples: brake pressure, oil pressure, cabin altitude, fuel{RESET}")
+
         prev_cont = _extract_val(record["info_values"], 6, "true")
-        cont_default = "y" if prev_cont.strip().lower() == "true" else "n"
-        cont_input = ui.text_input("Continuous 360\u00b0 rotation (y/n)",
-                                   default=cont_default)
-        if cont_input is None: return False
-        cont_val = "true" if cont_input.strip().lower() in ("y", "yes", "true") else "false"
+        default_wrap = "wrap" if prev_cont.strip().lower() == "true" else "sweep"
+
+        wrap_choices = [
+            ("Wraps around 360\u00b0  (altimeter, clock, heading)", "wrap"),
+            ("Partial sweep  (pressure, fuel, temperature)", "sweep"),
+        ]
+        wrap = ui.pick("Needle behavior:", wrap_choices, default=default_wrap)
+        if wrap is None: return False
+
+        if wrap == "wrap":
+            total_steps = steps_per_rev
+            cont_val = "true"
+            if motor == "X27":
+                print()
+                ui.info(f"{DIM}Note: the X27.168 needs the small end-stop tab removed{RESET}")
+                ui.info(f"{DIM}with an exacto knife for full 360\u00b0 rotation.{RESET}")
+                input(f"\n  {DIM}Press Enter to continue...{RESET}")
+        else:
+            # ── Step 4: Sweep angle ─────────────────────────────
+            print()
+            ui.info(f"{BOLD}What is the sweep angle of your gauge?{RESET}")
+            print()
+            ui.info(f"{DIM}Look at the gauge face and estimate how many degrees{RESET}")
+            ui.info(f"{DIM}the needle travels from minimum to maximum reading.{RESET}")
+            print()
+            ui.info(f"{DIM}  Common examples:{RESET}")
+            ui.info(f"{DIM}    270\u00b0 \u2014 most round gauges (oil, hydraulic, fuel){RESET}")
+            ui.info(f"{DIM}    300\u00b0 \u2014 cabin pressure altimeter{RESET}")
+            ui.info(f"{DIM}     90\u00b0 \u2014 small arc gauges{RESET}")
+            ui.info(f"{DIM}     30\u00b0 \u2014 very small arc (brake pressure){RESET}")
+            if motor == "X27":
+                print()
+                ui.info(f"{DIM}  Stock X27.168 max: ~315\u00b0 (mechanical end stop){RESET}")
+
+            # Calculate default angle from stored totalSteps.
+            # Use the ORIGINAL motor's spr so the angle stays correct
+            # even if the user is switching motor types.
+            old_spr = _STEPPER_PRESETS.get(default_motor, (720, 100))[0]
+            prev_total = _extract_val(record["info_values"], 4, str(old_spr))
+            try:
+                prev_total_int = int(prev_total.strip())
+            except ValueError:
+                prev_total_int = old_spr
+            default_angle = str(round(prev_total_int * 360 / old_spr))
+            # Don't show 360 as default for partial sweep
+            if default_angle == "360":
+                default_angle = "270"
+
+            angle_str = ui.text_input("Sweep angle in degrees",
+                                      default=default_angle)
+            if angle_str is None: return False
+            try:
+                angle = int(angle_str.strip())
+            except ValueError:
+                ui.warn("Invalid number, using 270\u00b0")
+                angle = 270
+
+            if angle < 1:
+                angle = 1
+            if angle >= 360:
+                print()
+                ui.warn("For full 360\u00b0 use 'Wraps around' instead. Clamping to 359\u00b0.")
+                angle = 359
+            if motor == "X27" and angle > 315:
+                print()
+                ui.warn("Stock X27.168 has a ~315\u00b0 mechanical limit.")
+                ui.warn("If your motor is modded (end stop removed), this is fine.")
+                ui.warn("Otherwise the motor may stall at the end stop.")
+
+            total_steps = max(1, round(steps_per_rev * angle / 360))
+            cont_val = "false"
+
         record["info_values"] = (f"{pin1.strip()}, {pin2.strip()}, {pin3.strip()}, "
-                                 f"{pin4.strip()}, {total.strip()}, {speed.strip()}, {cont_val}")
+                                 f"{pin4.strip()}, {total_steps}, {us_per_step}, {cont_val}")
 
     # Dimmable & Active Low — skip for GAUGE, MAGNETIC, STEPPER (not applicable)
     if dev in ("GAUGE", "MAGNETIC", "STEPPER"):
