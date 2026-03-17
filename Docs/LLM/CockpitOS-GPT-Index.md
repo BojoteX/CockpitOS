@@ -317,6 +317,7 @@ struct SegmentMap {
 | MAX_PCA9555_INPUTS | 64 | InputControl.h |
 | MAX_PCAS | 8 | InputControl.h |
 | MAX_GAUGES | 8 | CUtils.h |
+| MAX_STEPPERS | 4 | CUtils.h |
 | MAX_TM1637_DEV | 4 | InputControl.h |
 | HT1622_RAM_SIZE | 64 | CUtils.h |
 
@@ -367,6 +368,23 @@ When users report lag on RS485 networks:
 | `"analog"` | Potentiometer, slider | `set_state` | 65535 (auto-scaled 0-65535) |
 | `"variable_step"` | Rotary encoder | `variable_step` | 0=CCW, 1=CW |
 | `"fixed_step"` | Rotary encoder | `fixed_step` | INC/DEC direction |
+
+---
+
+## STEPPER MOTOR QUICK REFERENCE
+
+| Motor | Steps/Rev | usPerStep | Driver | Continuous 360 |
+|-------|-----------|-----------|--------|----------------|
+| X27.168 / VID29 | 720 | 100 (min) | None (direct GPIO) | Requires end stop removal |
+| 28BYJ-48 | 4096 | 1000 (min ~800) | ULN2003 + ext 5V | Always |
+
+**LEDMapping.h stepperInfo:** `{pin1, pin2, pin3, pin4, totalSteps, usPerStep, continuous}`
+
+**totalSteps calculation:** `stepsPerRev * angle / 360` (Label Creator does this automatically)
+
+**continuous flag:** `true` = shortest-path wraparound (altimeters, heading). `false` = clamp to range (pressure, fuel, RPM).
+
+**Key behaviors:** Non-blocking (one step per tick). Auto de-energize after 2s idle. Init sweep at startup. MAX_STEPPERS=4.
 
 ---
 

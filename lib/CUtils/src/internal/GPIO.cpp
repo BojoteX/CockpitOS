@@ -112,6 +112,12 @@ void GPIO_setAllLEDs(bool state) {
     else
         debugPrintln("⚫ Turning ALL GPIO LEDs OFF");
 
+    // De-energize all stepper coils on OFF (saves power, matches LED-off intent)
+    if (!state && PanelRegistry_has(PanelKind::StepperMotor)) {
+        Stepper_setAllOff();
+        debugPrintln("[STEPPER] All coils de-energized");
+    }
+
     for (uint16_t i = 0; i < panelLEDsCount; ++i) {
         const auto& led = panelLEDs[i];
         if (led.deviceType == DEVICE_GPIO) {
@@ -138,8 +144,9 @@ void GPIO_setAllLEDs(bool state) {
         }
         else if (led.deviceType == DEVICE_STEPPER && DEBUG) {
             const auto& si = led.info.stepperInfo;
-            debugPrintf("[LED STEPPER] %-20s (GPIO %2d,%2d,%2d,%2d) -> SKIPPED (stepper)\n",
-                        led.label, si.pin1, si.pin2, si.pin3, si.pin4);
+            debugPrintf("[LED STEPPER] %-20s (GPIO %2d,%2d,%2d,%2d) -> %s\n",
+                        led.label, si.pin1, si.pin2, si.pin3, si.pin4,
+                        state ? "SKIPPED" : "DE-ENERGIZED");
         }
         else if (led.deviceType == DEVICE_MAGNETIC) {
             const auto& m = led.info.magneticInfo;

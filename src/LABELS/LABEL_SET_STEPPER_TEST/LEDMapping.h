@@ -35,7 +35,7 @@ struct LEDMapping {
 static const LEDMapping panelLEDs[] = {
   { "STBY_ALT_10000_FT_CNT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "STBY_ALT_1000_FT_CNT" , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "STBY_ALT_100_FT_PTR"  , DEVICE_STEPPER , {.stepperInfo = {34, 36, 38, 40, 4096, 1000, true}}, false, false }, // STEPPER pins 34,36,38,40 steps=4096 1000us continuous,
+  { "STBY_ALT_100_FT_PTR"  , DEVICE_STEPPER , {.stepperInfo = {34, 36, 38, 40, 600, 100, false}}, false, false }, // STEPPER pins 34,36,38,40 steps=600 100us limited-sweep,
   { "STBY_PRESS_ALT"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "STBY_PRESS_SET_0"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
   { "STBY_PRESS_SET_1"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,

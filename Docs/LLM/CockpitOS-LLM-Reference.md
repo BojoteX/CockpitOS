@@ -41,7 +41,8 @@ CockpitOS is **ESP32 firmware** for building physical cockpit panels that interf
       InputControl   LEDControl   DisplayControl
       (buttons,      (LEDs,       (HT1622, TFT,
        encoders,      WS2812,      TM1637, etc.)
-       pots, etc.)    servos)
+       pots, etc.)    servos,
+                      steppers)
 ```
 
 ### Four-Layer Architecture
@@ -50,7 +51,7 @@ CockpitOS is **ESP32 firmware** for building physical cockpit panels that interf
 |-------|---------|-----------|
 | **Panel Logic** | Per-aircraft behavior, state machines | `src/Panels/*.cpp` |
 | **Bridge & HID** | DCS-BIOS protocol, USB HID reports | `DCSBIOSBridge.cpp`, `HIDManager.cpp` |
-| **Hardware Abstraction** | Unified API for all hardware types | `lib/CUtils/`, `src/Core/InputControl.cpp`, `src/Core/LEDControl.cpp` |
+| **Hardware Abstraction** | Unified API for all hardware types (GPIO, PCA, WS2812, TM1637, GN1640, servos, steppers, solenoids) | `lib/CUtils/`, `src/Core/InputControl.cpp`, `src/Core/LEDControl.cpp` |
 | **Hardware** | Physical GPIO, I2C, SPI drivers | ESP32 Arduino Core |
 
 **Deep dive:** [Advanced/Custom-Panels.md](../Advanced/Custom-Panels.md), [Advanced/Display-Pipeline.md](../Advanced/Display-Pipeline.md)
@@ -226,6 +227,8 @@ A **Label Set** is a folder in `src/LABELS/` containing all configuration files 
 | `DEVICE_TM1637` | `.tm1637Info = {clkPin, dioPin, segment, bit}` | 7-segment display segment |
 | `DEVICE_GN1640T` | `.gn1640Info = {address, column, row}` | LED matrix position |
 | `DEVICE_GAUGE` | `.gaugeInfo = {gpio, minPulse, maxPulse, period}` | Servo motor gauge |
+| `DEVICE_STEPPER` | `.stepperInfo = {pin1, pin2, pin3, pin4, totalSteps, usPerStep, continuous}` | Stepper motor gauge (X27.168 or 28BYJ-48) |
+| `DEVICE_MAGNETIC` | `.magneticInfo = {gpioA, gpioB}` | Solenoid switch (2-pos or 3-pos) |
 
 ---
 
@@ -251,6 +254,8 @@ A **Label Set** is a folder in `src/LABELS/` containing all configuration files 
 | `DEVICE_TM1637` | TM1637 7-segment | 2 per module | Numeric display segments |
 | `DEVICE_GN1640T` | GN1640T LED matrix | 2 per module | LED grid for annunciators |
 | `DEVICE_GAUGE` | Servo motor | 1 per servo | Analog gauge needles |
+| `DEVICE_STEPPER` | Stepper motor (X27.168 / 28BYJ-48) | 4 per motor | Precise gauge needles (step-driven) |
+| `DEVICE_MAGNETIC` | Solenoid switch | 1-2 per switch | Force-feedback toggle switches |
 
 **Deep dive:** [Hardware/README.md](../Hardware/README.md) and all component-specific pages
 
@@ -457,6 +462,7 @@ When working with CockpitOS code or configuration:
 | [Hardware/Displays.md](../Hardware/Displays.md) | TM1637, GN1640T, HT1622 |
 | [Hardware/TFT-Gauges.md](../Hardware/TFT-Gauges.md) | TFT LCD gauges |
 | [Hardware/Servo-Gauges.md](../Hardware/Servo-Gauges.md) | Servo motor analog gauges |
+| [Hardware/Stepper-Motors.md](../Hardware/Stepper-Motors.md) | Stepper motor gauges (X27.168, 28BYJ-48) |
 
 ### How-To Guides
 | Document | Description |
@@ -464,6 +470,7 @@ When working with CockpitOS code or configuration:
 | [How-To/README.md](../How-To/README.md) | Guide index |
 | [How-To/Wire-Analog-Gauges.md](../How-To/Wire-Analog-Gauges.md) | Servo gauge setup |
 | [How-To/Wire-TFT-Gauges.md](../How-To/Wire-TFT-Gauges.md) | TFT display gauge setup |
+| [How-To/Wire-Stepper-Motors.md](../How-To/Wire-Stepper-Motors.md) | Stepper motor gauge setup |
 | [How-To/Wire-Solenoid-Switches.md](../How-To/Wire-Solenoid-Switches.md) | Force-feedback solenoid switches |
 | [How-To/Wire-RS485-Network.md](../How-To/Wire-RS485-Network.md) | Multi-panel RS485 network |
 | [How-To/Wire-Matrix-Switches.md](../How-To/Wire-Matrix-Switches.md) | Rotary matrix scanning |
