@@ -655,29 +655,53 @@ def _fw_rule_covers_port(rule):
     return False
 
 
+_FW_PS1 = SCRIPT_DIR / "shared" / "firewall_udp7778.ps1"
+
+
 def create_firewall_rule_udp7778():
     """Create an inbound firewall rule to allow UDP port 7778.
 
-    Requires admin elevation. Returns (ok, message).
+    Launches a PowerShell script elevated (UAC prompt) so that the user
+    does not need to run the entire Setup tool as administrator.
+    Returns (ok, message).
     """
+    # Use a temp file for the PS1 script to report its result back
+    result_file = SCRIPT_DIR / ".fw_result.tmp"
+    result_file.unlink(missing_ok=True)
+
+    if not _FW_PS1.is_file():
+        return False, f"Firewall script not found: {_FW_PS1}"
+
     try:
-        result = subprocess.run(
-            ["netsh", "advfirewall", "firewall", "add", "rule",
-             f"name={_FW_RULE_NAME}",
-             "dir=in", "action=allow", "protocol=udp",
-             f"localport={_FW_PORT}",
-             "profile=private,domain",
-             "enable=yes"],
-            capture_output=True, text=True, timeout=15,
+        # Launch PowerShell elevated via Start-Process -Verb RunAs (triggers UAC)
+        ps_args = (
+            f'-ExecutionPolicy Bypass -File "{_FW_PS1}" '
+            f'-ResultFile "{result_file}"'
         )
-        if result.returncode == 0:
-            return True, f"Firewall rule created: inbound UDP {_FW_PORT}"
+        subprocess.run(
+            ["powershell", "-Command",
+             f'Start-Process powershell -Verb RunAs '
+             f'-ArgumentList \'{ps_args}\' -Wait'],
+            timeout=60,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+
+        # Read result from the temp file
+        if result_file.is_file():
+            outcome = result_file.read_text(encoding="utf-8").strip()
+            result_file.unlink(missing_ok=True)
+            if outcome == "OK":
+                return True, f"Firewall rule created: inbound UDP {_FW_PORT}"
+            else:
+                return False, outcome.replace("FAIL: ", "", 1)
         else:
-            err = result.stderr.strip() or result.stdout.strip()
-            if "requires elevation" in err.lower() or "access is denied" in err.lower():
-                return False, "Admin privileges required. Run Setup as Administrator."
-            return False, f"netsh failed: {err}"
+            return False, "Elevation was cancelled or the script did not run."
+
+    except subprocess.TimeoutExpired:
+        result_file.unlink(missing_ok=True)
+        return False, "Timed out waiting for elevated PowerShell."
     except Exception as e:
+        result_file.unlink(missing_ok=True)
         return False, str(e)
 
 
@@ -739,6 +763,10 @@ def show_status():
     Returns True if any DCS-BIOS installation has a mismatched MTU value
     (i.e. the "Fix DCS-BIOS MTU" menu option should be shown).
     """
+    # Show a loading message while checks run (they can take 1-4 seconds)
+    _w(f"     {DIM}\u23f3 Checking environment...{RESET}")
+    sys.stdout.flush()
+
     cli_ver = get_cli_version()
     core_ver = get_installed_core_version(MANIFEST["esp32_core"]["platform"])
     lovyan_ver = get_installed_lib_version(MANIFEST["lovyangfx"]["library"])
@@ -747,6 +775,9 @@ def show_status():
     rec_core = MANIFEST["esp32_core"]["version"]
     rec_lovyan = MANIFEST["lovyangfx"]["version"]
     rec_nimble = MANIFEST["nimble"]["version"]
+
+    # Clear the loading message
+    _w(f"\r{ERASE_LN}")
 
     # ---- Build left column (Platform / DCS) ----
     left = []
@@ -843,7 +874,19 @@ def show_status():
         _w(f"    {lc}{' ' * pad}{rc}\n")
 
     _w("\n")
-    return mtu_needs_fix, fw_needs_fix
+
+    # Check if any setup-resolvable requirements are unmet
+    setup_needed = (
+        core_ver is None
+        or version_tuple(core_ver) < version_tuple(rec_core)
+        or lovyan_ver is None
+        or version_tuple(lovyan_ver) < version_tuple(rec_lovyan)
+        or nimble_ver is None
+        or version_tuple(nimble_ver) < version_tuple(rec_nimble)
+        or bool(missing_deps)
+    )
+
+    return mtu_needs_fix, fw_needs_fix, setup_needed
 
 
 # =============================================================================
@@ -1396,7 +1439,7 @@ def action_fix_firewall():
     Loopback (USB/Serial via HID Manager) is unaffected by the firewall.
     """
     show_banner()
-    _w(f"\n  {BOLD}Open Firewall for WiFi ESP32 Devices (UDP {_FW_PORT}){RESET}\n\n")
+    _w(f"\n  {BOLD}Open Firewall for DCS / WiFi Communication (UDP {_FW_PORT}){RESET}\n\n")
 
     info("WiFi-connected ESP32 boards send DCS-BIOS commands to this PC")
     info(f"on UDP port {_FW_PORT}. Windows Firewall blocks this by default.")
@@ -1411,6 +1454,9 @@ def action_fix_firewall():
         msvcrt.getwch()
         return
 
+    info("A Windows UAC prompt will appear to grant admin privileges.")
+    _w("\n")
+
     if not confirm(f"Create firewall rule to allow inbound UDP {_FW_PORT}?"):
         info("Cancelled.")
         _w("\n  Press any key...")
@@ -1418,7 +1464,7 @@ def action_fix_firewall():
         return
 
     _w("\n")
-    info("Creating firewall rule...")
+    info("Creating firewall rule (check for UAC prompt)...")
     ok, msg = create_firewall_rule_udp7778()
     if ok:
         success(msg)
@@ -1428,10 +1474,11 @@ def action_fix_firewall():
         _w(f"\n  {GREEN}{BOLD}Done!{RESET}\n")
     else:
         error(msg)
-        if "admin" in msg.lower() or "elevation" in msg.lower():
+        if "cancelled" in msg.lower():
             _w("\n")
-            info("To fix this, right-click Setup-START.py and select")
-            info("'Run as administrator', then try again.")
+            info("The UAC elevation was declined. The firewall rule was not created.")
+            info("You can try again or manually run the script as admin:")
+            info(f"  {DIM}powershell -File \"{_FW_PS1}\"{RESET}")
 
     _w("\n  Press any key...")
     msvcrt.getwch()
@@ -2281,7 +2328,7 @@ def main():
 
     while True:
         show_banner()
-        mtu_needs_fix, fw_needs_fix = show_status()
+        mtu_needs_fix, fw_needs_fix, setup_needed = show_status()
 
         # -- Update check ----------------------------------------------------
         from shared.update_check import version_line, update_available
@@ -2292,9 +2339,14 @@ def main():
 
         _newer = update_available()
 
+        if setup_needed:
+            setup_label = f"Setup / Update environment  {RED}(action required){RESET}"
+        else:
+            setup_label = "Setup / Update environment"
+
         menu_options = [
-            ("Setup / Update environment",         "setup"),
-            ("Install / Update DCS-BIOS",          "dcsbios"),
+            (setup_label,                              "setup"),
+            ("Install / Update DCS-BIOS",              "dcsbios"),
         ]
 
         if mtu_needs_fix:
@@ -2304,7 +2356,7 @@ def main():
 
         if fw_needs_fix:
             menu_options.append(
-                (f"{YELLOW}Open Firewall for WiFi (UDP {_FW_PORT}){RESET}",  "fix_fw"),
+                (f"{YELLOW}Open Firewall for DCS / WiFi communication (UDP {_FW_PORT}){RESET}",  "fix_fw"),
             )
 
         if _newer:
