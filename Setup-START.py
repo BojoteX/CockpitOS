@@ -787,9 +787,9 @@ def show_status():
     fw_needs_fix = False
     fw_status = check_firewall_udp7778()
     if fw_status is True:
-        left.append(f" \U0001f6e1 {GREEN}Firewall UDP {_FW_PORT}: open{RESET}  {DIM}(OK){RESET}")
+        left.append(f" \U0001f512 {GREEN}Firewall UDP {_FW_PORT}: open{RESET}  {DIM}(OK){RESET}")
     elif fw_status is False:
-        left.append(f" \U0001f6e1 {YELLOW}Firewall UDP {_FW_PORT}: blocked{RESET}  {DIM}(fix below){RESET}")
+        left.append(f" \U0001f512 {YELLOW}Firewall UDP {_FW_PORT}: blocked{RESET}  {DIM}(fix below){RESET}")
         fw_needs_fix = True
     # fw_status is None → can't determine, don't show anything
 
