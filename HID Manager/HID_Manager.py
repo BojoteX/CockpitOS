@@ -205,6 +205,7 @@ _RESET     = "\033[0m"
 _RED       = "\033[91m"
 _GREEN     = "\033[92m"
 _YELLOW    = "\033[93m"
+_CYAN      = "\033[96m"
 _CLR_LINE  = "\033[K"       # Clear from cursor to end of line
 
 def _w(s: str) -> None:
@@ -496,6 +497,20 @@ stats = {
 global_stats_lock = threading.Lock()
 
 reply_addr = [STORED_DCS_IP]
+
+# LOCAL IP DETECTION: Build a set of all IPs assigned to this machine's
+# network interfaces at startup.  Used by udp_send_report() to determine
+# if DCS is running locally — if so, send to 127.0.0.1 (loopback) instead
+# of the learned LAN IP.  Loopback bypasses Windows Firewall entirely,
+# avoiding silent command drops when no inbound UDP rule exists for port 7778.
+_local_ips = {"127.0.0.1"}
+try:
+    for _adapter in ifaddr.get_adapters():
+        for _addr in _adapter.ips:
+            if isinstance(_addr.ip, str):  # IPv4 only
+                _local_ips.add(_addr.ip)
+except Exception:
+    pass  # Worst case: set contains only 127.0.0.1, current behavior preserved
 
 # CPU OPTIMISATION [v5.2]: Event signal for DCS source IP detection.
 # Replaces the per-device 200 ms polling loop in device_reader() Phase 2.
@@ -1346,12 +1361,14 @@ class NetworkManager:
         message is drained.  Commands are newline-terminated strings like
         "UFC_1 1\n" or "IFEI_BRIGHTNESS_UP +3200\n".
 
-        Destination: reply_addr[0]:7778 (DCS-BIOS command listener).
+        Destination: 127.0.0.1:7778 when DCS is local (bypasses firewall),
+        otherwise reply_addr[0]:7778 for remote DCS hosts.
         Firmware equivalent: sendDCSBIOSCommand() in src/DCSBIOSBridge.h.
         """
         if self.udp_tx_sock and self.reply_addr[0]:
             try:
-                self.udp_tx_sock.sendto(msg.encode(), (self.reply_addr[0], port))
+                target = "127.0.0.1" if self.reply_addr[0] in _local_ips else self.reply_addr[0]
+                self.udp_tx_sock.sendto(msg.encode(), (target, port))
             except Exception as e:
                 self.uiq.put(('log', "UDP", f"[UDP SEND ERROR] {e}"))
 
@@ -1424,7 +1441,8 @@ class ConsoleUI:
             "hz": "0.0",
             "bw": "0.0",
             "avgudp": "0.0",
-            "src": reply_addr[0] or "(waiting...)"
+            "src": reply_addr[0] or "(waiting...)",
+            "dst": "(waiting...)"
         }
         self._rows: List[tuple] = []  # Cached device rows for painting
 
@@ -1449,7 +1467,10 @@ class ConsoleUI:
                 break
             had_events = True
             if typ == 'data_source':
-                self._stats['src'] = rest[1]
+                src_ip = rest[1]
+                self._stats['src'] = src_ip
+                target = "127.0.0.1" if src_ip in _local_ips else src_ip
+                self._stats['dst'] = "local" if target == "127.0.0.1" else target
             elif typ == 'globalstats':
                 d = rest[0]
                 self._stats['frames'] = str(d.get('frames', "0"))
@@ -1486,9 +1507,16 @@ class ConsoleUI:
             buf.append(f"\033[{row};1H{attr}{text[:w - 1]}{_CLR_LINE}{_RESET}")
 
         # ── Header: stats summary ──────────────────────────────────────
+        dst = self._stats['dst']
+        if dst == "local":
+            dcs_part = f"DCS: {_GREEN}local{_RESET}{_BOLD}"
+        elif dst == "(waiting...)":
+            dcs_part = f"DCS: {_DIM}(waiting...){_RESET}{_BOLD}"
+        else:
+            dcs_part = f"DCS: {_CYAN}{dst}{_RESET}{_BOLD}"
         hdr = (f"Frames: {self._stats['frames']}   Hz: {self._stats['hz']}   "
                f"kB/s: {self._stats['bw']}   Avg UDP Frame size (Bytes): {self._stats['avgudp']}   "
-               f"Data Source: {self._stats['src']}")
+               f"{dcs_part}")
         _line(1, hdr, _BOLD)
 
         # Blank separator rows 2-3
