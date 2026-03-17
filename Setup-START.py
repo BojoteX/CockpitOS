@@ -572,6 +572,109 @@ def patch_dcsbios_mtu(dcs_path):
         return False, str(e)
 
 
+# =============================================================================
+#  Firewall — inbound UDP 7778 (DCS-BIOS commands from WiFi ESP32 devices)
+# =============================================================================
+_FW_RULE_NAME = "CockpitOS - DCS-BIOS UDP 7778"
+_FW_PORT = "7778"
+
+
+def check_firewall_udp7778():
+    """Check if an inbound UDP rule exists allowing port 7778.
+
+    Returns True if a matching allow rule exists, False otherwise.
+    Checks ALL inbound UDP rules, not just the CockpitOS-named one,
+    so we don't nag users who already have a working rule from DCS or
+    another tool.
+    """
+    try:
+        result = subprocess.run(
+            ["netsh", "advfirewall", "firewall", "show", "rule",
+             "name=all", "dir=in"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if result.returncode != 0:
+            return None  # Can't determine — don't show anything
+
+        # Parse netsh output: look for any enabled rule that covers port 7778
+        current_rule = {}
+        for line in result.stdout.splitlines():
+            line = line.strip()
+            if line.startswith("---"):
+                # Check if previous rule covers our port
+                if _fw_rule_covers_port(current_rule):
+                    return True
+                current_rule = {}
+                continue
+            if ":" in line:
+                key, _, val = line.partition(":")
+                current_rule[key.strip().lower()] = val.strip().lower()
+
+        # Check last rule
+        if _fw_rule_covers_port(current_rule):
+            return True
+
+        return False
+    except Exception:
+        return None  # Can't determine
+
+
+def _fw_rule_covers_port(rule):
+    """Check if a parsed netsh rule dict allows inbound UDP 7778."""
+    if not rule:
+        return False
+    if rule.get("enabled", "") != "yes":
+        return False
+    if rule.get("action", "") != "allow":
+        return False
+    # Must be UDP (or "any" protocol)
+    proto = rule.get("protocol", "")
+    if proto not in ("udp", "any"):
+        return False
+    local_port = rule.get("localport", "")
+    if local_port == "any":
+        return True
+    # Port can be a single value, comma-separated list, or range
+    for part in local_port.split(","):
+        part = part.strip()
+        if "-" in part:
+            try:
+                lo, hi = part.split("-", 1)
+                if int(lo) <= 7778 <= int(hi):
+                    return True
+            except ValueError:
+                continue
+        elif part == _FW_PORT:
+            return True
+    return False
+
+
+def create_firewall_rule_udp7778():
+    """Create an inbound firewall rule to allow UDP port 7778.
+
+    Requires admin elevation. Returns (ok, message).
+    """
+    try:
+        result = subprocess.run(
+            ["netsh", "advfirewall", "firewall", "add", "rule",
+             f"name={_FW_RULE_NAME}",
+             "dir=in", "action=allow", "protocol=udp",
+             f"localport={_FW_PORT}",
+             "profile=private,domain",
+             "enable=yes"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if result.returncode == 0:
+            return True, f"Firewall rule created: inbound UDP {_FW_PORT}"
+        else:
+            err = result.stderr.strip() or result.stdout.strip()
+            if "requires elevation" in err.lower() or "access is denied" in err.lower():
+                return False, "Admin privileges required. Run Setup as Administrator."
+            return False, f"netsh failed: {err}"
+    except Exception as e:
+        return False, str(e)
+
+
 def _pick_dcs_path(dcs_list):
     """Let user pick a DCS installation if multiple found. Returns (label, path) or None."""
     if len(dcs_list) == 1:
@@ -680,6 +783,16 @@ def show_status():
         else:
             left.append(f" \U0001f3ae {DIM}DCS-BIOS: not installed{RESET}")
 
+    # Firewall check (UDP 7778 — needed for WiFi ESP32 devices)
+    fw_needs_fix = False
+    fw_status = check_firewall_udp7778()
+    if fw_status is True:
+        left.append(f" \U0001f512 {GREEN}Firewall UDP {_FW_PORT}: open{RESET}  {DIM}(OK){RESET}")
+    elif fw_status is False:
+        left.append(f" \U0001f512 {YELLOW}Firewall UDP {_FW_PORT}: blocked{RESET}  {DIM}(fix below){RESET}")
+        fw_needs_fix = True
+    # fw_status is None → can't determine, don't show anything
+
     # ---- Build right column (Libraries) ----
     right = []
 
@@ -724,7 +837,7 @@ def show_status():
         _w(f"    {lc}{' ' * pad}{rc}\n")
 
     _w("\n")
-    return mtu_needs_fix
+    return mtu_needs_fix, fw_needs_fix
 
 
 # =============================================================================
@@ -1265,6 +1378,54 @@ def action_fix_dcsbios_mtu():
         _w(f"\n  {GREEN}{BOLD}Done!{RESET} {patched} installation(s) patched.\n")
     else:
         _w(f"\n  Nothing to patch.\n")
+
+    _w("\n  Press any key...")
+    msvcrt.getwch()
+
+
+def action_fix_firewall():
+    """Create a Windows Firewall rule to allow inbound UDP 7778.
+
+    Required for WiFi-connected ESP32 devices to send commands to DCS-BIOS.
+    Loopback (USB/Serial via HID Manager) is unaffected by the firewall.
+    """
+    show_banner()
+    _w(f"\n  {BOLD}Open Firewall for WiFi ESP32 Devices (UDP {_FW_PORT}){RESET}\n\n")
+
+    info("WiFi-connected ESP32 boards send DCS-BIOS commands to this PC")
+    info(f"on UDP port {_FW_PORT}. Windows Firewall blocks this by default.")
+    info("USB and Serial connections are NOT affected (they use loopback).")
+    _w("\n")
+
+    # Re-check in case the user already fixed it
+    status = check_firewall_udp7778()
+    if status is True:
+        success(f"Inbound UDP {_FW_PORT} is already allowed — nothing to do.")
+        _w("\n  Press any key...")
+        msvcrt.getwch()
+        return
+
+    if not confirm(f"Create firewall rule to allow inbound UDP {_FW_PORT}?"):
+        info("Cancelled.")
+        _w("\n  Press any key...")
+        msvcrt.getwch()
+        return
+
+    _w("\n")
+    info("Creating firewall rule...")
+    ok, msg = create_firewall_rule_udp7778()
+    if ok:
+        success(msg)
+        # Verify it took effect
+        if check_firewall_udp7778():
+            success("Verified: port is now open.")
+        _w(f"\n  {GREEN}{BOLD}Done!{RESET}\n")
+    else:
+        error(msg)
+        if "admin" in msg.lower() or "elevation" in msg.lower():
+            _w("\n")
+            info("To fix this, right-click Setup-START.py and select")
+            info("'Run as administrator', then try again.")
 
     _w("\n  Press any key...")
     msvcrt.getwch()
@@ -2114,7 +2275,7 @@ def main():
 
     while True:
         show_banner()
-        mtu_needs_fix = show_status()
+        mtu_needs_fix, fw_needs_fix = show_status()
 
         # -- Update check ----------------------------------------------------
         from shared.update_check import version_line, update_available
@@ -2133,6 +2294,11 @@ def main():
         if mtu_needs_fix:
             menu_options.append(
                 (f"{YELLOW}Fix DCS-BIOS MTU{RESET}",  "fix_mtu"),
+            )
+
+        if fw_needs_fix:
+            menu_options.append(
+                (f"{YELLOW}Open Firewall for WiFi (UDP {_FW_PORT}){RESET}",  "fix_fw"),
             )
 
         if _newer:
@@ -2158,6 +2324,8 @@ def main():
             action_download_dcsbios()
         elif choice == "fix_mtu":
             action_fix_dcsbios_mtu()
+        elif choice == "fix_fw":
+            action_fix_firewall()
         elif choice == "update":
             from shared.updater import perform_update
             perform_update(_newer, lock_path,
