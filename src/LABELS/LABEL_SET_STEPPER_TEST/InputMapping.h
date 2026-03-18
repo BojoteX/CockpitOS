@@ -19,8 +19,6 @@ struct InputMapping {
 
 //  label                       source     port bit hidId  DCSCommand           value   Type        group  rel
 static const InputMapping InputMappings[] = {
-    { "STBY_PRESS_ALT_POS0", "NONE" ,  0 ,  0 ,  -1 , "STBY_PRESS_ALT",     0 , "variable_step",  0 , 0 },
-    { "STBY_PRESS_ALT_POS1", "NONE" ,  0 ,  0 ,  -1 , "STBY_PRESS_ALT",     1 , "variable_step",  0 , 0 },
 };
 static const size_t InputMappingSize = sizeof(InputMappings)/sizeof(InputMappings[0]);
 
@@ -48,7 +46,6 @@ static const InputHashEntry inputHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"STBY_PRESS_ALT_POS0", &InputMappings[0]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -82,7 +79,8 @@ static const InputHashEntry inputHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"STBY_PRESS_ALT_POS1", &InputMappings[1]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
   {nullptr, nullptr},
 };
 

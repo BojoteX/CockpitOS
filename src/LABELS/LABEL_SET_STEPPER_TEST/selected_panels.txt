@@ -16,7 +16,7 @@
 # Canopy Internal Jettison Handle
 # Caution Light Panel
 # Clock
-# Cockpit Altimeter
+Cockpit Altimeter
 # Comms frequency
 # Communication Panel
 # Custom
@@ -76,7 +76,7 @@
 # Sensor Panel
 # Speed
 # Standby Airspeed Indicator
-Standby Altimeter
+# Standby Altimeter
 # Standby Attitude Reference Indicator
 # Standby Compass
 # Standby Rate of Climb Indicator

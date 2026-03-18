@@ -31,13 +31,7 @@ struct CommandHistoryEntry {
 
 struct DcsOutputEntry { uint16_t addr, mask; uint8_t shift; uint16_t max_value; const char* label; ControlType controlType; };
 static const DcsOutputEntry DcsOutputTable[] = {
-    {0x74F6,0xFFFF,0,65535,"STBY_ALT_10000_FT_CNT",CT_GAUGE},
-    {0x74F8,0xFFFF,0,65535,"STBY_ALT_1000_FT_CNT",CT_GAUGE},
-    {0x74F4,0xFFFF,0,65535,"STBY_ALT_100_FT_PTR",CT_GAUGE},
-    {0x74F2,0xFFFF,0,65535,"STBY_PRESS_ALT",CT_ANALOG},
-    {0x74FA,0xFFFF,0,65535,"STBY_PRESS_SET_0",CT_GAUGE},
-    {0x74FC,0xFFFF,0,65535,"STBY_PRESS_SET_1",CT_GAUGE},
-    {0x74FE,0xFFFF,0,65535,"STBY_PRESS_SET_2",CT_GAUGE},
+    {0x7514,0xFFFF,0,65535,"PRESSURE_ALT",CT_GAUGE},
 };
 static const size_t DcsOutputTableSize = sizeof(DcsOutputTable)/sizeof(DcsOutputTable[0]);
 
@@ -49,13 +43,7 @@ struct AddressEntry {
 };
 
 static const AddressEntry dcsAddressTable[] = {
-  { 0x74F6, { &DcsOutputTable[0] }, 1 },
-  { 0x74F8, { &DcsOutputTable[1] }, 1 },
-  { 0x74F4, { &DcsOutputTable[2] }, 1 },
-  { 0x74F2, { &DcsOutputTable[3] }, 1 },
-  { 0x74FA, { &DcsOutputTable[4] }, 1 },
-  { 0x74FC, { &DcsOutputTable[5] }, 1 },
-  { 0x74FE, { &DcsOutputTable[6] }, 1 },
+  { 0x7514, { &DcsOutputTable[0] }, 1 },
 };
 
 // Address hash entry
@@ -66,11 +54,6 @@ struct DcsAddressHashEntry {
 
 static const DcsAddressHashEntry dcsAddressHashTable[53] = {
   {0xFFFF, nullptr},
-  { 0x74FA, &dcsAddressTable[4] },
-  {0xFFFF, nullptr},
-  { 0x74FC, &dcsAddressTable[5] },
-  {0xFFFF, nullptr},
-  { 0x74FE, &dcsAddressTable[6] },
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
@@ -97,6 +80,7 @@ static const DcsAddressHashEntry dcsAddressHashTable[53] = {
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
+  { 0x7514, &dcsAddressTable[0] },
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
@@ -111,13 +95,17 @@ static const DcsAddressHashEntry dcsAddressHashTable[53] = {
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
   {0xFFFF, nullptr},
-  { 0x74F2, &dcsAddressTable[3] },
   {0xFFFF, nullptr},
-  { 0x74F4, &dcsAddressTable[2] },
   {0xFFFF, nullptr},
-  { 0x74F6, &dcsAddressTable[0] },
   {0xFFFF, nullptr},
-  { 0x74F8, &dcsAddressTable[1] },
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
+  {0xFFFF, nullptr},
 };
 
 // Simple address hash (modulo)
@@ -138,8 +126,6 @@ inline const AddressEntry* findDcsOutputEntries(uint16_t addr) {
 
 struct SelectorEntry { const char* label; const char* dcsCommand; uint16_t value; const char* controlType; uint16_t group; const char* posLabel; };
 static const SelectorEntry SelectorMap[] = {
-    { "STBY_PRESS_ALT_POS0","STBY_PRESS_ALT",0,"variable_step",0,"POS0" },
-    { "STBY_PRESS_ALT_POS1","STBY_PRESS_ALT",1,"variable_step",0,"POS1" },
 };
 static const size_t SelectorMapSize = sizeof(SelectorMap)/sizeof(SelectorMap[0]);
 
@@ -164,7 +150,6 @@ static const SelectorHashEntry selectorHashTable[53] = {
   {nullptr, 0, nullptr},
   {nullptr, 0, nullptr},
   {nullptr, 0, nullptr},
-  {"STBY_PRESS_ALT", 0, &SelectorMap[0]},
   {nullptr, 0, nullptr},
   {nullptr, 0, nullptr},
   {nullptr, 0, nullptr},
@@ -182,7 +167,8 @@ static const SelectorHashEntry selectorHashTable[53] = {
   {nullptr, 0, nullptr},
   {nullptr, 0, nullptr},
   {nullptr, 0, nullptr},
-  {"STBY_PRESS_ALT", 1, &SelectorMap[1]},
+  {nullptr, 0, nullptr},
+  {nullptr, 0, nullptr},
   {nullptr, 0, nullptr},
   {nullptr, 0, nullptr},
   {nullptr, 0, nullptr},
@@ -216,7 +202,6 @@ inline const SelectorEntry* findSelectorByDcsAndValue(const char* dcsCommand, ui
 
 // Unified Command History Table (used for throttling, optional keep-alive, and HID dedupe)
 static CommandHistoryEntry commandHistory[] = {
-    { "STBY_PRESS_ALT", 0, 0, false, 0, 0,   0, false, 0, {0}, {0}, 0 },
 };
 static const size_t commandHistorySize = sizeof(commandHistory)/sizeof(CommandHistoryEntry);
 

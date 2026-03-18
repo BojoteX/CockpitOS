@@ -32,13 +32,13 @@ void resetAllGauges() {
         if (led.deviceType == DEVICE_STEPPER) {
             PanelRegistry_setActive(PanelKind::StepperMotor, true);
             const auto& si = led.info.stepperInfo;
-            Stepper_register(si.pin1, si.pin2, si.pin3, si.pin4, si.totalSteps, si.usPerStep, si.continuous);
-            debugPrintf("[STEPPER] Registered %s on pins %u,%u,%u,%u (%u steps, %uus/step, %s)\n",
-                led.label, si.pin1, si.pin2, si.pin3, si.pin4, si.totalSteps, si.usPerStep,
+            Stepper_register(si.pin1, si.pin2, si.pin3, si.pin4, si.totalSteps, si.usPerStep, si.stateCount, si.continuous);
+            debugPrintf("[STEPPER] Registered %s on pins %u,%u,%u,%u (%u steps, %u states, %s)\n",
+                led.label, si.pin1, si.pin2, si.pin3, si.pin4, si.totalSteps, si.stateCount,
                 si.continuous ? "continuous" : "limited-sweep");
 
-            // Non-blocking init sweep — runs concurrently inside Stepper_tick().
-            // All steppers sweep at the same time; boot isn't blocked.
+            // Non-blocking init sweep — runs inside Stepper_tick().
+            // All steppers sweep concurrently; boot isn't blocked.
             Stepper_startSweep(si.pin1);
         }
     }
