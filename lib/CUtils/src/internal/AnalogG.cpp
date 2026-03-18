@@ -528,9 +528,20 @@ void Stepper_tick() {
                     st.stateIndex  = 0;
                     st.vel         = 0;
                     st.dir         = 0;
-                    st.stopped     = true;
                     stepperApplyState(st);
-                    debugPrintln("[STEPPER] Init sweep complete — holding at zero.");
+                    // If DCS-BIOS set a target during the sweep, start tracking
+                    // immediately. Otherwise park as stopped. This prevents the
+                    // dedup issue where the value is never resent.
+                    if (st.targetStep != 0) {
+                        st.stopped    = false;
+                        st.time0      = now;
+                        st.microDelay = 0;
+                        debugPrintln("[STEPPER] Init sweep complete — tracking pending target.");
+                    } else {
+                        st.stopped = true;
+                        st.time0   = now;
+                        debugPrintln("[STEPPER] Init sweep complete — holding at zero.");
+                    }
                 }
             }
             continue;
@@ -558,9 +569,15 @@ void Stepper_tick() {
                 continue;
             }
 
-            // Start from rest — pick direction
+            // Start from rest — pick direction (shortest path for continuous)
             if (st.vel == 0) {
-                st.dir = (st.currentStep < st.targetStep) ? 1 : -1;
+                int32_t delta = st.targetStep - st.currentStep;
+                if (st.continuous) {
+                    int32_t half = (int32_t)st.totalSteps / 2;
+                    if (delta > half)        delta -= st.totalSteps;
+                    else if (delta < -half)  delta += st.totalSteps;
+                }
+                st.dir = (delta > 0) ? 1 : -1;
                 st.vel = 1;
             }
 
