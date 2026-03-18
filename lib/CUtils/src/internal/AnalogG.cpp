@@ -239,8 +239,8 @@ void Servo_detach(uint8_t id) {
 //     720 steps/rev, 100us/step, wires directly to ESP32 GPIO
 //     Use for: oil/hyd pressure, fuel, RPM (limited-sweep gauges)
 //
-// Non-blocking: Stepper_tick() rate-limits each stepper to its
-// configured usPerStep timing. No delays, no loops.
+// Non-blocking: Stepper_tick() advances one step per stepper per call,
+// rate-limited to each motor's usPerStep timing. Zero delays, zero loops.
 // ============================================================
 
 // Init sweep state machine — non-blocking self-test at boot
@@ -425,43 +425,30 @@ void Stepper_tick() {
         if (!st.enabled) continue;
 
         // ── Non-blocking init sweep state machine ──
-        // Runs before normal target-tracking. During sweep, DCS-BIOS
+        // Runs before normal target-tracking. One step per tick, same as
+        // normal tracking — no delays, no blocking. During sweep, DCS-BIOS
         // can still set targetStep — it will be picked up when sweep ends.
         if (st.sweepPhase != SWEEP_NONE) {
-            uint32_t elapsed = now - st.lastStepUs;
-            if (elapsed < st.usPerStep) continue;
+            if ((now - st.lastStepUs) < st.usPerStep) continue;
+            st.lastStepUs = now;
 
-            uint32_t stepsAvailable = elapsed / st.usPerStep;
-            uint32_t remaining = (uint32_t)(st.sweepSteps - st.sweepProgress);
-            uint32_t steps = (stepsAvailable < remaining) ? stepsAvailable : remaining;
+            int8_t dir = (st.sweepPhase == SWEEP_FWD) ? 1 : -1;
+            st.phaseIndex = (uint8_t)((st.phaseIndex + dir + 8) % 8);
+            stepperApplyPhase(st);
+            st.sweepProgress++;
 
-            if (st.sweepPhase == SWEEP_FWD) {
-                // Advance forward
-                int32_t phaseAdv = (int32_t)(steps % 8);
-                st.phaseIndex = (uint8_t)((st.phaseIndex + phaseAdv) % 8);
-                st.sweepProgress += (int32_t)steps;
-                stepperApplyPhase(st);
-                st.lastStepUs = now - (elapsed % st.usPerStep);
-
-                if (st.sweepProgress >= st.sweepSteps) {
+            if (st.sweepProgress >= st.sweepSteps) {
+                if (st.sweepPhase == SWEEP_FWD) {
                     st.sweepPhase    = SWEEP_BWD;
                     st.sweepProgress = 0;
                     debugPrintln("[STEPPER] Init sweep: returning to zero...");
-                }
-            } else {  // SWEEP_BWD
-                // Reverse back to zero
-                int32_t phaseAdv = -((int32_t)(steps % 8));
-                st.phaseIndex = (uint8_t)((st.phaseIndex + phaseAdv + 8) % 8);
-                st.sweepProgress += (int32_t)steps;
-                stepperApplyPhase(st);
-                st.lastStepUs = now - (elapsed % st.usPerStep);
-
-                if (st.sweepProgress >= st.sweepSteps) {
+                } else {
                     st.sweepPhase  = SWEEP_NONE;
                     st.currentStep = 0;
-                    st.targetStep  = 0;
                     st.phaseIndex  = 0;
                     stepperApplyPhase(st);  // ensure phase 0 is applied
+                    // DO NOT reset targetStep — DCS-BIOS may have set a target
+                    // during the sweep. Normal tracking picks it up next tick.
                     debugPrintln("[STEPPER] Init sweep complete — holding at zero.");
                 }
             }
@@ -479,14 +466,8 @@ void Stepper_tick() {
         }
 
         // Rate-limit: respect this motor's usPerStep timing
-        uint32_t elapsed = now - st.lastStepUs;
-        if (elapsed < st.usPerStep) continue;
-
-        // Multi-step arithmetic: advance as many steps as the elapsed
-        // time allows, up to the remaining delta. At 250Hz main loop
-        // with a 100us/step X27, this jumps up to 40 steps per tick
-        // instead of the old single-step-per-tick bottleneck.
-        uint32_t stepsAvailable = elapsed / st.usPerStep;
+        if ((now - st.lastStepUs) < st.usPerStep) continue;
+        st.lastStepUs = now;
 
         int32_t delta = st.targetStep - st.currentStep;
 
@@ -501,26 +482,15 @@ void Stepper_tick() {
         // so the motor always traverses the valid sweep range.
 
         int8_t dir = (delta > 0) ? 1 : -1;
-        uint32_t absDelta = (uint32_t)((delta > 0) ? delta : -delta);
-        uint32_t stepsToTake = (stepsAvailable < absDelta) ? stepsAvailable : absDelta;
-
-        // Advance position by the full step count
-        st.currentStep += dir * (int32_t)stepsToTake;
+        st.currentStep += dir;
 
         // Wrap currentStep to [0, totalSteps) — only relevant for continuous motors
         // but safe for limited-sweep (they never cross the boundary)
         if (st.currentStep < 0)                       st.currentStep += st.totalSteps;
         else if (st.currentStep >= st.totalSteps)     st.currentStep -= st.totalSteps;
 
-        // Compute final phase index arithmetically — no need to step through
-        // each intermediate phase. The motor coils only see the final pattern.
-        // Phase advances by +1 (forward) or -1 (backward) per step, modulo 8.
-        int32_t phaseAdvance = dir * (int32_t)(stepsToTake % 8);
-        st.phaseIndex = (uint8_t)((st.phaseIndex + phaseAdvance + 8) % 8);
+        st.phaseIndex = (uint8_t)((int8_t)st.phaseIndex + dir + 8) % 8;
         stepperApplyPhase(st);
-
-        // Preserve fractional remainder for smooth timing across ticks
-        st.lastStepUs = now - (elapsed % st.usPerStep);
     }
 }
 
