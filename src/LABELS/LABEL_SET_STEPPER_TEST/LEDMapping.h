@@ -33,7 +33,7 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
-  { "PRESSURE_ALT", DEVICE_STEPPER , {.stepperInfo = {34, 36, 40, 38, 827, 1200, 6, false}}, false, false }, // STEPPER pins 34,36,40,38 steps=827 1200us limited-sweep
+  { "PRESSURE_ALT", DEVICE_STEPPER , {.stepperInfo = {34, 36, 40, 38, 945, 1200, 6, false}}, false, false }, // STEPPER pins 34,36,40,38 steps=945 1200us limited-sweep
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);

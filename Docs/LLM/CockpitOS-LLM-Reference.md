@@ -227,7 +227,7 @@ A **Label Set** is a folder in `src/LABELS/` containing all configuration files 
 | `DEVICE_TM1637` | `.tm1637Info = {clkPin, dioPin, segment, bit}` | 7-segment display segment |
 | `DEVICE_GN1640T` | `.gn1640Info = {address, column, row}` | LED matrix position |
 | `DEVICE_GAUGE` | `.gaugeInfo = {gpio, minPulse, maxPulse, period}` | Servo motor gauge |
-| `DEVICE_STEPPER` | `.stepperInfo = {pin1, pin2, pin3, pin4, totalSteps, usPerStep, continuous}` | Stepper motor gauge (X27.168 or 28BYJ-48) |
+| `DEVICE_STEPPER` | `.stepperInfo = {pin1, pin2, pin3, pin4, totalSteps, usPerStep, stateCount, continuous}` | Stepper motor gauge (X27.168/6-state or 28BYJ-48/8-phase) |
 | `DEVICE_MAGNETIC` | `.magneticInfo = {gpioA, gpioB}` | Solenoid switch (2-pos or 3-pos) |
 
 ---

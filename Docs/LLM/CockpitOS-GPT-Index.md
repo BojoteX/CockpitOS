@@ -373,18 +373,20 @@ When users report lag on RS485 networks:
 
 ## STEPPER MOTOR QUICK REFERENCE
 
-| Motor | Steps/Rev | usPerStep | Driver | Continuous 360 |
-|-------|-----------|-----------|--------|----------------|
-| X27.168 / VID29 | 720 | 100 (min) | None (direct GPIO) | Requires end stop removal |
-| 28BYJ-48 | 4096 | 1000 (min ~800) | ULN2003 + ext 5V | Always |
+| Motor | Steps/Rev | Drive Sequence | Speed Control | Driver | Continuous 360 |
+|-------|-----------|----------------|---------------|--------|----------------|
+| X27.168 / VID29 | 1080 (945/315deg) | 6-state (SwitecX25) | Accel: 3000->600us | None (direct GPIO) | Requires end stop removal |
+| 28BYJ-48 | 4096 | 8-phase half-step | Fixed: 1000us/step | ULN2003 + ext 5V | Always |
 
-**LEDMapping.h stepperInfo:** `{pin1, pin2, pin3, pin4, totalSteps, usPerStep, continuous}`
+**LEDMapping.h stepperInfo:** `{pin1, pin2, pin3, pin4, totalSteps, usPerStep, stateCount, continuous}`
+
+**stateCount:** `6` = X27 (6-state + acceleration), `8` = 28BYJ (8-phase half-step, fixed speed).
 
 **totalSteps calculation:** `stepsPerRev * angle / 360` (Label Creator does this automatically)
 
 **continuous flag:** `true` = shortest-path wraparound (altimeters, heading). `false` = clamp to range (pressure, fuel, RPM).
 
-**Key behaviors:** Non-blocking (one step per tick). Auto de-energize after 2s idle. Init sweep at startup. MAX_STEPPERS=4.
+**Key behaviors:** Non-blocking (one step per tick per stepper). Auto de-energize after 2s idle. Non-blocking init sweep at startup (all steppers sweep concurrently). MAX_STEPPERS=4.
 
 ---
 
