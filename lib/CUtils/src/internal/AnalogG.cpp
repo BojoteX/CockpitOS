@@ -229,155 +229,252 @@ void Servo_detach(uint8_t id) {
 }
 
 // ============================================================
-// STEPPER MOTOR — supports two 4-wire stepper types:
+// STEPPER MOTOR — supports two motor types with different drive
+// sequences, step counts, and speed control:
 //
-//   28BYJ-48 + ULN2003  (geared, continuous 360, unlimited turns)
-//     4096 steps/rev, 800us/step, needs ULN2003 driver board
+//   28BYJ-48 + ULN2003  (stateCount=8, geared, 8-phase half-step)
+//     4096 steps/rev, fixed speed (usPerStep), no acceleration needed
 //     Use for: altimeters, heading indicators, clocks, throttles
 //
-//   X27.168 / VID29     (direct drive, fast, ~315 deg max)
-//     720 steps/rev, 100us/step, wires directly to ESP32 GPIO
+//   X27.168 / VID29 / X25.168  (stateCount=6, direct drive, 6-state)
+//     945 steps for 315 deg, acceleration required (3000-600us ramp)
+//     Drive sequence and accel table from SwitecX25 library
+//     (Guy Carpenter, Clearwater Software, BSD2 license)
 //     Use for: oil/hyd pressure, fuel, RPM (limited-sweep gauges)
 //
-// Non-blocking: Stepper_tick() rate-limits each stepper to its
-// configured usPerStep timing. No delays, no loops.
+// Non-blocking: Stepper_tick() is called every frame, advances at
+// most one step per stepper, returns immediately. No delays.
 // ============================================================
+
+// Init sweep state machine — non-blocking self-test at boot
+enum SweepPhase : uint8_t { SWEEP_NONE = 0, SWEEP_FWD, SWEEP_BWD };
+
+// ── State sequences ──
+
+// 8-phase half-step for 28BYJ-48 through ULN2003.
+// bit0=IN1, bit1=IN2, bit2=IN3, bit3=IN4
+static const uint8_t HALF_STEP_SEQ[8] = {
+    0b0001, 0b0011, 0b0010, 0b0110,
+    0b0100, 0b1100, 0b1000, 0b1001,
+};
+
+// 6-state sequence for X27.168 / VID29 (from SwitecX25 library).
+// Completely different motor type — NOT a standard unipolar stepper.
+static const uint8_t X27_STATE_SEQ[6] = {
+    0x9, 0x1, 0x7, 0x6, 0xE, 0x8,
+};
+
+// ── X27 acceleration table (from SwitecX25 library) ──
+// {cumulative_steps_from_rest, delay_microseconds}
+// Motor starts at 3000us/step (slow), ramps to 600us/step (fast).
+// Cannot start at full speed — will stall without this ramp.
+static const uint16_t X27_ACCEL_TABLE[][2] = {
+    {   20, 3000 },
+    {   50, 1500 },
+    {  100, 1000 },
+    {  150,  800 },
+    {  300,  600 },
+};
+#define X27_ACCEL_TABLE_SIZE (sizeof(X27_ACCEL_TABLE) / sizeof(X27_ACCEL_TABLE[0]))
+#define X27_MAX_VEL          300   // last entry's step count
 
 struct StepperState {
     uint8_t  pins[4];           // IN1, IN2, IN3, IN4 (GPIO)
-    uint16_t totalSteps;        // total steps for full range (4096 = 1 rev for 28BYJ-48)
-    uint16_t usPerStep;         // microseconds per half-step (speed limit for this motor)
-    volatile int32_t targetStep;// desired position
+    uint16_t totalSteps;        // full range (4096 for 28BYJ, 945 for X27)
+    uint16_t usPerStep;         // fixed speed for 28BYJ; sweep speed for X27
+    volatile int32_t targetStep;// desired position (set by DCS-BIOS)
     int32_t  currentStep;       // actual position
-    uint32_t lastStepUs;        // micros() timestamp of last step (for rate-limiting in tick)
-    uint8_t  phaseIndex;        // 0-7 half-step sequence index
+    uint32_t time0;             // micros() timestamp of last step
+    uint16_t microDelay;        // delay until next step (varies for X27 accel, fixed for 28BYJ)
+    uint16_t vel;               // acceleration velocity — cumulative steps from rest (X27 only)
+    int8_t   dir;               // movement direction: -1, 0, 1
+    const uint8_t* stateSeq;    // pointer to state sequence array
+    uint8_t  stateCount;        // 6 for X27, 8 for 28BYJ
+    uint8_t  stateIndex;        // current position in state sequence
     bool     enabled;
-    bool     continuous;        // true = 360 unlimited rotation (wraparound), false = limited sweep (no wraparound)
+    bool     continuous;        // true = wraparound (28BYJ), false = limited sweep
+    bool     stopped;           // true when at target with vel=0 (X27 accel state)
+    // Init sweep state (non-blocking)
+    SweepPhase sweepPhase;
+    int32_t    sweepSteps;
+    int32_t    sweepProgress;
 };
 
 static StepperState stepperArray[MAX_STEPPERS];
 static uint8_t      stepperCount = 0;
 
-// 8-phase half-step sequence for 28BYJ-48 through ULN2003.
-// Each entry is a 4-bit pattern: bit0=IN1, bit1=IN2, bit2=IN3, bit3=IN4
-static const uint8_t HALF_STEP_SEQ[8] = {
-    0b0001,  // phase 0: IN1
-    0b0011,  // phase 1: IN1 + IN2
-    0b0010,  // phase 2: IN2
-    0b0110,  // phase 3: IN2 + IN3
-    0b0100,  // phase 4: IN3
-    0b1100,  // phase 5: IN3 + IN4
-    0b1000,  // phase 6: IN4
-    0b1001,  // phase 7: IN4 + IN1
-};
-
-// Apply the current phase pattern to the 4 GPIO pins
-static void stepperApplyPhase(const StepperState& s) {
-    uint8_t pattern = HALF_STEP_SEQ[s.phaseIndex];
-    digitalWrite(s.pins[0], (pattern & 0x01) ? HIGH : LOW);
-    digitalWrite(s.pins[1], (pattern & 0x02) ? HIGH : LOW);
-    digitalWrite(s.pins[2], (pattern & 0x04) ? HIGH : LOW);
-    digitalWrite(s.pins[3], (pattern & 0x08) ? HIGH : LOW);
+// Apply current state pattern to GPIO pins.
+// Uses ESP-IDF gpio_set_level() for lower overhead — same API as HT1622/PCA9555.
+static void stepperApplyState(const StepperState& s) {
+    uint8_t mask = s.stateSeq[s.stateIndex];
+    gpio_set_level((gpio_num_t)s.pins[0], (mask & 0x01) ? 1 : 0);
+    gpio_set_level((gpio_num_t)s.pins[1], (mask & 0x02) ? 1 : 0);
+    gpio_set_level((gpio_num_t)s.pins[2], (mask & 0x04) ? 1 : 0);
+    gpio_set_level((gpio_num_t)s.pins[3], (mask & 0x08) ? 1 : 0);
 }
 
-// De-energize all coils for a single stepper (saves power)
+// De-energize all coils (saves power, gearbox/friction holds position)
 static void stepperAllOff(const StepperState& s) {
     for (uint8_t i = 0; i < 4; ++i)
-        digitalWrite(s.pins[i], LOW);
+        gpio_set_level((gpio_num_t)s.pins[i], 0);
 }
 
-void Stepper_register(uint8_t pin1, uint8_t pin2, uint8_t pin3, uint8_t pin4,
-                      uint16_t totalSteps, uint16_t usPerStep, bool continuous) {
-    if (stepperCount >= MAX_STEPPERS) return;
+// Advance one step in the given direction, update state index
+static void stepperStep(StepperState& st, int8_t dir) {
+    st.currentStep += dir;
+    if (dir > 0)
+        st.stateIndex = (st.stateIndex + 1) % st.stateCount;
+    else
+        st.stateIndex = (st.stateIndex + st.stateCount - 1) % st.stateCount;
+
+    // Wrap for continuous motors (28BYJ)
+    if (st.continuous) {
+        if (st.currentStep < 0)                        st.currentStep += st.totalSteps;
+        else if (st.currentStep >= (int32_t)st.totalSteps) st.currentStep -= st.totalSteps;
+    }
+    stepperApplyState(st);
+}
+
+// Look up delay from X27 acceleration table
+static uint16_t x27LookupDelay(uint16_t vel) {
+    for (uint8_t i = 0; i < X27_ACCEL_TABLE_SIZE; i++) {
+        if (X27_ACCEL_TABLE[i][0] >= vel) return X27_ACCEL_TABLE[i][1];
+    }
+    return X27_ACCEL_TABLE[X27_ACCEL_TABLE_SIZE - 1][1];
+}
+
+uint8_t Stepper_register(uint8_t pin1, uint8_t pin2, uint8_t pin3, uint8_t pin4,
+                         uint16_t totalSteps, uint16_t usPerStep,
+                         uint8_t stateCount, bool continuous) {
+    if (stepperCount >= MAX_STEPPERS) return 0xFF;
 
     StepperState& st = stepperArray[stepperCount];
-    st.pins[0]     = pin1;
-    st.pins[1]     = pin2;
-    st.pins[2]     = pin3;
-    st.pins[3]     = pin4;
-    st.totalSteps  = totalSteps;
-    st.usPerStep   = usPerStep ? usPerStep : 1000;  // default to safe 28BYJ-48 speed
-    st.targetStep  = 0;
-    st.currentStep = 0;
-    st.lastStepUs  = 0;
-    st.phaseIndex  = 0;
-    st.enabled     = true;
-    st.continuous  = continuous;
+    st.pins[0]       = pin1;
+    st.pins[1]       = pin2;
+    st.pins[2]       = pin3;
+    st.pins[3]       = pin4;
+    st.totalSteps    = totalSteps;
+    st.usPerStep     = usPerStep ? usPerStep : 1000;
+    st.targetStep    = 0;
+    st.currentStep   = 0;
+    st.time0         = 0;
+    st.microDelay    = 0;
+    st.vel           = 0;
+    st.dir           = 0;
+    st.stateCount    = (stateCount == 6) ? 6 : 8;  // only 6 or 8 supported
+    st.stateSeq      = (st.stateCount == 6) ? X27_STATE_SEQ : HALF_STEP_SEQ;
+    st.stateIndex    = 0;
+    st.enabled       = true;
+    st.continuous    = continuous;
+    st.stopped       = true;
+    st.sweepPhase    = SWEEP_NONE;
+    st.sweepSteps    = 0;
+    st.sweepProgress = 0;
 
-    // Set all 4 pins as OUTPUT
     for (uint8_t i = 0; i < 4; ++i)
         pinMode(st.pins[i], OUTPUT);
 
-    // Energize phase 0 — motor snaps to its zero detent and holds.
-    // This is the repeatable reference position for needle attachment:
-    // attach the needle while the motor is holding here, pointing at "0".
-    stepperApplyPhase(st);
+    // Energize state 0 — motor snaps to zero detent for needle attachment
+    stepperApplyState(st);
 
-    stepperCount++;
-    debugPrintf("[STEPPER] Registered id=%u pins=%u,%u,%u,%u totalSteps=%u usPerStep=%u %s (holding phase 0)\n",
-                stepperCount - 1, pin1, pin2, pin3, pin4, totalSteps, st.usPerStep,
+    uint8_t id = stepperCount++;
+    debugPrintf("[STEPPER] Registered id=%u pins=%u,%u,%u,%u totalSteps=%u %s %s (holding state 0)\n",
+                id, pin1, pin2, pin3, pin4, totalSteps,
+                (st.stateCount == 6) ? "X27/6-state" : "28BYJ/8-phase",
                 st.continuous ? "continuous" : "limited-sweep");
+    return id;
 }
 
+// Non-blocking init sweep trigger — runs inside Stepper_tick().
+// X27 sweeps use the same acceleration as normal tracking (self-test proves accel works).
+// 28BYJ sweeps use fixed usPerStep (no acceleration needed for geared motors).
+void Stepper_startSweep(uint8_t pin1) {
+    for (uint8_t i = 0; i < stepperCount; ++i) {
+        if (stepperArray[i].pins[0] != pin1) continue;
+        StepperState& st = stepperArray[i];
+
+        st.sweepSteps    = (st.totalSteps < 4096) ? st.totalSteps : 4096;
+        st.sweepProgress = 0;
+        st.sweepPhase    = SWEEP_FWD;
+        st.time0         = micros();
+        st.vel           = 0;
+        st.microDelay    = 0;
+
+        debugPrintf("[STEPPER] Init sweep started: %ld steps (%s, non-blocking)\n",
+                    (long)st.sweepSteps,
+                    (st.stateCount == 6) ? "accelerated" : "fixed speed");
+        return;
+    }
+}
+
+// Legacy blocking init sweep — use Stepper_startSweep() for boot instead.
 void Stepper_initSweep(uint8_t pin1) {
     for (uint8_t i = 0; i < stepperCount; ++i) {
         if (stepperArray[i].pins[0] != pin1) continue;
         StepperState& st = stepperArray[i];
 
-        // Cap sweep to one revolution (4096 half-steps) for visual self-test.
-        // Even multi-rev instruments only need one turn to confirm needle zero.
         const int32_t sweepSteps = (st.totalSteps < 4096) ? st.totalSteps : 4096;
-
-        // Use this stepper's configured speed — fast motors sweep fast, slow motors sweep slow.
         const uint32_t stepDelay = st.usPerStep;
 
         debugPrintf("[STEPPER] Init sweep: %ld steps forward (%luus/step)...\n",
                     (long)sweepSteps, (unsigned long)stepDelay);
 
-        // Full revolution forward
         for (int32_t s = 0; s < sweepSteps; ++s) {
-            st.phaseIndex = (st.phaseIndex + 1) % 8;
-            stepperApplyPhase(st);
+            st.stateIndex = (st.stateIndex + 1) % st.stateCount;
+            stepperApplyState(st);
             delayMicroseconds(stepDelay);
-            if ((s & 0xFF) == 0) delay(0);  // feed watchdog every 256 steps
+            if ((s & 0xFF) == 0) delay(0);
         }
 
-        delay(0);  // feed watchdog between directions
-        debugPrintf("[STEPPER] Init sweep: returning to zero...\n");
+        delay(0);
+        debugPrintln("[STEPPER] Init sweep: returning to zero...");
 
-        // Full revolution backward to zero
         for (int32_t s = 0; s < sweepSteps; ++s) {
-            st.phaseIndex = (st.phaseIndex - 1 + 8) % 8;
-            stepperApplyPhase(st);
+            st.stateIndex = (st.stateIndex + st.stateCount - 1) % st.stateCount;
+            stepperApplyState(st);
             delayMicroseconds(stepDelay);
-            if ((s & 0xFF) == 0) delay(0);  // feed watchdog every 256 steps
+            if ((s & 0xFF) == 0) delay(0);
         }
 
-        // Confirm we're back at phase 0, position 0
         st.currentStep = 0;
         st.targetStep  = 0;
+        st.stateIndex  = 0;
         debugPrintln("[STEPPER] Init sweep complete — holding at zero.");
         return;
+    }
+}
+
+// Clamp/wrap target and wake motor if stopped (X27 accel needs this)
+static void stepperApplyTarget(StepperState& st, int32_t targetStep) {
+    int32_t ts = (int32_t)st.totalSteps;
+    if (st.continuous) {
+        targetStep = targetStep % ts;
+        if (targetStep < 0) targetStep += ts;
+    } else {
+        if (targetStep < 0)   targetStep = 0;
+        if (targetStep >= ts) targetStep = ts - 1;
+    }
+    st.targetStep = targetStep;
+    // Wake from stopped state (SwitecX25::setPosition pattern)
+    if (st.stopped && st.currentStep != targetStep) {
+        st.stopped = false;
+        st.time0 = micros();
+        st.microDelay = 0;
     }
 }
 
 void Stepper_set(uint8_t pin1, int32_t targetStep) {
     for (uint8_t i = 0; i < stepperCount; ++i) {
         if (stepperArray[i].pins[0] == pin1) {
-            int32_t ts = (int32_t)stepperArray[i].totalSteps;
-            if (stepperArray[i].continuous) {
-                // Wrap target into [0, totalSteps) for continuous-rotation
-                targetStep = targetStep % ts;
-                if (targetStep < 0) targetStep += ts;
-            } else {
-                // Clamp target for limited-sweep motors (never exceed end stops)
-                if (targetStep < 0)   targetStep = 0;
-                if (targetStep >= ts) targetStep = ts - 1;
-            }
-            stepperArray[i].targetStep = targetStep;
+            stepperApplyTarget(stepperArray[i], targetStep);
             return;
         }
     }
+}
+
+void Stepper_setById(uint8_t id, int32_t targetStep) {
+    if (id >= stepperCount) return;
+    stepperApplyTarget(stepperArray[id], targetStep);
 }
 
 void Stepper_tick() {
@@ -386,42 +483,148 @@ void Stepper_tick() {
     for (uint8_t i = 0; i < stepperCount; ++i) {
         StepperState& st = stepperArray[i];
         if (!st.enabled) continue;
-        if (st.currentStep == st.targetStep) {
-            // De-energize coils after 2 seconds idle to prevent overheating.
-            // The gearbox holds position through friction with coils off.
-            if (st.lastStepUs && (now - st.lastStepUs) > 2000000UL) {
-                stepperAllOff(st);
-                st.lastStepUs = 0;  // only de-energize once
+
+        // ── Non-blocking init sweep ──
+        // X27: uses acceleration (same as normal tracking — sweep proves accel works)
+        // 28BYJ: fixed usPerStep (geared motor doesn't need acceleration)
+        if (st.sweepPhase != SWEEP_NONE) {
+
+            // Timing gate — X27 uses accel-driven microDelay, 28BYJ uses fixed usPerStep
+            uint16_t delayUs = (st.stateCount == 6) ? st.microDelay : st.usPerStep;
+            if ((now - st.time0) < delayUs) continue;
+            st.time0 = now;
+
+            // Step in sweep direction
+            int8_t dir = (st.sweepPhase == SWEEP_FWD) ? 1 : -1;
+            if (dir > 0)
+                st.stateIndex = (st.stateIndex + 1) % st.stateCount;
+            else
+                st.stateIndex = (st.stateIndex + st.stateCount - 1) % st.stateCount;
+            stepperApplyState(st);
+            st.sweepProgress++;
+
+            // X27 acceleration during sweep (same logic as normal tracking)
+            if (st.stateCount == 6) {
+                int32_t remaining = st.sweepSteps - st.sweepProgress;
+                if (remaining > 0) {
+                    if (remaining < (int32_t)st.vel)        st.vel--;   // decelerate near end
+                    else if (st.vel < X27_MAX_VEL)          st.vel++;   // accelerate
+                } else {
+                    if (st.vel > 0) st.vel--;
+                }
+                st.microDelay = x27LookupDelay(st.vel);
+            }
+
+            if (st.sweepProgress >= st.sweepSteps) {
+                if (st.sweepPhase == SWEEP_FWD) {
+                    st.sweepPhase    = SWEEP_BWD;
+                    st.sweepProgress = 0;
+                    st.vel           = 0;       // restart acceleration for return
+                    st.microDelay    = 0;
+                    debugPrintln("[STEPPER] Init sweep: returning to zero...");
+                } else {
+                    st.sweepPhase  = SWEEP_NONE;
+                    st.currentStep = 0;
+                    st.stateIndex  = 0;
+                    st.vel         = 0;
+                    st.dir         = 0;
+                    stepperApplyState(st);
+                    // If DCS-BIOS set a target during the sweep, start tracking
+                    // immediately. Otherwise park as stopped. This prevents the
+                    // dedup issue where the value is never resent.
+                    if (st.targetStep != 0) {
+                        st.stopped    = false;
+                        st.time0      = now;
+                        st.microDelay = 0;
+                        debugPrintln("[STEPPER] Init sweep complete — tracking pending target.");
+                    } else {
+                        st.stopped = true;
+                        st.time0   = now;
+                        debugPrintln("[STEPPER] Init sweep complete — holding at zero.");
+                    }
+                }
             }
             continue;
         }
 
-        // Rate-limit: respect this motor's usPerStep timing
-        if ((now - st.lastStepUs) < st.usPerStep) continue;
-        st.lastStepUs = now;
+        // ── X27 with acceleration (stateCount == 6) ──
+        // Ported from SwitecX25::advance() — accel/decel/coast logic.
+        if (st.stateCount == 6) {
+            if (st.stopped) {
+                // De-energize after 2s idle
+                if (st.time0 && (now - st.time0) > 2000000UL) {
+                    stepperAllOff(st);
+                    st.time0 = 0;
+                }
+                continue;
+            }
+
+            if ((now - st.time0) < st.microDelay) continue;
+
+            // Detect arrival at target
+            if (st.currentStep == st.targetStep && st.vel == 0) {
+                st.stopped = true;
+                st.dir = 0;
+                st.time0 = now;
+                continue;
+            }
+
+            // Start from rest — pick direction (shortest path for continuous)
+            if (st.vel == 0) {
+                int32_t delta = st.targetStep - st.currentStep;
+                if (st.continuous) {
+                    int32_t half = (int32_t)st.totalSteps / 2;
+                    if (delta > half)        delta -= st.totalSteps;
+                    else if (delta < -half)  delta += st.totalSteps;
+                }
+                st.dir = (delta > 0) ? 1 : -1;
+                st.vel = 1;
+            }
+
+            // Advance one step
+            stepperStep(st, st.dir);
+
+            // Accel/decel logic (from SwitecX25)
+            int32_t delta = (st.dir > 0)
+                ? (st.targetStep  - st.currentStep)
+                : (st.currentStep - st.targetStep);
+
+            if (delta > 0) {
+                if (delta < (int32_t)st.vel)    st.vel--;       // decelerate
+                else if (st.vel < X27_MAX_VEL)  st.vel++;       // accelerate
+                // else: at max speed, hold
+            } else {
+                st.vel--;  // moving away from target (target changed mid-move)
+            }
+
+            st.microDelay = x27LookupDelay(st.vel);
+            st.time0 = now;
+            continue;
+        }
+
+        // ── 28BYJ-48 with fixed speed (stateCount == 8) ──
+        // Original working logic — one step per tick, rate-limited by usPerStep.
+        if (st.currentStep == st.targetStep) {
+            if (st.time0 && (now - st.time0) > 2000000UL) {
+                stepperAllOff(st);
+                st.time0 = 0;
+            }
+            continue;
+        }
+
+        if ((now - st.time0) < st.usPerStep) continue;
+        st.time0 = now;
 
         int32_t delta = st.targetStep - st.currentStep;
 
         if (st.continuous) {
-            // Shortest-path wraparound for continuous-rotation instruments
-            // (e.g., altimeter needle crossing the 12-o'clock position)
             int32_t half = (int32_t)st.totalSteps / 2;
             if (delta > half)        delta -= st.totalSteps;
             else if (delta < -half)  delta += st.totalSteps;
         }
-        // Limited-sweep motors: delta is used as-is (no wraparound),
-        // so the motor always traverses the valid sweep range.
 
         int8_t dir = (delta > 0) ? 1 : -1;
-        st.currentStep += dir;
-
-        // Wrap currentStep to [0, totalSteps) — only relevant for continuous motors
-        // but safe for limited-sweep (they never cross the boundary)
-        if (st.currentStep < 0)                       st.currentStep += st.totalSteps;
-        else if (st.currentStep >= st.totalSteps)     st.currentStep -= st.totalSteps;
-
-        st.phaseIndex = (uint8_t)((int8_t)st.phaseIndex + dir + 8) % 8;
-        stepperApplyPhase(st);
+        stepperStep(st, dir);
     }
 }
 

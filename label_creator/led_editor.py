@@ -150,9 +150,9 @@ _STEPPER_MOTOR_DESCRIPTIONS = {
         f"{DIM}The standard stepper for cockpit gauge needles.{RESET}",
         f"{DIM}Tiny, fast, and wires directly to ESP32 GPIO pins.{RESET}",
         "",
-        f"{DIM}  720 steps/rev \u2014 smooth needle movement{RESET}",
+        f"{DIM}  945 steps for 315\u00b0 (3 steps/degree, 6-state drive){RESET}",
         f"{DIM}  Stock: ~315\u00b0 max sweep (has mechanical end stop){RESET}",
-        f"{DIM}  Modded: remove the end-stop tab for full 360\u00b0{RESET}",
+        f"{DIM}  Acceleration required \u2014 ramps from 3000us to 600us/step{RESET}",
     ],
     "28BYJ": [
         f"{CYAN}{BOLD}28BYJ-48 + ULN2003{RESET} {DIM}\u2014 geared hobby stepper{RESET}",
@@ -168,9 +168,12 @@ _STEPPER_MOTOR_DESCRIPTIONS = {
 # ---------------------------------------------------------------------------
 # Stepper motor presets (steps_per_rev, us_per_step)
 # ---------------------------------------------------------------------------
+# Stepper motor presets (steps_per_rev, us_per_step, state_count)
+# X27: 6-state drive from SwitecX25 library, 945 steps for 315 deg
+# 28BYJ: 8-phase half-step, 4096 steps per revolution
 _STEPPER_PRESETS = {
-    "X27":  (720,  100),
-    "28BYJ": (4096, 1000),
+    "X27":   (945,  1200, 6),
+    "28BYJ": (4096, 1000, 8),
 }
 
 
@@ -317,22 +320,22 @@ def _generate_comment(device, info_type, info_values):
         return f"// MAGNETIC A={vals[0]} B={vals[1]}"
     if device == "MAGNETIC" and len(vals) >= 1:
         return f"// MAGNETIC A={vals[0]} (single)"
-    if device == "STEPPER" and len(vals) >= 7:
+    if device == "STEPPER" and len(vals) >= 8:
         try:
-            spd = int(vals[5].strip())
             tot = int(vals[4].strip())
+            sc  = int(vals[6].strip())
         except ValueError:
-            spd, tot = 1000, 0
-        motor = "X27" if spd <= 200 else "28BYJ"
-        spr = _STEPPER_PRESETS.get(motor, (720, 100))[0]
-        cont = vals[6].strip().lower() == "true"
+            tot, sc = 0, 8
+        motor = "X27" if sc == 6 else "28BYJ"
+        spr = _STEPPER_PRESETS.get(motor, (945, 800, 6))[0]
+        cont = vals[7].strip().lower() == "true"
         if cont:
             sweep = "360\u00b0 wrap"
         else:
             sweep = f"{round(tot * 360 / spr)}\u00b0" if spr else "?"
-        return f"// STEPPER {motor} pins {vals[0]},{vals[1]},{vals[2]},{vals[3]} {sweep} {vals[5]}us"
-    if device == "STEPPER" and len(vals) >= 6:
-        return f"// STEPPER pins {vals[0]},{vals[1]},{vals[2]},{vals[3]} steps={vals[4]} {vals[5]}us"
+        return f"// STEPPER {motor} pins {vals[0]},{vals[1]},{vals[2]},{vals[3]} {sweep} {sc}-state"
+    if device == "STEPPER" and len(vals) >= 7:
+        return f"// STEPPER pins {vals[0]},{vals[1]},{vals[2]},{vals[3]} steps={vals[4]} {vals[5]}us {vals[6]}-state"
     if device == "STEPPER" and len(vals) >= 5:
         return f"// STEPPER pins {vals[0]},{vals[1]},{vals[2]},{vals[3]} steps={vals[4]}"
     return "// No Info"
@@ -431,22 +434,22 @@ def _info_summary(record):
         return f"A={vals[0]} B={vals[1]}"
     if dev == "MAGNETIC" and len(vals) >= 1:
         return f"A={vals[0]} (single)"
-    if dev == "STEPPER" and len(vals) >= 7:
+    if dev == "STEPPER" and len(vals) >= 8:
         try:
-            spd = int(vals[5].strip())
             tot = int(vals[4].strip())
+            sc  = int(vals[6].strip())
         except ValueError:
-            spd, tot = 1000, 0
-        motor = "X27" if spd <= 200 else "28BYJ"
-        spr = _STEPPER_PRESETS.get(motor, (720, 100))[0]
-        cont = vals[6].strip().lower() == "true"
+            tot, sc = 0, 8
+        motor = "X27" if sc == 6 else "28BYJ"
+        spr = _STEPPER_PRESETS.get(motor, (945, 800, 6))[0]
+        cont = vals[7].strip().lower() == "true"
         if cont:
             sweep = "360\u00b0 wrap"
         else:
             sweep = f"{round(tot * 360 / spr)}\u00b0" if spr else "?"
         return f"{motor} {vals[0]},{vals[1]},{vals[2]},{vals[3]} {sweep}"
-    if dev == "STEPPER" and len(vals) >= 6:
-        return f"pins={vals[0]},{vals[1]},{vals[2]},{vals[3]} s={vals[4]} {vals[5]}us"
+    if dev == "STEPPER" and len(vals) >= 7:
+        return f"pins={vals[0]},{vals[1]},{vals[2]},{vals[3]} s={vals[4]} {vals[6]}-state"
     if dev == "STEPPER" and len(vals) >= 5:
         return f"pins={vals[0]},{vals[1]},{vals[2]},{vals[3]} s={vals[4]}"
     return record["info_values"][:20]
@@ -666,13 +669,13 @@ def _edit_record_inner(record, label, max_values):
         print(_SECTION_SEP)
 
         # ── Step 1: Motor type ──────────────────────────────────
-        # Infer default from stored usPerStep when re-editing
-        prev_speed = _extract_val(record["info_values"], 5, "1000")
+        # Infer default from stored stateCount when re-editing
+        prev_sc = _extract_val(record["info_values"], 6, "8")
         try:
-            prev_speed_val = int(prev_speed.strip())
+            prev_sc_val = int(prev_sc.strip())
         except ValueError:
-            prev_speed_val = 1000
-        default_motor = "X27" if prev_speed_val <= 200 else "28BYJ"
+            prev_sc_val = 8
+        default_motor = "X27" if prev_sc_val == 6 else "28BYJ"
 
         motor_choices = [
             ("X27.168 / VID29  \u2014 tiny gauge stepper, direct to GPIO", "X27"),
@@ -682,7 +685,7 @@ def _edit_record_inner(record, label, max_values):
                          descriptions=_STEPPER_MOTOR_DESCRIPTIONS)
         if motor is None: return False
 
-        steps_per_rev, us_per_step = _STEPPER_PRESETS[motor]
+        steps_per_rev, us_per_step, state_count = _STEPPER_PRESETS[motor]
 
         # ── Step 2: GPIO pins ──────────────────────────────────
         print()
@@ -714,7 +717,7 @@ def _edit_record_inner(record, label, max_values):
         ui.info(f"{DIM}  {BOLD}Partial sweep{RESET}{DIM} \u2014 needle swings an arc and stops at both ends{RESET}")
         ui.info(f"{DIM}    Examples: brake pressure, oil pressure, cabin altitude, fuel{RESET}")
 
-        prev_cont = _extract_val(record["info_values"], 6, "true")
+        prev_cont = _extract_val(record["info_values"], 7, "true")
         default_wrap = "wrap" if prev_cont.strip().lower() == "true" else "sweep"
 
         wrap_choices = [
@@ -752,7 +755,7 @@ def _edit_record_inner(record, label, max_values):
             # Calculate default angle from stored totalSteps.
             # Use the ORIGINAL motor's spr so the angle stays correct
             # even if the user is switching motor types.
-            old_spr = _STEPPER_PRESETS.get(default_motor, (720, 100))[0]
+            old_spr = _STEPPER_PRESETS.get(default_motor, (945, 800, 6))[0]
             prev_total = _extract_val(record["info_values"], 4, str(old_spr))
             try:
                 prev_total_int = int(prev_total.strip())
@@ -788,7 +791,7 @@ def _edit_record_inner(record, label, max_values):
             cont_val = "false"
 
         record["info_values"] = (f"{pin1.strip()}, {pin2.strip()}, {pin3.strip()}, "
-                                 f"{pin4.strip()}, {total_steps}, {us_per_step}, {cont_val}")
+                                 f"{pin4.strip()}, {total_steps}, {us_per_step}, {state_count}, {cont_val}")
 
     # Dimmable & Active Low — skip for GAUGE, MAGNETIC, STEPPER (not applicable)
     if dev in ("GAUGE", "MAGNETIC", "STEPPER"):

@@ -1489,7 +1489,7 @@ def run():
         # out.write("    struct { uint8_t index; } ws2812Info;\n")
         out.write("    struct { uint8_t index; uint8_t pin; uint8_t defR; uint8_t defG; uint8_t defB; uint8_t defBright; } ws2812Info;\n")
         out.write("    struct { uint8_t gpioA; uint8_t gpioB; } magneticInfo;  // gpioB=255 → single solenoid (2-pos)\n")
-        out.write("    struct { uint8_t pin1; uint8_t pin2; uint8_t pin3; uint8_t pin4; uint16_t totalSteps; uint16_t usPerStep; bool continuous; } stepperInfo;\n")
+        out.write("    struct { uint8_t pin1; uint8_t pin2; uint8_t pin3; uint8_t pin4; uint16_t totalSteps; uint16_t usPerStep; uint8_t stateCount; bool continuous; } stepperInfo;\n")
         out.write("  } info;\n")
         out.write("  bool dimmable;\n")
         out.write("  bool activeLow;\n")

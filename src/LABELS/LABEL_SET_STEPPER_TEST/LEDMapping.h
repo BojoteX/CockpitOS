@@ -25,7 +25,7 @@ struct LEDMapping {
     struct { uint8_t address; uint8_t column; uint8_t row; } gn1640Info;
     struct { uint8_t index; uint8_t pin; uint8_t defR; uint8_t defG; uint8_t defB; uint8_t defBright; } ws2812Info;
     struct { uint8_t gpioA; uint8_t gpioB; } magneticInfo;  // gpioB=255 → single solenoid (2-pos)
-    struct { uint8_t pin1; uint8_t pin2; uint8_t pin3; uint8_t pin4; uint16_t totalSteps; uint16_t usPerStep; bool continuous; } stepperInfo;
+    struct { uint8_t pin1; uint8_t pin2; uint8_t pin3; uint8_t pin4; uint16_t totalSteps; uint16_t usPerStep; uint8_t stateCount; bool continuous; } stepperInfo;
   } info;
   bool dimmable;
   bool activeLow;
@@ -33,13 +33,7 @@ struct LEDMapping {
 
 // Auto-generated panelLEDs array
 static const LEDMapping panelLEDs[] = {
-  { "STBY_ALT_10000_FT_CNT", DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "STBY_ALT_1000_FT_CNT" , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "STBY_ALT_100_FT_PTR"  , DEVICE_STEPPER , {.stepperInfo = {34, 36, 38, 40, 600, 100, false}}, false, false }, // STEPPER pins 34,36,38,40 steps=600 100us limited-sweep,
-  { "STBY_PRESS_ALT"       , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "STBY_PRESS_SET_0"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "STBY_PRESS_SET_1"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info,
-  { "STBY_PRESS_SET_2"     , DEVICE_NONE    , {.gpioInfo = {0}}, false, false }, // No Info
+  { "PRESSURE_ALT", DEVICE_STEPPER , {.stepperInfo = {34, 36, 40, 38, 827, 1200, 6, false}}, false, false }, // STEPPER pins 34,36,40,38 steps=827 1200us limited-sweep
 };
 
 static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]);
@@ -48,39 +42,6 @@ static constexpr uint16_t panelLEDsCount = sizeof(panelLEDs)/sizeof(panelLEDs[0]
 struct LEDHashEntry { const char* label; const LEDMapping* led; };
 static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
-  {"STBY_PRESS_SET_1", &panelLEDs[5]},
-  {nullptr, nullptr},
-  {"STBY_ALT_10000_FT_CNT", &panelLEDs[0]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"STBY_PRESS_SET_2", &panelLEDs[6]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"STBY_PRESS_ALT", &panelLEDs[3]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"STBY_ALT_100_FT_PTR", &panelLEDs[2]},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {nullptr, nullptr},
-  {"STBY_ALT_1000_FT_CNT", &panelLEDs[1]},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
@@ -93,7 +54,40 @@ static const LEDHashEntry ledHashTable[53] = {
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
-  {"STBY_PRESS_SET_0", &panelLEDs[4]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {"PRESSURE_ALT", &panelLEDs[0]},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
+  {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},
   {nullptr, nullptr},

@@ -225,7 +225,7 @@ The stepper engine is completely non-blocking. It runs inside the main loop with
 1. `setLED()` calculates the target step from the DCS-BIOS value and calls `Stepper_set()`.
 2. `Stepper_tick()` is called every frame from `tickOutputDrivers()`.
 3. For each stepper, `Stepper_tick()` checks if enough time has passed since the last step (based on `usPerStep`).
-4. If yes, it moves one step toward the target and updates the phase pattern on the 4 GPIO pins.
+4. If yes, it moves one step toward the target and updates the phase pattern on the 4 GPIO pins via ESP-IDF `gpio_set_level()`.
 5. If the target equals the current position, no work is done.
 
 This means the motor moves at its configured speed regardless of how fast DCS-BIOS values change. If a value jumps from 0 to 65535, the needle smoothly sweeps to the new position at the motor's maximum speed.
@@ -254,9 +254,10 @@ At power-up, each stepper goes through a two-phase initialization:
 - Motor sweeps backward to step 0
 - Confirms the needle returns to zero accurately
 - Uses the motor's configured speed (fast for X27, slower for 28BYJ)
-- Watchdog is fed every 256 steps to prevent resets
+- **Non-blocking** -- runs inside `Stepper_tick()` concurrently with other startup tasks
+- All steppers sweep at the same time; boot time = slowest motor, not the sum
 
-The init sweep is the same visual self-test that servo gauges perform at startup. Watch it to verify your needle travel matches the gauge face markings.
+The init sweep is the same visual self-test that servo gauges perform at startup. Watch it to verify your needle travel matches the gauge face markings. During the sweep, the main loop runs normally -- network, DCS-BIOS, and LED updates are all active.
 
 ---
 

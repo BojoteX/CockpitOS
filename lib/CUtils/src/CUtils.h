@@ -166,15 +166,19 @@ void    Servo_enable(uint8_t id);    // re-attach LEDC, servo holds position
 void    Servo_disable(uint8_t id);   // detach LEDC, servo goes limp
 void    Servo_detach(uint8_t id);    // release LEDC channel permanently
 
-// —— Stepper Motor (any 4-wire unipolar) ——
-// Non-blocking stepper driver: rate-limits each stepper to its usPerStep timing.
-// Supports geared motors (28BYJ-48, 800us) and direct-drive (X27.168, 100us).
+// —— Stepper Motor ——
+// Non-blocking stepper driver supporting two motor types:
+//   stateCount=8: 28BYJ-48 (8-phase half-step, fixed speed)
+//   stateCount=6: X27.168/VID29 (6-state, acceleration ramp from SwitecX25)
 #define MAX_STEPPERS 4
-void    Stepper_register(uint8_t pin1, uint8_t pin2, uint8_t pin3, uint8_t pin4,
-                         uint16_t totalSteps, uint16_t usPerStep, bool continuous);
-void    Stepper_initSweep(uint8_t pin1);                  // blocking self-test: full rev forward, then back to zero
+uint8_t Stepper_register(uint8_t pin1, uint8_t pin2, uint8_t pin3, uint8_t pin4,
+                         uint16_t totalSteps, uint16_t usPerStep,
+                         uint8_t stateCount, bool continuous);
+void    Stepper_startSweep(uint8_t pin1);                 // non-blocking init sweep (runs inside Stepper_tick)
+void    Stepper_initSweep(uint8_t pin1);                  // blocking init sweep (legacy, still available)
 void    Stepper_set(uint8_t pin1, int32_t targetStep);   // lookup by pin1, set target position
-void    Stepper_tick();                                   // advance one step per stepper; call from tickOutputDrivers()
+void    Stepper_setById(uint8_t id, int32_t targetStep); // O(1) direct access by index
+void    Stepper_tick();                                   // advance steppers toward targets; call from tickOutputDrivers()
 void    Stepper_setAllOff();                              // de-energize all coils (power saving)
 
 // —— Meta & Debug helpers —— 

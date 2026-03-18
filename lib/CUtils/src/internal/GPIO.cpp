@@ -11,14 +11,15 @@ void resetAllGauges() {
             AnalogG_registerGauge(led.info.gaugeInfo.gpio, led.info.gaugeInfo.minPulse, led.info.gaugeInfo.maxPulse);
             debugPrintf("[GAUGE] Registered Gauge %s on PIN %u\n", led.label, led.info.gaugeInfo.gpio);
 
-            // Optional: move gauge to default by setting value and calling AnalogG_tick repeatedly
-            for (int t = 0; t < 100; ++t) { // 100 pulses = 2 seconds at 20ms per pulse
-                AnalogG_pulseUs(led.info.gaugeInfo.gpio, led.info.gaugeInfo.minPulse, led.info.gaugeInfo.maxPulse, 65535); // max position
-                delay(led.info.gaugeInfo.period/1000); 
+            // Init sweep: bit-bang pulses to max then back to min for visual self-test.
+            // 30 pulses per direction (~0.6s each at 20ms) — enough for visual confirmation.
+            for (int t = 0; t < 30; ++t) {
+                AnalogG_pulseUs(led.info.gaugeInfo.gpio, led.info.gaugeInfo.minPulse, led.info.gaugeInfo.maxPulse, 65535);
+                delay(led.info.gaugeInfo.period/1000);
             }
-            for (int t = 0; t < 100; ++t) { // 100 pulses = 2 seconds at 20ms per pulse
-                AnalogG_pulseUs(led.info.gaugeInfo.gpio, led.info.gaugeInfo.minPulse, led.info.gaugeInfo.maxPulse, 0); // min position
-                delay(led.info.gaugeInfo.period / 1000); 
+            for (int t = 0; t < 30; ++t) {
+                AnalogG_pulseUs(led.info.gaugeInfo.gpio, led.info.gaugeInfo.minPulse, led.info.gaugeInfo.maxPulse, 0);
+                delay(led.info.gaugeInfo.period / 1000);
             }
 
         }
@@ -31,14 +32,14 @@ void resetAllGauges() {
         if (led.deviceType == DEVICE_STEPPER) {
             PanelRegistry_setActive(PanelKind::StepperMotor, true);
             const auto& si = led.info.stepperInfo;
-            Stepper_register(si.pin1, si.pin2, si.pin3, si.pin4, si.totalSteps, si.usPerStep, si.continuous);
-            debugPrintf("[STEPPER] Registered %s on pins %u,%u,%u,%u (%u steps, %uus/step, %s)\n",
-                led.label, si.pin1, si.pin2, si.pin3, si.pin4, si.totalSteps, si.usPerStep,
+            Stepper_register(si.pin1, si.pin2, si.pin3, si.pin4, si.totalSteps, si.usPerStep, si.stateCount, si.continuous);
+            debugPrintf("[STEPPER] Registered %s on pins %u,%u,%u,%u (%u steps, %u states, %s)\n",
+                led.label, si.pin1, si.pin2, si.pin3, si.pin4, si.totalSteps, si.stateCount,
                 si.continuous ? "continuous" : "limited-sweep");
 
-            // Init sweep: full revolution forward, then back to zero.
-            // Same visual self-test as servo gauges — confirms needle position.
-            Stepper_initSweep(si.pin1);
+            // Non-blocking init sweep — runs inside Stepper_tick().
+            // All steppers sweep concurrently; boot isn't blocked.
+            Stepper_startSweep(si.pin1);
         }
     }
     if (PanelRegistry_has(PanelKind::StepperMotor)) debugPrintln("[STEPPER] Stepper motors will update automatically.");

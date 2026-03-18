@@ -1,0 +1,6 @@
+
+# --- 2026-03-17T21:05:11.263385 [LEDMapping] ---
+# WARNING: 1 wired LED entry(ies) orphaned by generator.
+# These entries existed in LEDMapping.h with real device wiring
+# but were NOT produced by the current DcsOutputTable.
+  { "STBY_ALT_100_FT_PTR", DEVICE_STEPPER, {.stepperInfo = {34, 36, 38, 40, 720, 100, true}}, false, false }
