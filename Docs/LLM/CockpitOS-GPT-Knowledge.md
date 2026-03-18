@@ -174,7 +174,7 @@ Each label set is a folder in src/LABELS/LABEL_SET_<name>/ containing:
 | DEVICE_TM1637 | {clkPin, dioPin, segment, bit} | 7-segment display segment |
 | DEVICE_GN1640T | {address, column, row} | LED matrix position |
 | DEVICE_GAUGE | {gpio, minPulse, maxPulse, period} | Servo gauge (PWM) |
-| DEVICE_STEPPER | {pin1, pin2, pin3, pin4, totalSteps, usPerStep, continuous} | Stepper motor gauge |
+| DEVICE_STEPPER | {pin1, pin2, pin3, pin4, totalSteps, usPerStep, stateCount, continuous} | Stepper motor gauge (stateCount: 6=X27, 8=28BYJ) |
 | DEVICE_MAGNETIC | {gpioA, gpioB} | Solenoid switch (gpioB=255 for 2-pos) |
 
 ### Other Files
@@ -233,10 +233,10 @@ Each label set is a folder in src/LABELS/LABEL_SET_<name>/ containing:
 
 **Servo Gauges** — PWM-driven servo motors for physical gauge needles. DEVICE_GAUGE in LEDMapping.h. Maps DCS-BIOS value (0-65535) to servo pulse width (minPulse to maxPulse). External 5V power required — never power from ESP32.
 
-**Stepper Motor Gauges** — 4-wire stepper motors for precise gauge needles. DEVICE_STEPPER in LEDMapping.h. Two supported motors:
-- **X27.168 / VID29** — 720 steps/rev, 100us/step, direct to GPIO (no driver board). Stock ~315 deg sweep; modded (end stop removed) for full 360 deg. Best for partial-arc gauges (oil pressure, fuel, RPM).
-- **28BYJ-48 + ULN2003** — 4096 steps/rev, 1000us/step, needs ULN2003 driver board + external 5V. Continuous 360 deg always. Best for wrapping instruments (altimeters, heading indicators).
-Non-blocking: Stepper_tick() advances one step per call, rate-limited by usPerStep. Coils auto-de-energize after 2 seconds idle. Supports `continuous=true` (shortest-path wraparound) and `continuous=false` (limited sweep clamped to range). Label Creator wizard handles all motor math — user just picks motor type and enters angle in degrees.
+**Stepper Motor Gauges** — 4-wire stepper motors for precise gauge needles. DEVICE_STEPPER in LEDMapping.h. Two supported motors with different drive sequences:
+- **X27.168 / VID29** — 6-state drive (SwitecX25 library), 1080 steps/rev equivalent (945 steps for 315 deg, 3 steps/degree). Acceleration ramp: 3000us->600us/step. Direct to GPIO (no driver board). Stock ~315 deg sweep; modded (end stop removed) for full 360 deg. `stateCount=6`. Best for partial-arc gauges.
+- **28BYJ-48 + ULN2003** — 8-phase half-step, 4096 steps/rev, fixed 1000us/step. Needs ULN2003 driver board + external 5V. Continuous 360 deg always. `stateCount=8`. Best for wrapping instruments.
+Non-blocking: Stepper_tick() advances one step per call per stepper. X27 uses acceleration/deceleration; 28BYJ uses fixed rate. Coils auto-de-energize after 2 seconds idle. Init sweep is non-blocking (all steppers sweep concurrently at boot). Supports `continuous=true` (shortest-path wraparound) and `continuous=false` (limited sweep clamped to range). Label Creator wizard handles all motor math — user just picks motor type and enters angle in degrees.
 
 **Magnetic Solenoid Switches** — Force-feedback toggle switches using solenoid actuators. DEVICE_MAGNETIC in LEDMapping.h. Supports 2-position (single solenoid, gpioB=255) and 3-position (dual solenoid).
 
@@ -742,9 +742,9 @@ CockpitOS/
    For 28BYJ-48: wire 4 signal wires from ESP32 GPIO to ULN2003 driver board; power board from external 5V
 2. Open Label Creator > Edit Outputs (LEDs)
 3. Find the DCS-BIOS gauge value (e.g., STBY_ALT_100_FT_PTR)
-4. Set Device = STEPPER — the wizard walks through motor type, pins, angle, and wrap behavior
+4. Set Device = STEPPER -- the wizard walks through motor type (X27/6-state or 28BYJ/8-phase), pins, angle, and wrap behavior
 5. Recompile and upload
-6. At power-up, attach needle while motor holds phase 0 (zero position), then verify init sweep
+6. At power-up, attach needle while motor holds state 0 (zero position), then verify init sweep (non-blocking, all steppers sweep concurrently)
 
 ### "I want to use PCA9555 expanders for more I/O"
 1. Wire PCA9555 to I2C bus (SDA, SCL, 4.7K pull-ups to 3.3V)

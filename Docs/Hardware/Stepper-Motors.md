@@ -28,7 +28,7 @@ A stepper gauge consists of:
 |         \    [*]     /      | firmware  |                            |
 |          \ stepper  /       +-----------+                            |
 |           +--------+              |                                  |
-|                            8-phase half-step                         |
+|                            Motor-specific drive                      |
 |                            sequence on 4 GPIO                        |
 |                            pins (or via driver)                      |
 |                                                                      |
@@ -39,21 +39,23 @@ A stepper gauge consists of:
 
 ## Supported Motor Types
 
-CockpitOS supports two 4-wire unipolar stepper motors:
+CockpitOS supports two stepper motors, each with its own drive sequence:
 
-### X27.168 / VID29 (Direct Drive)
+### X27.168 / VID29 (Direct Drive, 6-State with Acceleration)
 
 ```
 +----------------------------------------------------------------------+
-|  X27.168 / VID29                                                     |
+|  X27.168 / VID29 / X25.168                                          |
 +----------------------------------------------------------------------+
 |                                                                      |
-|  Steps per revolution:  720 half-steps                               |
-|  Minimum step timing:   100 us/step                                  |
-|  Maximum sweep (stock):  ~315 degrees (mechanical end stop)          |
-|  Maximum sweep (modded): 360 degrees (end stop removed)              |
-|  Driver board:           NONE -- wires directly to ESP32 GPIO        |
-|  Current draw:           ~20mA per coil (safe for ESP32 GPIO)        |
+|  Steps for 315 deg:       945 (3 steps/degree, 6-state sequence)     |
+|  Full-rev equivalent:     1080 steps/360 deg                         |
+|  Drive sequence:          6-state (from SwitecX25 library)           |
+|  Speed control:           Acceleration ramp (3000us -> 600us/step)   |
+|  Maximum sweep (stock):   ~315 degrees (mechanical end stop)         |
+|  Maximum sweep (modded):  360 degrees (end stop removed)             |
+|  Driver board:            NONE -- wires directly to ESP32 GPIO       |
+|  Current draw:            ~20mA per coil (safe for ESP32 GPIO)       |
 |                                                                      |
 |  Best for: Oil pressure, hydraulic pressure, fuel quantity,          |
 |            RPM, cabin pressure -- any gauge under 360 degrees.       |
@@ -64,9 +66,11 @@ CockpitOS supports two 4-wire unipolar stepper motors:
 
 The X27.168 (also sold as VID29-05P or Switec) is the same motor used in real automotive instrument clusters. It is fast, silent, and draws so little current that it connects directly to ESP32 GPIO pins with no driver board.
 
+CockpitOS drives this motor using the **6-state sequence from the SwitecX25 library** (Guy Carpenter, Clearwater Software, BSD2 license). This is NOT a standard unipolar stepper -- it requires a specific drive pattern and cannot start at full speed. The firmware applies an **acceleration ramp** (3000us/step at rest, ramping down to 600us/step at cruise) to prevent stalling.
+
 **Stock vs Modded:** The stock X27.168 has a mechanical end stop that limits rotation to about 315 degrees. For gauges that need full 360-degree continuous rotation (like altimeter needles), remove the end stop. This is a common modification -- search "X27.168 remove end stop" for guides.
 
-### 28BYJ-48 + ULN2003 (Geared)
+### 28BYJ-48 + ULN2003 (Geared, 8-Phase Half-Step)
 
 ```
 +----------------------------------------------------------------------+
@@ -74,6 +78,8 @@ The X27.168 (also sold as VID29-05P or Switec) is the same motor used in real au
 +----------------------------------------------------------------------+
 |                                                                      |
 |  Steps per revolution:  4096 half-steps                              |
+|  Drive sequence:        8-phase half-step                            |
+|  Speed control:         Fixed rate (usPerStep, recommended 1000us)   |
 |  Optimal step timing:   1000 us/step (below ~800us it stalls)       |
 |  Maximum sweep:          Unlimited 360-degree rotation               |
 |  Driver board:           ULN2003 (required -- do NOT skip)           |
@@ -97,8 +103,9 @@ The 28BYJ-48 is a geared motor -- cheap, widely available, and very strong. The 
 
 | Factor | X27.168 | 28BYJ-48 |
 |--------|---------|----------|
-| Speed | Fast (100us/step) | Slow (1000us/step) |
-| Resolution | 720 steps/rev (0.5 deg) | 4096 steps/rev (0.088 deg) |
+| Drive sequence | 6-state (SwitecX25) | 8-phase half-step |
+| Speed | Accel ramp: 3000->600us | Fixed: 1000us/step |
+| Resolution | 1080 steps/rev (0.33 deg) | 4096 steps/rev (0.088 deg) |
 | Driver board | None needed | ULN2003 required |
 | Wiring | 4 wires to GPIO | 4 wires to ULN2003 board |
 | Cost | ~$3-5 each | ~$1-2 each (with board) |
@@ -116,8 +123,8 @@ The 28BYJ-48 is a geared motor -- cheap, widely available, and very strong. The 
 Stepper motors are configured in LEDMapping.h using the `DEVICE_STEPPER` device type:
 
 ```cpp
-//  label                deviceType       info                                                            dimmable  activeLow
-{ "STBY_ALT_100_FT_PTR", DEVICE_STEPPER, {.stepperInfo = {34, 36, 38, 40, 600, 100, false}}, false, false },
+//  label                deviceType       info                                                                  dimmable  activeLow
+{ "PRESSURE_ALT", DEVICE_STEPPER, {.stepperInfo = {34, 36, 40, 38, 900, 1200, 6, false}}, false, false },
 ```
 
 **Field reference for stepperInfo:**
@@ -126,13 +133,18 @@ Stepper motors are configured in LEDMapping.h using the `DEVICE_STEPPER` device 
 |-------|---------|---------|
 | pin1 | `34` | GPIO pin for motor coil IN1 |
 | pin2 | `36` | GPIO pin for motor coil IN2 |
-| pin3 | `38` | GPIO pin for motor coil IN3 |
-| pin4 | `40` | GPIO pin for motor coil IN4 |
-| totalSteps | `600` | Total steps for the gauge's full range |
-| usPerStep | `100` | Microseconds per step (motor speed limit) |
+| pin3 | `40` | GPIO pin for motor coil IN3 |
+| pin4 | `38` | GPIO pin for motor coil IN4 |
+| totalSteps | `900` | Total steps for the gauge's full range |
+| usPerStep | `1200` | Base speed (28BYJ fixed rate; X27 uses accel table instead) |
+| stateCount | `6` | Drive sequence: `6` for X27, `8` for 28BYJ |
 | continuous | `false` | `true` = 360-degree wraparound, `false` = limited sweep |
 
-**totalSteps** is NOT always the motor's steps-per-revolution. It is the number of steps for your gauge's usable range. For a 300-degree gauge on an X27.168: `720 * 300 / 360 = 600 steps`. The Label Creator calculates this automatically from the angle you enter.
+**totalSteps** is NOT always the motor's steps-per-revolution. It is the number of steps for your gauge's usable range. For a 300-degree gauge on an X27.168: `1080 * 300 / 360 = 900 steps`. The Label Creator calculates this automatically from the angle you enter.
+
+**stateCount** selects the drive sequence:
+- `6` = X27.168 6-state sequence with acceleration (from SwitecX25 library)
+- `8` = 28BYJ-48 8-phase half-step with fixed speed
 
 **continuous** controls how the firmware moves the needle:
 - `false` (limited sweep): target is clamped to `[0, totalSteps-1]`. The needle moves directly from current to target. Used for partial-arc gauges (oil pressure, fuel, RPM).
@@ -195,25 +207,25 @@ CockpitOS maps the 16-bit DCS-BIOS value (0-65535) to a step position:
 target = (uint32_t)rawValue * totalSteps / 65536
 ```
 
-**Examples with a 300-degree gauge (600 steps, X27.168):**
+**Examples with a 300-degree gauge (900 steps, X27.168):**
 
 | DCS-BIOS Value | Calculation | Target Step | Needle Position |
 |----------------|-------------|-------------|-----------------|
-| 0 | 0 * 600 / 65536 | 0 | 0 degrees |
-| 16383 | 16383 * 600 / 65536 | 149 | ~75 degrees |
-| 32767 | 32767 * 600 / 65536 | 299 | ~150 degrees |
-| 49151 | 49151 * 600 / 65536 | 449 | ~225 degrees |
-| 65535 | 65535 * 600 / 65536 | 599 | ~300 degrees |
+| 0 | 0 * 900 / 65536 | 0 | 0 degrees |
+| 16383 | 16383 * 900 / 65536 | 224 | ~75 degrees |
+| 32767 | 32767 * 900 / 65536 | 449 | ~150 degrees |
+| 49151 | 49151 * 900 / 65536 | 674 | ~225 degrees |
+| 65535 | 65535 * 900 / 65536 | 899 | ~300 degrees |
 
-**Examples with a 360-degree altimeter (720 steps, X27.168 modded, continuous):**
+**Examples with a 360-degree altimeter (1080 steps, X27.168 modded, continuous):**
 
 | DCS-BIOS Value | Target Step | Needle Position |
 |----------------|-------------|-----------------|
 | 0 | 0 | 12 o'clock |
-| 32767 | 359 | 6 o'clock |
-| 65535 | 719 | Just before 12 o'clock |
+| 32767 | 539 | 6 o'clock |
+| 65535 | 1079 | Just before 12 o'clock |
 
-With `continuous=true`, if the needle is at step 10 and the target jumps to step 710, the firmware moves 20 steps backward (shortest path) instead of 700 steps forward.
+With `continuous=true`, if the needle is at step 10 and the target jumps to step 1070, the firmware moves 20 steps backward (shortest path) instead of 1060 steps forward.
 
 ---
 
@@ -224,11 +236,15 @@ The stepper engine is completely non-blocking. It runs inside the main loop with
 **How it works:**
 1. `setLED()` calculates the target step from the DCS-BIOS value and calls `Stepper_set()`.
 2. `Stepper_tick()` is called every frame from `tickOutputDrivers()`.
-3. For each stepper, `Stepper_tick()` checks if enough time has passed since the last step (based on `usPerStep`).
-4. If yes, it moves one step toward the target and updates the phase pattern on the 4 GPIO pins via ESP-IDF `gpio_set_level()`.
+3. For each stepper, `Stepper_tick()` checks if enough time has passed since the last step.
+4. If yes, it moves one step toward the target and updates the drive pattern on the 4 GPIO pins via ESP-IDF `gpio_set_level()`.
 5. If the target equals the current position, no work is done.
 
-This means the motor moves at its configured speed regardless of how fast DCS-BIOS values change. If a value jumps from 0 to 65535, the needle smoothly sweeps to the new position at the motor's maximum speed.
+**Motor-specific behavior:**
+- **X27 (stateCount=6):** Uses acceleration/deceleration from the SwitecX25 library. Starts slow (3000us/step), ramps to cruise speed (600us/step), decelerates near the target. Direction is recalculated from rest using shortest-path for continuous motors.
+- **28BYJ (stateCount=8):** Fixed rate, one step per tick, rate-limited by `usPerStep`. Simple and predictable.
+
+This means the motor moves at its configured speed regardless of how fast DCS-BIOS values change. If a value jumps from 0 to 65535, the needle smoothly sweeps to the new position.
 
 ### Idle De-Energize
 
@@ -246,18 +262,20 @@ At power-up, each stepper goes through a two-phase initialization:
 
 ### Phase 1: Registration
 - All 4 pins are configured as OUTPUT
-- Phase 0 of the half-step sequence is applied (motor snaps to detent)
-- **This is the needle attachment point** -- mount your needle at the zero mark while the motor holds phase 0
+- State 0 of the drive sequence is applied (motor snaps to detent)
+- **This is the needle attachment point** -- mount your needle at the zero mark while the motor holds state 0
 
 ### Phase 2: Init Sweep (Self-Test)
 - Motor sweeps forward to `totalSteps` (capped at 4096 steps max)
 - Motor sweeps backward to step 0
 - Confirms the needle returns to zero accurately
-- Uses the motor's configured speed (fast for X27, slower for 28BYJ)
+- Uses the motor's own drive mode (X27 with acceleration, 28BYJ at fixed speed)
 - **Non-blocking** -- runs inside `Stepper_tick()` concurrently with other startup tasks
 - All steppers sweep at the same time; boot time = slowest motor, not the sum
 
 The init sweep is the same visual self-test that servo gauges perform at startup. Watch it to verify your needle travel matches the gauge face markings. During the sweep, the main loop runs normally -- network, DCS-BIOS, and LED updates are all active.
+
+If a DCS-BIOS value arrives during the sweep, it is stored and the motor begins tracking the target immediately after the sweep completes.
 
 ---
 
@@ -273,15 +291,17 @@ totalSteps = stepsPerRevolution * angle / 360
 
 | Motor | Steps/Rev | 90 deg | 180 deg | 270 deg | 300 deg | 315 deg | 360 deg |
 |-------|-----------|--------|---------|---------|---------|---------|---------|
-| X27.168 | 720 | 180 | 360 | 540 | 600 | 630 | 720 |
+| X27.168 | 1080 | 270 | 540 | 810 | 900 | 945 | 1080 |
 | 28BYJ-48 | 4096 | 1024 | 2048 | 3072 | 3413 | 3584 | 4096 |
+
+Note: The X27 has 945 physical steps for 315 degrees (3 steps/degree). The "1080 steps/rev" is the full-revolution equivalent used in the angle formula. For 315 degrees, the formula correctly produces 945.
 
 ### If the Needle Doesn't Match the Gauge Face
 
 - **Needle travels too far:** Decrease the angle (fewer totalSteps)
 - **Needle doesn't reach full scale:** Increase the angle (more totalSteps)
 - **Needle spins the wrong direction:** Swap pin2 and pin3 in LEDMapping.h
-- **Needle starts at the wrong position:** Re-mount the needle while the motor holds phase 0 at power-up (before init sweep begins)
+- **Needle starts at the wrong position:** Re-mount the needle while the motor holds state 0 at power-up (before init sweep begins)
 
 ### Continuous vs Limited Sweep
 
@@ -298,12 +318,12 @@ Choose `continuous=true` ONLY when the DCS-BIOS value represents a wrapping quan
 Each stepper uses 4 GPIO pins. CockpitOS supports up to `MAX_STEPPERS=4` stepper motors simultaneously.
 
 ```cpp
-{ "STBY_ALT_100_FT_PTR", DEVICE_STEPPER, {.stepperInfo = {34, 36, 38, 40, 720, 100, true}},  false, false },
-{ "HYD_IND_BRAKE",       DEVICE_STEPPER, {.stepperInfo = {5,  6,  7,  8,  60,  100, false}}, false, false },
-{ "PRESSURE_ALT",        DEVICE_STEPPER, {.stepperInfo = {9, 10, 11, 12, 600, 1000, false}}, false, false },
+{ "STBY_ALT_100_FT_PTR", DEVICE_STEPPER, {.stepperInfo = {34, 36, 38, 40, 1080, 1200, 6, true}},  false, false },
+{ "HYD_IND_BRAKE",       DEVICE_STEPPER, {.stepperInfo = {5,  6,  7,  8,  90,   1200, 6, false}}, false, false },
+{ "PRESSURE_ALT",        DEVICE_STEPPER, {.stepperInfo = {9, 10, 11, 12, 3413,  1000, 8, false}}, false, false },
 ```
 
-Each stepper runs independently with its own speed, step count, and wrap behavior.
+Each stepper runs independently with its own drive sequence, step count, and wrap behavior.
 
 ---
 
@@ -316,13 +336,13 @@ The Label Creator provides a guided wizard for stepper configuration:
 3. Find the gauge indicator label (must match a DCS-BIOS output)
 4. Set **Device** = `STEPPER`
 5. The wizard walks you through:
-   - **Motor type:** X27.168 or 28BYJ-48 (sets speed and steps-per-rev automatically)
+   - **Motor type:** X27.168 or 28BYJ-48 (sets drive sequence, speed, and steps-per-rev automatically)
    - **GPIO pins:** IN1 through IN4 (with motor-specific wiring hints)
    - **Needle behavior:** "Wraps around 360 degrees" or "Partial sweep (limited angle)"
    - **Sweep angle:** In degrees, with gauge-type examples
 6. Save
 
-The wizard calculates `totalSteps` and `usPerStep` automatically based on the motor type and angle. You never need to calculate raw step counts.
+The wizard calculates `totalSteps`, `usPerStep`, and `stateCount` automatically based on the motor type and angle. You never need to calculate raw step counts.
 
 ---
 
@@ -333,8 +353,8 @@ The wizard calculates `totalSteps` and `usPerStep` automatically based on the mo
 DCS-BIOS output `PRESSURE_ALT` (0-65535, maps to 0-50,000 ft). Gauge face spans approximately 300 degrees.
 
 ```cpp
-{ "PRESSURE_ALT", DEVICE_STEPPER, {.stepperInfo = {34, 36, 38, 40, 600, 100, false}}, false, false },
-// X27.168, 300 deg = 600 steps, limited sweep
+{ "PRESSURE_ALT", DEVICE_STEPPER, {.stepperInfo = {34, 36, 40, 38, 900, 1200, 6, false}}, false, false },
+// X27.168, 300 deg = 900 steps, 6-state, limited sweep
 ```
 
 ### Brake Pressure (~30 degrees, X27.168)
@@ -342,8 +362,8 @@ DCS-BIOS output `PRESSURE_ALT` (0-65535, maps to 0-50,000 ft). Gauge face spans 
 DCS-BIOS output `HYD_IND_BRAKE` (0-65535, maps to 0-4000 PSI). Tiny gauge arc of about 30 degrees.
 
 ```cpp
-{ "HYD_IND_BRAKE", DEVICE_STEPPER, {.stepperInfo = {5, 6, 7, 8, 60, 100, false}}, false, false },
-// X27.168, 30 deg = 60 steps, limited sweep
+{ "HYD_IND_BRAKE", DEVICE_STEPPER, {.stepperInfo = {5, 6, 7, 8, 90, 1200, 6, false}}, false, false },
+// X27.168, 30 deg = 90 steps, 6-state, limited sweep
 ```
 
 ### Standby Altimeter Needle (360 degrees, X27.168 modded)
@@ -351,8 +371,8 @@ DCS-BIOS output `HYD_IND_BRAKE` (0-65535, maps to 0-4000 PSI). Tiny gauge arc of
 DCS-BIOS output `STBY_ALT_100_FT_PTR` (0-65535, maps to one full revolution representing 0-1000 ft). The DCS value wraps -- when the altimeter passes 1000 ft, the value resets to 0.
 
 ```cpp
-{ "STBY_ALT_100_FT_PTR", DEVICE_STEPPER, {.stepperInfo = {34, 36, 38, 40, 720, 100, true}}, false, false },
-// X27.168 modded (end stop removed), 360 deg = 720 steps, continuous wraparound
+{ "STBY_ALT_100_FT_PTR", DEVICE_STEPPER, {.stepperInfo = {34, 36, 38, 40, 1080, 1200, 6, true}}, false, false },
+// X27.168 modded (end stop removed), 360 deg = 1080 steps, 6-state, continuous wraparound
 ```
 
 ---
@@ -360,7 +380,7 @@ DCS-BIOS output `STBY_ALT_100_FT_PTR` (0-65535, maps to one full revolution repr
 ## Practical Tips
 
 ### Needle Attachment
-- Power up the ESP32 and wait for the motor to hold phase 0
+- Power up the ESP32 and wait for the motor to hold state 0
 - Attach the needle pointing at the zero mark on your gauge face
 - The init sweep will then confirm the full travel range
 
@@ -390,10 +410,11 @@ DCS-BIOS output `STBY_ALT_100_FT_PTR` (0-65535, maps to one full revolution repr
 | Needle goes the wrong direction | Pin order reversed | Swap pin2 and pin3 in LEDMapping.h |
 | Needle overshoots gauge markings | totalSteps too high (angle too large) | Decrease the angle in Label Creator |
 | Needle does not reach full scale | totalSteps too low (angle too small) | Increase the angle in Label Creator |
-| Needle jumps to wrong position after power cycle | Needle not attached at phase 0 | Re-mount needle: power up, wait for motor to hold, attach at zero mark |
+| Needle jumps to wrong position after power cycle | Needle not attached at state 0 | Re-mount needle: power up, wait for motor to hold, attach at zero mark |
 | ESP32 resets during init sweep | 28BYJ-48 drawing power from ESP32 | Use external 5V power through ULN2003 board |
 | Motor gets hot | Coils energized for too long | This should not happen -- coils de-energize after 2s idle. Check firmware version |
 | Needle wraps around unexpectedly | continuous=true on a limited-sweep gauge | Set continuous=false in LEDMapping.h or Label Creator |
+| X27 stalls at startup | Missing acceleration ramp | Ensure stateCount=6 (not 8) for X27 motors |
 
 ---
 
@@ -401,8 +422,9 @@ DCS-BIOS output `STBY_ALT_100_FT_PTR` (0-65535, maps to one full revolution repr
 
 | Parameter | X27.168 | 28BYJ-48 |
 |-----------|---------|----------|
-| Steps per revolution | 720 | 4096 |
-| usPerStep (minimum) | 100 | 800-1000 |
+| Steps per revolution | 1080 (945 for 315 deg) | 4096 |
+| Drive sequence | 6-state (SwitecX25) | 8-phase half-step |
+| Speed control | Acceleration: 3000->600us | Fixed: 1000us/step |
 | Driver board | None | ULN2003 |
 | Max simultaneous | 4 (MAX_STEPPERS) | 4 (MAX_STEPPERS) |
 | Continuous rotation | Requires mod | Always supported |
@@ -410,7 +432,7 @@ DCS-BIOS output `STBY_ALT_100_FT_PTR` (0-65535, maps to one full revolution repr
 
 | Device Type | `DEVICE_STEPPER` |
 |-------------|------------------|
-| Info struct | `{.stepperInfo = {pin1, pin2, pin3, pin4, totalSteps, usPerStep, continuous}}` |
+| Info struct | `{.stepperInfo = {pin1, pin2, pin3, pin4, totalSteps, usPerStep, stateCount, continuous}}` |
 | Dimmable | `false` (not applicable) |
 | Active Low | `false` (not applicable) |
 
@@ -418,7 +440,8 @@ DCS-BIOS output `STBY_ALT_100_FT_PTR` (0-65535, maps to one full revolution repr
 |-------------------|-------|
 | `MAX_STEPPERS` | 4 |
 | Idle de-energize timeout | 2 seconds |
-| Half-step phases | 8 |
+| X27 state count | 6 |
+| 28BYJ phase count | 8 |
 | Init sweep cap | min(totalSteps, 4096) |
 
 ---

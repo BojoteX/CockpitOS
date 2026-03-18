@@ -1,6 +1,6 @@
 # How To: Wire Stepper Motors
 
-Stepper-driven gauges use 4-wire stepper motors to move physical needles on gauge faces. DCS-BIOS sends 16-bit values (0-65535), and CockpitOS maps them to step positions using a non-blocking 8-phase half-step sequence.
+Stepper-driven gauges use 4-wire stepper motors to move physical needles on gauge faces. DCS-BIOS sends 16-bit values (0-65535), and CockpitOS maps them to step positions using a non-blocking motor-specific drive sequence.
 
 ---
 
@@ -10,7 +10,7 @@ Stepper-driven gauges use 4-wire stepper motors to move physical needles on gaug
 
 | Item | Notes |
 |---|---|
-| X27.168 or VID29-05P stepper motor | 720 steps/rev, ~315 deg stock sweep. Modded (end stop removed) for full 360 deg. |
+| X27.168 or VID29-05P stepper motor | 945 steps for 315 deg (6-state drive). Modded (end stop removed) for full 360 deg. |
 | 4 hookup wires | Signal wires from ESP32 GPIO to motor coils |
 | Gauge face (printed or fabricated) | Markings for the needle to traverse |
 | Needle | Press-fit or glue to motor shaft |
@@ -103,8 +103,8 @@ The 28BYJ-48 draws ~240mA -- far too much for direct GPIO. The ULN2003 board sit
 Stepper motors are configured as LED outputs with `DEVICE_STEPPER` device type. Each stepper gets one row in LEDMapping.h:
 
 ```cpp
-//  label                deviceType       info                                                    dimmable  activeLow
-{ "STBY_ALT_100_FT_PTR", DEVICE_STEPPER, {.stepperInfo = {34, 36, 38, 40, 720, 100, true}}, false, false },
+//  label                deviceType       info                                                                  dimmable  activeLow
+{ "STBY_ALT_100_FT_PTR", DEVICE_STEPPER, {.stepperInfo = {34, 36, 38, 40, 1080, 1200, 6, true}}, false, false },
 ```
 
 **Field reference for stepperInfo:**
@@ -115,8 +115,9 @@ Stepper motors are configured as LED outputs with `DEVICE_STEPPER` device type. 
 | pin2 | `36` | GPIO pin connected to motor coil IN2 |
 | pin3 | `38` | GPIO pin connected to motor coil IN3 |
 | pin4 | `40` | GPIO pin connected to motor coil IN4 |
-| totalSteps | `720` | Number of steps for the full gauge range |
-| usPerStep | `100` | Microseconds per step (motor speed limit) |
+| totalSteps | `1080` | Number of steps for the full gauge range |
+| usPerStep | `1200` | Base speed (28BYJ fixed rate; X27 uses accel table instead) |
+| stateCount | `6` | Drive sequence: `6` for X27, `8` for 28BYJ |
 | continuous | `true` | `true` for 360-degree wraparound, `false` for limited sweep |
 
 ---
@@ -134,7 +135,7 @@ Stepper motors are configured as LED outputs with `DEVICE_STEPPER` device type. 
    - **Angle:** enter degrees (e.g., 300 for cabin altimeter, 30 for brake pressure)
 6. Save
 
-The wizard automatically calculates `totalSteps` and `usPerStep` from the motor type and angle. No manual math required.
+The wizard automatically calculates `totalSteps`, `usPerStep`, and `stateCount` from the motor type and angle. No manual math required.
 
 ---
 
@@ -142,7 +143,7 @@ The wizard automatically calculates `totalSteps` and `usPerStep` from the motor 
 
 The needle attachment procedure is different from servo gauges. With steppers, the motor holds a precise reference position at power-up:
 
-1. Power up the ESP32 -- the motor snaps to phase 0 (its zero detent)
+1. Power up the ESP32 -- the motor snaps to state 0 (its zero detent)
 2. While the motor is holding, press-fit or glue your needle pointing at the **zero mark** on the gauge face
 3. The init sweep will run next (sweeps forward then back to zero) -- watch it to confirm the range matches your gauge markings
 4. If the sweep overshoots or undershoots, adjust the angle in Label Creator and re-upload
@@ -151,7 +152,7 @@ The needle attachment procedure is different from servo gauges. With steppers, t
 
 ## Step 5: Verify the Sweep
 
-At power-up, CockpitOS automatically runs an init sweep for each stepper:
+At power-up, CockpitOS automatically runs an init sweep for each stepper (non-blocking, all steppers sweep concurrently):
 
 1. Sweeps forward to `totalSteps` (capped at 4096 to keep it short)
 2. Sweeps backward to step 0
@@ -180,9 +181,9 @@ If the 28BYJ-48 vibrates but does not turn during the sweep, increase `usPerStep
 Each stepper uses 4 GPIO pins. Up to 4 steppers are supported simultaneously (MAX_STEPPERS=4):
 
 ```cpp
-{ "STBY_ALT_100_FT_PTR", DEVICE_STEPPER, {.stepperInfo = {34, 36, 38, 40, 720, 100, true}},  false, false },
-{ "HYD_IND_BRAKE",       DEVICE_STEPPER, {.stepperInfo = {5,  6,  7,  8,  60,  100, false}}, false, false },
-{ "PRESSURE_ALT",        DEVICE_STEPPER, {.stepperInfo = {9, 10, 11, 12, 600, 1000, false}}, false, false },
+{ "STBY_ALT_100_FT_PTR", DEVICE_STEPPER, {.stepperInfo = {34, 36, 38, 40, 1080, 1200, 6, true}},  false, false },
+{ "HYD_IND_BRAKE",       DEVICE_STEPPER, {.stepperInfo = {5,  6,  7,  8,  90,   1200, 6, false}}, false, false },
+{ "PRESSURE_ALT",        DEVICE_STEPPER, {.stepperInfo = {9, 10, 11, 12, 3413,  1000, 8, false}}, false, false },
 ```
 
 Each stepper can use a different motor type, angle, and wrap behavior.
@@ -209,10 +210,11 @@ Each stepper can use a different motor type, angle, and wrap behavior.
 | Needle spins the wrong direction | Motor coil order reversed | Swap pin2 and pin3 in LEDMapping.h (or in Label Creator) |
 | Needle does not reach full scale | Angle too small (too few totalSteps) | Increase the angle in Label Creator |
 | Needle overshoots the gauge | Angle too large (too many totalSteps) | Decrease the angle in Label Creator |
-| Needle starts at wrong position | Not attached at phase 0 | Re-mount: power up, wait for motor to hold, attach at zero mark |
+| Needle starts at wrong position | Not attached at state 0 | Re-mount: power up, wait for motor to hold, attach at zero mark |
 | ESP32 resets on startup | 28BYJ-48 drawing power from ESP32 pins | Use external 5V supply through ULN2003 board |
 | Needle wraps when it should not | continuous=true on a partial-sweep gauge | Set continuous=false |
 | Needle takes the long way around | continuous=false on a wrapping instrument | Set continuous=true |
+| X27 stalls when starting | stateCount wrong | Ensure stateCount=6 for X27 (not 8) |
 
 ---
 
@@ -220,8 +222,9 @@ Each stepper can use a different motor type, angle, and wrap behavior.
 
 | Parameter | X27.168 | 28BYJ-48 |
 |---|---|---|
-| Steps per revolution | 720 | 4096 |
-| usPerStep (recommended) | 100 | 1000 |
+| Steps per revolution | 1080 (945 for 315 deg) | 4096 |
+| Drive sequence | 6-state (SwitecX25) | 8-phase half-step |
+| Speed | Accel ramp: 3000->600us | Fixed: 1000us/step |
 | Driver board | None | ULN2003 |
 | External power | None | 5V 1A+ |
 | Continuous 360 | Requires end stop removal | Always |

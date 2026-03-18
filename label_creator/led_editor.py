@@ -166,13 +166,14 @@ _STEPPER_MOTOR_DESCRIPTIONS = {
 }
 
 # ---------------------------------------------------------------------------
-# Stepper motor presets (steps_per_rev, us_per_step)
-# ---------------------------------------------------------------------------
 # Stepper motor presets (steps_per_rev, us_per_step, state_count)
-# X27: 6-state drive from SwitecX25 library, 945 steps for 315 deg
-# 28BYJ: 8-phase half-step, 4096 steps per revolution
+# ---------------------------------------------------------------------------
+# steps_per_rev = steps for a FULL 360-degree revolution (used in angle formula).
+# X27: 6-state drive (SwitecX25). Motor has 945 steps for 315 deg = 3 steps/deg.
+#      Full-revolution equivalent: 3 * 360 = 1080 steps/rev.
+# 28BYJ: 8-phase half-step, 4096 steps per revolution.
 _STEPPER_PRESETS = {
-    "X27":   (945,  1200, 6),
+    "X27":   (1080, 1200, 6),
     "28BYJ": (4096, 1000, 8),
 }
 
@@ -327,7 +328,7 @@ def _generate_comment(device, info_type, info_values):
         except ValueError:
             tot, sc = 0, 8
         motor = "X27" if sc == 6 else "28BYJ"
-        spr = _STEPPER_PRESETS.get(motor, (945, 800, 6))[0]
+        spr = _STEPPER_PRESETS.get(motor, (1080, 1200, 6))[0]
         cont = vals[7].strip().lower() == "true"
         if cont:
             sweep = "360\u00b0 wrap"
@@ -441,7 +442,7 @@ def _info_summary(record):
         except ValueError:
             tot, sc = 0, 8
         motor = "X27" if sc == 6 else "28BYJ"
-        spr = _STEPPER_PRESETS.get(motor, (945, 800, 6))[0]
+        spr = _STEPPER_PRESETS.get(motor, (1080, 1200, 6))[0]
         cont = vals[7].strip().lower() == "true"
         if cont:
             sweep = "360\u00b0 wrap"
@@ -755,7 +756,7 @@ def _edit_record_inner(record, label, max_values):
             # Calculate default angle from stored totalSteps.
             # Use the ORIGINAL motor's spr so the angle stays correct
             # even if the user is switching motor types.
-            old_spr = _STEPPER_PRESETS.get(default_motor, (945, 800, 6))[0]
+            old_spr = _STEPPER_PRESETS.get(default_motor, (1080, 1200, 6))[0]
             prev_total = _extract_val(record["info_values"], 4, str(old_spr))
             try:
                 prev_total_int = int(prev_total.strip())
