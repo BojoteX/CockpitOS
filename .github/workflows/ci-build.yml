@@ -133,6 +133,7 @@ jobs:
           set -o pipefail
           FQBN="esp32:esp32:esp32s3:UploadSpeed=921600,CDCOnBoot=default,FlashSize=16M,PartitionScheme=noota_ffat,USBMode=default"
 
+          arduino-cli core list
           arduino-cli compile \
             --fqbn "$FQBN" \
             --warnings all \
